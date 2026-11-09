@@ -8,7 +8,7 @@ on:
 jobs:
   build-ios:
     name: Build iOS (macOS Xcode)
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - name: Checkout Código
         uses: actions/checkout@v4
