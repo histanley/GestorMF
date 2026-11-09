@@ -11033,7 +11033,7 @@ body.light-theme .status-static-tag {
 
 @media (max-width: 768px) {
   .login-top-bar {
-    padding-top: max(calc(env(safe-area-inset-top, 0px) + 16px), 54px) !important;
+    padding-top: max(calc(env(safe-area-inset-top, 0px) + 16px), 64px) !important;
     padding-left: max(env(safe-area-inset-left, 0px), 16px) !important;
     padding-right: max(env(safe-area-inset-right, 0px), 16px) !important;
     padding-bottom: 12px !important;
@@ -15142,12 +15142,12 @@ body.light-theme .mbn-center-action {
     justify-content: space-between !important;
     position: sticky !important;
     top: 0 !important;
-    padding-top: max(env(safe-area-inset-top, 0px), 36px) !important;
-    padding-bottom: 8px !important;
+    padding-top: max(calc(env(safe-area-inset-top, 0px) + 8px), 64px) !important;
+    padding-bottom: 10px !important;
     padding-left: max(env(safe-area-inset-left, 0px), 16px) !important;
     padding-right: max(env(safe-area-inset-right, 0px), 16px) !important;
     height: auto !important;
-    min-height: calc(58px + max(env(safe-area-inset-top, 0px), 36px)) !important;
+    min-height: calc(56px + max(calc(env(safe-area-inset-top, 0px) + 8px), 64px)) !important;
     box-sizing: border-box !important;
     z-index: 1000 !important;
   }
@@ -15187,7 +15187,7 @@ body.light-theme .mbn-center-action {
   .header-left .brand-badge-box {
     position: absolute !important;
     left: 50% !important;
-    top: calc(max(env(safe-area-inset-top, 0px), 36px) + 29px) !important;
+    top: calc(max(calc(env(safe-area-inset-top, 0px) + 8px), 64px) + 26px) !important;
     transform: translate(-50%, -50%) !important;
     display: flex !important;
     align-items: center !important;
@@ -17726,6 +17726,12 @@ body.light-theme .notif-message {
 .device-mobile .btn-notifications-header,
 .device-tablet .btn-notifications-header {
   display: none !important;
+}
+
+.device-mobile .app-header,
+.device-tablet .app-header {
+  padding-top: max(calc(env(safe-area-inset-top, 0px) + 8px), 64px) !important;
+  min-height: calc(56px + max(calc(env(safe-area-inset-top, 0px) + 8px), 64px)) !important;
 }
 
 @media (max-width: 1024px) {
