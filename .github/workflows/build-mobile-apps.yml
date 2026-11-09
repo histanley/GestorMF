@@ -8,7 +8,7 @@ on:
 jobs:
   build-ios:
     name: Build iOS (macOS Xcode)
-    runs-on: macos-14
+    runs-on: macos-13
     steps:
       - name: Checkout Código
         uses: actions/checkout@v4
@@ -32,14 +32,16 @@ jobs:
         run: |
           cd ios/App
           xcodebuild clean build \
-            -workspace App.xcworkspace \
+            -project App.xcodeproj \
             -scheme App \
             -configuration Debug \
             -destination 'generic/platform=iOS' \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
 
       - name: Salvar Artefato iOS
         uses: actions/upload-artifact@v4
         with:
           name: MegaGestao-iOS-Build
-          path: ios/App/build/Release-iphoneos/
+          path: ios/App/build/
