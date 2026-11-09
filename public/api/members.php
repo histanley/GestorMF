@@ -1,0 +1,240 @@
+<?php
+// ==============================================================================
+// GestorMF API - Gestão de Colaboradores e Equipes (com Auditoria & Tempo Real)
+// ==============================================================================
+require_once __DIR__ . '/config.php';
+
+$method = $_SERVER['REQUEST_METHOD'];
+$db = getDB();
+
+// LISTAR COLABORADORES (GET)
+if ($method === 'GET') {
+    $user = requireAuth();
+    $stmt = $db->query("SELECT * FROM members ORDER BY name ASC");
+    $raw = $stmt->fetchAll();
+
+    $members = array_map(function($m) {
+        return [
+            'id'          => $m['id'],
+            'name'        => $m['name'],
+            'role'        => $m['role'],
+            'company'     => $m['company'],
+            'phone'       => $m['phone'],
+            'photoUrl'    => $m['photo_url'],
+            'canDrive'    => (bool)($m['can_drive'] ?? false),
+            'cnhCategory' => $m['cnh_category'] ?? 'B',
+            'active'      => (bool)$m['active'],
+            'createdAt'   => $m['created_at'],
+            'updatedAt'   => $m['updated_at']
+        ];
+    }, $raw);
+
+    jsonResponse(['success' => true, 'members' => $members]);
+}
+
+// SALVAR OU ATUALIZAR COLABORADOR (POST / PUT)
+if ($method === 'POST' || $method === 'PUT') {
+    $user = requireAuth(['ADMIN', 'MANAGER']);
+    $data = getJsonInput();
+
+    $id = trim($data['id'] ?? '');
+    if (empty($id)) {
+        $id = 'm-' . bin2hex(random_bytes(8));
+    }
+
+    $name = trim($data['name'] ?? '');
+    $role = trim($data['role'] ?? '');
+
+    if (empty($name) || empty($role)) {
+        jsonResponse(['success' => false, 'error' => 'Nome e função do colaborador são obrigatórios.'], 400);
+    }
+
+    $stmtCheck = $db->prepare("SELECT id, name, user_id FROM members WHERE id = ?");
+    $stmtCheck->execute([$id]);
+    $existing = $stmtCheck->fetch();
+
+    $canDrive = !empty($data['canDrive']) || !empty($data['hasCnh']) ? 1 : 0;
+    $cnhCategory = trim($data['cnhCategory'] ?? 'B');
+
+    // Validação de Conta de Acesso antes de iniciar a transação
+    $acc = $data['account'] ?? null;
+    $accEmail = strtolower(trim($acc['email'] ?? $data['email'] ?? ''));
+    $accPassword = $acc['password'] ?? $data['password'] ?? '';
+    $accRole = strtoupper(trim($acc['role'] ?? $data['accessRole'] ?? 'USER'));
+    if (!in_array($accRole, ['ADMIN', 'MANAGER', 'USER'])) $accRole = 'USER';
+
+    // Gestor (MANAGER) NUNCA pode promover conta para ADMIN
+    if ($accRole === 'ADMIN' && $user['role'] !== 'ADMIN') {
+        jsonResponse(['success' => false, 'error' => 'Apenas Administradores podem definir ou promover contas para Administrador.'], 403);
+    }
+
+    // Inicia transação atômica
+    $db->beginTransaction();
+
+    try {
+        // P0-01: NUNCA aceita user_id arbitrário enviado pelo cliente.
+        // O vínculo é derivado estritamente do vínculo existente ou da conta autenticada/criada.
+        $assignedUserId = $existing ? ($existing['user_id'] ?? null) : null;
+
+        // P1-06 & P0-01: Tratamento estrito do vínculo de conta de acesso por ID
+        if (!empty($accEmail)) {
+            $stmtUserCheck = $db->prepare("SELECT id, name, email, role FROM users WHERE LOWER(email) = ?");
+            $stmtUserCheck->execute([$accEmail]);
+            $existingUser = $stmtUserCheck->fetch();
+
+            if ($existingUser) {
+                // Impede que uma conta já pertencente a OUTRO colaborador seja roubada ou sobrescrita
+                $stmtOther = $db->prepare("SELECT id, name FROM members WHERE user_id = ? AND id != ? LIMIT 1");
+                $stmtOther->execute([$existingUser['id'], $id]);
+                $otherMem = $stmtOther->fetch();
+                if ($otherMem) {
+                    $db->rollBack();
+                    jsonResponse([
+                        'success' => false,
+                        'error'   => "A conta de e-mail '{$accEmail}' já pertence ao colaborador '{$otherMem['name']}' (#{$otherMem['id']}). Não é permitida a apropriação indevida ou duplicidade de vínculos."
+                    ], 409);
+                }
+
+                // Se a conta for de ADMIN e quem edita não for ADMIN, bloqueia
+                if (strtoupper($existingUser['role']) === 'ADMIN' && $user['role'] !== 'ADMIN') {
+                    $db->rollBack();
+                    jsonResponse(['success' => false, 'error' => 'Acesso negado: apenas Administradores podem modificar dados de contas de Administrador.'], 403);
+                }
+
+                // Se está associando uma conta preexistente que não estava vinculada a este colaborador, exige ADMIN
+                if ($assignedUserId !== $existingUser['id'] && $user['role'] !== 'ADMIN') {
+                    $db->rollBack();
+                    jsonResponse([
+                        'success' => false,
+                        'error'   => 'Apenas Administradores têm permissão para vincular contas existentes a colaboradores.'
+                    ], 403);
+                }
+
+                $assignedUserId = $existingUser['id'];
+
+                if (!empty($accPassword)) {
+                    $passErr = validatePasswordStrength($accPassword);
+                    if ($passErr) {
+                        $db->rollBack();
+                        jsonResponse(['success' => false, 'error' => $passErr], 400);
+                    }
+                    $hash = password_hash($accPassword, PASSWORD_BCRYPT, ['cost' => 11]);
+                    $db->prepare("
+                        UPDATE users
+                        SET name = ?, password_hash = ?, role = ?, title = ?, department = ?, phone = ?, avatar = COALESCE(?, avatar)
+                        WHERE id = ?
+                    ")->execute([$name, $hash, $accRole, $role, $data['company'] ?? 'MegaFilmes', $data['phone'] ?? '', $data['photoUrl'] ?? null, $assignedUserId]);
+
+                    // Revoga sessões antigas para forçar re-login com nova senha
+                    revokeAllUserSessions($db, $assignedUserId);
+                } else {
+                    $db->prepare("
+                        UPDATE users
+                        SET name = ?, role = ?, title = ?, department = ?, phone = ?, avatar = COALESCE(?, avatar)
+                        WHERE id = ?
+                    ")->execute([$name, $accRole, $role, $data['company'] ?? 'MegaFilmes', $data['phone'] ?? '', $data['photoUrl'] ?? null, $assignedUserId]);
+
+                    // Se mudou de papel, revoga sessões para forçar atualização de permissões
+                    if ($existingUser['role'] !== $accRole) {
+                        revokeAllUserSessions($db, $assignedUserId);
+                    }
+                }
+            } else {
+                // Provisionamento de nova conta segura (Item 04: validação forte de senha)
+                if (empty($accPassword)) {
+                    $db->rollBack();
+                    jsonResponse(['success' => false, 'error' => 'A senha é obrigatória para criar a conta de acesso do colaborador.'], 400);
+                }
+                $passErr = validatePasswordStrength($accPassword);
+                if ($passErr) {
+                    $db->rollBack();
+                    jsonResponse(['success' => false, 'error' => $passErr], 400);
+                }
+
+                $newUserId = 'usr-' . bin2hex(random_bytes(8));
+                $hash = password_hash($accPassword, PASSWORD_BCRYPT, ['cost' => 11]);
+                $db->prepare("
+                    INSERT INTO users (id, name, email, password_hash, role, title, department, phone, avatar)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ")->execute([$newUserId, $name, $accEmail, $hash, $accRole, $role, $data['company'] ?? 'MegaFilmes', $data['phone'] ?? '', $data['photoUrl'] ?? null]);
+
+                $assignedUserId = $newUserId;
+                logAudit('CREATE_USER', 'USERS', $newUserId, "Conta de acesso de {$name} ({$accEmail}) criada via Gestão de Equipes.", $user['id'], $user['name']);
+            }
+        }
+
+        $sql = "
+            INSERT INTO members (id, name, role, company, phone, photo_url, user_id, can_drive, cnh_category, active)
+            VALUES (:id, :name, :role, :company, :phone, :photo_url, :user_id, :can_drive, :cnh_category, :active)
+            ON DUPLICATE KEY UPDATE
+                name = VALUES(name),
+                role = VALUES(role),
+                company = VALUES(company),
+                phone = VALUES(phone),
+                photo_url = VALUES(photo_url),
+                user_id = VALUES(user_id),
+                can_drive = VALUES(can_drive),
+                cnh_category = VALUES(cnh_category),
+                active = VALUES(active)
+        ";
+
+        $stmtSave = $db->prepare($sql);
+        $stmtSave->execute([
+            ':id'           => $id,
+            ':name'         => $name,
+            ':role'         => $role,
+            ':company'      => $data['company'] ?? 'MegaFilmes',
+            ':phone'        => $data['phone'] ?? '',
+            ':photo_url'    => $data['photoUrl'] ?? null,
+            ':user_id'      => $assignedUserId,
+            ':can_drive'    => $canDrive,
+            ':cnh_category' => $cnhCategory,
+            ':active'       => isset($data['active']) && !$data['active'] ? 0 : 1
+        ]);
+
+        $db->commit();
+    } catch (Exception $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        error_log('[GestorMF Member Error] ' . $e->getMessage());
+        jsonResponse(['success' => false, 'error' => 'Falha ao salvar dados do colaborador no banco de dados.'], 500);
+    }
+
+    $actionName = $existing ? 'UPDATE_MEMBER' : 'CREATE_MEMBER';
+    $auditMsg = "Colaborador '{$name}' ({$role}) salvo por {$user['name']}.";
+    logAudit($actionName, 'TEAMS', $id, $auditMsg, $user['id'], $user['name']);
+    bumpSyncVersion("member_{$id}");
+
+    jsonResponse(['success' => true, 'message' => 'Colaborador salvo com sucesso!', 'id' => $id]);
+}
+
+// EXCLUIR COLABORADOR (DELETE - Apenas Administrador)
+if ($method === 'DELETE') {
+    $user = requireAuth(['ADMIN']);
+    $id = $_GET['id'] ?? '';
+    if (empty($id)) {
+        $input = getJsonInput();
+        $id = $input['id'] ?? '';
+    }
+
+    if (empty($id)) {
+        jsonResponse(['success' => false, 'error' => 'ID do colaborador não informado.'], 400);
+    }
+
+    $stmtGet = $db->prepare("SELECT name FROM members WHERE id = ?");
+    $stmtGet->execute([$id]);
+    $mem = $stmtGet->fetch();
+
+    $stmtDel = $db->prepare("DELETE FROM members WHERE id = ?");
+    $stmtDel->execute([$id]);
+
+    $label = $mem ? $mem['name'] : $id;
+    logAudit('DELETE_MEMBER', 'TEAMS', $id, "Colaborador '{$label}' removido.", $user['id'], $user['name']);
+    bumpSyncVersion("delete_member_{$id}");
+
+    jsonResponse(['success' => true, 'message' => 'Colaborador excluído com sucesso.']);
+}
+
+jsonResponse(['error' => 'Método não suportado.'], 405);
+

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MegaGestão</string>
+    <string name="title_activity_main">MegaGestão</string>
+    <string name="package_name">shop.gestormf.app</string>
+    <string name="custom_url_scheme">shop.gestormf.app</string>
+</resources>

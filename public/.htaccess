@@ -1,0 +1,52 @@
+# ==============================================================================
+# GestorMF - Configuração Apache / LiteSpeed (HostGator cPanel)
+# ==============================================================================
+
+# Cabeçalhos de Segurança HTTP
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set Permissions-Policy "geolocation=(self)"
+</IfModule>
+
+# Bloqueio de arquivos ocultos e sensíveis
+<FilesMatch "(^\.|\.env|\.sql|\.log|\.git|secrets)">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # 1. Liberar requisições diretas para a pasta /api/ (backend PHP)
+  RewriteRule ^api/ - [L]
+
+  # 2. Forçar conexão segura HTTPS se disponível
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # 3. Roteamento Single Page Application (SPA) para index.html
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# Compressão GZIP / Deflate para carregamento ultra-rápido
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json image/svg+xml
+</IfModule>
+
+# Cache de ativos estáticos com hash no nome (Vite assets)
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 month"
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>

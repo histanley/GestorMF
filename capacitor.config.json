@@ -1,0 +1,12 @@
+{
+  "appId": "shop.gestormf.app",
+  "appName": "MegaGestão",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "Geolocation": {}
+  }
+}
+
