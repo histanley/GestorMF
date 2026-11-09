@@ -28,7 +28,7 @@ jobs:
       - name: Sincronizar Capacitor iOS
         run: npx cap sync ios
 
-      - name: Compilar Projeto no Xcode
+      - name: Compilar Projeto no Xcode e Gerar IPA
         run: |
           cd ios/App
           xcodebuild clean build \
@@ -36,12 +36,18 @@ jobs:
             -scheme App \
             -configuration Debug \
             -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
+          
+          mkdir -p build/Payload
+          cp -r build/Build/Products/Debug-iphoneos/App.app build/Payload/
+          cd build
+          zip -r MegaGestao-iOS.ipa Payload/
 
       - name: Salvar Artefato iOS
         uses: actions/upload-artifact@v4
         with:
-          name: MegaGestao-iOS-Build
-          path: ios/App/build/
+          name: MegaGestao-iOS-IPA
+          path: ios/App/build/MegaGestao-iOS.ipa
