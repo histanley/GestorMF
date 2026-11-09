@@ -15913,7 +15913,8 @@ body.light-theme .mbn-center-action {
   .modal-box-lg,
   .mm-modal-container,
   .danger-modal-box,
-  .mission-detail-modal {
+  .mission-detail-modal,
+  .modal-container {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
@@ -15934,9 +15935,17 @@ body.light-theme .mbn-center-action {
   }
 
   .modal-header,
-  .mm-modal-header {
-    height: 56px !important;
-    padding: 10px 16px !important;
+  .mm-modal-header,
+  .settings-modal-header,
+  .perm-modal-header,
+  .mdm-header,
+  .danger-header {
+    height: auto !important;
+    min-height: calc(56px + max(calc(env(safe-area-inset-top, 0px) + 8px), 64px)) !important;
+    padding-top: max(calc(env(safe-area-inset-top, 0px) + 8px), 64px) !important;
+    padding-bottom: 12px !important;
+    padding-left: max(env(safe-area-inset-left, 0px), 16px) !important;
+    padding-right: max(env(safe-area-inset-right, 0px), 16px) !important;
     flex-shrink: 0 !important;
     position: sticky !important;
     top: 0 !important;
@@ -15947,10 +15956,15 @@ body.light-theme .mbn-center-action {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
+    box-sizing: border-box !important;
   }
 
   body.light-theme .modal-header,
-  body.light-theme .mm-modal-header {
+  body.light-theme .mm-modal-header,
+  body.light-theme .settings-modal-header,
+  body.light-theme .perm-modal-header,
+  body.light-theme .mdm-header,
+  body.light-theme .danger-header {
     background: #ffffff !important;
     border-bottom-color: #e2e8f0 !important;
   }
@@ -17734,6 +17748,20 @@ body.light-theme .notif-message {
   min-height: calc(56px + max(calc(env(safe-area-inset-top, 0px) + 8px), 64px)) !important;
 }
 
+.device-mobile .modal-header,
+.device-mobile .mm-modal-header,
+.device-mobile .settings-modal-header,
+.device-mobile .perm-modal-header,
+.device-mobile .mdm-header,
+.device-mobile .danger-header,
+.device-tablet .modal-header {
+  height: auto !important;
+  min-height: calc(56px + max(calc(env(safe-area-inset-top, 0px) + 8px), 64px)) !important;
+  padding-top: max(calc(env(safe-area-inset-top, 0px) + 8px), 64px) !important;
+  padding-bottom: 12px !important;
+  box-sizing: border-box !important;
+}
+
 @media (max-width: 1024px) {
   /* No modo app/mobile, retira o sino do cabeçalho */
   .btn-notifications-header {
@@ -17741,7 +17769,7 @@ body.light-theme .notif-message {
   }
   .notifications-dropdown-panel {
     position: fixed !important;
-    top: 64px !important;
+    top: calc(max(calc(env(safe-area-inset-top, 0px) + 8px), 64px) + 58px) !important;
     left: 12px !important;
     right: 12px !important;
     width: auto !important;
