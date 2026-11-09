@@ -3,6 +3,8 @@
   "appName": "MegaGestão",
   "webDir": "dist",
   "server": {
+    "url": "https://gestormf.shop",
+    "cleartext": false,
     "androidScheme": "https"
   },
   "plugins": {

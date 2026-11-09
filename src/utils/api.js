@@ -3,7 +3,10 @@
 // ==============================================================================
 import { normalizeRole } from './auth';
 
-const API_BASE = '/api';
+const PROD_API_ORIGIN = 'https://gestormf.shop';
+const API_BASE = (typeof window !== 'undefined' && (window.location.origin.includes('localhost') || window.location.protocol.startsWith('capacitor') || window.location.protocol.startsWith('file')))
+  ? `${PROD_API_ORIGIN}/api`
+  : '/api';
 
 // Limpeza de tokens legados expostos em navegadores
 try {

@@ -65,7 +65,14 @@ $rawHost = strtolower($httpHost ?: $serverName);
 $hostOnly = explode(':', $rawHost)[0];
 $isProd = in_array($hostOnly, ['gestormf.shop', 'www.gestormf.shop'], true);
 
-$allowedHosts = $isProd
+$isNativeOrigin = !empty($origin) && (
+    $origin === 'capacitor://localhost' ||
+    $origin === 'http://localhost' ||
+    $origin === 'https://localhost' ||
+    strpos($origin, 'capacitor://') === 0
+);
+
+$allowedHosts = ($isProd && !$isNativeOrigin)
     ? ['gestormf.shop', 'www.gestormf.shop']
     : ['gestormf.shop', 'www.gestormf.shop', 'localhost', '127.0.0.1'];
 
