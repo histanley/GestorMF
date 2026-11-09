@@ -116,7 +116,7 @@ export default function LoginScreen({ theme, toggleTheme, onLoginSuccess }) {
                   id="login-email"
                   type="email"
                   className="login-input"
-                  placeholder="seu.email@megafilmes.local"
+                  placeholder="admin@gestormf.shop ou seu e-mail"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"

@@ -2,6 +2,13 @@
    GESTOR MF - FOLHA DE ESTILOS DA APLICAÇÃO (Vanilla CSS Completo)
    ========================================================================== */
 
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
 .app-container {
   display: flex;
   flex-direction: column;
@@ -11019,9 +11026,18 @@ body.light-theme .status-static-tag {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 32px;
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 32px 20px 32px;
   position: relative;
   z-index: 10;
+}
+
+@media (max-width: 768px) {
+  .login-top-bar {
+    padding-top: max(calc(env(safe-area-inset-top, 0px) + 16px), 54px) !important;
+    padding-left: max(env(safe-area-inset-left, 0px), 16px) !important;
+    padding-right: max(env(safe-area-inset-right, 0px), 16px) !important;
+    padding-bottom: 12px !important;
+  }
 }
 
 .login-system-pill {
@@ -14455,7 +14471,7 @@ body.light-theme .mobile-drawer-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 18px;
+  padding: max(calc(env(safe-area-inset-top, 0px) + 16px), 48px) 18px 16px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -14957,7 +14973,7 @@ body.light-theme .btn-md-logout:hover {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 62px;
+  height: calc(62px + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
   background: rgba(15, 23, 42, 0.94);
   backdrop-filter: blur(14px);
@@ -15122,13 +15138,17 @@ body.light-theme .mbn-center-action {
      -------------------------------------------------------------------------- */
   .app-header {
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-end !important;
     justify-content: space-between !important;
     position: sticky !important;
     top: 0 !important;
-    height: 64px !important;
-    min-height: 64px !important;
-    padding: 0 16px !important;
+    padding-top: max(env(safe-area-inset-top, 0px), 36px) !important;
+    padding-bottom: 8px !important;
+    padding-left: max(env(safe-area-inset-left, 0px), 16px) !important;
+    padding-right: max(env(safe-area-inset-right, 0px), 16px) !important;
+    height: auto !important;
+    min-height: calc(58px + max(env(safe-area-inset-top, 0px), 36px)) !important;
+    box-sizing: border-box !important;
     z-index: 1000 !important;
   }
 
@@ -15167,7 +15187,7 @@ body.light-theme .mbn-center-action {
   .header-left .brand-badge-box {
     position: absolute !important;
     left: 50% !important;
-    top: 50% !important;
+    top: calc(max(env(safe-area-inset-top, 0px), 36px) + 29px) !important;
     transform: translate(-50%, -50%) !important;
     display: flex !important;
     align-items: center !important;
