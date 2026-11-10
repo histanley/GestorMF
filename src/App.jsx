@@ -98,6 +98,7 @@ import {
   getMissionCode,
   formatDateBR,
   isElectricVehicle,
+  sortMissionsByStatusPriority,
 } from './utils/geo';
 import {
   isNativeApp,
@@ -1816,16 +1817,24 @@ export default function App() {
   const countAtivas = missions.filter(isMissionAtiva).length;
   const countAgendadas = missions.filter(isMissionAgendada).length;
   const countAndamento = missions.filter(isMissionEmAndamento).length;
+  const countPendentes = missions.filter((m) => m.missionStatus === 'Pendente').length;
   const countFinalizadas = missions.filter(isMissionFinalizada).length;
 
   const filteredMapMissions = useMemo(() => {
-    return missions.filter((m) => {
+    const list = missions.filter((m) => {
       if (mapMissionFilter === 'agendadas') return isMissionAgendada(m);
       if (mapMissionFilter === 'andamento') return isMissionEmAndamento(m);
+      if (mapMissionFilter === 'pendentes') return m.missionStatus === 'Pendente';
       if (mapMissionFilter === 'finalizadas') return isMissionFinalizada(m);
-      // Padrão ('ativas'): mostra Agendadas, Em Preparo e Em Execução (não mostra Finalizadas)
+      // Padrão ('ativas'): mostra Agendadas, Pendentes, Em Preparo e Em Execução (não mostra Finalizadas)
       return isMissionAtiva(m);
     });
+
+    // Ordenação estrita por prioridade de status:
+    // 1º: Em Execução / Em Andamento
+    // 2º: Pendentes
+    // 3º: Agendadas
+    return sortMissionsByStatusPriority(list);
   }, [missions, mapMissionFilter]);
 
   // Totais rápidos para métricas (baseados na listagem visível)
@@ -2525,24 +2534,16 @@ export default function App() {
                 <span className="sidebar-count">{filteredMapMissions.length} exibidas</span>
               </div>
 
-              {/* Filtro de Status em Mapa & Frotas: Ativas (Padrão), Agendadas, Em Andamento, Finalizadas */}
+              {/* Filtro de Status em Mapa & Frotas: Ativas (Padrão), Em Andamento, Pendentes, Agendadas, Finalizadas */}
               <div className="map-sidebar-filters">
                 <button
                   type="button"
                   className={`map-filter-btn ${mapMissionFilter === 'ativas' ? 'active filter-all' : ''}`}
                   onClick={() => setMapMissionFilter('ativas')}
-                  title="Exibe missões Agendadas, Em Preparo e Em Execução"
+                  title="Exibe todas as missões ativas (Em Execução, Pendentes e Agendadas)"
                 >
                   <span>Ativas</span>
                   <span className="filter-count">{countAtivas}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`map-filter-btn ${mapMissionFilter === 'agendadas' ? 'active filter-agendadas' : ''}`}
-                  onClick={() => setMapMissionFilter('agendadas')}
-                >
-                  <span>Agendadas</span>
-                  <span className="filter-count">{countAgendadas}</span>
                 </button>
                 <button
                   type="button"
@@ -2552,6 +2553,23 @@ export default function App() {
                 >
                   <span>Em Andamento</span>
                   <span className="filter-count">{countAndamento}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`map-filter-btn ${mapMissionFilter === 'pendentes' ? 'active filter-pendente' : ''}`}
+                  onClick={() => setMapMissionFilter('pendentes')}
+                  title="Exibe missões concluídas em campo aguardando pós-produção"
+                >
+                  <span>Pendentes</span>
+                  <span className="filter-count">{countPendentes}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`map-filter-btn ${mapMissionFilter === 'agendadas' ? 'active filter-agendadas' : ''}`}
+                  onClick={() => setMapMissionFilter('agendadas')}
+                >
+                  <span>Agendadas</span>
+                  <span className="filter-count">{countAgendadas}</span>
                 </button>
                 <button
                   type="button"

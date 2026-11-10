@@ -1920,6 +1920,17 @@ body.light-theme .map-filter-btn.active.filter-andamento .filter-count {
   color: #ffffff !important;
 }
 
+body.light-theme .map-filter-btn.active.filter-pendente {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+}
+
+body.light-theme .map-filter-btn.active.filter-pendente .filter-count {
+  background: #f59e0b !important;
+  color: #ffffff !important;
+}
+
 body.light-theme .map-filter-btn.active.filter-finalizadas {
   background: #f0fdf4 !important;
   border-color: #10b981 !important;
@@ -8140,6 +8151,17 @@ body.light-theme .vmh-km-tag {
 .map-filter-btn.active.filter-andamento .filter-count {
   background: #ef4444;
   color: #fff;
+}
+
+.map-filter-btn.active.filter-pendente {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.6);
+  color: #fbbf24;
+}
+
+.map-filter-btn.active.filter-pendente .filter-count {
+  background: #f59e0b;
+  color: #000;
 }
 
 .map-filter-btn.active.filter-finalizadas {

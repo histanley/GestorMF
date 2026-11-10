@@ -370,6 +370,91 @@ export function isMissionActiveOrPrep(mission) {
   );
 }
 
+/**
+ * Retorna o peso numérico de prioridade de exibição da missão por status:
+ * 1º lugar: Em Execução / Em Andamento / Em Preparo / Saiu / Em Deslocamento
+ * 2º lugar: Pendente (pautas realizadas aguardando pós-produção ou validação)
+ * 3º lugar: Agendada (missões futuras planejadas)
+ * 4º lugar: Finalizada / Concluída
+ * 5º lugar: Cancelada / Outros
+ */
+export function getMissionStatusPriority(mission) {
+  if (!mission) return 99;
+  const status = (mission.missionStatus || 'Agendada').toLowerCase().trim();
+
+  // 1º lugar: Em Execução e variações de campo ativo
+  if (
+    status === 'em execução' ||
+    status === 'em execucao' ||
+    status === 'em andamento' ||
+    status === 'em preparo' ||
+    status === 'saiu' ||
+    status === 'em deslocamento'
+  ) {
+    return 1;
+  }
+
+  // 2º lugar: Pendente (Pós-Produção)
+  if (status === 'pendente') {
+    return 2;
+  }
+
+  // 3º lugar: Agendadas
+  if (status === 'agendada' || status === 'agendado') {
+    return 3;
+  }
+
+  // 4º lugar: Finalizadas / Concluídas
+  if (
+    status === 'finalizada' ||
+    status === 'finalizado' ||
+    status === 'concluída' ||
+    status === 'concluida'
+  ) {
+    return 4;
+  }
+
+  // 5º lugar: Canceladas
+  if (status === 'cancelada' || status === 'cancelado') {
+    return 5;
+  }
+
+  return 6;
+}
+
+/**
+ * Ordena a lista de missões priorizando rigorosamente:
+ * 1. Missões Em Execução / Em Andamento
+ * 2. Missões Pendentes
+ * 3. Missões Agendadas
+ * 4. Missões Finalizadas / Concluídas
+ * Como critério de desempate no mesmo status: Data mais recente primeiro (date DESC),
+ * horário de saída crescente (departureTime ASC) e ID decrescente.
+ */
+export function sortMissionsByStatusPriority(missions = []) {
+  if (!Array.isArray(missions)) return [];
+  return [...missions].sort((a, b) => {
+    const pA = getMissionStatusPriority(a);
+    const pB = getMissionStatusPriority(b);
+    if (pA !== pB) {
+      return pA - pB;
+    }
+
+    // Critério secundário: data mais recente primeiro
+    const dateComp = String(b.date || '').localeCompare(String(a.date || ''));
+    if (dateComp !== 0) return dateComp;
+
+    // Critério terciário: horário de saída crescente
+    const timeA = String(a.departureTime || a.eventStartTime || '99:99');
+    const timeB = String(b.departureTime || b.eventStartTime || '99:99');
+    const timeComp = timeA.localeCompare(timeB);
+    if (timeComp !== 0) return timeComp;
+
+    // Critério quaternário: ID decrescente
+    return String(b.id || '').localeCompare(String(a.id || ''));
+  });
+}
+
 // Normaliza a lista de alocações (Viatura + Motorista) de uma missão (compatível com 1 ou N viaturas)
 export function getMissionAllocations(mission, vehicles = [], members = []) {
   if (!mission) return [];

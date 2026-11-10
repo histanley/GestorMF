@@ -54,6 +54,7 @@ import {
   getFuelTypeIcon,
   getFuelTypeBadgeClass,
   calculateSuggestedDepartureTime,
+  sortMissionsByStatusPriority,
 } from '../utils/geo';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import MissionHistoryModal from './MissionHistoryModal';
@@ -621,39 +622,47 @@ export default function ServiceBoard({
     return found;
   };
 
-  const filteredMissions = missions.filter((m) => {
-    const driverInfo = resolveMissionDriver(m);
-    const mCode = getMissionCode(m, missions);
-    const q = searchTerm.toLowerCase().trim();
-    const cleanQ = q.replace(/^#/, '');
-    const matchesSearch =
-      !q ||
-      mCode.toLowerCase().includes(cleanQ) ||
-      m.description?.toLowerCase().includes(q) ||
-      m.locationName?.toLowerCase().includes(q) ||
-      m.address?.toLowerCase().includes(q) ||
-      m.teamNamesDisplay?.toLowerCase().includes(q) ||
-      m.vehicleNameDisplay?.toLowerCase().includes(q) ||
-      driverInfo.name?.toLowerCase().includes(q);
+  const filteredMissions = useMemo(() => {
+    const list = missions.filter((m) => {
+      const driverInfo = resolveMissionDriver(m);
+      const mCode = getMissionCode(m, missions);
+      const q = searchTerm.toLowerCase().trim();
+      const cleanQ = q.replace(/^#/, '');
+      const matchesSearch =
+        !q ||
+        mCode.toLowerCase().includes(cleanQ) ||
+        m.description?.toLowerCase().includes(q) ||
+        m.locationName?.toLowerCase().includes(q) ||
+        m.address?.toLowerCase().includes(q) ||
+        m.teamNamesDisplay?.toLowerCase().includes(q) ||
+        m.vehicleNameDisplay?.toLowerCase().includes(q) ||
+        driverInfo.name?.toLowerCase().includes(q);
 
-    const isFinalizada =
-      m.missionStatus === 'Finalizada' ||
-      m.missionStatus === 'Finalizado' ||
-      m.missionStatus === 'Concluída';
-    const matchesMissionStatus =
-      (filterMissionStatus === 'ATIVAS' && !isFinalizada && m.missionStatus !== 'Cancelada') ||
-      filterMissionStatus === 'TODOS' ||
-      (filterMissionStatus === 'ANDAMENTO' &&
-        (m.missionStatus === 'Em Execução' || m.missionStatus === 'Em Preparo')) ||
-      (filterMissionStatus === 'Pendente' && m.missionStatus === 'Pendente') ||
-      ((filterMissionStatus === 'Finalizado' || filterMissionStatus === 'Finalizada') && isFinalizada) ||
-      m.missionStatus === filterMissionStatus;
+      const isFinalizada =
+        m.missionStatus === 'Finalizada' ||
+        m.missionStatus === 'Finalizado' ||
+        m.missionStatus === 'Concluída';
+      const matchesMissionStatus =
+        (filterMissionStatus === 'ATIVAS' && !isFinalizada && m.missionStatus !== 'Cancelada') ||
+        filterMissionStatus === 'TODOS' ||
+        (filterMissionStatus === 'ANDAMENTO' &&
+          (m.missionStatus === 'Em Execução' || m.missionStatus === 'Em Preparo')) ||
+        (filterMissionStatus === 'Pendente' && m.missionStatus === 'Pendente') ||
+        ((filterMissionStatus === 'Finalizado' || filterMissionStatus === 'Finalizada') && isFinalizada) ||
+        m.missionStatus === filterMissionStatus;
 
-    const matchesEditionStatus =
-      filterEditionStatus === 'TODOS' || m.editionStatus === filterEditionStatus;
+      const matchesEditionStatus =
+        filterEditionStatus === 'TODOS' || m.editionStatus === filterEditionStatus;
 
-    return matchesSearch && matchesMissionStatus && matchesEditionStatus;
-  });
+      return matchesSearch && matchesMissionStatus && matchesEditionStatus;
+    });
+
+    // Ordenação estrita por prioridade de status:
+    // 1º: Em Execução / Em Andamento
+    // 2º: Pendentes
+    // 3º: Agendadas
+    return sortMissionsByStatusPriority(list);
+  }, [missions, searchTerm, filterMissionStatus, filterEditionStatus]);
 
   // Paginação (até 10 missões por página)
   const totalPages = Math.max(1, Math.ceil(filteredMissions.length / ITEMS_PER_PAGE));

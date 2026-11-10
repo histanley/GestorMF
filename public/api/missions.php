@@ -154,7 +154,20 @@ if ($method === 'GET') {
         error_log('[GestorMF Auto-Status Error] ' . $e->getMessage());
     }
 
-    $stmt = $db->query("SELECT * FROM missions ORDER BY date DESC, departure_time ASC");
+    $stmt = $db->query("
+        SELECT * FROM missions 
+        ORDER BY 
+            CASE 
+                WHEN mission_status IN ('Em Execução', 'Em Preparo', 'Saiu', 'Em Deslocamento') THEN 1 
+                WHEN mission_status = 'Pendente' THEN 2 
+                WHEN mission_status = 'Agendada' OR mission_status IS NULL THEN 3 
+                WHEN mission_status IN ('Finalizada', 'Finalizado', 'Concluída') THEN 4 
+                ELSE 5 
+            END ASC, 
+            date DESC, 
+            departure_time ASC,
+            id DESC
+    ");
     $rawMissions = $stmt->fetchAll();
 
     $missions = array_map(function($m) {
