@@ -79,6 +79,7 @@ export default function SendMessageModal({
       const payload = {
         recipientType,
         recipientId: recipientType === 'INDIVIDUAL' ? recipientId : null,
+        recipientUserId: recipientType === 'INDIVIDUAL' ? (selectedMember?.userId || selectedMember?.user_id || null) : null,
         recipientName: recipientType === 'INDIVIDUAL' ? (selectedMember?.name || '') : null,
         priority,
         title: title.trim(),
@@ -296,3 +297,4 @@ export default function SendMessageModal({
     </div>
   );
 }
+

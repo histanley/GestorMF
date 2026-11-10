@@ -16,12 +16,7 @@ if ($method === 'POST') {
     $data = getJsonInput();
 
     $roleUpper = strtoupper(trim($user['role'] ?? 'USER'));
-    // REGRA DE GOVERNANÇA: Administradores e Gestores NÃO transmitem GPS no mapa
-    if (in_array($roleUpper, ['ADMIN', 'MANAGER'])) {
-        jsonResponse(['success' => true, 'message' => 'Administradores e Gestores não transmitem rastreamento GPS.']);
-    }
-
-    // Identidade derivada ESTRITAMENTE da sessão autenticada (P0-01)
+    // Identidade derivada da sessão autenticada (P0-01)
     $memberId = null;
     $memberName = $user['name'];
 
@@ -33,7 +28,21 @@ if ($method === 'POST') {
         $memberId = $foundMem['id'];
         $memberName = $foundMem['name'];
     } else {
-        jsonResponse(['success' => false, 'error' => 'Acesso não autorizado: sua conta de usuário não está vinculada a um colaborador de campo ativo cadastrado.'], 403);
+        // Fallback por nome do usuário para associar o dispositivo ao colaborador em campo
+        $stmtMemName = $db->prepare("SELECT id, name, active FROM members WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND active = 1 LIMIT 1");
+        $stmtMemName->execute([$user['name']]);
+        $foundByName = $stmtMemName->fetch();
+        if ($foundByName) {
+            $memberId = $foundByName['id'];
+            $memberName = $foundByName['name'];
+            try {
+                $db->prepare("UPDATE members SET user_id = ? WHERE id = ? AND (user_id IS NULL OR user_id = '')")->execute([$user['id'], $memberId]);
+            } catch (Exception $e) {}
+        } else {
+            // Se for um usuário autenticado que não está na tabela members (ex: Admin sem perfil de campo), cria ID de presença
+            $memberId = 'usr-' . substr(md5($user['id']), 0, 12);
+            $memberName = $user['name'];
+        }
     }
 
     $missionId = !empty($data['missionId']) ? trim($data['missionId']) : null;
@@ -95,7 +104,27 @@ if ($method === 'POST') {
             }
         }
 
+        // Se não houver em execução, busca em missões agendadas ou pendentes
         if (empty($missionId)) {
+            $stmtOtherMis = $db->prepare("
+                SELECT id, description, mission_status, driver_id, team_ids
+                FROM missions
+                WHERE mission_status IN ('Agendada', 'Pendente')
+                ORDER BY date DESC, departure_time DESC
+            ");
+            $stmtOtherMis->execute();
+            $otherList = $stmtOtherMis->fetchAll();
+            foreach ($otherList as $row) {
+                $isDriver = ($row['driver_id'] === $memberId);
+                $team = !empty($row['team_ids']) ? json_decode($row['team_ids'], true) : [];
+                if ($isDriver || (is_array($team) && in_array($memberId, $team))) {
+                    $missionId = $row['id'];
+                    break;
+                }
+            }
+        }
+
+        if (!empty($_GET['strict']) && empty($missionId)) {
             jsonResponse([
                 'success' => false,
                 'error'   => 'Rastreamento GPS operacional recusado: o envio de telemetria exige uma missão ativa (Em Preparo ou Em Execução) na qual você esteja escalado.'
@@ -103,29 +132,20 @@ if ($method === 'POST') {
         }
     }
 
-    // Valida se a missão vinculada existe, está ativa e se o colaborador está escalado (P1-05)
-    $stmtMis = $db->prepare("SELECT id, description, mission_status, driver_id, team_ids FROM missions WHERE id = ?");
-    $stmtMis->execute([$missionId]);
-    $mis = $stmtMis->fetch();
+    // Valida se a missão vinculada existe
+    if (!empty($missionId)) {
+        $stmtMis = $db->prepare("SELECT id, description, mission_status, driver_id, team_ids FROM missions WHERE id = ?");
+        $stmtMis->execute([$missionId]);
+        $mis = $stmtMis->fetch();
 
-    if (!$mis) {
-        jsonResponse(['success' => false, 'error' => 'Missão informada para vincular o GPS não foi encontrada.'], 404);
-    }
-
-    if (!in_array($mis['mission_status'], ['Em Preparo', 'Em Execução'])) {
-        jsonResponse([
-            'success' => false,
-            'error'   => "Rastreamento GPS recusado: a missão '{$mis['description']}' está com status '{$mis['mission_status']}'. O envio só é permitido durante a execução da missão."
-        ], 422);
-    }
-
-    // Verifica se o colaborador faz parte da missão
-    $isDriver = ($mis['driver_id'] === $memberId);
-    $team = !empty($mis['team_ids']) ? json_decode($mis['team_ids'], true) : [];
-    $isTeam = is_array($team) && in_array($memberId, $team);
-
-    if (!$isDriver && !$isTeam) {
-        jsonResponse(['success' => false, 'error' => 'Acesso negado: você não está escalado nesta missão.'], 403);
+        if ($mis) {
+            if (!empty($_GET['strict']) && !in_array($mis['mission_status'], ['Em Preparo', 'Em Execução'])) {
+                jsonResponse([
+                    'success' => false,
+                    'error'   => "Rastreamento GPS recusado: a missão '{$mis['description']}' está com status '{$mis['mission_status']}'. O envio só é permitido durante a execução da missão."
+                ], 422);
+            }
+        }
     }
 
     // Salva ou atualiza a posição do colaborador (Upsert seguro por member_id)
@@ -201,23 +221,22 @@ if ($method === 'POST') {
 if ($method === 'GET') {
     $user = requireAuth(['ADMIN', 'MANAGER']);
 
-    // Busca apenas colaboradores operacionais de campo (ROLE = 'USER') atualizados nas últimas 12 horas
+    // Busca posições ativas atualizadas nas últimas 12 horas
     $stmt = $db->query("
         SELECT g.*,
                TIMESTAMPDIFF(SECOND, g.updated_at, NOW()) AS seconds_ago,
                m.description AS mission_title,
                m.code AS mission_code,
-               mem.role AS member_role,
-               mem.company AS member_company,
-               mem.photo_url AS member_photo,
-               mem.phone AS member_phone
+               COALESCE(mem.role, u.title, 'Colaborador') AS member_role,
+               COALESCE(mem.company, 'MegaFilmes') AS member_company,
+               COALESCE(mem.photo_url, u.avatar) AS member_photo,
+               COALESCE(mem.phone, u.phone, '') AS member_phone
         FROM gps_locations g
         LEFT JOIN missions m ON g.mission_id = m.id
         LEFT JOIN members mem ON g.member_id = mem.id
-        LEFT JOIN users u ON mem.user_id = u.id
+        LEFT JOIN users u ON (mem.user_id = u.id OR g.member_name = u.name)
         WHERE g.is_active = 1
           AND g.updated_at >= (NOW() - INTERVAL 12 HOUR)
-          AND (u.role IS NULL OR u.role = 'USER')
         ORDER BY g.updated_at DESC
     ");
     $locations = $stmt->fetchAll();

@@ -86,6 +86,7 @@ import {
   apiSendMessage,
   apiMarkMessageRead,
   apiDeleteMessage,
+  apiDismissAllMessages,
 } from './utils/api';
 import {
   sendPushNotification,
@@ -580,6 +581,8 @@ export default function App() {
       return;
     }
 
+    apiDismissAllMessages().catch(() => {});
+
     if (lockedCount > 0) {
       setNotifications((prev) => prev.filter((n) => isNotificationLocked(n).locked));
       await alertDialog({
@@ -844,18 +847,13 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Transmissor Contínuo e Automático de GPS em Tempo Real para Smartphone e Computador (Apenas Colaboradores Operacionais)
+  // Transmissor Contínuo e Automático de GPS em Tempo Real para Smartphone e Aplicativo Móvel
   useEffect(() => {
     const userNameNorm = (currentUser?.name || '').trim().toLowerCase();
-    const isAdminOrManager = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
-    const isExcludedPerson =
-      userNameNorm.includes('histanley') ||
-      userNameNorm.includes('rodrigo') ||
-      userNameNorm.includes('guedes') ||
-      userNameNorm === 'hgama';
+    // No computador desktop com navegador comum, não força transmissão do admin do escritório
+    const isDesktopAdmin = (userNameNorm === 'administrador' || userNameNorm === 'admin') && !isNativeApp() && deviceInfo.type === 'desktop';
 
-    // Governança: Administradores e Gestores NUNCA transmitem GPS e nunca aparecem no mapa
-    if (!currentUser || isAdminOrManager || isExcludedPerson) {
+    if (!currentUser || isDesktopAdmin) {
       if (gpsWatchIdRef.current !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
         navigator.geolocation.clearWatch(gpsWatchIdRef.current);
         gpsWatchIdRef.current = null;
@@ -880,10 +878,19 @@ export default function App() {
         .catch(() => {});
     }
 
-    // Localiza se há missão ativa vinculada ao colaborador
+    // Localiza se há missão ativa (Em Execução / Em Preparo) ou missão do dia para o colaborador
     const activeMissionForUser = missions.find((m) => {
       const isExec = m.missionStatus === 'Em Execução' || m.missionStatus === 'Em Preparo';
       if (!isExec) return false;
+      const isDriver =
+        (m.driverName || '').trim().toLowerCase() === userNameNorm ||
+        m.driverId === currentUser.id ||
+        (currentUser.memberId && m.driverId === currentUser.memberId);
+      const isTeam =
+        (m.teamNames || []).some((tn) => tn.trim().toLowerCase() === userNameNorm) ||
+        (m.teamMembers || []).some((tm) => tm.id === currentUser.id || tm.name?.trim().toLowerCase() === userNameNorm);
+      return isDriver || isTeam;
+    }) || missions.find((m) => {
       const isDriver =
         (m.driverName || '').trim().toLowerCase() === userNameNorm ||
         m.driverId === currentUser.id ||

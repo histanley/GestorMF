@@ -433,4 +433,11 @@ export async function apiDeleteMessage(messageId) {
   });
 }
 
+export async function apiDismissAllMessages() {
+  return await apiRequest('/messages.php?action=dismiss_all', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
 
