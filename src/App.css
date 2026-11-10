@@ -20743,3 +20743,118 @@ body.light-theme .mdm-recurring-badge {
   border-color: #bae6fd !important;
 }
 
+
+
+/* ==========================================================================
+   SISTEMA DE MENSAGENS E COMUNICADOS (ADMIN & GESTOR -> EQUIPE / INDIVIDUAL)
+   ========================================================================== */
+.msg-recipient-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.msg-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  background: var(--bg-card, rgba(30, 41, 59, 0.6));
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.msg-toggle-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.msg-toggle-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+}
+
+.msg-priority-chips {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.msg-prio-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  background: var(--bg-card, rgba(30, 41, 59, 0.5));
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.msg-prio-chip.prio-normal.active {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: #10b981;
+  color: #34d399;
+}
+
+.msg-prio-chip.prio-high.active {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+.msg-prio-chip.prio-urgent.active {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: #ef4444;
+  color: #f87171;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.msg-quick-titles {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.msg-quick-chip {
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.msg-quick-chip:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #93c5fd;
+}
+
+.is-message-card {
+  border-left: 3px solid #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.04) !important;
+}
+
+.icon-message-circle {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60a5fa !important;
+}

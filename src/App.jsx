@@ -45,6 +45,7 @@ import UserProfileModal from './components/UserProfileModal';
 import PermissionsModal from './components/PermissionsModal';
 import ConfirmModal from './components/ConfirmModal';
 import NotificationsCenter from './components/NotificationsCenter';
+import SendMessageModal from './components/SendMessageModal';
 import { registerDialogListener, confirmDialog, alertDialog } from './utils/dialog';
 
 import {
@@ -81,6 +82,10 @@ import {
   apiSyncUsers,
   apiSendGpsLocation,
   apiStopGpsLocation,
+  apiGetMessages,
+  apiSendMessage,
+  apiMarkMessageRead,
+  apiDeleteMessage,
 } from './utils/api';
 import {
   sendPushNotification,
@@ -174,6 +179,8 @@ export default function App() {
   const canManageSettings = userRole === ROLES.ADMIN;
   // Apenas Gestores e Administradores visualizam e acessam Viaturas e Equipes
   const canManageFleetAndTeams = userRole === ROLES.ADMIN || userRole === ROLES.MANAGER;
+  // Administradores e Gestores podem enviar mensagens e comunicados (para todos ou individual)
+  const canSendMessage = userRole === ROLES.ADMIN || userRole === ROLES.MANAGER;
 
   // Estado de Navegação de Abas: 'map' (Mapa), 'board' (Tabela de Serviço), 'vehicles' (Viaturas), 'teams' (Equipes)
   const [activeTab, setActiveTab] = useState('map');
@@ -324,8 +331,9 @@ export default function App() {
   });
   const [dismissNotificationPrompt, setDismissNotificationPrompt] = useState(false);
 
-  // Central de Notificações
+  // Central de Notificações & Mensagens Internas
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isSendMessageOpen, setIsSendMessageOpen] = useState(false);
   const notificationsRef = useRef(null);
   const [notifications, setNotifications] = useState(() => {
     try {
@@ -363,11 +371,72 @@ export default function App() {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
+    const target = notifications.find((n) => n.id === id);
+    if (target?.type === 'system_message') {
+      apiMarkMessageRead(id).catch(() => {});
+    }
   };
 
   const handleMarkAllAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    notifications.forEach((n) => {
+      if (n.type === 'system_message' && !n.read) {
+        apiMarkMessageRead(n.id).catch(() => {});
+      }
+    });
   };
+
+  // Sincronização periódica de Mensagens Internas & Comunicados do Servidor
+  const fetchServerMessages = useCallback(async () => {
+    if (!currentUser) return;
+    try {
+      const res = await apiGetMessages();
+      if (res && res.success && Array.isArray(res.messages)) {
+        setNotifications((prev) => {
+          let hasNewUnread = false;
+          const prevMsgIds = new Set(prev.filter((n) => n.type === 'system_message').map((n) => n.id));
+          const mappedMsgs = res.messages.map((m) => {
+            const notifId = m.id;
+            if (!m.isRead && !prevMsgIds.has(notifId)) {
+              hasNewUnread = true;
+            }
+            return {
+              id: notifId,
+              type: 'system_message',
+              title: m.title,
+              message: m.message,
+              senderId: m.senderId,
+              senderName: m.senderName,
+              senderRole: m.senderRole,
+              recipientType: m.recipientType,
+              recipientName: m.recipientName,
+              priority: m.priority,
+              read: m.isRead,
+              timestamp: new Date(m.createdAt).getTime(),
+            };
+          });
+
+          if (hasNewUnread) {
+            playNotificationSound();
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+              try {
+                navigator.vibrate([200, 100, 200, 100, 300]);
+              } catch (e) {}
+            }
+          }
+
+          const nonMsgNotifs = prev.filter((n) => n.type !== 'system_message');
+          return [...mappedMsgs, ...nonMsgNotifs];
+        });
+      }
+    } catch (err) {}
+  }, [currentUser]);
+
+  useEffect(() => {
+    fetchServerMessages();
+    const interval = setInterval(fetchServerMessages, 12000);
+    return () => clearInterval(interval);
+  }, [fetchServerMessages]);
 
   // Verifica com precisão se o usuário faz parte da missão (motorista, equipe ou editor)
   const isUserInMission = useCallback((mis, user) => {
@@ -488,6 +557,10 @@ export default function App() {
         variant: 'warning',
       });
       return;
+    }
+
+    if (notif.type === 'system_message') {
+      apiDeleteMessage(id).catch(() => {});
     }
 
     setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -2129,6 +2202,11 @@ export default function App() {
                 onDeleteNotification={handleDeleteNotification}
                 isNotificationLocked={isNotificationLocked}
                 onSelectNotification={handleSelectNotification}
+                canSendMessage={canSendMessage}
+                onOpenSendMessage={() => {
+                  setIsNotificationsOpen(false);
+                  setIsSendMessageOpen(true);
+                }}
               />
             )}
           </div>
@@ -2802,6 +2880,15 @@ export default function App() {
         isOpen={isPermissionsModalOpen}
         onClose={() => setIsPermissionsModalOpen(false)}
         currentRole={currentUser?.role}
+      />
+
+      {/* Modal de Envio de Mensagens e Comunicados (Admin e Gestor -> Toda Equipe ou Individual) */}
+      <SendMessageModal
+        isOpen={isSendMessageOpen}
+        onClose={() => setIsSendMessageOpen(false)}
+        members={members}
+        onMessageSent={fetchServerMessages}
+        alertDialog={alertDialog}
       />
 
       {/* Barra de Navegação Inferior para Celulares (Estilo App Nativo) */}

@@ -405,3 +405,32 @@ export function subscribeToRealtimeSync(onUpdate) {
   };
 }
 
+// ==============================================================================
+// 12. SISTEMA DE COMUNICADOS E MENSAGENS INTERNAS (ADMIN / GESTOR -> TODOS OU INDIVIDUAL)
+// ==============================================================================
+export async function apiGetMessages() {
+  return await apiRequest('/messages.php?action=list');
+}
+
+export async function apiSendMessage(messageData) {
+  return await apiRequest('/messages.php?action=send', {
+    method: 'POST',
+    body: JSON.stringify(messageData),
+  });
+}
+
+export async function apiMarkMessageRead(messageId) {
+  return await apiRequest('/messages.php?action=mark_read', {
+    method: 'POST',
+    body: JSON.stringify({ messageId }),
+  });
+}
+
+export async function apiDeleteMessage(messageId) {
+  return await apiRequest(`/messages.php?action=delete&id=${encodeURIComponent(messageId)}`, {
+    method: 'POST',
+    body: JSON.stringify({ messageId }),
+  });
+}
+
+

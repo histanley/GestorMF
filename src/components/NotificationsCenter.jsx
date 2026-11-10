@@ -13,6 +13,11 @@ import {
   Clock,
   Sparkles,
   Lock,
+  Send,
+  Mail,
+  Users,
+  User,
+  Flame,
 } from 'lucide-react';
 
 export default function NotificationsCenter({
@@ -24,17 +29,25 @@ export default function NotificationsCenter({
   onDeleteNotification,
   isNotificationLocked,
   onSelectNotification,
+  canSendMessage = false,
+  onOpenSendMessage,
 }) {
-  const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'mission' | 'fuel'
+  const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'messages' | 'mission' | 'fuel'
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read).length,
     [notifications]
   );
 
+  const messagesCount = useMemo(
+    () => notifications.filter((n) => n.type === 'system_message' || n.type === 'message').length,
+    [notifications]
+  );
+
   const filteredNotifications = useMemo(() => {
     return notifications.filter((n) => {
       if (filter === 'unread') return !n.read;
+      if (filter === 'messages') return n.type === 'system_message' || n.type === 'message';
       if (filter === 'mission') return n.type === 'mission';
       if (filter === 'fuel') return n.type === 'fuel';
       return true;
@@ -59,6 +72,9 @@ export default function NotificationsCenter({
 
   const getIconForType = (type, variant) => {
     switch (type) {
+      case 'system_message':
+      case 'message':
+        return <Mail size={18} className="notif-type-icon message" />;
       case 'fuel':
         return <Fuel size={18} className="notif-type-icon fuel" />;
       case 'mission':
@@ -82,7 +98,7 @@ export default function NotificationsCenter({
             {unreadCount > 0 && <span className="notif-unread-dot" />}
           </div>
           <div>
-            <strong>Central de Notificações</strong>
+            <strong>Central de Notificações & Avisos</strong>
             <span className="notif-subtitle">
               {unreadCount > 0 ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : 'Tudo atualizado'}
             </span>
@@ -90,6 +106,24 @@ export default function NotificationsCenter({
         </div>
 
         <div className="notif-header-actions">
+          {canSendMessage && onOpenSendMessage && (
+            <button
+              type="button"
+              className="notif-btn-action notif-btn-primary"
+              onClick={onOpenSendMessage}
+              title="Criar e enviar mensagem para a equipe ou colaborador"
+              style={{
+                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                color: '#fff',
+                borderColor: '#3b82f6',
+                fontWeight: 600
+              }}
+            >
+              <Send size={13} />
+              <span>Nova Mensagem</span>
+            </button>
+          )}
+
           {unreadCount > 0 && (
             <button
               type="button"
@@ -141,6 +175,16 @@ export default function NotificationsCenter({
         >
           Não lidas ({unreadCount})
         </button>
+        {messagesCount > 0 && (
+          <button
+            type="button"
+            className={`notif-filter-chip ${filter === 'messages' ? 'active' : ''}`}
+            onClick={() => setFilter('messages')}
+            style={{ borderColor: 'rgba(59, 130, 246, 0.4)', color: '#38bdf8' }}
+          >
+            ✉️ Mensagens ({messagesCount})
+          </button>
+        )}
         <button
           type="button"
           className={`notif-filter-chip ${filter === 'mission' ? 'active' : ''}`}
@@ -166,24 +210,36 @@ export default function NotificationsCenter({
             </div>
             <strong>Nenhuma notificação por aqui</strong>
             <p>Você está por dentro de todas as missões, viaturas e escalas da equipe.</p>
+            {canSendMessage && onOpenSendMessage && (
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ marginTop: '12px', display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
+                onClick={onOpenSendMessage}
+              >
+                <Send size={14} />
+                <span>Enviar Comunicado para a Equipe</span>
+              </button>
+            )}
           </div>
         ) : (
           filteredNotifications.map((notif) => {
             const isUnread = !notif.read;
             const lockInfo = isNotificationLocked ? isNotificationLocked(notif) : { locked: false, reason: '' };
             const isLocked = lockInfo.locked;
+            const isSystemMessage = notif.type === 'system_message' || notif.type === 'message';
 
             return (
               <div
                 key={notif.id}
-                className={`notif-card ${isUnread ? 'is-unread' : 'is-read'} type-${notif.type || 'info'} ${isLocked ? 'is-locked-card' : ''}`}
+                className={`notif-card ${isUnread ? 'is-unread' : 'is-read'} type-${notif.type || 'info'} ${isLocked ? 'is-locked-card' : ''} ${isSystemMessage ? 'is-message-card' : ''}`}
                 onClick={() => {
                   if (onMarkAsRead) onMarkAsRead(notif.id);
                   if (onSelectNotification) onSelectNotification(notif);
                 }}
               >
                 <div className="notif-card-main">
-                  <div className={`notif-icon-circle type-${notif.type || 'info'}`}>
+                  <div className={`notif-icon-circle type-${notif.type || 'info'} ${isSystemMessage ? 'icon-message-circle' : ''}`}>
                     {getIconForType(notif.type, notif.variant)}
                   </div>
 
@@ -191,6 +247,37 @@ export default function NotificationsCenter({
                     <div className="notif-card-header-row">
                       <div className="notif-title-wrap">
                         <h4 className="notif-title">{notif.title}</h4>
+
+                        {/* Badges de Mensagem */}
+                        {isSystemMessage && (
+                          <div className="notif-msg-badges-row" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginTop: '2px' }}>
+                            {notif.senderName && (
+                              <span className="notif-sender-pill" style={{ fontSize: '0.7rem', padding: '1px 7px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', fontWeight: 600 }}>
+                                De: {notif.senderName} ({notif.senderRole || 'Gestão'})
+                              </span>
+                            )}
+                            {notif.recipientType === 'ALL' ? (
+                              <span className="notif-recipient-pill" style={{ fontSize: '0.7rem', padding: '1px 7px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontWeight: 600 }}>
+                                📢 Para Todos
+                              </span>
+                            ) : (
+                              <span className="notif-recipient-pill" style={{ fontSize: '0.7rem', padding: '1px 7px', borderRadius: '10px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', fontWeight: 600 }}>
+                                👤 Individual {notif.recipientName ? `(${notif.recipientName})` : ''}
+                              </span>
+                            )}
+                            {notif.priority === 'URGENT' && (
+                              <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontWeight: 700 }}>
+                                🚨 Urgente
+                              </span>
+                            )}
+                            {notif.priority === 'HIGH' && (
+                              <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', fontWeight: 700 }}>
+                                ⚠️ Alta Prioridade
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         {isLocked && (
                           <span className="notif-lock-badge" title={lockInfo.reason}>
                             <Lock size={10} />
@@ -228,7 +315,9 @@ export default function NotificationsCenter({
                       </div>
                     </div>
 
-                    <p className="notif-message">{notif.message}</p>
+                    <p className="notif-message" style={{ whiteSpace: isSystemMessage ? 'pre-wrap' : 'normal' }}>
+                      {notif.message}
+                    </p>
 
                     {notif.details && (
                       <div className={`notif-details-pill ${notif.isResolved ? 'is-resolved' : ''}`}>
@@ -254,4 +343,3 @@ export default function NotificationsCenter({
     </div>
   );
 }
-
