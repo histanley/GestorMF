@@ -450,7 +450,10 @@ function requireAuth($allowedRoles = []) {
         $hdrs = getallheaders();
         $csrfCandidate = $hdrs['X-CSRF-Token'] ?? $hdrs['x-csrf-token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
         if (!validateCsrfToken($token, $csrfCandidate)) {
-            jsonResponse(['success' => false, 'error' => 'Acesso negado: validação de token CSRF falhou.'], 403);
+            $cookieCsrf = $_COOKIE['gestormf_csrf'] ?? '';
+            if (empty($cookieCsrf) || !validateCsrfToken($token, $cookieCsrf)) {
+                jsonResponse(['success' => false, 'error' => 'Acesso negado: validação de token CSRF falhou.'], 403);
+            }
         }
     }
 

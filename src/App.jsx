@@ -424,6 +424,13 @@ export default function App() {
                 navigator.vibrate([200, 100, 200, 100, 300]);
               } catch (e) {}
             }
+            const firstUnread = mappedMsgs.find((m) => !m.read);
+            if (firstUnread) {
+              sendPushNotification(firstUnread.title || 'Novo Comunicado', {
+                body: `${firstUnread.senderName ? firstUnread.senderName + ': ' : ''}${firstUnread.message || ''}`,
+                tag: 'msg-' + firstUnread.id,
+              });
+            }
           }
 
           const nonMsgNotifs = prev.filter((n) => n.type !== 'system_message');

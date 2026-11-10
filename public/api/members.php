@@ -23,6 +23,7 @@ if ($method === 'GET') {
             'photoUrl'    => $m['photo_url'],
             'canDrive'    => (bool)($m['can_drive'] ?? false),
             'cnhCategory' => $m['cnh_category'] ?? 'B',
+            'userId'      => $m['user_id'] ?? null,
             'active'      => (bool)$m['active'],
             'createdAt'   => $m['created_at'],
             'updatedAt'   => $m['updated_at']

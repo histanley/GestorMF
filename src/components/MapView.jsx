@@ -419,13 +419,9 @@ export default function MapView({
         const res = await apiGetActiveGpsLocations();
         if (!res.success || !Array.isArray(res.locations)) return;
 
-        // Regra de Governança: Filtra para garantir que administradores/gestores nunca apareçam no radar ou mapa
+        // Exibe todas as posições válidas de colaboradores transmitindo GPS
         const validLocations = res.locations.filter((loc) => {
-          const name = (loc.memberName || '').toLowerCase().trim();
-          const role = (loc.memberRole || '').toLowerCase().trim();
-          if (role === 'admin' || role === 'gestor' || role === 'administrador') return false;
-          if (name.includes('histanley') || name.includes('rodrigo') || name.includes('guedes') || name === 'hgama') return false;
-          return true;
+          return loc && loc.lat && loc.lon && !isNaN(loc.lat) && !isNaN(loc.lon);
         });
 
         setActiveGpsLocations(validLocations);

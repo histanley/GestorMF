@@ -32,6 +32,20 @@ if ($method === 'POST') {
         $stmtMemName = $db->prepare("SELECT id, name, active FROM members WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND active = 1 LIMIT 1");
         $stmtMemName->execute([$user['name']]);
         $foundByName = $stmtMemName->fetch();
+        if (!$foundByName) {
+            $uNameLower = strtolower(trim($user['name']));
+            $firstWord = explode(' ', $uNameLower)[0] ?? '';
+            $isHgama = (strpos($uNameLower, 'histanley') !== false || strpos($uNameLower, 'hgama') !== false);
+            if ($isHgama) {
+                $stmtFlex = $db->prepare("SELECT id, name, active FROM members WHERE LOWER(TRIM(name)) = 'hgama' OR LOWER(TRIM(name)) LIKE '%histanley%' OR LOWER(TRIM(name)) LIKE '%gama%' LIMIT 1");
+                $stmtFlex->execute();
+                $foundByName = $stmtFlex->fetch();
+            } elseif (strlen($firstWord) >= 3) {
+                $stmtFlex = $db->prepare("SELECT id, name, active FROM members WHERE LOWER(TRIM(name)) LIKE ? LIMIT 1");
+                $stmtFlex->execute([$firstWord . '%']);
+                $foundByName = $stmtFlex->fetch();
+            }
+        }
         if ($foundByName) {
             $memberId = $foundByName['id'];
             $memberName = $foundByName['name'];

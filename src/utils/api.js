@@ -23,7 +23,7 @@ export function setAuthToken() {
   } catch (e) {}
 }
 
-let currentCsrfToken = '';
+let currentCsrfToken = (typeof localStorage !== 'undefined' ? localStorage.getItem('gestormf_csrf_token') : '') || '';
 
 function getCsrfFromCookie() {
   if (typeof document === 'undefined') return '';
@@ -32,11 +32,16 @@ function getCsrfFromCookie() {
 }
 
 export function setCsrfToken(token) {
-  if (token) currentCsrfToken = token;
+  if (token) {
+    currentCsrfToken = token;
+    try {
+      localStorage.setItem('gestormf_csrf_token', token);
+    } catch (e) {}
+  }
 }
 
 export function getCsrfToken() {
-  return currentCsrfToken || getCsrfFromCookie();
+  return currentCsrfToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('gestormf_csrf_token') : '') || getCsrfFromCookie();
 }
 
 async function apiRequest(endpoint, options = {}) {
