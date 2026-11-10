@@ -34,6 +34,10 @@ function ensureMissionColumnsExist($db) {
         'suggested_departure_time'=> 'VARCHAR(10) NULL',
         'guests'                  => 'LONGTEXT NULL',
         'server_file_path'        => 'VARCHAR(500) NULL',
+        'is_recurring'            => 'TINYINT(1) DEFAULT 0',
+        'recurrence_id'           => 'VARCHAR(64) NULL',
+        'recurrence_rule'         => 'VARCHAR(255) NULL',
+        'recurrence_days'         => 'VARCHAR(100) NULL',
         'version'                 => 'INT NOT NULL DEFAULT 1'
     ];
 
@@ -202,6 +206,10 @@ if ($method === 'GET') {
             'routeCoordinates'         => !empty($m['route_coordinates']) ? json_decode($m['route_coordinates'], true) : [],
             'returnCoordinates'        => !empty($m['return_coordinates']) ? json_decode($m['return_coordinates'], true) : [],
             'notes'                    => $m['notes'],
+            'isRecurring'              => !empty($m['is_recurring']),
+            'recurrenceId'             => $m['recurrence_id'] ?? null,
+            'recurrenceRule'           => $m['recurrence_rule'] ?? null,
+            'recurrenceDays'           => $m['recurrence_days'] ?? null,
             'version'                  => (int)($m['version'] ?? 1),
             'createdAt'                => $m['created_at'],
             'updatedAt'                => $m['updated_at']
@@ -671,6 +679,11 @@ if ($method === 'POST' || $method === 'PUT') {
             }
         }
 
+    $isRecurring = !empty($data['isRecurring']) ? 1 : 0;
+    $recurrenceId = !empty($data['recurrenceId']) ? trim($data['recurrenceId']) : ($isRecurring ? ('rec-' . bin2hex(random_bytes(8))) : null);
+    $recurrenceRule = !empty($data['recurrenceRule']) ? trim($data['recurrenceRule']) : null;
+    $recurrenceDays = !empty($data['recurrenceDays']) ? (is_array($data['recurrenceDays']) ? implode(', ', $data['recurrenceDays']) : trim($data['recurrenceDays'])) : null;
+
     $sql = "
         INSERT INTO missions (
             id, code, description, location_name, address, lat, lon, date,
@@ -684,7 +697,9 @@ if ($method === 'POST' || $method === 'PUT') {
             edition_status, mission_status, is_round_trip,
             distance_km, total_distance_km, driving_duration_minutes, round_trip_duration_minutes,
             estimated_fuel_liters, estimated_fuel_cost,
-            route_coordinates, return_coordinates, notes, created_by
+            route_coordinates, return_coordinates, notes,
+            is_recurring, recurrence_id, recurrence_rule, recurrence_days,
+            created_by
         ) VALUES (
             :id, :code, :description, :location_name, :address, :lat, :lon, :date,
             :departure_time, :arrival_time_estimated, :return_time_estimated,
@@ -697,7 +712,9 @@ if ($method === 'POST' || $method === 'PUT') {
             :edition_status, :mission_status, :is_round_trip,
             :distance_km, :total_distance_km, :driving_duration_minutes, :round_trip_duration_minutes,
             :estimated_fuel_liters, :estimated_fuel_cost,
-            :route_coordinates, :return_coordinates, :notes, :created_by
+            :route_coordinates, :return_coordinates, :notes,
+            :is_recurring, :recurrence_id, :recurrence_rule, :recurrence_days,
+            :created_by
         )
         ON DUPLICATE KEY UPDATE
             version = version + 1,
@@ -746,7 +763,11 @@ if ($method === 'POST' || $method === 'PUT') {
             estimated_fuel_cost = VALUES(estimated_fuel_cost),
             route_coordinates = VALUES(route_coordinates),
             return_coordinates = VALUES(return_coordinates),
-            notes = VALUES(notes)
+            notes = VALUES(notes),
+            is_recurring = VALUES(is_recurring),
+            recurrence_id = VALUES(recurrence_id),
+            recurrence_rule = VALUES(recurrence_rule),
+            recurrence_days = VALUES(recurrence_days)
     ";
 
     $saveParams = [
@@ -797,18 +818,149 @@ if ($method === 'POST' || $method === 'PUT') {
         ':route_coordinates'           => !empty($data['routeCoordinates']) ? json_encode($data['routeCoordinates']) : null,
         ':return_coordinates'          => !empty($data['returnCoordinates']) ? json_encode($data['returnCoordinates']) : null,
         ':notes'                       => $data['notes'] ?? null,
+        ':is_recurring'                => $isRecurring,
+        ':recurrence_id'               => $recurrenceId,
+        ':recurrence_rule'             => $recurrenceRule,
+        ':recurrence_days'             => $recurrenceDays,
         ':created_by'                  => $user['id']
     ];
 
     $stmtSave = $db->prepare($sql);
     $stmtSave->execute($saveParams);
 
+    $createdMissions = [];
+    // Se for cadastro de nova missão recorrente (com múltiplas datas programadas)
+    if (!$existing && $isRecurring && !empty($data['recurringDates']) && is_array($data['recurringDates'])) {
+        $baseDate = $data['date'] ?? date('Y-m-d');
+        $baseDateTs = strtotime($baseDate);
+        $deadlineTs = !empty($data['deliveryDeadlineDate']) ? strtotime($data['deliveryDeadlineDate']) : $baseDateTs;
+        $diffDays = max(0, (int)round(($deadlineTs - $baseDateTs) / 86400));
+
+        foreach ($data['recurringDates'] as $rDate) {
+            $rDate = trim($rDate);
+            if ($rDate === $baseDate || empty($rDate)) continue;
+
+            $childId = 'mis-rec-' . bin2hex(random_bytes(6));
+            $cleanDate = preg_replace('/\D/', '', $rDate);
+            $datePrefix = strlen($cleanDate) >= 8 ? substr($cleanDate, 0, 8) : date('Ymd');
+
+            $stmtCount = $db->prepare("SELECT COUNT(*) FROM missions WHERE date = ?");
+            $stmtCount->execute([$rDate]);
+            $dCount = (int)$stmtCount->fetchColumn();
+            $childCode = $datePrefix . ($dCount + 1);
+            $childDeadlineDate = date('Y-m-d', strtotime("{$rDate} + {$diffDays} days"));
+
+            $childParams = $saveParams;
+            $childParams[':id'] = $childId;
+            $childParams[':code'] = $childCode;
+            $childParams[':date'] = $rDate;
+            $childParams[':delivery_deadline_date'] = $childDeadlineDate;
+
+            $stmtSave->execute($childParams);
+
+            $childObj = $data;
+            $childObj['id'] = $childId;
+            $childObj['code'] = $childCode;
+            $childObj['date'] = $rDate;
+            $childObj['deliveryDeadlineDate'] = $childDeadlineDate;
+            $childObj['isRecurring'] = true;
+            $childObj['recurrenceId'] = $recurrenceId;
+            $childObj['recurrenceRule'] = $recurrenceRule;
+            $childObj['recurrenceDays'] = $recurrenceDays;
+            $childObj['version'] = 1;
+            $childObj['createdAt'] = date('Y-m-d H:i:s');
+            $childObj['updatedAt'] = date('Y-m-d H:i:s');
+            $createdMissions[] = $childObj;
+        }
+    }
+
+    // Se estiver editando e optar por atualizar todas as futuras missões da série
+    if ($existing && !empty($existing['recurrence_id']) && !empty($data['updateSeries'])) {
+        $stmtUpSeries = $db->prepare("
+            UPDATE missions
+            SET description = ?,
+                location_name = ?,
+                address = ?,
+                lat = ?,
+                lon = ?,
+                departure_time = ?,
+                arrival_time_estimated = ?,
+                return_time_estimated = ?,
+                event_start_time = ?,
+                antecedence_minutes = ?,
+                suggested_departure_time = ?,
+                vehicle_id = ?,
+                vehicle_name_display = ?,
+                vehicle_allocations = ?,
+                driver_id = ?,
+                driver_name = ?,
+                team_ids = ?,
+                team_names_display = ?,
+                editor_id = ?,
+                editor_name = ?,
+                editor_ids = ?,
+                editor_names_display = ?,
+                delivery_deadline_time = ?,
+                distance_km = ?,
+                total_distance_km = ?,
+                driving_duration_minutes = ?,
+                round_trip_duration_minutes = ?,
+                estimated_fuel_liters = ?,
+                estimated_fuel_cost = ?,
+                route_coordinates = ?,
+                return_coordinates = ?,
+                notes = ?,
+                version = version + 1,
+                updated_at = NOW()
+            WHERE recurrence_id = ? AND date > ? AND id != ?
+        ");
+        $stmtUpSeries->execute([
+            $description,
+            $data['locationName'] ?? null,
+            $data['address'] ?? null,
+            isset($data['lat']) && $data['lat'] !== '' ? $data['lat'] : null,
+            isset($data['lon']) && $data['lon'] !== '' ? $data['lon'] : null,
+            $data['departureTime'] ?? '08:00',
+            $data['arrivalTimeEstimated'] ?? null,
+            $data['returnTimeEstimated'] ?? null,
+            $data['eventStartTime'] ?? null,
+            isset($data['antecedenceMinutes']) ? (int)$data['antecedenceMinutes'] : 30,
+            $data['suggestedDepartureTime'] ?? null,
+            $data['vehicleId'] ?? null,
+            $data['vehicleNameDisplay'] ?? null,
+            !empty($data['vehicleAllocations']) ? json_encode($data['vehicleAllocations'], JSON_UNESCAPED_UNICODE) : null,
+            $data['driverId'] ?? null,
+            $data['driverName'] ?? null,
+            !empty($data['teamIds']) ? json_encode($data['teamIds'], JSON_UNESCAPED_UNICODE) : null,
+            $data['teamNamesDisplay'] ?? null,
+            $data['editorId'] ?? null,
+            $data['editorName'] ?? null,
+            !empty($data['editorIds']) ? json_encode($data['editorIds'], JSON_UNESCAPED_UNICODE) : null,
+            $data['editorNamesDisplay'] ?? null,
+            $data['deliveryDeadlineTime'] ?? null,
+            (float)($data['distanceKm'] ?? 0),
+            (float)($data['totalDistanceKm'] ?? 0),
+            (int)($data['drivingDurationMinutes'] ?? 0),
+            (int)($data['roundTripDurationMinutes'] ?? 0),
+            (float)($data['estimatedFuelLiters'] ?? 0),
+            (float)($data['estimatedFuelCost'] ?? 0),
+            !empty($data['routeCoordinates']) ? json_encode($data['routeCoordinates']) : null,
+            !empty($data['returnCoordinates']) ? json_encode($data['returnCoordinates']) : null,
+            $data['notes'] ?? null,
+            $existing['recurrence_id'],
+            $data['date'] ?? date('Y-m-d'),
+            $id
+        ]);
+        $seriesCount = $stmtUpSeries->rowCount();
+        logAudit('UPDATE_MISSION_SERIES', 'MISSIONS', $id, "{$seriesCount} ocorrências futuras da série recorrente foram atualizadas.", $user['id'], $user['name']);
+    }
+
     $db->commit();
 
     $actionName = $existing ? 'UPDATE_MISSION' : 'CREATE_MISSION';
     $auditMsg = $existing
         ? "Missão '{$description}' (#{$id}) atualizada. Status: " . ($data['missionStatus'] ?? 'Agendada')
-        : "Nova missão criada: '{$description}' (#{$id}).";
+        : "Nova missão criada: '{$description}' (#{$id})" . ($isRecurring ? " [Recorrente - " . count($createdMissions) . " ocorrências adicionais]" : "") . ".";
 
     logAudit($actionName, 'MISSIONS', $id, $auditMsg, $user['id'], $user['name']);
     bumpSyncVersion("mission_{$id}");
@@ -816,11 +968,15 @@ if ($method === 'POST' || $method === 'PUT') {
     $nowUpdated = date('Y-m-d H:i:s');
     $newVersion = $existing ? ($dbVersion + 1) : 1;
     jsonResponse([
-        'success'   => true,
-        'message'   => 'Missão salva com sucesso!',
-        'id'        => $id,
-        'version'   => $newVersion,
-        'updatedAt' => $nowUpdated
+        'success'         => true,
+        'message'         => $isRecurring && count($createdMissions) > 0
+            ? "Missão e " . (count($createdMissions) + 1) . " agendamentos recorrentes salvos com sucesso!"
+            : 'Missão salva com sucesso!',
+        'id'              => $id,
+        'version'         => $newVersion,
+        'updatedAt'       => $nowUpdated,
+        'createdMissions' => $createdMissions,
+        'recurrenceId'    => $recurrenceId
     ]);
 } catch (Exception $e) {
     if ($db->inTransaction()) {
@@ -897,18 +1053,31 @@ if ($method === 'DELETE') {
         jsonResponse(['success' => false, 'error' => 'ID da missão não informado.'], 400);
     }
 
-    $stmtGet = $db->prepare("SELECT description FROM missions WHERE id = ?");
+    $deleteSeries = !empty($_GET['deleteSeries']) || !empty($_GET['deleteAllRecurring']);
+
+    $stmtGet = $db->prepare("SELECT description, recurrence_id, date FROM missions WHERE id = ?");
     $stmtGet->execute([$id]);
     $mis = $stmtGet->fetch();
 
-    $stmtDel = $db->prepare("DELETE FROM missions WHERE id = ?");
-    $stmtDel->execute([$id]);
-
-    $desc = $mis ? $mis['description'] : $id;
-    logAudit('DELETE_MISSION', 'MISSIONS', $id, "Missão '{$desc}' excluída.", $user['id'], $user['name']);
-    bumpSyncVersion("delete_mission_{$id}");
-
-    jsonResponse(['success' => true, 'message' => 'Missão excluída com sucesso.']);
+    if ($mis && $deleteSeries && !empty($mis['recurrence_id'])) {
+        $stmtDel = $db->prepare("DELETE FROM missions WHERE recurrence_id = ? AND date >= ?");
+        $stmtDel->execute([$mis['recurrence_id'], $mis['date']]);
+        $deletedCount = $stmtDel->rowCount();
+        logAudit('DELETE_MISSION_SERIES', 'MISSIONS', $id, "Série recorrente da missão '{$mis['description']}' excluída ({$deletedCount} ocorrências).", $user['id'], $user['name']);
+        jsonResponse([
+            'success'      => true,
+            'message'      => "{$deletedCount} agendamentos da série recorrente foram excluídos com sucesso.",
+            'deletedCount' => $deletedCount,
+            'deleteSeries' => true,
+            'recurrenceId' => $mis['recurrence_id']
+        ]);
+    } else {
+        $stmtDel = $db->prepare("DELETE FROM missions WHERE id = ?");
+        $stmtDel->execute([$id]);
+        $desc = $mis ? $mis['description'] : $id;
+        logAudit('DELETE_MISSION', 'MISSIONS', $id, "Missão '{$desc}' excluída.", $user['id'], $user['name']);
+        jsonResponse(['success' => true, 'message' => 'Missão excluída com sucesso.']);
+    }
 }
 
 jsonResponse(['error' => 'Método não suportado.'], 405);

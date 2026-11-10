@@ -20,7 +20,16 @@ import {
   Film,
   UserPlus,
   X,
+  Repeat,
 } from 'lucide-react';
+import {
+  RECURRENCE_DAYS,
+  getDayOfWeekFromDate,
+  addWeeksToDate,
+  formatOccurrencePreview,
+  generateRecurrenceDates,
+  formatDaysDisplay,
+} from '../utils/recurrence';
 import {
   fetchRouteOSRM,
   searchAddressNominatim,
@@ -224,6 +233,13 @@ export default function MissionModal({
     estimatedFuelCost: 0,
   });
 
+  // Estado de Missão Recorrente (Agendamento Automático de Rotinas / Sessões Semanais)
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [selectedDows, setSelectedDows] = useState([2, 4]); // Padrão: Terça e Quinta (2x por semana)
+  const [recurrenceWeeks, setRecurrenceWeeks] = useState(4); // 4 semanas (1 mês) por padrão
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState(() => addWeeksToDate(getLocalTodayStr(), 4));
+  const [updateSeries, setUpdateSeries] = useState(false);
+
   // Extrai autonomias de todas as viaturas alocadas para somar o consumo total
   const getAutonomiesFromAllocations = (allocations = []) => {
     const validAllocs = allocations.filter((a) => a && a.vehicleId);
@@ -283,7 +299,29 @@ export default function MissionModal({
         isOverdue: editingMission.isOverdue || 0,
         reopenReason: editingMission.reopenReason || '',
         isRoundTrip: true,
+        isRecurring: Boolean(editingMission.isRecurring || editingMission.recurrenceId),
+        recurrenceId: editingMission.recurrenceId || null,
+        recurrenceRule: editingMission.recurrenceRule || 'weekly',
+        recurrenceDays: editingMission.recurrenceDays || '',
       });
+
+      const isRec = Boolean(editingMission.isRecurring || editingMission.recurrenceId);
+      setIsRecurring(isRec);
+      setUpdateSeries(false);
+      const baseDow = getDayOfWeekFromDate(editingMission.date);
+      if (editingMission.recurrenceDays) {
+        const found = [];
+        RECURRENCE_DAYS.forEach((d) => {
+          if (editingMission.recurrenceDays.includes(d.short)) {
+            found.push(d.dow);
+          }
+        });
+        setSelectedDows(found.length > 0 ? found : [baseDow]);
+      } else {
+        setSelectedDows([baseDow]);
+      }
+      setRecurrenceWeeks(4);
+      setRecurrenceEndDate(addWeeksToDate(editingMission.date || getLocalTodayStr(), 4));
       setRouteInfo({
         distanceKm: editingMission.distanceKm || 0,
         returnDistanceKm: editingMission.returnDistanceKm || editingMission.distanceKm || 0,
@@ -340,9 +378,65 @@ export default function MissionModal({
         missionStatus: 'Agendada',
         isRoundTrip: true,
         notes: '',
+        isRecurring: false,
+        recurrenceId: null,
+        recurrenceRule: 'weekly',
+        recurrenceDays: '',
       });
+
+      setIsRecurring(false);
+      setUpdateSeries(false);
+      const baseDate = initialCoords?.date || getLocalTodayStr();
+      const baseDow = getDayOfWeekFromDate(baseDate);
+      // Sugere o dia base + um dia complementar (ex: Terça e Quinta para 2x por semana)
+      const pairedDow = (baseDow === 2) ? 4 : (baseDow === 4) ? 2 : (baseDow === 1) ? 3 : (baseDow === 3) ? 1 : ((baseDow + 2) % 7);
+      setSelectedDows([baseDow, pairedDow]);
+      setRecurrenceWeeks(4);
+      setRecurrenceEndDate(addWeeksToDate(baseDate, 4));
     }
   }, [isOpen, editingMission, initialCoords]);
+
+  // Manipuladores de Missão Recorrente
+  const handleToggleRecurrence = (checked) => {
+    setIsRecurring(checked);
+    if (checked) {
+      const baseDow = getDayOfWeekFromDate(formData.date || getLocalTodayStr());
+      if (!selectedDows.includes(baseDow)) {
+        setSelectedDows((prev) => [...prev, baseDow]);
+      }
+      if (!recurrenceEndDate) {
+        setRecurrenceEndDate(addWeeksToDate(formData.date || getLocalTodayStr(), recurrenceWeeks || 4));
+      }
+    }
+  };
+
+  const handleToggleDow = (dow) => {
+    setSelectedDows((prev) => {
+      if (prev.includes(dow)) {
+        if (prev.length === 1) return prev; // Garante que pelo menos 1 dia fique selecionado
+        return prev.filter((d) => d !== dow);
+      } else {
+        return [...prev, dow];
+      }
+    });
+  };
+
+  const handleSetRecurrenceWeeks = (weeks) => {
+    setRecurrenceWeeks(weeks);
+    setRecurrenceEndDate(addWeeksToDate(formData.date || getLocalTodayStr(), weeks));
+  };
+
+  // Calcula dinamicamente as datas do ciclo recorrente (Data inicial até Data limite)
+  const calculatedRecurrenceDates = useMemo(() => {
+    if (!isRecurring || !formData.date || !recurrenceEndDate) return [];
+    return generateRecurrenceDates(formData.date, selectedDows, recurrenceEndDate, 40);
+  }, [isRecurring, formData.date, selectedDows, recurrenceEndDate]);
+
+  // Lista das ocorrências futuras geradas (excluindo a missão base de hoje)
+  const futureOccurrenceDates = useMemo(() => {
+    if (!isRecurring) return [];
+    return calculatedRecurrenceDates.filter((d) => d !== formData.date);
+  }, [isRecurring, calculatedRecurrenceDates, formData.date]);
 
   // Recalcula rota e combustível quando lat/lon ou viaturas alocadas mudam
   const updateRouteCalculations = async (destLat, destLon, allocationsOverride = null) => {
@@ -894,6 +988,13 @@ export default function MissionModal({
       exceedsFullTank: anyExceedsFullTank,
       excessFuelLiters: totalExcessOverFullTankLiters,
       excessFuelCost: totalExcessOverFullTankCost,
+      // Recorrência da Missão
+      isRecurring: isRecurring,
+      recurrenceId: formData.recurrenceId || (isRecurring ? (editingMission?.recurrenceId || 'rec-' + Date.now()) : null),
+      recurrenceRule: isRecurring ? (formData.recurrenceRule || 'weekly') : null,
+      recurrenceDays: isRecurring ? formatDaysDisplay(selectedDows) : null,
+      recurringDates: isRecurring && !editingMission ? futureOccurrenceDates : [],
+      updateSeries: Boolean(editingMission && isRecurring && updateSeries),
     };
 
     const res = await onSaveMission(missionPayload);
@@ -1103,6 +1204,222 @@ export default function MissionModal({
                 </div>
               </div>
             )}
+
+            {/* ============================================================== */}
+            {/* RECORRÊNCIA DA MISSÃO (Agendamento Automático de Rotinas)      */}
+            {/* ============================================================== */}
+            <div className={`mm-recurrence-box ${isRecurring ? 'is-active' : ''}`}>
+              <div className="mm-rec-header">
+                <div className="mm-rec-info">
+                  <div className={`mm-rec-icon ${isRecurring ? 'active' : ''}`}>
+                    <Repeat size={18} />
+                  </div>
+                  <div>
+                    <div className="mm-rec-title-row">
+                      <strong className="mm-rec-title">Missão Recorrente (Repetir Pauta)</strong>
+                      {isRecurring && (
+                        <span className="mm-rec-badge-active">
+                          {calculatedRecurrenceDates.length > 0 ? `${calculatedRecurrenceDates.length} Ocorrências` : 'Ativa'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mm-rec-desc">
+                      Configure missões rotineiras (ex: duas vezes por semana, sessões do TJ, programas fixos ou cultos).
+                    </p>
+                  </div>
+                </div>
+
+                <label className="mm-rec-switch-wrapper" title="Ativar repetição periódica para esta missão">
+                  <input
+                    type="checkbox"
+                    checked={isRecurring}
+                    onChange={(e) => handleToggleRecurrence(e.target.checked)}
+                  />
+                  <span className="mm-rec-switch-slider"></span>
+                </label>
+              </div>
+
+              {isRecurring && (
+                <div className="mm-rec-body">
+                  {/* 1. SELEÇÃO DE DIAS DA SEMANA */}
+                  <div className="mm-rec-section">
+                    <label className="mm-rec-label">
+                      <span>Dias da Semana em que a Missão Ocorre:</span>
+                      <span className="mm-rec-label-hint">Selecione 1 ou mais dias (ex: Terça e Quinta)</span>
+                    </label>
+
+                    <div className="mm-rec-days-row">
+                      {RECURRENCE_DAYS.map((d) => {
+                        const isSelected = selectedDows.includes(d.dow);
+                        return (
+                          <button
+                            type="button"
+                            key={d.dow}
+                            className={`btn-dow-chip ${isSelected ? 'selected' : ''}`}
+                            onClick={() => handleToggleDow(d.dow)}
+                            title={`${d.label} (${isSelected ? 'Selecionado - Clique para remover' : 'Clique para adicionar'})`}
+                          >
+                            <span className="dow-check">{isSelected ? '✓' : ''}</span>
+                            <span className="dow-name">{d.short}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Atalhos Rápidos de Frequência */}
+                    <div className="mm-rec-presets-row">
+                      <span className="rec-preset-label">Atalhos rápidos:</span>
+                      <button
+                        type="button"
+                        className="btn-rec-preset"
+                        onClick={() => setSelectedDows([2, 4])}
+                        title="Terça e Quinta (2x por semana)"
+                      >
+                        2x / sem (Ter e Qui)
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-rec-preset"
+                        onClick={() => setSelectedDows([1, 3])}
+                        title="Segunda e Quarta (2x por semana)"
+                      >
+                        2x / sem (Seg e Qua)
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-rec-preset"
+                        onClick={() => setSelectedDows([1, 3, 5])}
+                        title="Segunda, Quarta e Sexta (3x por semana)"
+                      >
+                        3x / sem (Seg, Qua, Sex)
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-rec-preset"
+                        onClick={() => setSelectedDows([1, 2, 3, 4, 5])}
+                        title="Segunda a Sexta (Dias Úteis)"
+                      >
+                        Segunda a Sexta
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2. DURAÇÃO / DATA LIMITE */}
+                  <div className="mm-rec-section">
+                    <label className="mm-rec-label">
+                      <span>Repetir Até Quando?</span>
+                      <span className="mm-rec-label-hint">Escolha a duração do ciclo de agendamentos</span>
+                    </label>
+
+                    <div className="mm-rec-duration-row">
+                      <div className="mm-rec-duration-presets">
+                        {[
+                          { weeks: 4, label: '4 semanas (1 mês)' },
+                          { weeks: 8, label: '8 semanas (2 meses)' },
+                          { weeks: 12, label: '12 semanas (3 meses)' },
+                          { weeks: 24, label: '6 meses' },
+                        ].map((p) => (
+                          <button
+                            type="button"
+                            key={p.weeks}
+                            className={`btn-rec-duration-chip ${recurrenceWeeks === p.weeks ? 'active' : ''}`}
+                            onClick={() => handleSetRecurrenceWeeks(p.weeks)}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="mm-rec-custom-date">
+                        <span className="mrcd-label">Data Limite:</span>
+                        <input
+                          type="date"
+                          className="mrcd-input"
+                          value={recurrenceEndDate}
+                          min={formData.date || getLocalTodayStr()}
+                          onChange={(e) => {
+                            setRecurrenceEndDate(e.target.value);
+                            setRecurrenceWeeks(null);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. RESUMO VISUAL DOS AGENDAMENTOS */}
+                  <div className="mm-rec-summary-card">
+                    <div className="mrs-header">
+                      <Calendar size={15} />
+                      <strong>Resumo da Recorrência:</strong>
+                      {calculatedRecurrenceDates.length > 0 ? (
+                        <span className="mrs-count-badge">
+                          {calculatedRecurrenceDates.length} missões agendadas ({formatDaysDisplay(selectedDows)})
+                        </span>
+                      ) : (
+                        <span className="mrs-count-badge warning">Nenhum dia selecionado</span>
+                      )}
+                    </div>
+
+                    {calculatedRecurrenceDates.length > 0 ? (
+                      <>
+                        <p className="mrs-desc">
+                          {editingMission
+                            ? 'Esta missão e suas ocorrências mantêm a mesma rota, equipe e viatura:'
+                            : `Ao salvar, serão criadas automaticamente ${calculatedRecurrenceDates.length} missões com a mesma viatura, rota e equipe:`}
+                        </p>
+                        <div className="mrs-dates-list">
+                          {calculatedRecurrenceDates.map((dStr, idx) => (
+                            <span
+                              key={dStr}
+                              className={`mrs-date-pill ${dStr === formData.date ? 'is-first' : ''}`}
+                              title={dStr === formData.date ? 'Missão Base principal' : `Ocorrência #${idx + 1}`}
+                            >
+                              {dStr === formData.date && <span className="mrs-pill-dot" />}
+                              {formatOccurrencePreview(dStr)}
+                              {dStr === formData.date ? ' (Base)' : ''}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="mrs-empty-hint">
+                        Selecione ao menos um dia da semana para gerar as ocorrências automáticas.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 4. ESCOPO DE EDIÇÃO (CASO ESTEJA EDITANDO UMA MISSÃO JÁ EXISTENTE) */}
+                  {editingMission && (editingMission.isRecurring || editingMission.recurrenceId) && (
+                    <div className="mm-rec-edit-scope-box">
+                      <div className="mres-title">
+                        <AlertTriangle size={15} />
+                        <span>Escopo da Atualização:</span>
+                      </div>
+                      <div className="mres-options">
+                        <label className="mres-option">
+                          <input
+                            type="radio"
+                            name="recurrenceScope"
+                            checked={!updateSeries}
+                            onChange={() => setUpdateSeries(false)}
+                          />
+                          <span>Alterar apenas este agendamento ({formatDateBR(formData.date)})</span>
+                        </label>
+                        <label className="mres-option">
+                          <input
+                            type="radio"
+                            name="recurrenceScope"
+                            checked={updateSeries}
+                            onChange={() => setUpdateSeries(true)}
+                          />
+                          <span>Aplicar alterações a este e a todos os próximos agendamentos desta série</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ============================================================== */}

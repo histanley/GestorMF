@@ -188,11 +188,16 @@ function runDatabaseInstallation($db) {
             route_coordinates LONGTEXT NULL,
             return_coordinates LONGTEXT NULL,
             notes TEXT NULL,
+            is_recurring TINYINT(1) DEFAULT 0,
+            recurrence_id VARCHAR(64) NULL,
+            recurrence_rule VARCHAR(255) NULL,
+            recurrence_days VARCHAR(100) NULL,
             created_by VARCHAR(64) NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_mis_date (date),
-            INDEX idx_mis_status (mission_status)
+            INDEX idx_mis_status (mission_status),
+            INDEX idx_mis_recurrence (recurrence_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 
@@ -240,6 +245,10 @@ function runDatabaseInstallation($db) {
         'route_coordinates'           => 'LONGTEXT NULL',
         'return_coordinates'          => 'LONGTEXT NULL',
         'notes'                       => 'TEXT NULL',
+        'is_recurring'                => 'TINYINT(1) DEFAULT 0',
+        'recurrence_id'               => 'VARCHAR(64) NULL',
+        'recurrence_rule'             => 'VARCHAR(255) NULL',
+        'recurrence_days'             => 'VARCHAR(100) NULL',
         'created_by'                  => 'VARCHAR(64) NULL',
         'version'                     => 'INT NOT NULL DEFAULT 1'
     ];

@@ -201,8 +201,9 @@ export async function apiSaveMission(mission) {
   });
 }
 
-export async function apiDeleteMission(missionId) {
-  return await apiRequest(`/missions.php?id=${encodeURIComponent(missionId)}`, {
+export async function apiDeleteMission(missionId, deleteSeries = false) {
+  const query = deleteSeries ? '&deleteSeries=true' : '';
+  return await apiRequest(`/missions.php?id=${encodeURIComponent(missionId)}${query}`, {
     method: 'DELETE'
   });
 }

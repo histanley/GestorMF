@@ -33,6 +33,7 @@ import {
   RotateCcw,
   AlertTriangle,
   Check,
+  Repeat,
   UserPlus,
   CheckCheck,
   Zap,
@@ -827,6 +828,9 @@ export default function ServiceBoard({
                     <td className="pcol-desc">
                       <div className="pcell-desc">
                         <span className="print-code-badge">#{missionCode}</span>
+                        {mission.isRecurring && (
+                          <span className="print-rec-badge">🔁 {mission.recurrenceDays || 'Recorrente'}</span>
+                        )}
                         <strong className="print-mission-title">{mission.description}</strong>
                         {mission.notes && <p className="print-mission-notes">{mission.notes}</p>}
                       </div>
@@ -1266,6 +1270,14 @@ export default function ServiceBoard({
                           <span className="row-ficha-badge">
                             <Eye size={10} /> Ver Ficha
                           </span>
+                          {mission.isRecurring && (
+                            <span
+                              className="row-recurring-badge"
+                              title={`Missão Recorrente ${mission.recurrenceDays ? `(${mission.recurrenceDays})` : ''}`}
+                            >
+                              <Repeat size={10} /> {mission.recurrenceDays || 'Recorrente'}
+                            </span>
+                          )}
                         </div>
                         <strong className="mission-name-compact">
                           {mission.description}
@@ -1847,6 +1859,12 @@ export default function ServiceBoard({
                     <span className="mdm-roundtrip-badge">
                       🔄 Ida e Volta à Base
                     </span>
+
+                    {detailMission.isRecurring && (
+                      <span className="mdm-recurring-badge" title={`Série Recorrente: ${detailMission.recurrenceDays || 'Semanal'}`}>
+                        <Repeat size={12} /> Recorrente ({detailMission.recurrenceDays || 'Semanal'})
+                      </span>
+                    )}
                   </div>
 
                   <button

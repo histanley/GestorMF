@@ -1166,13 +1166,83 @@ export default function App() {
 
       setMissions((prev) => {
         const index = prev.findIndex((m) => m.id === updatedRecord.id);
+        let list;
         if (index >= 0) {
-          const copy = [...prev];
-          copy[index] = updatedRecord;
-          return copy;
+          list = [...prev];
+          list[index] = updatedRecord;
         } else {
-          return [updatedRecord, ...prev];
+          list = [updatedRecord, ...prev];
         }
+
+        // Se for criação de missão recorrente com agendamentos adicionais retornados pelo servidor:
+        if (res && Array.isArray(res.createdMissions) && res.createdMissions.length > 0) {
+          const map = new Map(list.map((m) => [m.id, m]));
+          res.createdMissions.forEach((cm) => {
+            const normalizedChild = {
+              ...updatedRecord,
+              ...cm,
+              id: cm.id,
+              code: cm.code,
+              date: cm.date,
+              deliveryDeadlineDate: cm.deliveryDeadlineDate || cm.date,
+              isRecurring: true,
+              recurrenceId: res.recurrenceId || updatedRecord.recurrenceId,
+              recurrenceDays: updatedRecord.recurrenceDays,
+              version: 1,
+            };
+            map.set(cm.id, normalizedChild);
+            if (knownMissionsRef.current) knownMissionsRef.current.add(cm.id);
+          });
+          list = Array.from(map.values());
+        }
+
+        // Se estiver editando e optou por atualizar todas as futuras da série:
+        if (savedMission.updateSeries && savedMission.recurrenceId) {
+          list = list.map((m) => {
+            if (m.recurrenceId === savedMission.recurrenceId && m.date > savedMission.date && m.id !== updatedRecord.id) {
+              return {
+                ...m,
+                description: updatedRecord.description,
+                locationName: updatedRecord.locationName,
+                address: updatedRecord.address,
+                lat: updatedRecord.lat,
+                lon: updatedRecord.lon,
+                departureTime: updatedRecord.departureTime,
+                arrivalTimeEstimated: updatedRecord.arrivalTimeEstimated,
+                returnTimeEstimated: updatedRecord.returnTimeEstimated,
+                eventStartTime: updatedRecord.eventStartTime,
+                antecedenceMinutes: updatedRecord.antecedenceMinutes,
+                suggestedDepartureTime: updatedRecord.suggestedDepartureTime,
+                vehicleId: updatedRecord.vehicleId,
+                vehicleNameDisplay: updatedRecord.vehicleNameDisplay,
+                vehicleAllocations: updatedRecord.vehicleAllocations,
+                driverId: updatedRecord.driverId,
+                driverName: updatedRecord.driverName,
+                teamIds: updatedRecord.teamIds,
+                teamNamesDisplay: updatedRecord.teamNamesDisplay,
+                editorId: updatedRecord.editorId,
+                editorName: updatedRecord.editorName,
+                editorIds: updatedRecord.editorIds,
+                editorNamesDisplay: updatedRecord.editorNamesDisplay,
+                deliveryDeadlineTime: updatedRecord.deliveryDeadlineTime,
+                distanceKm: updatedRecord.distanceKm,
+                totalDistanceKm: updatedRecord.totalDistanceKm,
+                drivingDurationMinutes: updatedRecord.drivingDurationMinutes,
+                roundTripDurationMinutes: updatedRecord.roundTripDurationMinutes,
+                estimatedFuelLiters: updatedRecord.estimatedFuelLiters,
+                estimatedFuelCost: updatedRecord.estimatedFuelCost,
+                routeCoordinates: updatedRecord.routeCoordinates,
+                returnCoordinates: updatedRecord.returnCoordinates,
+                notes: updatedRecord.notes,
+                version: (m.version || 1) + 1,
+                updatedAt: new Date().toISOString()
+              };
+            }
+            return m;
+          });
+        }
+
+        return list;
       });
       setSelectedMissionId(updatedRecord.id);
 
@@ -1301,35 +1371,53 @@ export default function App() {
 
   const handleDeleteMission = async (missionId) => {
     const mis = missions.find((m) => m.id === missionId);
-    const confirmed = await confirmDialog({
-      title: 'Excluir Missão',
-      message: mis ? `Tem certeza que deseja excluir a missão "${mis.description}"?` : 'Tem certeza que deseja excluir este serviço/missão?',
-      description: 'O agendamento, rota viária e os registros de combustível desta missão serão removidos.',
-      confirmText: 'Sim, Excluir',
-      cancelText: 'Cancelar',
-      variant: 'danger',
-    });
+    if (!mis) return;
 
-    if (confirmed) {
-      try {
-        const res = await apiDeleteMission(missionId);
-        if (res && res.success) {
-          setMissions((prev) => prev.filter((m) => m.id !== missionId));
-          if (selectedMissionId === missionId) setSelectedMissionId(null);
+    let deleteSeries = false;
+    if (mis.isRecurring || mis.recurrenceId) {
+      const choice = await confirmDialog({
+        title: '🔁 Excluir Missão Recorrente',
+        message: `A missão "${mis.description}" (#${mis.code || ''}) faz parte de uma série recorrente (${mis.recurrenceDays || 'Semanal'}).`,
+        description: 'Deseja excluir apenas esta ocorrência ou todas as futuras missões desta série?',
+        confirmText: 'Excluir Toda a Série',
+        cancelText: 'Excluir Apenas Esta',
+        variant: 'danger',
+      });
+      deleteSeries = Boolean(choice);
+    } else {
+      const confirmed = await confirmDialog({
+        title: 'Excluir Missão',
+        message: `Tem certeza que deseja excluir a missão "${mis.description}"?`,
+        description: 'O agendamento, rota viária e os registros de combustível desta missão serão removidos.',
+        confirmText: 'Sim, Excluir',
+        cancelText: 'Cancelar',
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+    }
+
+    try {
+      const res = await apiDeleteMission(missionId, deleteSeries);
+      if (res && res.success) {
+        if (deleteSeries && mis.recurrenceId) {
+          setMissions((prev) => prev.filter((m) => !(m.recurrenceId === mis.recurrenceId && m.date >= mis.date) && m.id !== missionId));
         } else {
-          await alertDialog({
-            title: 'Erro ao Excluir',
-            message: res?.error || 'Não foi possível excluir a missão.',
-            variant: 'danger',
-          });
+          setMissions((prev) => prev.filter((m) => m.id !== missionId));
         }
-      } catch (err) {
+        if (selectedMissionId === missionId) setSelectedMissionId(null);
+      } else {
         await alertDialog({
-          title: 'Erro de Conexão',
-          message: 'Falha ao conectar com o servidor para excluir a missão.',
+          title: 'Erro ao Excluir',
+          message: res?.error || 'Não foi possível excluir a missão.',
           variant: 'danger',
         });
       }
+    } catch (err) {
+      await alertDialog({
+        title: 'Erro de Conexão',
+        message: 'Falha ao conectar com o servidor para excluir a missão.',
+        variant: 'danger',
+      });
     }
   };
 
