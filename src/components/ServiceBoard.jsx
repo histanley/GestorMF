@@ -100,7 +100,8 @@ export default function ServiceBoard({
   const canEditMission = userRole === 'admin' || userRole === 'manager';
   const canDeleteMission = userRole === 'admin';
   const canViewFinancials = userRole === 'admin' || userRole === 'manager';
-  const canAdminManageEdition = userRole === 'admin' || userRole === 'manager';
+  // REGRA ESTRITA: Apenas Administradores podem aprovar, aceitar ou rejeitar a pós-produção
+  const canAdminManageEdition = userRole === 'admin';
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMissionStatus, setFilterMissionStatus] = useState('ATIVAS');
   const [filterEditionStatus, setFilterEditionStatus] = useState('TODOS');
@@ -335,6 +336,14 @@ export default function ServiceBoard({
   };
 
   const handleConfirmReopen = async () => {
+    if (!canAdminManageEdition) {
+      await alertDialog({
+        title: 'Acesso Restrito',
+        message: 'Apenas Administradores podem rejeitar e reabrir materiais de pós-produção.',
+        variant: 'warning',
+      });
+      return;
+    }
     if (!reopenModal.reason.trim()) {
       await alertDialog({
         title: 'Motivo Obrigatório',
@@ -401,6 +410,14 @@ export default function ServiceBoard({
 
   // Ação: Aprovar Entrega Final da Pós-Produção
   const handleApproveEdition = async (mission) => {
+    if (!canAdminManageEdition) {
+      await alertDialog({
+        title: 'Acesso Restrito',
+        message: 'Apenas Administradores podem aprovar a entrega final e confirmar a finalização da missão.',
+        variant: 'warning',
+      });
+      return;
+    }
     const confirmed = await confirmDialog({
       title: '⭐ Confirmar Finalização e Encerrar Missão',
       message: `Deseja aprovar a pós-produção da pauta "${mission.description}" como concluída?`,
@@ -1524,13 +1541,13 @@ export default function ServiceBoard({
                             </>
                           )}
 
-                          {/* 2. Edição CONCLUÍDA pelo editor: Editor vê "Aguardando Confirmação", Gestor vê "Confirmar Finalização" e "Recusar" */}
+                          {/* 2. Edição CONCLUÍDA pelo editor: Apenas Administradores podem aceitar ou rejeitar */}
                           {mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada' && (
                             <div className="pp-approval-flow-row">
                               {!canAdminManageEdition ? (
                                 <div
                                   className="btn-pp-waiting"
-                                  title="Material concluído e enviado pelo editor. Aguardando aceitação e confirmação da gestão."
+                                  title="Material concluído e enviado pelo editor. Aguardando aceitação e confirmação pelo Administrador."
                                 >
                                   <Clock size={12} />
                                   <span>Aguardando Confirmação</span>
@@ -2396,13 +2413,13 @@ export default function ServiceBoard({
                           </>
                         )}
 
-                        {/* Ações após conclusão do material: Editor vê "Aguardando Confirmação", Gestor vê "Confirmar Finalização" e "Recusar" */}
+                        {/* Ações após conclusão do material: Apenas Administradores podem aceitar ou rejeitar */}
                         {detailMission.editionStatus === 'Edição Concluída' && detailMission.missionStatus !== 'Finalizada' && (
                           <>
                             {!canAdminManageEdition ? (
                               <div
                                 className="btn-pp-waiting"
-                                title="Material entregue pelo editor. Aguardando aceitação e confirmação da gestão."
+                                title="Material entregue pelo editor. Aguardando aceitação e confirmação pelo Administrador."
                               >
                                 <Clock size={13} />
                                 <span>Aguardando Confirmação</span>

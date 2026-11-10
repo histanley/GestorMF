@@ -155,6 +155,13 @@ export default function PermissionsModal({ isOpen, onClose, currentRole }) {
           desc: 'Operadores podem marcar a missão como iniciada ou finalizada',
         },
         {
+          label: 'Aprovar ou Rejeitar Pós-Produção (Confirmar Finalização / Reabrir)',
+          admin: true,
+          manager: false,
+          user: false,
+          desc: 'Apenas Administradores podem aceitar o material concluído ou devolver para ajustes',
+        },
+        {
           label: 'Excluir Missões Agendadas ou Histórico',
           admin: true,
           manager: false,

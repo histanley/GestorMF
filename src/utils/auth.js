@@ -264,6 +264,11 @@ export function checkPermission(user, action) {
     case 'view_board':
       return true; // Todos os níveis autenticados
 
+    // 8. Aprovação ou Rejeição de Pós-Produção (Entrega Final e Reabertura) - APENAS ADMINISTRADOR
+    case 'approve_post_production':
+    case 'reopen_post_production':
+      return role === ROLES.ADMIN;
+
     default:
       return role === ROLES.ADMIN;
   }

@@ -94,3 +94,4 @@ assert.strictEqual(sorted[4].id, 'm1', '5º deve ser Agendada (m1)');
 assert.strictEqual(sorted[5].id, 'm5', '6º deve ser Finalizada (m5)');
 
 console.log('[PASS] Teste de ordenação de missões (Em Execução > Pendente > Agendada) passou com sucesso!');
+
