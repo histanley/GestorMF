@@ -23,6 +23,7 @@ import {
   FileText,
   Sparkles,
   Route,
+  User,
   UserCheck,
   ChevronLeft,
   ChevronRight,
