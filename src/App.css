@@ -3690,8 +3690,18 @@ body.light-theme .marker-label {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  overflow-x: auto;
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
   box-shadow: var(--shadow-md);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar {
+  display: none !important;
+  height: 0 !important;
+  width: 0 !important;
 }
 
 .whiteboard-table {
@@ -10435,56 +10445,86 @@ body.light-theme .vehicle-card.card-reserve-alert {
    ========================================================================== */
 
 .service-board-container {
-  max-width: 1580px !important;
-  padding: 20px 24px !important;
+  max-width: 100% !important;
+  padding: 16px 20px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.table-responsive-wrapper {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  box-shadow: var(--shadow-md);
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar {
+  display: none !important;
+  height: 0 !important;
+  width: 0 !important;
 }
 
 .compact-service-table {
-  width: 100%;
-  table-layout: auto;
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
   border-collapse: collapse;
+  box-sizing: border-box !important;
 }
 
 .compact-service-table th {
-  padding: 11px 12px !important;
-  font-size: 0.69rem !important;
+  padding: 10px 8px !important;
+  font-size: 0.68rem !important;
   font-weight: 800 !important;
   letter-spacing: 0.04em !important;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box !important;
 }
 
 .compact-service-table td {
-  padding: 10px 12px !important;
+  padding: 9px 8px !important;
   vertical-align: middle !important;
+  box-sizing: border-box !important;
+  overflow: hidden;
+  word-break: break-word;
 }
 
-/* Proporções equilibradas das 7 colunas com espaço generoso para Equipe e Viatura */
+/* Proporções equilibradas das 7 colunas (Exatos 100% no total, sem rolagem horizontal) */
 .compact-service-table .col-desc {
-  width: 20%;
-  min-width: 200px;
+  width: 18% !important;
+  min-width: 0 !important;
 }
 .compact-service-table .col-local {
-  width: 18%;
-  min-width: 185px;
+  width: 17% !important;
+  min-width: 0 !important;
 }
 .compact-service-table .col-agenda {
-  width: 14%;
-  min-width: 165px;
+  width: 15% !important;
+  min-width: 0 !important;
 }
 .compact-service-table .col-equipe {
-  width: 16%;
-  min-width: 175px;
+  width: 14% !important;
+  min-width: 0 !important;
 }
 .compact-service-table .col-edicao {
-  width: 11%;
-  min-width: 135px !important;
+  width: 12% !important;
+  min-width: 0 !important;
 }
 .compact-service-table .col-viatura {
-  width: 21%;
-  min-width: 235px !important;
+  width: 18% !important;
+  min-width: 0 !important;
 }
 .compact-service-table .col-acoes {
-  width: 114px;
+  width: 6% !important;
+  min-width: 0 !important;
 }
 
 /* Cores sutis por status na linha (mesma identidade dos Cards de Viatura) */
