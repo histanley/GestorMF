@@ -2130,45 +2130,118 @@ export default function MissionModal({
                         : {}),
                     }}
                   >
-                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>🎬 Editor(es) Designado(s) para Pós-Produção:</span>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                        <Film size={14} className="text-cyan-bright" />
+                        Editor(es) Designado(s) para Pós-Produção:
+                      </span>
                       <small style={{ fontWeight: 400, opacity: 0.75 }}>
                         {isEditionNotApplicable
                           ? '(Desativado)'
                           : '(O editor receberá notificação direta desta tarefa)'}
                       </small>
                     </label>
-                    <div className="driver-quick-chips" style={{ marginTop: '6px' }}>
-                      {members.map((m) => {
-                        const isEditor = (formData.editorIds || []).includes(m.id);
-                        const isMediaRole =
-                          (m.role || '').toLowerCase().includes('editor') ||
-                          (m.role || '').toLowerCase().includes('designer');
+
+                    {(() => {
+                      const isEditorRole = (m) => {
+                        const r = ((m && m.role) || '')
+                          .toLowerCase()
+                          .normalize('NFD')
+                          .replace(/[\u0300-\u036f]/g, '');
                         return (
-                          <button
-                            key={m.id}
-                            type="button"
-                            disabled={isEditionNotApplicable}
-                            className={`driver-quick-chip ${isEditor ? 'active' : ''} ${
-                              isMediaRole ? 'is-preferred-editor' : ''
-                            }`}
-                            onClick={() => toggleEditor(m.id)}
-                            style={{
-                              borderColor: isEditor
-                                ? 'var(--primary-color)'
-                                : isMediaRole
-                                ? 'rgba(56, 189, 248, 0.4)'
-                                : undefined,
-                            }}
-                          >
-                            <Film size={11} />
-                            <span>{m.name}</span>
-                            {isMediaRole && <small style={{ opacity: 0.75 }}>({m.role})</small>}
-                            {isEditor && <Check size={11} />}
-                          </button>
+                          r.includes('editor') ||
+                          r.includes('edicao') ||
+                          r.includes('designer') ||
+                          r.includes('pos') ||
+                          r.includes('video') ||
+                          r.includes('arte') ||
+                          r.includes('motion')
                         );
-                      })}
-                    </div>
+                      };
+
+                      const editorMembers = members
+                        .filter(isEditorRole)
+                        .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
+
+                      const otherMembers = members
+                        .filter((m) => !isEditorRole(m))
+                        .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
+
+                      return (
+                        <div className="post-prod-chips-wrapper">
+                          {/* GRUPO 1: EDITORES E DESIGNERS EM DESTAQUE NO TOPO DA LISTA */}
+                          {editorMembers.length > 0 && (
+                            <div className="editor-group-block">
+                              <div className="editor-group-header">
+                                <Sparkles size={13} className="text-cyan-bright" />
+                                <span className="editor-group-title">
+                                  Editores & Designers de Pós-Produção ({editorMembers.length})
+                                </span>
+                                <span className="editor-group-badge">Destaque</span>
+                              </div>
+                              <div className="driver-quick-chips">
+                                {editorMembers.map((m) => {
+                                  const isEditor = (formData.editorIds || []).includes(m.id);
+                                  return (
+                                    <button
+                                      key={m.id}
+                                      type="button"
+                                      disabled={isEditionNotApplicable}
+                                      className={`driver-quick-chip is-editor-role ${isEditor ? 'active' : ''}`}
+                                      onClick={() => toggleEditor(m.id)}
+                                      title={`Designar ${m.name} (${m.role})`}
+                                    >
+                                      <Film size={12} className="chip-editor-icon" />
+                                      <span className="chip-editor-name">{m.name}</span>
+                                      <span className="chip-editor-role-tag">{m.role}</span>
+                                      {isEditor && <Check size={12} className="chip-editor-check" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* GRUPO 2: DEMAIS COLABORADORES */}
+                          {otherMembers.length > 0 && (
+                            <div className="editor-group-block other-members-block">
+                              <div className="editor-group-header other-header">
+                                <Users size={12} />
+                                <span className="editor-group-title other-title">
+                                  Demais Colaboradores da Equipe ({otherMembers.length})
+                                </span>
+                              </div>
+                              <div className="driver-quick-chips">
+                                {otherMembers.map((m) => {
+                                  const isEditor = (formData.editorIds || []).includes(m.id);
+                                  return (
+                                    <button
+                                      key={m.id}
+                                      type="button"
+                                      disabled={isEditionNotApplicable}
+                                      className={`driver-quick-chip ${isEditor ? 'active' : ''}`}
+                                      onClick={() => toggleEditor(m.id)}
+                                      title={`Designar ${m.name}`}
+                                    >
+                                      <Users size={11} />
+                                      <span>{m.name}</span>
+                                      {m.role && <small style={{ opacity: 0.65 }}>({m.role})</small>}
+                                      {isEditor && <Check size={11} />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {members.length === 0 && (
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0' }}>
+                              Nenhum membro da equipe cadastrado no sistema.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

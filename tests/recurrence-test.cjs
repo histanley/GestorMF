@@ -44,3 +44,4 @@ assert.strictEqual(dates[2], '2026-11-17');
 assert.strictEqual(dates[3], '2026-11-19');
 
 console.log('[PASS] Todos os testes de recorrência passaram com sucesso!');
+
