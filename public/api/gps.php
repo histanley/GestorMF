@@ -8,6 +8,30 @@ $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? 'active';
 $db = getDB();
 
+function getGpsTableColumns($db) {
+    static $cols = null;
+    if ($cols !== null) return $cols;
+    $cols = [];
+    try {
+        $stmt = $db->query("SHOW COLUMNS FROM gps_locations");
+        while ($row = $stmt->fetch()) {
+            $cols[strtolower($row['Field'])] = true;
+        }
+    } catch (Exception $e) {
+        try {
+            require_once __DIR__ . '/schema.php';
+            runDatabaseInstallation($db);
+            $stmt = $db->query("SHOW COLUMNS FROM gps_locations");
+            while ($row = $stmt->fetch()) {
+                $cols[strtolower($row['Field'])] = true;
+            }
+        } catch (Exception $e2) {
+            error_log('[GestorMF GPS Auto-Install] ' . $e2->getMessage());
+        }
+    }
+    return $cols;
+}
+
 // ------------------------------------------------------------------------------
 // ENVIAR PING DE GPS PELO SMARTPHONE DO COLABORADOR (POST)
 // ------------------------------------------------------------------------------
@@ -162,14 +186,17 @@ if ($method === 'POST') {
         }
     }
 
-    // Salva ou atualiza a posição do colaborador (Upsert seguro por member_id)
+    // Salva ou atualiza a posição do colaborador (Upsert seguro por member_id com resiliência de colunas)
+    $gpsCols = getGpsTableColumns($db);
+    $hasCapturedAtCol = isset($gpsCols['captured_at']);
+
     try {
         $stmtCheck = $db->prepare("SELECT id FROM gps_locations WHERE member_id = ?");
         $stmtCheck->execute([$memberId]);
         $existingGps = $stmtCheck->fetch();
 
         if ($existingGps) {
-            $stmtUp = $db->prepare("
+            $upSql = "
                 UPDATE gps_locations
                 SET member_name = :member_name,
                     mission_id = :mission_id,
@@ -179,12 +206,12 @@ if ($method === 'POST') {
                     heading = :heading,
                     accuracy = :accuracy,
                     battery_percent = :battery,
-                    captured_at = :captured_at,
+                    " . ($hasCapturedAtCol ? "captured_at = :captured_at," : "") . "
                     is_active = 1,
                     updated_at = NOW()
                 WHERE member_id = :member_id
-            ");
-            $stmtUp->execute([
+            ";
+            $upParams = [
                 ':member_id'   => $memberId,
                 ':member_name' => $memberName,
                 ':mission_id'  => $missionId,
@@ -194,17 +221,27 @@ if ($method === 'POST') {
                 ':heading'     => $heading,
                 ':accuracy'    => $accuracy,
                 ':battery'     => $battery,
-                ':captured_at' => $capturedAt
-            ]);
+            ];
+            if ($hasCapturedAtCol) {
+                $upParams[':captured_at'] = $capturedAt;
+            }
+            $stmtUp = $db->prepare($upSql);
+            $stmtUp->execute($upParams);
         } else {
-            $stmtIns = $db->prepare("
+            $insSql = $hasCapturedAtCol ? "
                 INSERT INTO gps_locations (
                     member_id, member_name, mission_id, lat, lon, speed, heading, accuracy, battery_percent, captured_at, is_active, updated_at
                 ) VALUES (
                     :member_id, :member_name, :mission_id, :lat, :lon, :speed, :heading, :accuracy, :battery, :captured_at, 1, NOW()
                 )
-            ");
-            $stmtIns->execute([
+            " : "
+                INSERT INTO gps_locations (
+                    member_id, member_name, mission_id, lat, lon, speed, heading, accuracy, battery_percent, is_active, updated_at
+                ) VALUES (
+                    :member_id, :member_name, :mission_id, :lat, :lon, :speed, :heading, :accuracy, :battery, 1, NOW()
+                )
+            ";
+            $insParams = [
                 ':member_id'   => $memberId,
                 ':member_name' => $memberName,
                 ':mission_id'  => $missionId,
@@ -214,8 +251,12 @@ if ($method === 'POST') {
                 ':heading'     => $heading,
                 ':accuracy'    => $accuracy,
                 ':battery'     => $battery,
-                ':captured_at' => $capturedAt
-            ]);
+            ];
+            if ($hasCapturedAtCol) {
+                $insParams[':captured_at'] = $capturedAt;
+            }
+            $stmtIns = $db->prepare($insSql);
+            $stmtIns->execute($insParams);
         }
     } catch (Exception $e) {
         error_log("[GestorMF GPS Error] Falha ao persistir GPS do colaborador: " . $e->getMessage());
@@ -248,7 +289,7 @@ if ($method === 'GET') {
         FROM gps_locations g
         LEFT JOIN missions m ON g.mission_id = m.id
         LEFT JOIN members mem ON g.member_id = mem.id
-        LEFT JOIN users u ON (mem.user_id = u.id OR g.member_name = u.name)
+        LEFT JOIN users u ON (mem.user_id = u.id OR g.member_id = u.id OR LOWER(TRIM(g.member_name)) = LOWER(TRIM(u.name)))
         WHERE g.is_active = 1
           AND g.updated_at >= (NOW() - INTERVAL 12 HOUR)
         ORDER BY g.updated_at DESC

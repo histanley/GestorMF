@@ -454,6 +454,7 @@ export default function App() {
     const uName = (user.name || '').trim().toLowerCase();
     const firstWord = uName.split(' ')[0] || '';
     const isHgama = uName.includes('histanley') || uName.includes('hgama') || uName.includes('gama');
+    const isJoaoPedro = uName.includes('joão') || uName.includes('pedro') || uName.includes('joao');
 
     const matchesName = (target) => {
       if (!target) return false;
@@ -461,6 +462,7 @@ export default function App() {
       if (t === uName) return true;
       if (firstWord.length >= 3 && (t.startsWith(firstWord) || t.includes(firstWord))) return true;
       if (isHgama && (t.includes('hgama') || t.includes('histanley') || t.includes('gama'))) return true;
+      if (isJoaoPedro && (t.includes('pedro') || t.includes('joão') || t.includes('joao'))) return true;
       return false;
     };
 
@@ -582,6 +584,15 @@ export default function App() {
       apiDeleteMessage(id).catch(() => {});
     }
 
+    if (notif.type === 'mission' && notif.missionId) {
+      try {
+        const raw = localStorage.getItem('gestormf_dismissed_missions');
+        const set = new Set(raw ? JSON.parse(raw) : []);
+        set.add(notif.missionId);
+        localStorage.setItem('gestormf_dismissed_missions', JSON.stringify(Array.from(set)));
+      } catch (e) {}
+    }
+
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
@@ -600,6 +611,14 @@ export default function App() {
     }
 
     apiDismissAllMessages().catch(() => {});
+
+    try {
+      const activeMisIds = notifications.filter((n) => n.type === 'mission' && n.missionId).map((n) => n.missionId);
+      const raw = localStorage.getItem('gestormf_dismissed_missions');
+      const set = new Set(raw ? JSON.parse(raw) : []);
+      activeMisIds.forEach((id) => set.add(id));
+      localStorage.setItem('gestormf_dismissed_missions', JSON.stringify(Array.from(set)));
+    } catch (e) {}
 
     if (lockedCount > 0) {
       setNotifications((prev) => prev.filter((n) => isNotificationLocked(n).locked));
@@ -715,6 +734,40 @@ export default function App() {
 
             if (createdNotifs.length > 0) {
               setNotifications((prev) => [...createdNotifs, ...prev]);
+            }
+          } else if (knownMissionsRef.current === null && currentUser) {
+            // Carga inicial: Garante que missões ativas apareçam na Central de Notificações
+            let dismissedMissions = new Set();
+            try {
+              const rawD = localStorage.getItem('gestormf_dismissed_missions');
+              if (rawD) dismissedMissions = new Set(JSON.parse(rawD));
+            } catch (e) {}
+
+            const activeMissionNotifs = [];
+            freshMissions.forEach((newMis) => {
+              if (newMis.missionStatus === 'Finalizada') return;
+              if (dismissedMissions.has(newMis.id)) return;
+              const isAssigned = isUserInMission(newMis, currentUser);
+              const destination = newMis.locationName || newMis.address || 'Local Definido';
+              const timeStr = newMis.departureTime ? `Saída às ${newMis.departureTime}` : 'Hoje';
+              activeMissionNotifs.push({
+                id: `notif-mis-${newMis.id}`,
+                title: isAssigned ? '🎯 Missão Designada para Você!' : `📅 Nova Missão: #${newMis.code || ''}`,
+                message: `${newMis.description} • ${destination} • ${timeStr}`,
+                details: `Viatura: ${newMis.vehicleNameDisplay || 'Mega'} • Equipe: ${newMis.teamNamesDisplay || '--'} • Status: ${newMis.missionStatus}`,
+                timestamp: newMis.updatedAt ? new Date(newMis.updatedAt).getTime() : Date.now(),
+                type: 'mission',
+                missionId: newMis.id,
+                read: false,
+              });
+            });
+
+            if (activeMissionNotifs.length > 0) {
+              setNotifications((prev) => {
+                const existingMisIds = new Set(prev.filter((n) => n.type === 'mission').map((n) => n.missionId));
+                const toAdd = activeMissionNotifs.filter((n) => !existingMisIds.has(n.missionId));
+                return toAdd.length > 0 ? [...toAdd, ...prev] : prev;
+              });
             }
           }
 
@@ -897,24 +950,9 @@ export default function App() {
     // Localiza se há missão ativa (Em Execução / Em Preparo) ou missão do dia para o colaborador
     const activeMissionForUser = missions.find((m) => {
       const isExec = m.missionStatus === 'Em Execução' || m.missionStatus === 'Em Preparo';
-      if (!isExec) return false;
-      const isDriver =
-        (m.driverName || '').trim().toLowerCase() === userNameNorm ||
-        m.driverId === currentUser.id ||
-        (currentUser.memberId && m.driverId === currentUser.memberId);
-      const isTeam =
-        (m.teamNames || []).some((tn) => tn.trim().toLowerCase() === userNameNorm) ||
-        (m.teamMembers || []).some((tm) => tm.id === currentUser.id || tm.name?.trim().toLowerCase() === userNameNorm);
-      return isDriver || isTeam;
+      return isExec && isUserInMission(m, currentUser);
     }) || missions.find((m) => {
-      const isDriver =
-        (m.driverName || '').trim().toLowerCase() === userNameNorm ||
-        m.driverId === currentUser.id ||
-        (currentUser.memberId && m.driverId === currentUser.memberId);
-      const isTeam =
-        (m.teamNames || []).some((tn) => tn.trim().toLowerCase() === userNameNorm) ||
-        (m.teamMembers || []).some((tm) => tm.id === currentUser.id || tm.name?.trim().toLowerCase() === userNameNorm);
-      return isDriver || isTeam;
+      return isUserInMission(m, currentUser) && m.missionStatus !== 'Finalizada';
     });
 
     const sendLocationPacket = (lat, lon, speed, heading, accuracy, capturedAt = null) => {
@@ -2793,7 +2831,7 @@ export default function App() {
                 onSelectMission={(id) => setSelectedMissionId(id)}
                 onOpenNewMissionAtCoord={(lat, lon) => handleOpenNewMission({ lat, lon })}
                 theme={theme}
-                userRole={currentUser?.role}
+                userRole={userRole}
               />
             </section>
           </div>
@@ -2808,7 +2846,7 @@ export default function App() {
             baseLocation={settings.baseLocation}
             fuelPricePerLiter={settings.fuelPricePerLiter}
             settings={settings}
-            userRole={currentUser?.role}
+            userRole={userRole}
             currentUser={currentUser}
             onNewMission={() => handleOpenNewMission()}
             onEditMission={handleEditMission}
@@ -2837,7 +2875,7 @@ export default function App() {
             members={members}
             fuelPricePerLiter={settings.fuelPricePerLiter}
             settings={settings}
-            userRole={currentUser?.role}
+            userRole={userRole}
             onAddVehicle={handleAddVehicle}
             onUpdateVehicle={handleUpdateVehicle}
             onDeleteVehicle={handleDeleteVehicle}
@@ -2852,7 +2890,7 @@ export default function App() {
             members={members}
             missions={missions}
             roles={roles}
-            userRole={currentUser?.role}
+            userRole={userRole}
             onAddMember={handleAddMember}
             onUpdateMember={handleUpdateMember}
             onDeleteMember={handleDeleteMember}

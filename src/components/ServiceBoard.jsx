@@ -57,6 +57,7 @@ import {
   sortMissionsByStatusPriority,
 } from '../utils/geo';
 import { confirmDialog, alertDialog } from '../utils/dialog';
+import { normalizeRole } from '../utils/auth';
 import MissionHistoryModal from './MissionHistoryModal';
 
 // Formata YYYY-MM-DD para DD/MM/AAAA
@@ -85,7 +86,7 @@ export default function ServiceBoard({
   baseLocation,
   fuelPricePerLiter = 6.45,
   settings = null,
-  userRole = 'admin',
+  userRole = 'user',
   currentUser = null,
   onNewMission,
   onEditMission,
@@ -96,12 +97,13 @@ export default function ServiceBoard({
   onSaveMission,
 }) {
   const fuelSettings = settings || (typeof fuelPricePerLiter === 'object' ? fuelPricePerLiter : { gasolinePricePerLiter: fuelPricePerLiter, dieselPricePerLiter: 6.89 });
-  const canCreateMission = userRole === 'admin' || userRole === 'manager';
-  const canEditMission = userRole === 'admin' || userRole === 'manager';
-  const canDeleteMission = userRole === 'admin';
-  const canViewFinancials = userRole === 'admin' || userRole === 'manager';
+  const effectiveRole = normalizeRole(userRole || currentUser?.role);
+  const canCreateMission = effectiveRole === 'admin' || effectiveRole === 'manager';
+  const canEditMission = effectiveRole === 'admin' || effectiveRole === 'manager';
+  const canDeleteMission = effectiveRole === 'admin';
+  const canViewFinancials = effectiveRole === 'admin' || effectiveRole === 'manager';
   // REGRA ESTRITA: Apenas Administradores podem aprovar, aceitar ou rejeitar a pós-produção
-  const canAdminManageEdition = userRole === 'admin';
+  const canAdminManageEdition = effectiveRole === 'admin';
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMissionStatus, setFilterMissionStatus] = useState('ATIVAS');
   const [filterEditionStatus, setFilterEditionStatus] = useState('TODOS');

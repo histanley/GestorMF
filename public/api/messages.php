@@ -117,12 +117,12 @@ if ($method === 'GET' && $action === 'list') {
             SELECT * FROM system_messages
             WHERE (
                 recipient_type = 'ALL'
-                OR recipient_id = :user_id
-                " . ($hasRecUserCol ? "OR recipient_user_id = :user_id" : "") . "
-                " . ($memberId ? "OR recipient_id = :member_id " . ($hasRecUserCol ? "OR recipient_user_id = :member_id" : "") : "") . "
-                " . (!empty($userName) ? "OR LOWER(TRIM(recipient_name)) = :user_name OR LOWER(TRIM(recipient_id)) = :user_name" : "") . "
-                " . (!empty($memberName) ? "OR LOWER(TRIM(recipient_name)) = :member_name OR LOWER(TRIM(recipient_id)) = :member_name" : "") . "
-                " . (!empty($emailPrefix) ? "OR LOWER(TRIM(recipient_name)) = :email_prefix OR LOWER(TRIM(recipient_id)) = :email_prefix" : "") . "
+                OR recipient_id = :user_id_1
+                " . ($hasRecUserCol ? "OR recipient_user_id = :user_id_2" : "") . "
+                " . ($memberId ? "OR recipient_id = :member_id_1 " . ($hasRecUserCol ? "OR recipient_user_id = :member_id_2" : "") : "") . "
+                " . (!empty($userName) ? "OR LOWER(TRIM(recipient_name)) = :user_name_1 OR LOWER(TRIM(recipient_id)) = :user_name_2" : "") . "
+                " . (!empty($memberName) ? "OR LOWER(TRIM(recipient_name)) = :member_name_1 OR LOWER(TRIM(recipient_id)) = :member_name_2" : "") . "
+                " . (!empty($emailPrefix) ? "OR LOWER(TRIM(recipient_name)) = :email_prefix_1 OR LOWER(TRIM(recipient_id)) = :email_prefix_2" : "") . "
                 " . ($isHgama ? "OR LOWER(TRIM(recipient_name)) = 'hgama' OR LOWER(TRIM(recipient_name)) LIKE '%histanley%' OR LOWER(TRIM(recipient_id)) = 'hgama'" : "") . "
                 " . (in_array($role, ['ADMIN', 'MANAGER']) ? "OR sender_id = :sender_id" : "") . "
             )
@@ -130,18 +130,27 @@ if ($method === 'GET' && $action === 'list') {
             LIMIT 100
         ";
 
-        $params = [':user_id' => $userId];
+        $params = [':user_id_1' => $userId];
+        if ($hasRecUserCol) {
+            $params[':user_id_2'] = $userId;
+        }
         if ($memberId) {
-            $params[':member_id'] = $memberId;
+            $params[':member_id_1'] = $memberId;
+            if ($hasRecUserCol) {
+                $params[':member_id_2'] = $memberId;
+            }
         }
         if (!empty($userName)) {
-            $params[':user_name'] = $userName;
+            $params[':user_name_1'] = $userName;
+            $params[':user_name_2'] = $userName;
         }
         if (!empty($memberName)) {
-            $params[':member_name'] = $memberName;
+            $params[':member_name_1'] = $memberName;
+            $params[':member_name_2'] = $memberName;
         }
         if (!empty($emailPrefix)) {
-            $params[':email_prefix'] = $emailPrefix;
+            $params[':email_prefix_1'] = $emailPrefix;
+            $params[':email_prefix_2'] = $emailPrefix;
         }
         if (in_array($role, ['ADMIN', 'MANAGER'])) {
             $params[':sender_id'] = $userId;

@@ -978,6 +978,49 @@ if ($method === 'POST' || $method === 'PUT') {
     logAudit($actionName, 'MISSIONS', $id, $auditMsg, $user['id'], $user['name']);
     bumpSyncVersion("mission_{$id}");
 
+    // Dispara mensagem automática de comunicado para que toda a equipe receba na Central de Notificações
+    if (!$existing) {
+        try {
+            $msgId = 'msg-mis-' . substr(md5($id . microtime()), 0, 10);
+            $msgCode = !empty($code) ? "#{$code}" : "#{$id}";
+            $msgTitle = "📅 Nova Missão Cadastrada: {$msgCode}";
+            $destLoc = !empty($data['locationName']) ? $data['locationName'] : (!empty($data['address']) ? $data['address'] : 'Local Definido');
+            $depTime = !empty($data['departureTime']) ? " Saída prevista às {$data['departureTime']}." : "";
+            $msgBody = "Nova pauta criada: '{$description}' com destino a {$destLoc}.{$depTime}";
+
+            $colsSM = [];
+            try {
+                $stCols = $db->query("SHOW COLUMNS FROM system_messages");
+                while ($cRow = $stCols->fetch()) {
+                    $colsSM[strtolower($cRow['Field'])] = true;
+                }
+            } catch (Exception $eCols) {}
+
+            $hasDismissedCol = isset($colsSM['dismissed_by']);
+            if ($hasDismissedCol) {
+                $stmtMsg = $db->prepare("
+                    INSERT INTO system_messages (
+                        id, sender_id, sender_name, sender_role, recipient_type, recipient_id, recipient_name, title, message, priority, read_by, dismissed_by, created_at
+                    ) VALUES (
+                        ?, ?, ?, 'Gestor/Admin', 'ALL', NULL, NULL, ?, ?, 'NORMAL', '[]', '[]', NOW()
+                    )
+                ");
+                $stmtMsg->execute([$msgId, $user['id'], $user['name'], $msgTitle, $msgBody]);
+            } else {
+                $stmtMsg = $db->prepare("
+                    INSERT INTO system_messages (
+                        id, sender_id, sender_name, sender_role, recipient_type, recipient_id, recipient_name, title, message, priority, read_by, created_at
+                    ) VALUES (
+                        ?, ?, ?, 'Gestor/Admin', 'ALL', NULL, NULL, ?, ?, 'NORMAL', '[]', NOW()
+                    )
+                ");
+                $stmtMsg->execute([$msgId, $user['id'], $user['name'], $msgTitle, $msgBody]);
+            }
+        } catch (Exception $eMsg) {
+            error_log('[GestorMF Auto Message Mission] ' . $eMsg->getMessage());
+        }
+    }
+
     $nowUpdated = date('Y-m-d H:i:s');
     $newVersion = $existing ? ($dbVersion + 1) : 1;
     jsonResponse([
