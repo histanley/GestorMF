@@ -329,17 +329,27 @@ function runDatabaseInstallation($db) {
             sender_role VARCHAR(50) NOT NULL,
             recipient_type ENUM('ALL', 'INDIVIDUAL') NOT NULL DEFAULT 'ALL',
             recipient_id VARCHAR(64) NULL,
+            recipient_user_id VARCHAR(64) NULL,
             recipient_name VARCHAR(150) NULL,
             title VARCHAR(200) NOT NULL,
             message TEXT NOT NULL,
             priority ENUM('NORMAL', 'HIGH', 'URGENT') NOT NULL DEFAULT 'NORMAL',
             read_by JSON NULL,
+            dismissed_by JSON NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_msg_sender (sender_id),
             INDEX idx_msg_recipient (recipient_id),
+            INDEX idx_msg_rec_user (recipient_user_id),
             INDEX idx_msg_type (recipient_type),
             INDEX idx_msg_created (created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
+
+    try {
+        $db->exec("ALTER TABLE system_messages ADD COLUMN recipient_user_id VARCHAR(64) NULL AFTER recipient_id");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE system_messages ADD COLUMN dismissed_by JSON NULL AFTER read_by");
+    } catch (Exception $e) {}
 }
 

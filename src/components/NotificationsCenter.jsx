@@ -44,6 +44,16 @@ export default function NotificationsCenter({
     [notifications]
   );
 
+  const missionsCount = useMemo(
+    () => notifications.filter((n) => n.type === 'mission').length,
+    [notifications]
+  );
+
+  const fuelCount = useMemo(
+    () => notifications.filter((n) => n.type === 'fuel').length,
+    [notifications]
+  );
+
   const filteredNotifications = useMemo(() => {
     return notifications.filter((n) => {
       if (filter === 'unread') return !n.read;
@@ -111,12 +121,20 @@ export default function NotificationsCenter({
               type="button"
               className="notif-btn-action notif-btn-primary"
               onClick={onOpenSendMessage}
-              title="Criar e enviar mensagem para a equipe ou colaborador"
+              title="Criar e enviar comunicado para a equipe ou colaborador"
               style={{
-                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                color: '#fff',
-                borderColor: '#3b82f6',
-                fontWeight: 600
+                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                color: '#ffffff',
+                border: '1px solid #3b82f6',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
               }}
             >
               <Send size={13} />
@@ -130,8 +148,16 @@ export default function NotificationsCenter({
               className="notif-btn-action"
               onClick={onMarkAllAsRead}
               title="Marcar todas como lidas"
+              style={{
+                borderRadius: '8px',
+                padding: '6px 10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                cursor: 'pointer'
+              }}
             >
-              <CheckCheck size={15} />
+              <CheckCheck size={14} />
               <span>Marcar lidas</span>
             </button>
           )}
@@ -141,9 +167,22 @@ export default function NotificationsCenter({
               type="button"
               className="notif-btn-action notif-btn-danger"
               onClick={onClearAll}
-              title="Limpar todas as notificações"
+              title="Limpar todas as notificações da central"
+              style={{
+                borderRadius: '8px',
+                padding: '6px 10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                color: '#f87171',
+                borderColor: 'rgba(239, 68, 68, 0.35)',
+                background: 'rgba(239, 68, 68, 0.1)',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
             >
-              <Trash2 size={15} />
+              <Trash2 size={13} />
+              <span>Limpar</span>
             </button>
           )}
 
@@ -175,29 +214,27 @@ export default function NotificationsCenter({
         >
           Não lidas ({unreadCount})
         </button>
-        {messagesCount > 0 && (
-          <button
-            type="button"
-            className={`notif-filter-chip ${filter === 'messages' ? 'active' : ''}`}
-            onClick={() => setFilter('messages')}
-            style={{ borderColor: 'rgba(59, 130, 246, 0.4)', color: '#38bdf8' }}
-          >
-            ✉️ Mensagens ({messagesCount})
-          </button>
-        )}
+        <button
+          type="button"
+          className={`notif-filter-chip ${filter === 'messages' ? 'active' : ''}`}
+          onClick={() => setFilter('messages')}
+          style={{ borderColor: filter === 'messages' ? '#38bdf8' : 'rgba(59, 130, 246, 0.3)', color: '#38bdf8' }}
+        >
+          ✉️ Mensagens ({messagesCount})
+        </button>
         <button
           type="button"
           className={`notif-filter-chip ${filter === 'mission' ? 'active' : ''}`}
           onClick={() => setFilter('mission')}
         >
-          Missões
+          Missões ({missionsCount})
         </button>
         <button
           type="button"
           className={`notif-filter-chip ${filter === 'fuel' ? 'active' : ''}`}
           onClick={() => setFilter('fuel')}
         >
-          Combustível
+          Combustível ({fuelCount})
         </button>
       </div>
 

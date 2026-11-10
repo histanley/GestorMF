@@ -9,10 +9,11 @@ $db = getDB();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $action = $_GET['action'] ?? 'list';
 
-// Garante a existência da tabela de mensagens com suporte a dismissed_by e recipient_user_id
-function ensureMessagesTable($db) {
-    static $ready = false;
-    if ($ready) return;
+// Garante a existência da tabela de mensagens com suporte dinâmico a dismissed_by e recipient_user_id
+function getSystemMessagesColumns($db) {
+    static $cols = null;
+    if ($cols !== null) return $cols;
+    $cols = [];
     try {
         $db->exec("
             CREATE TABLE IF NOT EXISTS system_messages (
@@ -37,22 +38,35 @@ function ensureMessagesTable($db) {
                 INDEX idx_msg_created (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
+    } catch (Exception $e) {}
 
-        // Migrações dinâmicas de colunas caso a tabela já exista
+    try {
+        $stmt = $db->query("SHOW COLUMNS FROM system_messages");
+        $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($all as $c) {
+            $cols[strtolower($c['Field'])] = true;
+        }
+    } catch (Exception $e) {
+        $cols = ['id' => true, 'sender_id' => true, 'recipient_id' => true, 'title' => true, 'message' => true];
+    }
+
+    if (!isset($cols['recipient_user_id'])) {
         try {
             $db->exec("ALTER TABLE system_messages ADD COLUMN recipient_user_id VARCHAR(64) NULL AFTER recipient_id");
+            $cols['recipient_user_id'] = true;
         } catch (Exception $e) {}
+    }
+    if (!isset($cols['dismissed_by'])) {
         try {
             $db->exec("ALTER TABLE system_messages ADD COLUMN dismissed_by JSON NULL AFTER read_by");
+            $cols['dismissed_by'] = true;
         } catch (Exception $e) {}
-
-        $ready = true;
-    } catch (Exception $e) {
-        error_log('[GestorMF Messages Schema Error] ' . $e->getMessage());
     }
+
+    return $cols;
 }
 
-ensureMessagesTable($db);
+getSystemMessagesColumns($db);
 
 // ------------------------------------------------------------------------------
 // LISTAR MENSAGENS DO USUÁRIO (GET)
@@ -95,14 +109,17 @@ if ($method === 'GET' && $action === 'list') {
 
     $isHgama = (strpos($userName, 'histanley') !== false || strpos($userName, 'hgama') !== false || strpos($emailPrefix, 'hgama') !== false || $memberName === 'hgama');
 
+    $cols = getSystemMessagesColumns($db);
+    $hasRecUserCol = isset($cols['recipient_user_id']);
+
     try {
         $sql = "
             SELECT * FROM system_messages
             WHERE (
                 recipient_type = 'ALL'
                 OR recipient_id = :user_id
-                OR recipient_user_id = :user_id
-                " . ($memberId ? "OR recipient_id = :member_id OR recipient_user_id = :member_id" : "") . "
+                " . ($hasRecUserCol ? "OR recipient_user_id = :user_id" : "") . "
+                " . ($memberId ? "OR recipient_id = :member_id " . ($hasRecUserCol ? "OR recipient_user_id = :member_id" : "") : "") . "
                 " . (!empty($userName) ? "OR LOWER(TRIM(recipient_name)) = :user_name OR LOWER(TRIM(recipient_id)) = :user_name" : "") . "
                 " . (!empty($memberName) ? "OR LOWER(TRIM(recipient_name)) = :member_name OR LOWER(TRIM(recipient_id)) = :member_name" : "") . "
                 " . (!empty($emailPrefix) ? "OR LOWER(TRIM(recipient_name)) = :email_prefix OR LOWER(TRIM(recipient_id)) = :email_prefix" : "") . "
@@ -223,28 +240,74 @@ if ($method === 'POST' && $action === 'send') {
     $msgId = 'msg-' . bin2hex(random_bytes(10));
     $senderRoleLabel = ($role === 'ADMIN') ? 'Administrador' : 'Gestor';
 
-    try {
-        $stmtIns = $db->prepare("
-            INSERT INTO system_messages (
-                id, sender_id, sender_name, sender_role, recipient_type, recipient_id, recipient_user_id, recipient_name, title, message, priority, read_by, dismissed_by, created_at
-            ) VALUES (
-                :id, :sender_id, :sender_name, :sender_role, :recipient_type, :recipient_id, :recipient_user_id, :recipient_name, :title, :message, :priority, '[]', '[]', NOW()
-            )
-        ");
+    $cols = getSystemMessagesColumns($db);
+    $hasRecUserCol = isset($cols['recipient_user_id']);
+    $hasDismissedCol = isset($cols['dismissed_by']);
 
-        $stmtIns->execute([
-            ':id'                => $msgId,
-            ':sender_id'         => $user['id'],
-            ':sender_name'       => $user['name'],
-            ':sender_role'       => $senderRoleLabel,
-            ':recipient_type'    => $recipientType,
-            ':recipient_id'      => $recipientId,
-            ':recipient_user_id' => $recipientUserId,
-            ':recipient_name'    => $recipientName,
-            ':title'             => $title,
-            ':message'           => $message,
-            ':priority'          => $priority,
-        ]);
+    try {
+        if ($hasRecUserCol && $hasDismissedCol) {
+            $stmtIns = $db->prepare("
+                INSERT INTO system_messages (
+                    id, sender_id, sender_name, sender_role, recipient_type, recipient_id, recipient_user_id, recipient_name, title, message, priority, read_by, dismissed_by, created_at
+                ) VALUES (
+                    :id, :sender_id, :sender_name, :sender_role, :recipient_type, :recipient_id, :recipient_user_id, :recipient_name, :title, :message, :priority, '[]', '[]', NOW()
+                )
+            ");
+            $stmtIns->execute([
+                ':id'                => $msgId,
+                ':sender_id'         => $user['id'],
+                ':sender_name'       => $user['name'],
+                ':sender_role'       => $senderRoleLabel,
+                ':recipient_type'    => $recipientType,
+                ':recipient_id'      => $recipientId,
+                ':recipient_user_id' => $recipientUserId,
+                ':recipient_name'    => $recipientName,
+                ':title'             => $title,
+                ':message'           => $message,
+                ':priority'          => $priority,
+            ]);
+        } elseif ($hasRecUserCol) {
+            $stmtIns = $db->prepare("
+                INSERT INTO system_messages (
+                    id, sender_id, sender_name, sender_role, recipient_type, recipient_id, recipient_user_id, recipient_name, title, message, priority, read_by, created_at
+                ) VALUES (
+                    :id, :sender_id, :sender_name, :sender_role, :recipient_type, :recipient_id, :recipient_user_id, :recipient_name, :title, :message, :priority, '[]', NOW()
+                )
+            ");
+            $stmtIns->execute([
+                ':id'                => $msgId,
+                ':sender_id'         => $user['id'],
+                ':sender_name'       => $user['name'],
+                ':sender_role'       => $senderRoleLabel,
+                ':recipient_type'    => $recipientType,
+                ':recipient_id'      => $recipientId,
+                ':recipient_user_id' => $recipientUserId,
+                ':recipient_name'    => $recipientName,
+                ':title'             => $title,
+                ':message'           => $message,
+                ':priority'          => $priority,
+            ]);
+        } else {
+            $stmtIns = $db->prepare("
+                INSERT INTO system_messages (
+                    id, sender_id, sender_name, sender_role, recipient_type, recipient_id, recipient_name, title, message, priority, read_by, created_at
+                ) VALUES (
+                    :id, :sender_id, :sender_name, :sender_role, :recipient_type, :recipient_id, :recipient_name, :title, :message, :priority, '[]', NOW()
+                )
+            ");
+            $stmtIns->execute([
+                ':id'                => $msgId,
+                ':sender_id'         => $user['id'],
+                ':sender_name'       => $user['name'],
+                ':sender_role'       => $senderRoleLabel,
+                ':recipient_type'    => $recipientType,
+                ':recipient_id'      => $recipientId,
+                ':recipient_name'    => $recipientName,
+                ':title'             => $title,
+                ':message'           => $message,
+                ':priority'          => $priority,
+            ]);
+        }
 
         $auditDetail = ($recipientType === 'ALL')
             ? "Comunicado geral enviado para toda a equipe: '{$title}'"

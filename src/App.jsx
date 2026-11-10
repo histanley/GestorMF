@@ -452,11 +452,22 @@ export default function App() {
     const uId = String(user.id || '').trim();
     const uMemId = String(user.memberId || '').trim();
     const uName = (user.name || '').trim().toLowerCase();
+    const firstWord = uName.split(' ')[0] || '';
+    const isHgama = uName.includes('histanley') || uName.includes('hgama') || uName.includes('gama');
+
+    const matchesName = (target) => {
+      if (!target) return false;
+      const t = String(target).trim().toLowerCase();
+      if (t === uName) return true;
+      if (firstWord.length >= 3 && (t.startsWith(firstWord) || t.includes(firstWord))) return true;
+      if (isHgama && (t.includes('hgama') || t.includes('histanley') || t.includes('gama'))) return true;
+      return false;
+    };
 
     // 1. Motorista (driverId, driverIds, driverName ou vehicleAllocations)
     if (mis.driverId && (String(mis.driverId) === uId || (uMemId && String(mis.driverId) === uMemId))) return true;
     if (Array.isArray(mis.driverIds) && mis.driverIds.some((id) => String(id) === uId || (uMemId && String(id) === uMemId))) return true;
-    if (mis.driverName && uName && mis.driverName.trim().toLowerCase() === uName) return true;
+    if (mis.driverName && matchesName(mis.driverName)) return true;
     if (Array.isArray(mis.vehicleAllocations)) {
       if (
         mis.vehicleAllocations.some(
@@ -464,7 +475,7 @@ export default function App() {
             a &&
             (String(a.driverId) === uId ||
               (uMemId && String(a.driverId) === uMemId) ||
-              (a.driverName && uName && a.driverName.trim().toLowerCase() === uName))
+              (a.driverName && matchesName(a.driverName)))
         )
       ) {
         return true;
@@ -480,24 +491,24 @@ export default function App() {
           tm &&
           (String(tm.id) === uId ||
             (uMemId && String(tm.id) === uMemId) ||
-            (tm.name && uName && tm.name.trim().toLowerCase() === uName))
+            (tm.name && matchesName(tm.name)))
       )
     ) {
       return true;
     }
-    if (Array.isArray(mis.teamNames) && uName && mis.teamNames.some((tn) => tn && tn.trim().toLowerCase() === uName)) return true;
-    if (mis.teamNamesDisplay && uName) {
+    if (Array.isArray(mis.teamNames) && mis.teamNames.some((tn) => matchesName(tn))) return true;
+    if (mis.teamNamesDisplay) {
       const namesList = mis.teamNamesDisplay.split(',').map((s) => s.trim().toLowerCase());
-      if (namesList.includes(uName)) return true;
+      if (namesList.some((s) => matchesName(s))) return true;
     }
 
     // 3. Editor de Pós-Produção (editorId, editorIds, editorName, editorNamesDisplay)
     if (mis.editorId && (String(mis.editorId) === uId || (uMemId && String(mis.editorId) === uMemId))) return true;
     if (Array.isArray(mis.editorIds) && mis.editorIds.some((id) => String(id) === uId || (uMemId && String(id) === uMemId))) return true;
-    if (mis.editorName && uName && mis.editorName.trim().toLowerCase() === uName) return true;
-    if (mis.editorNamesDisplay && uName) {
+    if (mis.editorName && matchesName(mis.editorName)) return true;
+    if (mis.editorNamesDisplay) {
       const editorsList = mis.editorNamesDisplay.split(',').map((s) => s.trim().toLowerCase());
-      if (editorsList.includes(uName)) return true;
+      if (editorsList.some((s) => matchesName(s))) return true;
     }
 
     return false;
@@ -659,9 +670,7 @@ export default function App() {
           }));
           setMissions(freshMissions);
 
-          // Detecção de Novas Missões em Tempo Real para envio de Push Notification no celular
-          // REGRA DE OURO: Apenas quem faz parte da missão (motorista, equipe de campo ou editor) recebe a notificação/alerta!
-          // Administradores e outros colaboradores não escalados NÃO recebem notificações dessas missões (apenas visualizam no mapa/tabela).
+          // Detecção de Novas Missões em Tempo Real para envio de Push Notification e Central de Notificações
           if (knownMissionsRef.current !== null && currentUser) {
             const newMissions = freshMissions.filter(
               (m) => !knownMissionsRef.current.has(m.id)
@@ -669,40 +678,40 @@ export default function App() {
 
             newMissions.forEach((newMis) => {
               const isAssigned = isUserInMission(newMis, currentUser);
-              if (!isAssigned) {
-                // Quem NÃO faz parte da missão NÃO recebe alerta nem push
-                return;
-              }
-
               const destination = newMis.locationName || newMis.address || 'Local Definido';
               const timeStr = newMis.departureTime ? `Saída às ${newMis.departureTime}` : 'Hoje';
 
-              sendPushNotification(`🎯 Missão Designada para Você!`, {
-                body: `${newMis.description} • ${timeStr} • ${destination} (#${newMis.code || ''})`,
-                data: { missionId: newMis.id },
-              });
-
-              setIncomingMissionAlert(newMis);
+              if (isAssigned) {
+                sendPushNotification(`🎯 Missão Designada para Você!`, {
+                  body: `${newMis.description} • ${timeStr} • ${destination} (#${newMis.code || ''})`,
+                  data: { missionId: newMis.id },
+                });
+                setIncomingMissionAlert(newMis);
+              } else {
+                sendPushNotification(`📅 Nova Missão Cadastrada: #${newMis.code || ''}`, {
+                  body: `${newMis.description} • ${destination} • ${timeStr}`,
+                  data: { missionId: newMis.id },
+                });
+              }
             });
 
-            // Adiciona novas missões à Central de Notificações APENAS para os escalados
-            const createdNotifs = newMissions
-              .filter((newMis) => isUserInMission(newMis, currentUser))
-              .map((newMis) => {
-                const destination = newMis.locationName || newMis.address || 'Local Definido';
-                const timeStr = newMis.departureTime ? `Saída às ${newMis.departureTime}` : 'Hoje';
+            // Adiciona novas missões à Central de Notificações para toda a equipe
+            const createdNotifs = newMissions.map((newMis) => {
+              const destination = newMis.locationName || newMis.address || 'Local Definido';
+              const timeStr = newMis.departureTime ? `Saída às ${newMis.departureTime}` : 'Hoje';
+              const isAssigned = isUserInMission(newMis, currentUser);
 
-                return {
-                  id: `notif-${newMis.id}-${Date.now()}`,
-                  title: '🎯 Missão Designada para Você!',
-                  message: `${newMis.description} • ${destination} • ${timeStr} (#${newMis.code || ''})`,
-                  details: `Viatura: ${newMis.vehicleNameDisplay || 'Mega'} • Equipe: ${newMis.teamNamesDisplay || '--'}`,
-                  timestamp: Date.now(),
-                  type: 'mission',
-                  missionId: newMis.id,
-                  read: false,
-                };
-              });
+              return {
+                id: `notif-${newMis.id}-${Date.now()}`,
+                title: isAssigned ? '🎯 Missão Designada para Você!' : `📅 Nova Missão: #${newMis.code || ''}`,
+                message: `${newMis.description} • ${destination} • ${timeStr}`,
+                details: `Viatura: ${newMis.vehicleNameDisplay || 'Mega'} • Equipe: ${newMis.teamNamesDisplay || '--'}`,
+                timestamp: Date.now(),
+                type: 'mission',
+                missionId: newMis.id,
+                read: false,
+              };
+            });
 
             if (createdNotifs.length > 0) {
               setNotifications((prev) => [...createdNotifs, ...prev]);
@@ -1337,6 +1346,24 @@ export default function App() {
       // Marca imediatamente nos conhecidos para que o próprio usuário que salvou a missão não receba alerta de "Nova Missão Atribuída"
       if (knownMissionsRef.current) {
         knownMissionsRef.current.add(updatedRecord.id);
+      }
+
+      // Adiciona imediatamente a notificação da nova missão à Central de Notificações
+      if (!editingMission) {
+        const destStr = updatedRecord.locationName || updatedRecord.address || 'Local Definido';
+        const timeStr = updatedRecord.departureTime ? `Saída às ${updatedRecord.departureTime}` : 'Hoje';
+        const newNotifItem = {
+          id: `notif-${updatedRecord.id}-${Date.now()}`,
+          title: `📅 Nova Missão Cadastrada: #${updatedRecord.code || ''}`,
+          message: `${updatedRecord.description} • ${destStr} • ${timeStr}`,
+          details: `Viatura: ${updatedRecord.vehicleNameDisplay || 'Mega'} • Equipe: ${updatedRecord.teamNamesDisplay || '--'}`,
+          timestamp: Date.now(),
+          type: 'mission',
+          missionId: updatedRecord.id,
+          read: false,
+        };
+        setNotifications((prev) => [newNotifItem, ...prev.filter((n) => n.missionId !== updatedRecord.id)]);
+        playNotificationSound();
       }
 
       // Notificações Push & Central de Notificações (APENAS para quem faz parte da missão)

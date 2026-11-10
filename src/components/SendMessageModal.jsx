@@ -266,10 +266,10 @@ export default function SendMessageModal({
           </div>
 
           {/* Rodapé de Ações */}
-          <div className="modal-actions" style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <div className="modal-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button
               type="button"
-              className="btn-modal-cancel"
+              className="msg-btn-cancel"
               onClick={onClose}
               disabled={isSubmitting}
             >
@@ -277,18 +277,10 @@ export default function SendMessageModal({
             </button>
             <button
               type="submit"
-              className="btn-modal-save"
-              style={{
-                background: priority === 'URGENT' ? '#ef4444' : priority === 'HIGH' ? '#f59e0b' : '#3b82f6',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 18px',
-                fontWeight: 600
-              }}
+              className={`msg-btn-submit prio-${priority.toLowerCase()}`}
               disabled={isSubmitting}
             >
-              <Send size={15} />
+              <Send size={15} className={isSubmitting ? 'msg-icon-sending' : ''} />
               <span>{isSubmitting ? 'Transmitindo...' : recipientType === 'ALL' ? 'Enviar para Todos' : 'Enviar Mensagem'}</span>
             </button>
           </div>

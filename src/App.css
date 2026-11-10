@@ -17645,8 +17645,8 @@ body.light-theme .notifications-badge-count {
   position: absolute;
   top: calc(100% + 10px);
   right: -20px;
-  width: 400px;
-  max-width: calc(100vw - 24px);
+  width: 440px;
+  max-width: calc(100vw - 20px);
   max-height: 520px;
   background: linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(11, 15, 25, 0.98));
   backdrop-filter: blur(20px);
@@ -20857,4 +20857,140 @@ body.light-theme .mdm-recurring-badge {
 .icon-message-circle {
   background: rgba(59, 130, 246, 0.18) !important;
   color: #60a5fa !important;
+}
+
+/* ==============================================================================
+   BOTÕES MODERNOS DE ENVIO DE MENSAGEM & EXCLUSÃO DE NOTIFICAÇÕES
+============================================================================== */
+.msg-btn-cancel {
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #cbd5e1;
+  outline: none !important;
+  transition: all 0.2s ease;
+}
+
+.msg-btn-cancel:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.msg-btn-cancel:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.msg-btn-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  color: #ffffff;
+  outline: none !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.msg-btn-submit.prio-normal {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.38);
+}
+
+.msg-btn-submit.prio-normal:hover:not(:disabled) {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.5);
+  transform: translateY(-2px);
+}
+
+.msg-btn-submit.prio-high {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.38);
+}
+
+.msg-btn-submit.prio-high:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.5);
+  transform: translateY(-2px);
+}
+
+.msg-btn-submit.prio-urgent {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45);
+}
+
+.msg-btn-submit.prio-urgent:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.55);
+  transform: translateY(-2px);
+}
+
+.msg-btn-submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.msg-btn-submit:disabled,
+.msg-btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.msg-icon-sending {
+  animation: msg-plane-fly 1s infinite alternate;
+}
+
+@keyframes msg-plane-fly {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(4px) translateY(-2px);
+  }
+}
+
+/* Painel de Notificações - Botão de Excluir Individual no Card */
+.notif-card-del-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.notif-card-del-btn:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #ef4444 !important;
+  transform: scale(1.08);
+}
+
+.notif-card-del-btn.is-locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.notif-card-del-btn.is-locked:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+  transform: none !important;
 }
