@@ -1,7 +1,8 @@
 // ==============================================================================
 // GestorMF - Service Worker (PWA & Notificações de Pauta/Missão)
+// Versão 6.5.0 - Força atualização imediata de cache
 // ==============================================================================
-const CACHE_NAME = 'gestormf-cache-v6-3-9';
+const CACHE_NAME = 'gestormf-cache-v6-5-0';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -12,27 +13,34 @@ const ASSETS_TO_CACHE = [
 
 // Instalação do Service Worker
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE).catch(() => {});
     })
   );
-  self.skipWaiting();
 });
 
-// Ativação e limpeza de caches antigos
+// Ativação e limpeza imediata de TODOS os caches antigos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            console.log('[GestorMF SW] Removendo cache legado:', key);
+            return caches.delete(key);
+          }
+        })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Estratégia de requisições: Network-First para APIs e Stale-While-Revalidate para estáticos
+// Estratégia de requisições:
+// 1. APIs: Sempre rede direta
+// 2. Navegação / HTML: Network-first (sempre busca o mais novo)
+// 3. Demais ativos: Network-first com fallback no cache
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -45,6 +53,22 @@ self.addEventListener('fetch', (event) => {
           headers: { 'Content-Type': 'application/json' }
         });
       })
+    );
+    return;
+  }
+
+  // Navegação principal (HTML): Sempre prioriza a rede para carregar novos deploys
+  if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.status === 200) {
+            const resClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/index.html') || caches.match('/'))
     );
     return;
   }

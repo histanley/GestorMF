@@ -20,6 +20,23 @@ if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       .register('/sw.js')
       .then((reg) => {
         console.log('[GestorMF PWA] Service Worker registrado com escopo:', reg.scope);
+        // Força busca imediata de atualizações no servidor
+        try {
+          reg.update();
+        } catch (e) {}
+
+        // Atualização automática assim que novo Service Worker estiver pronto
+        reg.onupdatefound = () => {
+          const installingWorker = reg.installing;
+          if (installingWorker) {
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('[GestorMF PWA] Nova versão detectada. Atualizando página...');
+                window.location.reload();
+              }
+            };
+          }
+        };
       })
       .catch((err) => {
         console.warn('[GestorMF PWA] Falha ao registrar Service Worker:', err);
