@@ -1233,8 +1233,8 @@ export default function ServiceBoard({
         </div>
       </div>
 
-      {/* Grid da Tabela de Serviço (Design Compacto, Simétrico e Colorido por Status) */}
-      <div className="table-responsive-wrapper">
+      {/* Grid da Tabela de Serviço (Exclusivo Desktop / PC - 100% inalterado) */}
+      <div className="table-responsive-wrapper desktop-service-board">
         <table className="whiteboard-table compact-service-table">
           <thead>
             <tr>
@@ -1764,6 +1764,311 @@ export default function ServiceBoard({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* 2. VISÃO CARDS MODERNOS NATIVOS PARA SMARTPHONE / iOS / ANDROID */}
+      <div className="mobile-service-board">
+        {paginatedMissions.length === 0 ? (
+          <div className="empty-state-mobile">
+            <Film size={38} className="empty-icon" />
+            <p>Nenhuma missão encontrada com os filtros selecionados.</p>
+            {canCreateMission && (
+              <button className="btn-primary-sm" onClick={onNewMission}>
+                <Plus size={14} /> Cadastrar Nova Missão
+              </button>
+            )}
+          </div>
+        ) : (
+          paginatedMissions.map((mission) => {
+            const missionCode = getMissionCode(mission, missions);
+            const allocations = getMissionAllocations(mission, vehicles, members);
+            const driverInfo = resolveMissionDriver(mission);
+            const teamList = resolveMissionTeamMembers(mission);
+            const statusSlug = (mission.missionStatus || 'Agendada')
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/\s+/g, '-');
+            const isSelectedRow = selectedDetailMissionId === mission.id;
+            const isOverdueMission = checkIsMissionOverdue(mission);
+            const isAssignedEditor = checkIsAssignedEditor(mission);
+            const canConcludeThis = isAssignedEditor || canAdminManageEdition;
+            const mTotalKm = getMissionTotalKm(mission);
+
+            return (
+              <div
+                key={mission.id}
+                className={`mobile-mission-card card-status-${statusSlug} ${isOverdueMission ? 'card-overdue' : ''} ${isSelectedRow ? 'card-selected' : ''}`}
+                onClick={() => setSelectedDetailMissionId(mission.id)}
+              >
+                {/* 1. TOPO DO CARD: CÓDIGO, BADGES E STATUS */}
+                <div className="mmc-header">
+                  <div className="mmc-header-left">
+                    <span className="mmc-code-badge">#{missionCode}</span>
+                    <span className="mmc-view-pill"><Eye size={10} /> Ficha</span>
+                    {mission.isRecurring && (
+                      <span className="mmc-recurring-badge" title="Missão Recorrente">
+                        <Repeat size={10} /> {mission.recurrenceDays || 'Recorrente'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`mmc-status-pill pill-${statusSlug} ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'pill-atrasada' : ''}`}>
+                    <span className={`status-dot dot-${statusSlug}`} />
+                    <span>{isOverdueMission && mission.missionStatus === 'Pendente' ? 'Atrasado' : (mission.missionStatus || 'Agendada')}</span>
+                  </div>
+                </div>
+
+                {/* 2. TÍTULO / PAUTA & OBSERVAÇÕES */}
+                <div className="mmc-title-row">
+                  <h4 className="mmc-mission-title">{mission.description}</h4>
+                  {mission.notes && (
+                    <p className="mmc-notes-snippet">
+                      <FileText size={11} /> {mission.notes}
+                    </p>
+                  )}
+                </div>
+
+                {/* 3. LOCAL & PERCURSO */}
+                <div className="mmc-location-box">
+                  <div className="mmc-loc-main">
+                    <MapPin size={14} className="mmc-pin-icon" />
+                    <div className="mmc-loc-text">
+                      <strong className="mmc-loc-name">{mission.locationName || 'Local não informado'}</strong>
+                      {mission.address && <p className="mmc-loc-address">{mission.address}</p>}
+                    </div>
+                  </div>
+                  {mTotalKm > 0 && (
+                    <div className="mmc-distance-badge">
+                      <Navigation size={11} />
+                      <span><strong>{mTotalKm} km</strong> ida e volta</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. AGENDA & HORÁRIOS */}
+                <div className="mmc-schedule-strip">
+                  <div className="mmc-date-row">
+                    <Calendar size={12} />
+                    <span><strong>Data da Missão:</strong> {formatDateBR(mission.date)}</span>
+                  </div>
+                  <div className="mmc-times-grid">
+                    <div className="mmc-time-box">
+                      <span className="mmc-time-label">Saída Base</span>
+                      <strong className="mmc-time-val gold">{mission.departureTime || '--:--'}</strong>
+                    </div>
+                    <div className="mmc-time-box">
+                      <span className="mmc-time-label">Chegada</span>
+                      <strong className="mmc-time-val">{mission.arrivalTimeEstimated || '--:--'}</strong>
+                    </div>
+                    <div className="mmc-time-box">
+                      <span className="mmc-time-label">Início Evento</span>
+                      <strong className="mmc-time-val orange">{mission.eventStartTime || '--:--'}</strong>
+                    </div>
+                    <div className="mmc-time-box">
+                      <span className="mmc-time-label">Retorno</span>
+                      <strong className="mmc-time-val">{mission.returnTimeEstimated || '--:--'}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. EQUIPE ESCALADA */}
+                <div className="mmc-team-section">
+                  <div className="mmc-team-label">
+                    <Users size={12} />
+                    <span>Equipe Escalada em Campo:</span>
+                  </div>
+                  <div className="mmc-team-chips">
+                    {/* Motorista em destaque */}
+                    {driverInfo && (
+                      <span className="mmc-member-chip is-driver">
+                        <span className="mmc-driver-wheel">🛞</span>
+                        <strong>{driverInfo.name}</strong>
+                        <span className="mmc-role-tag">Motorista</span>
+                      </span>
+                    )}
+                    {/* Membros escalados */}
+                    {teamList.filter((tm) => tm.name !== driverInfo?.name).map((tm, idx) => (
+                      <span key={idx} className="mmc-member-chip">
+                        <User size={11} />
+                        <span>{tm.name}</span>
+                        {tm.role && <span className="mmc-role-tag">{tm.role}</span>}
+                      </span>
+                    ))}
+                    {/* Convidados */}
+                    {Array.isArray(mission.guests) && mission.guests.map((g, gIdx) => {
+                      const gName = typeof g === 'object' ? (g.name || 'Convidado') : g;
+                      return (
+                        <span key={`g-${gIdx}`} className="mmc-member-chip is-guest">
+                          <span>👤</span>
+                          <span>{gName}</span>
+                          <span className="mmc-role-tag">Convidado</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 6. VIATURA, TANQUE & CONSUMO */}
+                {allocations.length > 0 && (
+                  <div className="mmc-vehicle-section">
+                    {allocations.map((alloc, aIdx) => {
+                      const vObj = alloc.vehicle;
+                      const vTel = vObj ? computeVehicleFuelTelemetry(vObj, missions, fuelSettings) : null;
+                      const isElecV = vObj && isElectricVehicle(vObj);
+                      const unitV = isElecV ? 'kWh' : 'L';
+                      const mBd = vObj ? computeMissionVehicleFuelBreakdown({
+                        vehicle: vObj,
+                        totalRoundTripKm: mTotalKm,
+                        currentTelemetry: vTel,
+                        fuelPricePerLiter: fuelSettings,
+                      }) : null;
+                      const litersUsed = mBd && mBd.litersNeeded > 0 ? mBd.litersNeeded : Number(mission.estimatedFuelLiters || 0);
+                      const costUsed = mBd && mBd.totalCost > 0 ? mBd.totalCost : Number(mission.estimatedFuelCost || 0);
+
+                      return (
+                        <div key={aIdx} className="mmc-veh-card">
+                          <div className="mmc-veh-top">
+                            <div className="mmc-veh-ident">
+                              <Car size={13} />
+                              <strong>{vObj ? vObj.name : alloc.vehicleName}</strong>
+                            </div>
+                            {vObj && <span className="mmc-plate">{vObj.plate}</span>}
+                            {canViewFinancials && vTel && (
+                              <span className={`mmc-tank-pill ${vTel.isReserveAlert ? 'reserve' : 'ok'}`}>
+                                {getFuelTypeIcon(vObj)} {vTel.currentPercent}% ({vTel.currentLiters}{unitV})
+                              </span>
+                            )}
+                          </div>
+                          {canViewFinancials && (
+                            <div className="mmc-veh-fuel-info">
+                              <Fuel size={11} />
+                              <span>Consumo: <strong>-{litersUsed}{unitV}</strong> • <strong>R$ {Number(costUsed || 0).toFixed(2)}</strong></span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* 7. PÓS-PRODUÇÃO / EDIÇÃO */}
+                {mission.editionStatus !== 'Não se aplica' && (
+                  <div className="mmc-postprod-box" onClick={(e) => e.stopPropagation()}>
+                    <div className="mmc-pp-header">
+                      <div className="mmc-pp-editor">
+                        <Film size={12} />
+                        <span>Editor: <strong>{mission.editorNamesDisplay || mission.editorName || 'Sem Editor'}</strong></span>
+                      </div>
+                      {mission.deliveryDeadlineDate && (
+                        <div className="mmc-pp-deadline">
+                          <Clock size={11} />
+                          <span>Prazo: {formatDateBR(mission.deliveryDeadlineDate).slice(0, 5)} {mission.deliveryDeadlineTime || '18:00'}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mmc-pp-actions-row">
+                      {mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && (
+                        <>
+                          {canConcludeThis ? (
+                            <button
+                              type="button"
+                              className="mmc-btn-conclude"
+                              onClick={() => handleConcludeEdition(mission)}
+                            >
+                              <CheckCircle2 size={13} /> Concluir Tarefa
+                            </button>
+                          ) : (
+                            <span className={`mmc-pp-status-tag ${isOverdueMission ? 'atrasado' : 'pendente'}`}>
+                              {isOverdueMission ? '⚠️ Edição Atrasada' : `Edição: ${mission.editionStatus || 'Pendente'}`}
+                            </span>
+                          )}
+                        </>
+                      )}
+
+                      {mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada' && (
+                        <>
+                          {!canAdminManageEdition ? (
+                            <div className="btn-pp-waiting">
+                              <Clock size={12} /> Aguardando Confirmação
+                            </div>
+                          ) : (
+                            <div className="mmc-admin-buttons">
+                              <button
+                                type="button"
+                                className="btn-pp-reopen"
+                                onClick={() => handleReopenClick(mission)}
+                              >
+                                <RotateCcw size={12} /> Rejeitar
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-pp-approve"
+                                onClick={() => handleApproveEdition(mission)}
+                              >
+                                <CheckCheck size={13} /> Confirmar
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 8. BARRA DE AÇÕES DO CARD */}
+                <div className="mmc-footer-actions" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    className="mmc-action-pill primary"
+                    onClick={() => setSelectedDetailMissionId(mission.id)}
+                    title="Abrir Ficha Completa"
+                  >
+                    <Eye size={13} />
+                    <span>Ficha</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mmc-action-pill map"
+                    onClick={() => onSelectMissionOnMap(mission.id)}
+                    title="Ver no Mapa"
+                  >
+                    <Navigation size={13} />
+                    <span>Mapa</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mmc-action-pill history"
+                    onClick={() => setSelectedHistoryMission(mission)}
+                    title="Histórico Completo"
+                  >
+                    <History size={13} />
+                  </button>
+                  {canEditMission && (mission.missionStatus !== 'Finalizada' && mission.missionStatus !== 'Finalizado' && mission.missionStatus !== 'Concluída') && (
+                    <button
+                      type="button"
+                      className="mmc-action-pill edit"
+                      onClick={() => onEditMission(mission)}
+                      title="Editar Missão"
+                    >
+                      <Edit2 size={13} />
+                    </button>
+                  )}
+                  {canDeleteMission && (
+                    <button
+                      type="button"
+                      className="mmc-action-pill delete"
+                      onClick={() => onDeleteMission(mission.id)}
+                      title="Excluir Missão"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Contador de Páginas / Paginador (Exibido quando passar de 10 missões por página) */}

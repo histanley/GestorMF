@@ -5452,14 +5452,26 @@ body.light-theme .marker-label {
   color: var(--text-secondary);
 }
 
-.modal-close {
-  background: transparent;
-  border: none;
+.modal-close,
+.modal-close-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
   color: var(--text-muted);
-  font-size: 1.3rem;
+  font-size: 1.2rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
-.modal-close:hover { color: #fff; }
+.modal-close:hover,
+.modal-close-btn:hover { 
+  color: #fff; 
+  background: rgba(255, 255, 255, 0.12);
+}
 
 .modal-form, .modal-form-scrollable {
   padding: 20px 24px;
@@ -10851,6 +10863,22 @@ body.light-theme .vehicle-card.card-reserve-alert {
   box-sizing: border-box !important;
 }
 
+/* Visibilidade Tabela Desktop vs Cards Nativos Mobile */
+.desktop-service-board {
+  display: block;
+}
+.mobile-service-board {
+  display: none;
+}
+.device-mobile .desktop-service-board {
+  display: none !important;
+}
+.device-mobile .mobile-service-board {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
 .table-responsive-wrapper::-webkit-scrollbar {
   display: none !important;
   height: 0 !important;
@@ -16095,232 +16123,842 @@ body.light-theme .mbn-center-action {
     box-sizing: border-box !important;
   }
 
-  /* TRANSFORMAÇÃO DA TABELA EM CARDS DE APP NATIVO */
-  .table-responsive-wrapper {
-    overflow: visible !important;
-    width: 100% !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    border: none !important;
+  /* ==========================================================================
+     VISÃO MOBILE NATIVA: CARDS MODERNOS DE MISSÕES / PAUTAS (.mobile-service-board)
+     100% isolado do Desktop — Zero interferência na versão PC
+     ========================================================================== */
+  .desktop-service-board {
+    display: none !important;
   }
 
-  .compact-service-table {
-    display: block !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    border: none !important;
-  }
-
-  .compact-service-table thead {
-    display: none !important; /* Esconde cabeçalho de tabela desktop que cortava na tela */
-  }
-
-  .compact-service-table tbody {
+  .mobile-service-board {
     display: flex !important;
     flex-direction: column !important;
-    gap: 14px !important;
-    width: 100% !important;
-  }
-
-  /* Card da Missão no App Mobile */
-  .whiteboard-row {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 10px !important;
-    padding: 14px 16px !important;
-    border-radius: 16px !important;
-    background: linear-gradient(165deg, rgba(20, 28, 48, 0.95) 0%, rgba(13, 18, 32, 0.98) 100%) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28) !important;
+    gap: 16px !important;
     width: 100% !important;
     box-sizing: border-box !important;
-    position: relative !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    padding-bottom: 24px !important;
   }
 
-  body.light-theme .whiteboard-row {
-    background: #ffffff !important;
-    border: 1.5px solid #e2e8f0 !important;
-    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+  .empty-state-mobile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+    background: rgba(20, 28, 48, 0.45);
+    border: 1.5px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    color: #94a3b8;
+    gap: 12px;
   }
 
-  /* Faixa lateral indicativa do status da missão */
-  .whiteboard-row.row-status-agendada {
+  body.light-theme .empty-state-mobile {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #64748b;
+  }
+
+  /* Card da Missão no Celular */
+  .mobile-mission-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 18px;
+    background: linear-gradient(165deg, rgba(20, 28, 48, 0.95) 0%, rgba(13, 18, 32, 0.98) 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  body.light-theme .mobile-mission-card {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  }
+
+  /* Bordas / Acentos por Status */
+  .mobile-mission-card.card-status-em-execucao {
+    border-left: 5px solid #ef4444 !important;
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.15);
+  }
+
+  .mobile-mission-card.card-status-em-preparo {
+    border-left: 5px solid #f59e0b !important;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+  }
+
+  .mobile-mission-card.card-status-agendada {
     border-left: 5px solid #06b6d4 !important;
   }
 
-  .whiteboard-row.row-status-em-preparo,
-  .whiteboard-row.row-status-em-execucao {
-    border-left: 5px solid #ef4444 !important;
+  .mobile-mission-card.card-status-pendente {
+    border-left: 5px solid #f97316 !important;
   }
 
-  .whiteboard-row.row-status-concluida,
-  .whiteboard-row.row-status-finalizado {
+  .mobile-mission-card.card-status-finalizada,
+  .mobile-mission-card.card-status-finalizado,
+  .mobile-mission-card.card-status-concluida {
     border-left: 5px solid #10b981 !important;
   }
 
-  /* Células convertidas em blocos integrados do Card */
-  .compact-service-table td {
-    display: block !important;
-    padding: 0 !important;
-    border: none !important;
-    width: 100% !important;
+  .mobile-mission-card.card-overdue {
+    border-left: 5px solid #ef4444 !important;
+    background: linear-gradient(165deg, rgba(239, 68, 68, 0.12) 0%, rgba(13, 18, 32, 0.98) 45%) !important;
   }
 
-  /* 1. Topo do Card: Código e Pauta */
-  .col-desc .desc-top-meta {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    margin-bottom: 6px !important;
+  body.light-theme .mobile-mission-card.card-overdue {
+    background: linear-gradient(165deg, #fff1f2 0%, #ffffff 45%) !important;
   }
 
-  .mission-name-compact {
-    font-size: 0.98rem !important;
-    font-weight: 800 !important;
-    line-height: 1.35 !important;
-    color: #ffffff !important;
-    display: block !important;
+  .mobile-mission-card.card-selected {
+    outline: 2px solid #3b82f6 !important;
+    outline-offset: 2px;
   }
 
-  body.light-theme .mission-name-compact {
-    color: #0f172a !important;
+  /* 1. Header do Card: Código, Ficha & Status */
+  .mmc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
   }
 
-  .mission-notes-compact {
-    font-size: 0.74rem !important;
-    color: #94a3b8 !important;
-    margin-top: 3px !important;
-    display: block !important;
+  .mmc-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
-  body.light-theme .mission-notes-compact {
-    color: #64748b !important;
+  .mmc-code-badge {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 3px 8px;
+    border-radius: 8px;
   }
 
-  /* 2. Bloco de Local & Percurso */
-  .col-local .local-cell-compact {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
-    padding: 9px 12px !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border-radius: 10px !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  .mmc-view-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 3px 7px;
+    border-radius: 6px;
   }
 
-  body.light-theme .col-local .local-cell-compact {
-    background: #f8fafc !important;
-    border-color: #e2e8f0 !important;
+  .mmc-recurring-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #c084fc;
+    background: rgba(192, 132, 252, 0.12);
+    border: 1px solid rgba(192, 132, 252, 0.3);
+    padding: 3px 7px;
+    border-radius: 6px;
   }
 
-  /* 3. Bloco de Horários e Agenda */
-  .col-agenda .agenda-compact-box {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-    padding: 9px 12px !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border-radius: 10px !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  .mmc-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
   }
 
-  body.light-theme .col-agenda .agenda-compact-box {
-    background: #f8fafc !important;
-    border-color: #e2e8f0 !important;
+  .mmc-status-pill .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
   }
 
-  .agenda-times-grid {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 6px !important;
+  .mmc-status-pill.pill-em-execucao {
+    background: rgba(239, 68, 68, 0.16);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+  }
+  .mmc-status-pill.pill-em-execucao .status-dot {
+    background: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+    animation: pulse-dot 1.5s infinite;
   }
 
-  .ag-time-item {
-    text-align: center !important;
-    align-items: center !important;
-    justify-content: center !important;
+  .mmc-status-pill.pill-em-preparo {
+    background: rgba(245, 158, 11, 0.16);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+  .mmc-status-pill.pill-em-preparo .status-dot {
+    background: #f59e0b;
+    box-shadow: 0 0 8px #f59e0b;
   }
 
-  /* 4. Equipe Escalada */
-  .col-equipe .equipe-compact-wrap {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
+  .mmc-status-pill.pill-agendada {
+    background: rgba(6, 182, 212, 0.16);
+    color: #06b6d4;
+    border: 1px solid rgba(6, 182, 212, 0.35);
+  }
+  .mmc-status-pill.pill-agendada .status-dot {
+    background: #06b6d4;
   }
 
-  .member-tag-compact {
-    font-size: 0.72rem !important;
-    padding: 3px 8px !important;
+  .mmc-status-pill.pill-pendente {
+    background: rgba(249, 115, 22, 0.16);
+    color: #f97316;
+    border: 1px solid rgba(249, 115, 22, 0.35);
+  }
+  .mmc-status-pill.pill-pendente .status-dot {
+    background: #f97316;
   }
 
-  /* 5. Viatura e Motorista */
-  .col-viatura .veh-mini-card {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    border-radius: 10px !important;
-    padding: 9px 12px !important;
+  .mmc-status-pill.pill-atrasada {
+    background: rgba(239, 68, 68, 0.22) !important;
+    color: #ef4444 !important;
+    border: 1.5px solid #ef4444 !important;
+    font-weight: 900;
   }
 
-  body.light-theme .col-viatura .veh-mini-card {
-    background: #f8fafc !important;
-    border-color: #e2e8f0 !important;
+  .mmc-status-pill.pill-finalizada,
+  .mmc-status-pill.pill-concluida {
+    background: rgba(16, 185, 129, 0.16);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .mmc-status-pill.pill-finalizada .status-dot,
+  .mmc-status-pill.pill-concluida .status-dot {
+    background: #10b981;
   }
 
-  /* 6. Status e Edição */
-  .col-edicao .edicao-cell-compact {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 8px !important;
-    padding: 4px 0 !important;
+  /* 2. Título / Pauta & Observações */
+  .mmc-title-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
   }
 
-  .status-dropdown-compact {
-    max-width: 175px !important;
-    padding: 5px 8px !important;
-    font-size: 0.74rem !important;
-    border-radius: 8px !important;
+  .mmc-mission-title {
+    font-size: 1.02rem;
+    font-weight: 800;
+    color: #f8fafc;
+    line-height: 1.35;
+    margin: 0;
+    word-break: break-word;
   }
 
-  /* 7. Barra de Ações do Card no Mobile */
-  .col-acoes .acoes-cell-compact {
-    display: flex !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-    gap: 8px !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
-    padding-top: 10px !important;
-    margin-top: 4px !important;
+  body.light-theme .mmc-mission-title {
+    color: #0f172a;
   }
 
-  body.light-theme .col-acoes .acoes-cell-compact {
-    border-top-color: #e2e8f0 !important;
+  .mmc-notes-snippet {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 0.76rem;
+    color: #94a3b8;
+    line-height: 1.4;
+    margin: 0;
   }
 
-  .acoes-cell-compact .action-btn-icon {
-    width: 38px !important;
-    height: 38px !important;
-    border-radius: 10px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+  body.light-theme .mmc-notes-snippet {
+    color: #64748b;
   }
 
-  /* Célula de tabela vazia */
-  .empty-table-cell {
-    display: block !important;
-    text-align: center !important;
-    padding: 36px 18px !important;
-    border-radius: 16px !important;
-    background: rgba(255, 255, 255, 0.02) !important;
-    border: 1px dashed rgba(255, 255, 255, 0.1) !important;
+  /* 3. Local & Percurso */
+  .mmc-location-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    width: 100%;
+    box-sizing: border-box;
   }
 
-  body.light-theme .empty-table-cell {
-    background: #ffffff !important;
-    border: 1.5px dashed #cbd5e1 !important;
+  body.light-theme .mmc-location-box {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+  }
+
+  .mmc-loc-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .mmc-pin-icon {
+    color: #f59e0b;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .mmc-loc-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .mmc-loc-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    word-break: break-word;
+  }
+
+  body.light-theme .mmc-loc-name {
+    color: #0f172a;
+  }
+
+  .mmc-loc-address {
+    font-size: 0.74rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+
+  body.light-theme .mmc-loc-address {
+    color: #64748b;
+  }
+
+  .mmc-distance-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #06b6d4;
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.25);
+    border-radius: 8px;
+    padding: 4px 9px;
+    align-self: flex-start;
+  }
+
+  .mmc-dist-sub {
+    font-size: 0.68rem;
+    color: #67e8f9;
+    font-weight: 500;
+  }
+
+  /* 4. Agenda & Horários */
+  .mmc-schedule-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  body.light-theme .mmc-schedule-strip {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+  }
+
+  .mmc-date-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #38bdf8;
+    align-self: flex-start;
+  }
+
+  .mmc-times-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    width: 100%;
+  }
+
+  .mmc-time-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 2px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    text-align: center;
+  }
+
+  body.light-theme .mmc-time-item {
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+
+  .mmc-time-item span {
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 2px;
+  }
+
+  .mmc-time-item strong {
+    font-size: 0.82rem;
+    font-weight: 800;
+    font-family: ui-monospace, monospace;
+  }
+
+  .mmc-time-item.saida {
+    border: 1px solid rgba(245, 158, 11, 0.25);
+  }
+  .mmc-time-item.saida span { color: #f59e0b; }
+  .mmc-time-item.saida strong { color: #fde68a; }
+  body.light-theme .mmc-time-item.saida strong { color: #d97706; }
+
+  .mmc-time-item.chegada {
+    border: 1px solid rgba(6, 182, 212, 0.25);
+  }
+  .mmc-time-item.chegada span { color: #06b6d4; }
+  .mmc-time-item.chegada strong { color: #a5f3fc; }
+  body.light-theme .mmc-time-item.chegada strong { color: #0891b2; }
+
+  .mmc-time-item.evento {
+    border: 1px solid rgba(234, 179, 8, 0.25);
+  }
+  .mmc-time-item.evento span { color: #eab308; }
+  .mmc-time-item.evento strong { color: #fef08a; }
+  body.light-theme .mmc-time-item.evento strong { color: #ca8a04; }
+
+  .mmc-time-item.retorno {
+    border: 1px solid rgba(168, 85, 247, 0.25);
+  }
+  .mmc-time-item.retorno span { color: #c084fc; }
+  .mmc-time-item.retorno strong { color: #e9d5ff; }
+  body.light-theme .mmc-time-item.retorno strong { color: #9333ea; }
+
+  /* 5. Equipe Escalada */
+  .mmc-team-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .mmc-driver-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 10px;
+    font-size: 0.78rem;
+    color: #fef3c7;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  body.light-theme .mmc-driver-chip {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #92400e;
+  }
+
+  .mmc-driver-icon {
+    color: #f59e0b;
+    flex-shrink: 0;
+  }
+
+  .mmc-driver-chip strong {
+    font-weight: 700;
+  }
+
+  .driver-tag {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: #f59e0b;
+    color: #111827;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: auto;
+  }
+
+  .mmc-members-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .mmc-member-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    font-size: 0.74rem;
+    color: #e2e8f0;
+  }
+
+  body.light-theme .mmc-member-chip {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #1e293b;
+  }
+
+  .mmc-member-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 0.65rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    overflow: hidden;
+  }
+
+  .mmc-member-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .mmc-guests-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+  }
+
+  /* 6. Viatura, Combustível & Tanque */
+  .mmc-vehicle-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  body.light-theme .mmc-vehicle-card {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+  }
+
+  .mmc-veh-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .mmc-veh-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mmc-veh-icon {
+    color: #38bdf8;
+    flex-shrink: 0;
+  }
+
+  .mmc-veh-model {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #f1f5f9;
+  }
+
+  body.light-theme .mmc-veh-model {
+    color: #0f172a;
+  }
+
+  .mmc-veh-plate {
+    font-size: 0.7rem;
+    font-weight: 800;
+    font-family: ui-monospace, monospace;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  body.light-theme .mmc-veh-plate {
+    background: #e2e8f0;
+    color: #334155;
+    border-color: #cbd5e1;
+  }
+
+  .mmc-tank-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 12px;
+  }
+
+  .mmc-tank-pill.tank-ok {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .mmc-tank-pill.tank-warn {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .mmc-tank-pill.tank-crit {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  .mmc-veh-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.74rem;
+    color: #94a3b8;
+    padding-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    width: 100%;
+  }
+
+  body.light-theme .mmc-veh-bottom {
+    border-top-color: #e2e8f0;
+    color: #64748b;
+  }
+
+  /* 7. Pós-Produção / Edição */
+  .mmc-postprod-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(99, 102, 241, 0.06);
+    border-radius: 12px;
+    border: 1px solid rgba(99, 102, 241, 0.18);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  body.light-theme .mmc-postprod-card {
+    background: #f5f3ff;
+    border-color: #ddd6fe;
+  }
+
+  .mmc-pp-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .mmc-pp-editor {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #a5b4fc;
+  }
+
+  body.light-theme .mmc-pp-editor {
+    color: #6366f1;
+  }
+
+  .mmc-pp-deadline {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    color: #94a3b8;
+  }
+
+  .mmc-pp-actions-row {
+    width: 100%;
+  }
+
+  .mmc-btn-conclude {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.8rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .mmc-pp-status-tag {
+    display: block;
+    width: 100%;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 6px;
+    border-radius: 8px;
+  }
+  .mmc-pp-status-tag.atrasado {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+  .mmc-pp-status-tag.pendente {
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+  }
+
+  .mmc-admin-buttons {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .mmc-admin-buttons .btn-pp-reopen {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    font-weight: 700;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+
+  .mmc-admin-buttons .btn-pp-approve {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    border: none;
+    font-weight: 700;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+
+  /* 8. Barra de Ações do Card no Mobile */
+  .mmc-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  body.light-theme .mmc-footer-actions {
+    border-top-color: #e2e8f0;
+  }
+
+  .mmc-action-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 38px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .mmc-action-pill.primary {
+    flex: 2;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+  }
+
+  .mmc-action-pill.map {
+    flex: 2;
+    background: rgba(6, 182, 212, 0.12);
+    color: #22d3ee;
+    border: 1px solid rgba(6, 182, 212, 0.3);
+  }
+
+  .mmc-action-pill.history {
+    width: 38px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .mmc-action-pill.edit {
+    width: 38px;
+    background: rgba(245, 158, 11, 0.1);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .mmc-action-pill.delete {
+    width: 38px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
   }
 
   /* --------------------------------------------------------------------------
@@ -16410,7 +17048,8 @@ body.light-theme .mbn-center-action {
     border-radius: 10px !important;
   }
 
-  .modal-close {
+  .modal-close,
+  .modal-close-btn {
     width: 40px !important;
     height: 40px !important;
     border-radius: 50% !important;
