@@ -240,6 +240,10 @@ export default function MissionModal({
   const [recurrenceEndDate, setRecurrenceEndDate] = useState(() => addWeeksToDate(getLocalTodayStr(), 4));
   const [updateSeries, setUpdateSeries] = useState(false);
 
+  // Filtros rápidos e busca da Equipe de Campo (Passo 5)
+  const [teamSearchQuery, setTeamSearchQuery] = useState('');
+  const [teamFilterTab, setTeamFilterTab] = useState('ALL'); // 'ALL' | 'SELECTED' | company | 'DRIVERS'
+
   // Extrai autonomias de todas as viaturas alocadas para somar o consumo total
   const getAutonomiesFromAllocations = (allocations = []) => {
     const validAllocs = allocations.filter((a) => a && a.vehicleId);
@@ -394,6 +398,8 @@ export default function MissionModal({
       setRecurrenceWeeks(4);
       setRecurrenceEndDate(addWeeksToDate(baseDate, 4));
     }
+    setTeamSearchQuery('');
+    setTeamFilterTab('ALL');
   }, [isOpen, editingMission, initialCoords]);
 
   // Manipuladores de Missão Recorrente
@@ -2251,123 +2257,305 @@ export default function MissionModal({
           {/* ============================================================== */}
           {/* PASSO 5: EQUIPE DE CAMPO                                       */}
           {/* ============================================================== */}
-          <div className="mm-card-panel">
-            <div className="mm-card-header">
-              <span className="mm-step-pill">5</span>
-              <div style={{ flex: 1 }}>
-                <h3 className="mm-card-title">Equipe de Campo</h3>
-                <p className="mm-card-subtitle">Escale os cinegrafistas, assistentes e profissionais que irão a campo</p>
-              </div>
-            </div>
+          {(() => {
+            const teamAvailableCompanies = (() => {
+              const set = new Set();
+              members.forEach((m) => {
+                if (m.company && m.company.trim()) set.add(m.company.trim());
+              });
+              return Array.from(set);
+            })();
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>
-                Equipe Escalada em Campo{' '}
-                <small style={{ fontWeight: 400, opacity: 0.75 }}>
-                  (os motoristas escolhidos no passo 3 já são marcados automaticamente)
-                </small>
-              </label>
+            const filteredTeamMembers = members.filter((m) => {
+              const q = teamSearchQuery.trim().toLowerCase();
+              if (q) {
+                const name = (m.name || '').toLowerCase();
+                const role = (m.role || '').toLowerCase();
+                const comp = (m.company || '').toLowerCase();
+                if (!name.includes(q) && !role.includes(q) && !comp.includes(q)) {
+                  return false;
+                }
+              }
 
-              {activeTeamConflicts.length > 0 && (
-                <div className="mm-conflict-banner mm-conflict-team" style={{ marginBottom: 14 }}>
-                  <div className="mcb-icon">
-                    <AlertTriangle size={18} />
-                  </div>
-                  <div className="mcb-content">
-                    <strong className="mcb-title">Atenção: Colaborador(es) em Conflito de Horário!</strong>
-                    <p className="mcb-desc" style={{ marginBottom: 4 }}>
-                      Os seguintes participantes selecionados já estão escalados em outra missão neste horário:
-                    </p>
-                    <ul className="mcb-list">
-                      {activeTeamConflicts.map((c) => (
-                        <li key={c.id}>
-                          <strong>{c.name}</strong>: Escalado na missão <strong>{c.conflict.code} {c.conflict.description}</strong> ({c.conflict.timeRange}).
-                        </li>
-                      ))}
-                    </ul>
+              if (teamFilterTab === 'SELECTED') {
+                return formData.teamIds.includes(m.id);
+              }
+              if (teamFilterTab === 'DRIVERS') {
+                return Boolean(m.canDrive ?? m.hasCnh);
+              }
+              if (teamFilterTab !== 'ALL') {
+                return m.company === teamFilterTab;
+              }
+              return true;
+            });
+
+            return (
+              <div className="mm-card-panel">
+                <div className="mm-card-header" style={{ alignItems: 'flex-start' }}>
+                  <span className="mm-step-pill">5</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <h3 className="mm-card-title">Equipe de Campo</h3>
+                      <div className="mm-team-counter-badge" title="Total de colaboradores escalados nesta missão">
+                        <Users size={12} />
+                        <span>
+                          <strong>{formData.teamIds.length}</strong> de {members.length} escalado{formData.teamIds.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mm-card-subtitle">Escale os cinegrafistas, assistentes e profissionais que irão a campo</p>
                   </div>
                 </div>
-              )}
 
-              <div className="mm-team-grid">
-                {members.length === 0 ? (
-                  <div
-                    style={{
-                      gridColumn: '1 / -1',
-                      padding: '16px',
-                      textAlign: 'center',
-                      color: 'var(--text-muted)',
-                      fontSize: '0.85rem',
-                    }}
-                  >
-                    Nenhum colaborador cadastrado ainda. Cadastre sua equipe na aba "Equipes".
-                  </div>
-                ) : (
-                  members.map((m) => {
-                    const isSelected = formData.teamIds.includes(m.id);
-                    const driverSlotIndex = formData.vehicleAllocations.findIndex(
-                      (a) => a.driverId === m.id
-                    );
-                    const isDriver = driverSlotIndex >= 0;
-                    const memConflict = scheduleConflicts.memberConflicts[m.id];
-
-                    return (
-                      <div
-                        key={m.id}
-                        className={`mm-member-card ${isSelected ? 'selected' : ''} ${
-                          isDriver ? 'is-driver' : ''
-                        } ${memConflict ? 'has-conflict' : ''}`}
-                        onClick={() => toggleTeamMember(m.id)}
-                      >
-                        <div className="mm-member-card-top">
-                          <div className="mm-checkbox">
-                            {isSelected && <Check size={13} strokeWidth={3} />}
-                          </div>
-                          <div className="mm-member-avatar">
-                            {m.photoUrl ? (
-                              <img src={m.photoUrl} alt={m.name} />
-                            ) : (
-                              <span>{m.name.slice(0, 2).toUpperCase()}</span>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            className={`btn-driver-pill ${isDriver ? 'active' : ''}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleMemberAsDriver(m.id);
-                            }}
-                            title={
-                              isDriver
-                                ? `Motorista da Viatura #${driverSlotIndex + 1}`
-                                : 'Definir como motorista de uma viatura'
-                            }
-                          >
-                            <Car size={11} />
-                            <span>{isDriver ? `Motorista #${driverSlotIndex + 1}` : 'Motorista?'}</span>
-                          </button>
-                        </div>
-
-                        <div className="mm-member-info">
-                          <strong className="mm-member-name">{m.name}</strong>
-                          <div className="mm-member-badges">
-                            <span className="mm-role-badge">{m.role}</span>
-                            <span className="mm-company-badge">{m.company}</span>
-                            {memConflict && (
-                              <span
-                                className="mm-conflict-pill"
-                                title={`Ocupado na missão ${memConflict.code}: ${memConflict.timeRange}`}
-                              >
-                                ⚠️ Ocupado ({memConflict.timeRange})
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  {activeTeamConflicts.length > 0 && (
+                    <div className="mm-conflict-banner mm-conflict-team" style={{ marginBottom: 14 }}>
+                      <div className="mcb-icon">
+                        <AlertTriangle size={18} />
                       </div>
-                    );
-                  })
-                )}
-              </div>
+                      <div className="mcb-content">
+                        <strong className="mcb-title">Atenção: Colaborador(es) em Conflito de Horário!</strong>
+                        <p className="mcb-desc" style={{ marginBottom: 4 }}>
+                          Os seguintes participantes selecionados já estão escalados em outra missão neste horário:
+                        </p>
+                        <ul className="mcb-list">
+                          {activeTeamConflicts.map((c) => (
+                            <li key={c.id}>
+                              <strong>{c.name}</strong>: Escalado na missão <strong>{c.conflict.code} {c.conflict.description}</strong> ({c.conflict.timeRange}).
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* BARRA SUPERIOR DINÂMICA: BUSCA + ABAS DE FILTRO */}
+                  <div className="mm-team-toolbar">
+                    <div className="mm-team-search-wrap">
+                      <Search size={14} className="mm-team-search-icon" />
+                      <input
+                        type="text"
+                        className="mm-team-search-input"
+                        placeholder="Buscar colaborador por nome, cargo ou empresa..."
+                        value={teamSearchQuery}
+                        onChange={(e) => setTeamSearchQuery(e.target.value)}
+                      />
+                      {teamSearchQuery && (
+                        <button
+                          type="button"
+                          className="mm-team-search-clear"
+                          onClick={() => setTeamSearchQuery('')}
+                          title="Limpar busca"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="mm-team-filter-tabs">
+                      <button
+                        type="button"
+                        className={`mm-team-tab-btn ${teamFilterTab === 'ALL' ? 'active' : ''}`}
+                        onClick={() => setTeamFilterTab('ALL')}
+                      >
+                        <span>Todos</span>
+                        <span className="tab-pill-count">{members.length}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`mm-team-tab-btn tab-highlight-selected ${teamFilterTab === 'SELECTED' ? 'active' : ''}`}
+                        onClick={() => setTeamFilterTab('SELECTED')}
+                      >
+                        <Check size={12} />
+                        <span>Escalados</span>
+                        <span className="tab-pill-count">{formData.teamIds.length}</span>
+                      </button>
+
+                      {teamAvailableCompanies.map((comp) => {
+                        const count = members.filter((m) => m.company === comp).length;
+                        return (
+                          <button
+                            key={comp}
+                            type="button"
+                            className={`mm-team-tab-btn ${teamFilterTab === comp ? 'active' : ''}`}
+                            onClick={() => setTeamFilterTab(comp)}
+                          >
+                            <span>{comp}</span>
+                            <span className="tab-pill-count">{count}</span>
+                          </button>
+                        );
+                      })}
+
+                      {members.some((m) => Boolean(m.canDrive ?? m.hasCnh)) && (
+                        <button
+                          type="button"
+                          className={`mm-team-tab-btn ${teamFilterTab === 'DRIVERS' ? 'active' : ''}`}
+                          onClick={() => setTeamFilterTab('DRIVERS')}
+                        >
+                          <Car size={12} />
+                          <span>Motoristas</span>
+                          <span className="tab-pill-count">
+                            {members.filter((m) => Boolean(m.canDrive ?? m.hasCnh)).length}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* BARRA DE RESUMO E ATALHOS */}
+                  <div className="mm-team-status-strip">
+                    <span className="mm-team-status-text">
+                      Exibindo <strong>{filteredTeamMembers.length}</strong> de {members.length} colaboradores
+                      {teamSearchQuery && <em> • Busca: "{teamSearchQuery}"</em>}
+                      {teamFilterTab !== 'ALL' && (
+                        <em> • Filtro: {teamFilterTab === 'SELECTED' ? 'Escalados' : teamFilterTab === 'DRIVERS' ? 'Motoristas CNH' : teamFilterTab}</em>
+                      )}
+                    </span>
+
+                    <div className="mm-team-status-actions">
+                      {formData.teamIds.length > 0 && (
+                        <button
+                          type="button"
+                          className="mm-btn-clear-selection"
+                          onClick={() => {
+                            const driverIds = formData.vehicleAllocations.map((a) => a.driverId).filter(Boolean);
+                            setFormData((prev) => ({ ...prev, teamIds: driverIds }));
+                          }}
+                          title="Desmarcar equipe (preserva condutores alocados no passo 3)"
+                        >
+                          Limpar Seleção
+                        </button>
+                      )}
+                      {filteredTeamMembers.length > 0 && formData.teamIds.length < members.length && (
+                        <button
+                          type="button"
+                          className="mm-btn-select-all"
+                          onClick={() => {
+                            const combined = Array.from(new Set([...formData.teamIds, ...filteredTeamMembers.map((m) => m.id)]));
+                            setFormData((prev) => ({ ...prev, teamIds: combined }));
+                          }}
+                          title="Adicionar todos os colaboradores visíveis à equipe"
+                        >
+                          + Selecionar Visíveis
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* GRADE DE COLABORADORES FLUIDA E ELEGANTE (SEM BARRA DE ROLAGEM PRESA) */}
+                  <div className="mm-team-grid">
+                    {members.length === 0 ? (
+                      <div className="mm-team-empty-state">
+                        Nenhum colaborador cadastrado ainda. Cadastre sua equipe na aba "Equipes".
+                      </div>
+                    ) : filteredTeamMembers.length === 0 ? (
+                      <div className="mm-team-empty-state">
+                        <span>Nenhum colaborador encontrado para os filtros atuais.</span>
+                        <button
+                          type="button"
+                          className="mm-btn-reset-filters"
+                          onClick={() => {
+                            setTeamSearchQuery('');
+                            setTeamFilterTab('ALL');
+                          }}
+                        >
+                          Limpar Filtros e Busca
+                        </button>
+                      </div>
+                    ) : (
+                      filteredTeamMembers.map((m) => {
+                        const isSelected = formData.teamIds.includes(m.id);
+                        const driverSlotIndex = formData.vehicleAllocations.findIndex(
+                          (a) => a.driverId === m.id
+                        );
+                        const isDriver = driverSlotIndex >= 0;
+                        const memConflict = scheduleConflicts.memberConflicts[m.id];
+                        const isHabilitado = Boolean(m.canDrive ?? m.hasCnh);
+
+                        return (
+                          <div
+                            key={m.id}
+                            className={`mm-member-card ${isSelected ? 'selected' : ''} ${
+                              isDriver ? 'is-driver' : ''
+                            } ${memConflict ? 'has-conflict' : ''}`}
+                            onClick={() => toggleTeamMember(m.id)}
+                          >
+                            <div className="mm-member-card-body">
+                              {/* AVATAR + STATUS INDICATOR */}
+                              <div className="mm-member-avatar-col">
+                                <div className={`mm-member-avatar ${isSelected ? 'avatar-active' : ''} ${isDriver ? 'avatar-driver' : ''}`}>
+                                  {m.photoUrl ? (
+                                    <img src={m.photoUrl} alt={m.name} />
+                                  ) : (
+                                    <span>{m.name.slice(0, 2).toUpperCase()}</span>
+                                  )}
+                                </div>
+                                {isDriver && (
+                                  <span className="mm-avatar-driver-tag" title="Motorista designado">
+                                    <Car size={9} />
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* INFORMAÇÕES DO COLABORADOR */}
+                              <div className="mm-member-details-col">
+                                <div className="mm-member-name-row">
+                                  <strong className="mm-member-name" title={m.name}>{m.name}</strong>
+                                  <div className={`mm-checkbox ${isSelected ? 'checked' : ''}`}>
+                                    {isSelected && <Check size={12} strokeWidth={3} />}
+                                  </div>
+                                </div>
+
+                                <div className="mm-member-badges-row">
+                                  <span className="mm-role-badge" title={m.role}>{m.role || 'Geral'}</span>
+                                  {m.company && (
+                                    <span className={`mm-company-badge ${m.company.toLowerCase().includes('print') ? 'comp-print' : 'comp-filmes'}`}>
+                                      {m.company}
+                                    </span>
+                                  )}
+                                  {isHabilitado && (
+                                    <span className="mm-cnh-tag" title={`Habilitado com CNH ${m.cnhCategory || 'B'}`}>
+                                      CNH {m.cnhCategory || 'B'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* RODAPÉ DO CARD COM AÇÃO DE MOTORISTA E CONFLITO */}
+                            <div className="mm-member-card-footer" onClick={(e) => e.stopPropagation()}>
+                              {memConflict ? (
+                                <span
+                                  className="mm-conflict-pill"
+                                  title={`Ocupado na missão ${memConflict.code}: ${memConflict.timeRange}`}
+                                >
+                                  <AlertTriangle size={11} />
+                                  <span>Ocupado ({memConflict.timeRange})</span>
+                                </span>
+                              ) : isHabilitado || isDriver ? (
+                                <button
+                                  type="button"
+                                  className={`btn-driver-pill ${isDriver ? 'active' : ''}`}
+                                  onClick={() => handleToggleMemberAsDriver(m.id)}
+                                  title={
+                                    isDriver
+                                      ? `Motorista da Viatura #${driverSlotIndex + 1} (Clique para desatribuir)`
+                                      : 'Definir como motorista de uma viatura'
+                                  }
+                                >
+                                  <Car size={11} />
+                                  <span>{isDriver ? `Motorista #${driverSlotIndex + 1}` : 'Escalar Motorista'}</span>
+                                </button>
+                              ) : (
+                                <span className="mm-no-driver-pill">Sem CNH</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
 
               {/* SUBSEÇÃO: CONVIDADOS EXTERNOS & FREELANCERS */}
               <div className="mm-guests-section">
@@ -2446,6 +2634,8 @@ export default function MissionModal({
               </div>
             </div>
           </div>
+        );
+      })()}
 
           {/* ============================================================== */}
           {/* PASSO 6: BRIEFING & OBSERVAÇÕES                                */}
