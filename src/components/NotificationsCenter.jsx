@@ -100,42 +100,39 @@ export default function NotificationsCenter({
 
   return (
     <div className="notifications-dropdown-panel" onClick={(e) => e.stopPropagation()}>
-      {/* Cabeçalho da Central */}
-      <div className="notif-header">
-        <div className="notif-header-title">
+      {/* Cabeçalho da Central: Design Centralizado & Elegante */}
+      <div className="notif-header-centered">
+        {/* Botão de Fechar discreto no canto superior direito */}
+        <button
+          type="button"
+          className="notif-btn-close-corner"
+          onClick={onClose}
+          title="Fechar"
+          aria-label="Fechar Central de Notificações"
+        >
+          <X size={15} />
+        </button>
+
+        {/* Topo Centralizado: Ícone + Título + Subtítulo */}
+        <div className="notif-center-title-group">
           <div className="notif-bell-icon-badge">
-            <Bell size={17} />
+            <Bell size={18} />
             {unreadCount > 0 && <span className="notif-unread-dot" />}
           </div>
-          <div>
-            <strong>Central de Notificações & Avisos</strong>
-            <span className="notif-subtitle">
-              {unreadCount > 0 ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : 'Tudo atualizado'}
-            </span>
-          </div>
+          <h3 className="notif-center-title">Central de Notificações & Avisos</h3>
+          <span className={`notif-center-status-pill ${unreadCount > 0 ? 'has-unread' : 'all-read'}`}>
+            {unreadCount > 0 ? `${unreadCount} ${unreadCount === 1 ? 'não lida' : 'não lidas'}` : '✨ Tudo em dia'}
+          </span>
         </div>
 
-        <div className="notif-header-actions">
+        {/* Barra de Ações Harmônica e Centralizada */}
+        <div className="notif-actions-toolbar">
           {canSendMessage && onOpenSendMessage && (
             <button
               type="button"
-              className="notif-btn-action notif-btn-primary"
+              className="notif-toolbar-btn primary"
               onClick={onOpenSendMessage}
               title="Criar e enviar comunicado para a equipe ou colaborador"
-              style={{
-                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                color: '#ffffff',
-                border: '1px solid #3b82f6',
-                borderRadius: '8px',
-                padding: '6px 12px',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
             >
               <Send size={13} />
               <span>Nova Mensagem</span>
@@ -145,17 +142,9 @@ export default function NotificationsCenter({
           {unreadCount > 0 && (
             <button
               type="button"
-              className="notif-btn-action"
+              className="notif-toolbar-btn secondary"
               onClick={onMarkAllAsRead}
-              title="Marcar todas como lidas"
-              style={{
-                borderRadius: '8px',
-                padding: '6px 10px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                cursor: 'pointer'
-              }}
+              title="Marcar todas as notificações como lidas"
             >
               <CheckCheck size={14} />
               <span>Marcar lidas</span>
@@ -165,36 +154,14 @@ export default function NotificationsCenter({
           {notifications.length > 0 && (
             <button
               type="button"
-              className="notif-btn-action notif-btn-danger"
+              className="notif-toolbar-btn danger"
               onClick={onClearAll}
               title="Limpar todas as notificações da central"
-              style={{
-                borderRadius: '8px',
-                padding: '6px 10px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                color: '#f87171',
-                borderColor: 'rgba(239, 68, 68, 0.35)',
-                background: 'rgba(239, 68, 68, 0.1)',
-                cursor: 'pointer',
-                fontWeight: 600
-              }}
             >
               <Trash2 size={13} />
               <span>Limpar</span>
             </button>
           )}
-
-          <button
-            type="button"
-            className="notif-btn-close"
-            onClick={onClose}
-            title="Fechar"
-            aria-label="Fechar Central de Notificações"
-          >
-            <X size={16} />
-          </button>
         </div>
       </div>
 
