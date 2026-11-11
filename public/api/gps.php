@@ -40,6 +40,29 @@ if ($method === 'POST') {
     $data = getJsonInput();
 
     $roleUpper = strtoupper(trim($user['role'] ?? 'USER'));
+    $isAdmin = ($roleUpper === 'ADMIN' || $roleUpper === 'ADMINISTRADOR');
+
+    // Regra de Negócio: Administradores NUNCA são rastreados via GPS (apenas Gestores e Usuários)
+    if ($isAdmin) {
+        // Limpeza preventiva de quaisquer registros residuais de GPS do administrador
+        try {
+            $db->prepare("DELETE FROM gps_locations WHERE member_id = ? OR member_name = ?")->execute([$user['id'], $user['name']]);
+            $stmtMemDel = $db->prepare("SELECT id FROM members WHERE user_id = ?");
+            $stmtMemDel->execute([$user['id']]);
+            $adminMems = $stmtMemDel->fetchAll();
+            foreach ($adminMems as $am) {
+                $db->prepare("DELETE FROM gps_locations WHERE member_id = ?")->execute([$am['id']]);
+            }
+        } catch (Exception $e) {}
+
+        jsonResponse([
+            'success' => true,
+            'message' => 'Administradores não são rastreados via GPS.',
+            'tracked' => false
+        ]);
+        exit;
+    }
+
     // Identidade derivada da sessão autenticada (P0-01)
     $memberId = null;
     $memberName = $user['name'];
@@ -276,12 +299,35 @@ if ($method === 'POST') {
 if ($method === 'GET') {
     $user = requireAuth(['ADMIN', 'MANAGER']);
 
-    // Busca posições ativas atualizadas nas últimas 12 horas
+    // Limpeza automática e preventiva de qualquer registro residual de Administrador em gps_locations
+    try {
+        $db->exec("
+            DELETE g FROM gps_locations g
+            INNER JOIN users u ON (g.member_id = u.id OR LOWER(TRIM(g.member_name)) = LOWER(TRIM(u.name)))
+            WHERE UPPER(TRIM(u.role)) IN ('ADMIN', 'ADMINISTRADOR')
+        ");
+        $db->exec("
+            DELETE g FROM gps_locations g
+            INNER JOIN members m ON g.member_id = m.id
+            INNER JOIN users u ON m.user_id = u.id
+            WHERE UPPER(TRIM(u.role)) IN ('ADMIN', 'ADMINISTRADOR')
+        ");
+        $db->exec("
+            DELETE g FROM gps_locations g
+            INNER JOIN members m ON g.member_id = m.id
+            WHERE UPPER(TRIM(m.role)) IN ('ADMIN', 'ADMINISTRADOR')
+        ");
+    } catch (Exception $eClean) {
+        // Ignora caso tabelas estejam isoladas ou em processo de migração
+    }
+
+    // Busca posições ativas atualizadas nas últimas 12 horas (excluindo qualquer administrador)
     $stmt = $db->query("
         SELECT g.*,
                TIMESTAMPDIFF(SECOND, g.updated_at, NOW()) AS seconds_ago,
                m.description AS mission_title,
                m.code AS mission_code,
+               u.role AS user_role,
                COALESCE(mem.role, u.title, 'Colaborador') AS member_role,
                COALESCE(mem.company, 'MegaFilmes') AS member_company,
                COALESCE(mem.photo_url, u.avatar) AS member_photo,
@@ -292,9 +338,20 @@ if ($method === 'GET') {
         LEFT JOIN users u ON (mem.user_id = u.id OR g.member_id = u.id OR LOWER(TRIM(g.member_name)) = LOWER(TRIM(u.name)))
         WHERE g.is_active = 1
           AND g.updated_at >= (NOW() - INTERVAL 12 HOUR)
+          AND (u.role IS NULL OR UPPER(TRIM(u.role)) NOT IN ('ADMIN', 'ADMINISTRADOR'))
+          AND (mem.role IS NULL OR UPPER(TRIM(mem.role)) NOT IN ('ADMIN', 'ADMINISTRADOR'))
         ORDER BY g.updated_at DESC
     ");
     $locations = $stmt->fetchAll();
+
+    // Filtro adicional no PHP para assegurar que nenhum administrador apareça no mapa/radar
+    $filteredLocations = array_filter($locations, function($loc) {
+        $uRole = strtoupper(trim($loc['user_role'] ?? ''));
+        $mRole = strtoupper(trim($loc['member_role'] ?? ''));
+        if ($uRole === 'ADMIN' || $uRole === 'ADMINISTRADOR') return false;
+        if ($mRole === 'ADMIN' || $mRole === 'ADMINISTRADOR') return false;
+        return true;
+    });
 
     $formatted = array_map(function($loc) {
         $secondsAgo = isset($loc['seconds_ago']) ? max(0, (int)$loc['seconds_ago']) : 0;
@@ -302,6 +359,7 @@ if ($method === 'GET') {
             'id'             => $loc['id'],
             'memberId'       => $loc['member_id'],
             'memberName'     => $loc['member_name'],
+            'userRole'       => $loc['user_role'] ?? 'USER',
             'memberRole'     => $loc['member_role'] ?? 'Colaborador',
             'memberCompany'  => $loc['member_company'] ?? 'MegaFilmes',
             'memberPhoto'    => $loc['member_photo'] ?? null,
@@ -320,7 +378,7 @@ if ($method === 'GET') {
             'capturedAt'     => $loc['captured_at'] ?? $loc['updated_at'],
             'updatedAt'      => $loc['updated_at']
         ];
-    }, $locations);
+    }, array_values($filteredLocations));
 
     jsonResponse(['success' => true, 'locations' => $formatted]);
 }

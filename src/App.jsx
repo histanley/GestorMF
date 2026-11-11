@@ -917,15 +917,17 @@ export default function App() {
   }, [currentUser]);
 
   // Transmissor Contínuo e Automático de GPS em Tempo Real para Smartphone e Aplicativo Móvel
+  // REGRA: Administradores NUNCA são rastreados nem transmitem localização GPS (apenas Gestores e Usuários)
   useEffect(() => {
-    const userNameNorm = (currentUser?.name || '').trim().toLowerCase();
-    // No computador desktop com navegador comum, não força transmissão do admin do escritório
-    const isDesktopAdmin = (userNameNorm === 'administrador' || userNameNorm === 'admin') && !isNativeApp() && deviceInfo.type === 'desktop';
+    const isAdminUser = normalizeRole(currentUser?.role) === ROLES.ADMIN;
 
-    if (!currentUser || isDesktopAdmin) {
+    if (!currentUser || isAdminUser) {
       if (gpsWatchIdRef.current !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
         navigator.geolocation.clearWatch(gpsWatchIdRef.current);
         gpsWatchIdRef.current = null;
+      }
+      if (isAdminUser && currentUser?.id) {
+        apiStopGpsLocation().catch(() => {});
       }
       return;
     }
@@ -3039,8 +3041,8 @@ export default function App() {
           )}
         </nav>
       )}
-      {/* Indicador Flutuante Global de Transmissão Automática de GPS (Apenas Colaboradores Operacionais) */}
-      {currentUser && currentUser.role === 'USER' && !['histanley', 'rodrigo', 'guedes', 'hgama'].some((term) => (currentUser.name || '').toLowerCase().includes(term)) && (
+      {/* Indicador Flutuante Global de Transmissão Automática de GPS (Apenas Gestores e Usuários Operacionais) */}
+      {currentUser && normalizeRole(currentUser.role) !== ROLES.ADMIN && (
         <div
           className={`global-gps-floating-pill ${gpsPermissionState === 'denied' ? 'is-denied' : 'is-active'}`}
           onClick={() => {

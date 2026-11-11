@@ -419,9 +419,14 @@ export default function MapView({
         const res = await apiGetActiveGpsLocations();
         if (!res.success || !Array.isArray(res.locations)) return;
 
-        // Exibe todas as posições válidas de colaboradores transmitindo GPS
+        // Exibe todas as posições válidas de colaboradores transmitindo GPS (excluindo administradores)
         const validLocations = res.locations.filter((loc) => {
-          return loc && loc.lat && loc.lon && !isNaN(loc.lat) && !isNaN(loc.lon);
+          if (!loc || !loc.lat || !loc.lon || isNaN(loc.lat) || isNaN(loc.lon)) return false;
+          const uRole = String(loc.userRole || '').trim().toLowerCase();
+          const mRole = String(loc.memberRole || '').trim().toLowerCase();
+          if (uRole === 'admin' || uRole === 'administrador') return false;
+          if (mRole === 'admin' || mRole === 'administrador') return false;
+          return true;
         });
 
         setActiveGpsLocations(validLocations);
@@ -618,6 +623,14 @@ export default function MapView({
 
   // Alternador de Compartilhamento Consentido de GPS (LGPD / Privacidade)
   const handleToggleGpsSharing = async () => {
+    if (userRole === 'admin') {
+      await alertDialog({
+        title: 'Rastreamento Desnecessário',
+        message: 'Administradores não são localizados via GPS. Apenas Gestores e Usuários em campo transmitem coordenadas.',
+        variant: 'info',
+      });
+      return;
+    }
     if (isSharingGps) {
       if (gpsWatchIdRef.current !== null) {
         navigator.geolocation.clearWatch(gpsWatchIdRef.current);

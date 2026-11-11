@@ -216,6 +216,10 @@ export default function TeamManager({
         if (res.success && Array.isArray(res.locations)) {
           const map = {};
           res.locations.forEach((loc) => {
+            const uRole = String(loc.userRole || '').trim().toLowerCase();
+            const mRole = String(loc.memberRole || '').trim().toLowerCase();
+            if (uRole === 'admin' || uRole === 'administrador') return;
+            if (mRole === 'admin' || mRole === 'administrador') return;
             if (loc.memberId) map[loc.memberId] = loc;
             if (loc.memberName) map[loc.memberName.toLowerCase()] = loc;
           });
