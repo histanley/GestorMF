@@ -2292,6 +2292,50 @@ export default function App() {
             )}
           </div>
 
+          {/* Indicador Elegante de GPS no Cabeçalho Superior (Apenas Gestores e Usuários Operacionais em Campo) */}
+          {currentUser && normalizeRole(currentUser.role) !== ROLES.ADMIN && (
+            <button
+              type="button"
+              className={`header-gps-status-btn ${gpsPermissionState === 'denied' ? 'is-denied' : 'is-active'}`}
+              onClick={() => {
+                if (gpsPermissionState === 'denied') {
+                  requestLocationPermissions().then((granted) => {
+                    if (granted) {
+                      setGpsPermissionState('granted');
+                    } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(
+                        () => setGpsPermissionState('granted'),
+                        () => setGpsPermissionState('denied'),
+                        { enableHighAccuracy: true, timeout: 10000 }
+                      );
+                    }
+                  }).catch(() => {});
+                } else {
+                  alertDialog({
+                    title: 'GPS Operacional Ao Vivo',
+                    message: `Sua localização está sendo transmitida em tempo real para o mapa da central.\n\n• Precisão: ${gpsAccuracy ? `±${Math.round(gpsAccuracy)}m` : 'Alta precisão'}\n• Bateria: ${batteryLevel !== null ? `${batteryLevel}%` : 'Disponível'}`,
+                    variant: 'info',
+                  });
+                }
+              }}
+              title={
+                gpsPermissionState === 'denied'
+                  ? 'GPS bloqueado. Clique para autorizar localização.'
+                  : `GPS Ao Vivo: Transmitindo localização para a central${gpsAccuracy ? ` (±${Math.round(gpsAccuracy)}m)` : ''}${batteryLevel !== null ? ` • 🔋 ${batteryLevel}%` : ''}`
+              }
+              aria-label="Status do GPS Operacional"
+            >
+              <span className={`header-gps-dot ${gpsPermissionState === 'denied' ? 'is-denied' : 'is-pulsing'}`} />
+              <Radio size={15} className="header-gps-icon" />
+              <span className="header-gps-label">
+                {gpsPermissionState === 'denied' ? 'GPS Bloqueado' : 'GPS Ao Vivo'}
+              </span>
+              {gpsAccuracy && gpsPermissionState !== 'denied' && (
+                <span className="header-gps-accuracy">±{Math.round(gpsAccuracy)}m</span>
+              )}
+            </button>
+          )}
+
           {/* Botão de Alternância de Tema (Modo Claro / Modo Escuro - Apenas Ícone) */}
           <button
             type="button"
@@ -3041,44 +3085,6 @@ export default function App() {
           )}
         </nav>
       )}
-      {/* Indicador Flutuante Global de Transmissão Automática de GPS (Apenas Gestores e Usuários Operacionais) */}
-      {currentUser && normalizeRole(currentUser.role) !== ROLES.ADMIN && (
-        <div
-          className={`global-gps-floating-pill ${gpsPermissionState === 'denied' ? 'is-denied' : 'is-active'}`}
-          onClick={() => {
-            if (gpsPermissionState === 'denied') {
-              requestLocationPermissions().then((granted) => {
-                if (granted) {
-                  setGpsPermissionState('granted');
-                } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
-                  navigator.geolocation.getCurrentPosition(
-                    () => setGpsPermissionState('granted'),
-                    () => setGpsPermissionState('denied'),
-                    { enableHighAccuracy: true, timeout: 10000 }
-                  );
-                }
-              }).catch(() => {});
-            }
-          }}
-          title={
-            gpsPermissionState === 'denied'
-              ? 'Permissão de GPS bloqueada no navegador. Clique para permitir.'
-              : 'Localização GPS compartilhada automaticamente em tempo real com a central.'
-          }
-        >
-          <span className={`ggp-dot ${gpsPermissionState === 'denied' ? 'is-denied' : 'is-pulsing'}`} />
-          <span className="ggp-text">
-            {gpsPermissionState === 'denied' ? '⚠️ Ativar GPS Automático' : '📍 GPS Automático Ativo'}
-          </span>
-          {gpsAccuracy && gpsPermissionState !== 'denied' && (
-            <span className="ggp-coords-info">±{Math.round(gpsAccuracy)}m</span>
-          )}
-          {batteryLevel !== null && (
-            <span className="ggp-battery">🔋 {batteryLevel}%</span>
-          )}
-        </div>
-      )}
-
       {/* Modal e Diálogo Global de Confirmação & Alertas Modernos */}
       <ConfirmModal dialog={activeDialog} onClose={() => setActiveDialog(null)} />
     </div>
