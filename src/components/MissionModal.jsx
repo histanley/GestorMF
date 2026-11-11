@@ -53,7 +53,7 @@ import {
 } from '../utils/geo';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 
-// Calcula a quantidade exata de dias entre a data de início e a data final (inclusive)
+// Calcula a quantidade de dias entre a data de início e a data final (intervalo operacional)
 export function calculateDaysBetween(startDateStr, endDateStr) {
   if (!startDateStr || !endDateStr) return 1;
   try {
@@ -62,7 +62,7 @@ export function calculateDaysBetween(startDateStr, endDateStr) {
     if (!y1 || !y2) return 1;
     const utc1 = Date.UTC(y1, m1 - 1, d1);
     const utc2 = Date.UTC(y2, m2 - 1, d2);
-    const diff = Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24)) + 1;
+    const diff = Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24));
     return diff > 0 ? diff : 1;
   } catch (e) {
     return 1;
@@ -1220,15 +1220,17 @@ export default function MissionModal({
                 />
                 <small className="field-hint-sub">Partida da viatura</small>
               </div>
-              <div className="form-group flex-1">
-                <label><Clock size={13} /> Previsão de Retorno</label>
-                <input
-                  type="time"
-                  value={formData.returnTimeEstimated || ''}
-                  onChange={(e) => setFormData({ ...formData, returnTimeEstimated: e.target.value })}
-                />
-                <small className="field-hint-sub">Término na base</small>
-              </div>
+              {!isMultiDay && (
+                <div className="form-group flex-1">
+                  <label><Clock size={13} /> Previsão de Retorno</label>
+                  <input
+                    type="time"
+                    value={formData.returnTimeEstimated || ''}
+                    onChange={(e) => setFormData({ ...formData, returnTimeEstimated: e.target.value })}
+                  />
+                  <small className="field-hint-sub">Término na base</small>
+                </div>
+              )}
             </div>
 
             {/* BOX DE SUGESTÃO INTELIGENTE DE SAÍDA (ANTECEDÊNCIA + TRAJETO) */}
@@ -1321,7 +1323,7 @@ export default function MissionModal({
               {isMultiDay && (
                 <div className="mm-rec-body mm-multiday-body">
                   <div className="form-row mm-multiday-row" style={{ alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
-                    <div className="form-group flex-1" style={{ minWidth: '220px' }}>
+                    <div className="form-group flex-1" style={{ minWidth: '180px' }}>
                       <label>
                         <CalendarRange size={13} /> Data Final / Retorno à Base <span className="req-star">*</span>
                       </label>
@@ -1332,7 +1334,19 @@ export default function MissionModal({
                         value={formData.endDate || ''}
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                       />
-                      <small className="field-hint-sub">Data prevista de retorno da viatura e encerramento da missão</small>
+                      <small className="field-hint-sub">Data prevista de retorno da viatura e encerramento</small>
+                    </div>
+
+                    <div className="form-group flex-1" style={{ minWidth: '150px' }}>
+                      <label>
+                        <Clock size={13} /> Previsão de Retorno
+                      </label>
+                      <input
+                        type="time"
+                        value={formData.returnTimeEstimated || ''}
+                        onChange={(e) => setFormData({ ...formData, returnTimeEstimated: e.target.value })}
+                      />
+                      <small className="field-hint-sub">Horário previsto de chegada na base</small>
                     </div>
 
                     {formData.date && formData.endDate && (
