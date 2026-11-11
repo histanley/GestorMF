@@ -165,44 +165,67 @@ export default function NotificationsCenter({
         </div>
       </div>
 
-      {/* Filtros rápidos */}
-      <div className="notif-filters">
-        <button
-          type="button"
-          className={`notif-filter-chip ${filter === 'all' ? 'active' : ''}`}
-          onClick={() => setFilter('all')}
-        >
-          Todas ({notifications.length})
-        </button>
-        <button
-          type="button"
-          className={`notif-filter-chip ${filter === 'unread' ? 'active' : ''}`}
-          onClick={() => setFilter('unread')}
-        >
-          Não lidas ({unreadCount})
-        </button>
-        <button
-          type="button"
-          className={`notif-filter-chip ${filter === 'messages' ? 'active' : ''}`}
-          onClick={() => setFilter('messages')}
-          style={{ borderColor: filter === 'messages' ? '#38bdf8' : 'rgba(59, 130, 246, 0.3)', color: '#38bdf8' }}
-        >
-          ✉️ Mensagens ({messagesCount})
-        </button>
-        <button
-          type="button"
-          className={`notif-filter-chip ${filter === 'mission' ? 'active' : ''}`}
-          onClick={() => setFilter('mission')}
-        >
-          Missões ({missionsCount})
-        </button>
-        <button
-          type="button"
-          className={`notif-filter-chip ${filter === 'fuel' ? 'active' : ''}`}
-          onClick={() => setFilter('fuel')}
-        >
-          Combustível ({fuelCount})
-        </button>
+      {/* Barra de Filtros Segmentada Moderna (Zero Cortes) */}
+      <div className="notif-segmented-bar-wrapper">
+        <div className="notif-segmented-bar" role="tablist" aria-label="Filtrar Notificações">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filter === 'all'}
+            className={`notif-seg-tab ${filter === 'all' ? 'is-active' : ''}`}
+            onClick={() => setFilter('all')}
+          >
+            <span>Todas</span>
+            <span className="notif-tab-badge">{notifications.length}</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filter === 'unread'}
+            className={`notif-seg-tab ${filter === 'unread' ? 'is-active' : ''} ${unreadCount > 0 ? 'tab-has-unread' : ''}`}
+            onClick={() => setFilter('unread')}
+          >
+            <span>Não lidas</span>
+            <span className="notif-tab-badge unread">{unreadCount}</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filter === 'messages'}
+            className={`notif-seg-tab ${filter === 'messages' ? 'is-active' : ''}`}
+            onClick={() => setFilter('messages')}
+          >
+            <Mail size={12} className="tab-icon" />
+            <span>Avisos</span>
+            <span className="notif-tab-badge messages">{messagesCount}</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filter === 'mission'}
+            className={`notif-seg-tab ${filter === 'mission' ? 'is-active' : ''}`}
+            onClick={() => setFilter('mission')}
+          >
+            <MapPin size={12} className="tab-icon" />
+            <span>Missões</span>
+            <span className="notif-tab-badge missions">{missionsCount}</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filter === 'fuel'}
+            className={`notif-seg-tab ${filter === 'fuel' ? 'is-active' : ''}`}
+            onClick={() => setFilter('fuel')}
+          >
+            <Fuel size={12} className="tab-icon" />
+            <span>Frota</span>
+            <span className="notif-tab-badge fuel">{fuelCount}</span>
+          </button>
+        </div>
       </div>
 
       {/* Lista de Notificações */}

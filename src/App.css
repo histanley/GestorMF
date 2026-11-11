@@ -18284,9 +18284,9 @@ body.light-theme .notifications-badge-count {
   position: absolute;
   top: calc(100% + 10px);
   right: -20px;
-  width: 460px;
-  max-width: calc(100vw - 20px);
-  max-height: 540px;
+  width: 480px;
+  max-width: calc(100vw - 24px);
+  max-height: 560px;
   background: linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(11, 15, 25, 0.98));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -18658,57 +18658,168 @@ body.light-theme .notif-btn-close:hover {
   color: #0f172a;
 }
 
-/* Filtros rápidos */
-.notif-filters {
+/* ==========================================================================
+   BARRA DE FILTROS SEGMENTADA MODERNA (.notif-segmented-bar-wrapper)
+   - Zero cortes nas laterais
+   - Distribuição 100% simétrica em abas estilizadas
+   ========================================================================== */
+.notif-segmented-bar-wrapper {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.18);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body.light-theme .notif-segmented-bar-wrapper {
+  background: #f8fafc;
+  border-bottom-color: #f1f5f9;
+}
+
+.notif-segmented-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 3px;
+  width: 100%;
+  box-sizing: border-box;
   overflow-x: auto;
   scrollbar-width: none;
 }
 
-.notif-filters::-webkit-scrollbar {
+.notif-segmented-bar::-webkit-scrollbar {
   display: none;
 }
 
-.notif-filter-chip {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.notif-seg-tab {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
   color: #94a3b8;
-  font-size: 0.73rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 16px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.18s ease;
+  padding: 0 4px;
+  transition: all 0.16s ease;
+  user-select: none;
 }
 
-.notif-filter-chip:hover {
-  background: rgba(255, 255, 255, 0.08);
+.notif-seg-tab:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.notif-seg-tab.is-active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.38);
+}
+
+.notif-seg-tab.tab-has-unread:not(.is-active) {
+  color: #fbbf24;
+}
+
+.notif-seg-tab .tab-icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.notif-tab-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #94a3b8;
+  line-height: 1.2;
+}
+
+.notif-seg-tab.is-active .notif-tab-badge {
+  background: rgba(255, 255, 255, 0.24);
   color: #ffffff;
 }
 
-.notif-filter-chip.active {
-  background: rgba(6, 182, 212, 0.2);
-  border-color: rgba(6, 182, 212, 0.5);
-  color: #06b6d4;
-  font-weight: 700;
+.notif-tab-badge.unread {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
 }
 
-body.light-theme .notif-filter-chip {
+.notif-seg-tab.is-active .notif-tab-badge.unread {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.notif-tab-badge.messages {
+  color: #60a5fa;
+}
+
+.notif-seg-tab.is-active .notif-tab-badge.messages {
+  color: #ffffff;
+}
+
+/* Light Theme para a barra segmentada */
+body.light-theme .notif-segmented-bar {
   background: #f1f5f9;
   border-color: #e2e8f0;
+}
+
+body.light-theme .notif-seg-tab {
   color: #64748b;
 }
 
-body.light-theme .notif-filter-chip.active {
-  background: rgba(2, 132, 199, 0.12);
-  border-color: rgba(2, 132, 199, 0.4);
-  color: #0284c7;
+body.light-theme .notif-seg-tab:hover {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+body.light-theme .notif-seg-tab.is-active {
+  background: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+body.light-theme .notif-tab-badge {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+body.light-theme .notif-seg-tab.is-active .notif-tab-badge {
+  background: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+/* Mobile: rolagem horizontal suave sem corte */
+@media (max-width: 520px) {
+  .notif-segmented-bar {
+    gap: 6px;
+    padding: 3px 6px;
+  }
+  .notif-seg-tab {
+    flex: 0 0 auto;
+    padding: 0 10px;
+    font-size: 0.72rem;
+  }
+}
+
+/* Fallback chips antigos */
+.notif-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  overflow-x: auto;
 }
 
 /* Lista de notificações */
