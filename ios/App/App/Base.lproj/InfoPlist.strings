@@ -1,0 +1,5 @@
+/* Base localization (pt-BR default) */
+"CFBundleDisplayName" = "MegaGestão";
+"CFBundleName" = "MegaGestão";
+"NSLocationWhenInUseUsageDescription" = "O MegaGestão utiliza a sua localização para registrar deslocamentos operacionais durante as missões ativas.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "O MegaGestão necessita de acesso contínuo à localização para acompanhar a rota da viatura durante a missão, mesmo com a tela bloqueada.";

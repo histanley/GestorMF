@@ -43,11 +43,12 @@ assert(
 );
 
 assert(
-  appJsx.includes("normalizeRole(currentUser.role) !== ROLES.ADMIN"),
-  'Falha: App.jsx pill flutuante de GPS não deve ser exibido para administradores'
+  !appJsx.includes("global-gps-floating-pill") &&
+  !appJsx.includes("header-gps-status-btn"),
+  'Falha: App.jsx não deve conter botões ou barras flutuantes poluindo a tela'
 );
 
-console.log('[PASS] Frontend (src/App.jsx): Transmissão e pill flutuante desativados para qualquer administrador.');
+console.log('[PASS] Frontend (src/App.jsx): Transmissão em segundo plano sem poluição visual na interface.');
 
 // 3. Verifica regra no mapa (src/components/MapView.jsx)
 const mapViewJsx = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'MapView.jsx'), 'utf8');
@@ -67,3 +68,4 @@ assert(
 console.log('[PASS] Frontend (src/components/MapView.jsx): Filtro de radar/pins e bloqueio de toggle verificados.');
 
 console.log('\nTODOS OS TESTES DE EXCLUSÃO DE GPS PARA ADMINISTRADORES PASSARAM COM SUCESSO!\n');
+

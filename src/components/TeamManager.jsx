@@ -1012,19 +1012,23 @@ export default function TeamManager({
                     <span className={`member-company-tag ${m.company === 'Mega Print' ? 'tag-print' : 'tag-filmes'}`}>
                       {m.company}
                     </span>
-                    {accountsByMember[m.id] && (
-                      <span
-                        className="member-access-badge"
-                        style={{
-                          color: ROLE_CONFIG[accountsByMember[m.id].role]?.color,
-                          background: ROLE_CONFIG[accountsByMember[m.id].role]?.accentBg,
-                          borderColor: ROLE_CONFIG[accountsByMember[m.id].role]?.accentBorder,
-                        }}
-                        title={`Acesso ao sistema: ${accountsByMember[m.id].email}`}
-                      >
-                        <KeyRound size={10} /> {ROLE_CONFIG[accountsByMember[m.id].role]?.label}
-                      </span>
-                    )}
+                    {accountsByMember[m.id] && (() => {
+                      const accRole = normalizeRole(accountsByMember[m.id].role);
+                      const roleData = ROLE_CONFIG[accRole] || ROLE_CONFIG[ROLES.USER];
+                      return (
+                        <span
+                          className="member-access-badge"
+                          style={{
+                            color: roleData.color,
+                            background: roleData.accentBg,
+                            borderColor: roleData.accentBorder,
+                          }}
+                          title={`Acesso ao sistema: ${accountsByMember[m.id].email}`}
+                        >
+                          <KeyRound size={10} /> {roleData.label}
+                        </span>
+                      );
+                    })()}
                     {Boolean(m.canDrive ?? m.hasCnh) && (
                       <span
                         className="member-cnh-pill"

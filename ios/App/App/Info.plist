@@ -5,7 +5,12 @@
   <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>pt_BR</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>pt-BR</string>
+		<string>pt</string>
+	</array>
 	<key>CFBundleDisplayName</key>
         <string>MegaGestão</string>
 	<key>CFBundleExecutable</key>

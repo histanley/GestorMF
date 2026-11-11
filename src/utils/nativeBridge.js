@@ -137,6 +137,64 @@ export async function getNativePosition() {
 }
 
 /**
+ * Monitora continuamente o deslocamento do colaborador em tempo real.
+ * Em apps nativos (iOS e Android), usa o plugin nativo Capacitor Geolocation,
+ * evitando que o WebKit exiba caixas de diálogo em inglês ou da webview.
+ */
+export async function watchNativePosition(onPosition, onError, options = {}) {
+  if (isNativeApp()) {
+    try {
+      const watchId = await Geolocation.watchPosition(
+        {
+          enableHighAccuracy: true,
+          timeout: options.timeout || 15000,
+          maximumAge: options.maximumAge || 10000
+        },
+        (pos, err) => {
+          if (err) {
+            if (typeof onError === 'function') onError(err);
+            return;
+          }
+          if (pos && typeof onPosition === 'function') {
+            onPosition({
+              coords: {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                speed: pos.coords.speed !== null && pos.coords.speed !== undefined ? pos.coords.speed : 0,
+                heading: pos.coords.heading || 0,
+                accuracy: pos.coords.accuracy || 0,
+              },
+              timestamp: pos.timestamp || Date.now()
+            });
+          }
+        }
+      );
+
+      return {
+        clear: () => {
+          if (watchId) {
+            Geolocation.clearWatch({ id: watchId }).catch(() => {});
+          }
+        }
+      };
+    } catch (e) {
+      console.warn('[NativeBridge] Erro ao iniciar monitoramento nativo:', e);
+    }
+  }
+
+  // Fallback padrão Web
+  if (typeof navigator !== 'undefined' && navigator.geolocation) {
+    const id = navigator.geolocation.watchPosition(onPosition, onError, options);
+    return {
+      clear: () => {
+        navigator.geolocation.clearWatch(id);
+      }
+    };
+  }
+  return { clear: () => {} };
+}
+
+/**
  * Fila Offline Persistente: Armazena pontos quando o veículo estiver sem sinal de internet
  */
 export async function enqueueOfflineGpsPoint(point) {

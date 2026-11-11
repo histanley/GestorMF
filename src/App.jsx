@@ -109,6 +109,7 @@ import {
 import {
   isNativeApp,
   getNativePosition,
+  watchNativePosition,
   enqueueOfflineGpsPoint,
   flushOfflineGpsQueue,
   initNativeLifecycleListeners,
@@ -922,8 +923,12 @@ export default function App() {
     const isAdminUser = normalizeRole(currentUser?.role) === ROLES.ADMIN;
 
     if (!currentUser || isAdminUser) {
-      if (gpsWatchIdRef.current !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
-        navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+      if (gpsWatchIdRef.current !== null) {
+        if (typeof gpsWatchIdRef.current.clear === 'function') {
+          gpsWatchIdRef.current.clear();
+        } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+        }
         gpsWatchIdRef.current = null;
       }
       if (isAdminUser && currentUser?.id) {
@@ -1038,8 +1043,9 @@ export default function App() {
       navigator.geolocation.getCurrentPosition(handlePosSuccess, handlePosError, geoOptions);
     }
 
-    // 2. MONITORAMENTO CONTÍNUO DE MOVIMENTO (watchPosition)
-    const watchId = navigator.geolocation.watchPosition(
+    // 2. MONITORAMENTO CONTÍNUO DE MOVIMENTO (watchNativePosition - Nativo no iOS/Android, sem popups da webview)
+    let nativeWatcher = null;
+    watchNativePosition(
       (pos) => {
         const { latitude, longitude, speed, heading, accuracy } = pos.coords;
         const capturedAt = pos.timestamp ? new Date(pos.timestamp).toISOString() : new Date().toISOString();
@@ -1057,8 +1063,10 @@ export default function App() {
       },
       handlePosError,
       geoOptions
-    );
-    gpsWatchIdRef.current = watchId;
+    ).then((watcher) => {
+      nativeWatcher = watcher;
+      gpsWatchIdRef.current = watcher;
+    });
 
     // 3. HEARTBEAT CONTÍNUO A CADA 20 SEGUNDOS (Garante atualização na central mesmo com colaborador parado)
     const heartbeatInterval = setInterval(() => {
@@ -1123,8 +1131,14 @@ export default function App() {
       clearInterval(heartbeatInterval);
       window.removeEventListener('online', handleOnlineFlush);
       cleanupNativeLifecycle();
-      if (gpsWatchIdRef.current !== null && navigator.geolocation) {
-        navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+      if (nativeWatcher && typeof nativeWatcher.clear === 'function') {
+        nativeWatcher.clear();
+      } else if (gpsWatchIdRef.current) {
+        if (typeof gpsWatchIdRef.current.clear === 'function') {
+          gpsWatchIdRef.current.clear();
+        } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+        }
         gpsWatchIdRef.current = null;
       }
     };
@@ -2292,50 +2306,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Indicador Elegante de GPS no Cabeçalho Superior (Apenas Gestores e Usuários Operacionais em Campo) */}
-          {currentUser && normalizeRole(currentUser.role) !== ROLES.ADMIN && (
-            <button
-              type="button"
-              className={`header-gps-status-btn ${gpsPermissionState === 'denied' ? 'is-denied' : 'is-active'}`}
-              onClick={() => {
-                if (gpsPermissionState === 'denied') {
-                  requestLocationPermissions().then((granted) => {
-                    if (granted) {
-                      setGpsPermissionState('granted');
-                    } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
-                      navigator.geolocation.getCurrentPosition(
-                        () => setGpsPermissionState('granted'),
-                        () => setGpsPermissionState('denied'),
-                        { enableHighAccuracy: true, timeout: 10000 }
-                      );
-                    }
-                  }).catch(() => {});
-                } else {
-                  alertDialog({
-                    title: 'GPS Operacional Ao Vivo',
-                    message: `Sua localização está sendo transmitida em tempo real para o mapa da central.\n\n• Precisão: ${gpsAccuracy ? `±${Math.round(gpsAccuracy)}m` : 'Alta precisão'}\n• Bateria: ${batteryLevel !== null ? `${batteryLevel}%` : 'Disponível'}`,
-                    variant: 'info',
-                  });
-                }
-              }}
-              title={
-                gpsPermissionState === 'denied'
-                  ? 'GPS bloqueado. Clique para autorizar localização.'
-                  : `GPS Ao Vivo: Transmitindo localização para a central${gpsAccuracy ? ` (±${Math.round(gpsAccuracy)}m)` : ''}${batteryLevel !== null ? ` • 🔋 ${batteryLevel}%` : ''}`
-              }
-              aria-label="Status do GPS Operacional"
-            >
-              <span className={`header-gps-dot ${gpsPermissionState === 'denied' ? 'is-denied' : 'is-pulsing'}`} />
-              <Radio size={15} className="header-gps-icon" />
-              <span className="header-gps-label">
-                {gpsPermissionState === 'denied' ? 'GPS Bloqueado' : 'GPS Ao Vivo'}
-              </span>
-              {gpsAccuracy && gpsPermissionState !== 'denied' && (
-                <span className="header-gps-accuracy">±{Math.round(gpsAccuracy)}m</span>
-              )}
-            </button>
-          )}
-
           {/* Botão de Alternância de Tema (Modo Claro / Modo Escuro - Apenas Ícone) */}
           <button
             type="button"
@@ -2389,7 +2359,9 @@ export default function App() {
                   <strong className="md-name">{currentUser?.name}</strong>
                   <span className="md-email">{currentUser?.email}</span>
                   <div className="md-badges-row">
-                    <span className="md-role-badge">{userRole}</span>
+                    <span className={`md-role-badge role-badge-${userRole}`}>
+                      {ROLE_CONFIG[userRole]?.label || (userRole === 'admin' ? 'Administrador' : userRole === 'manager' ? 'Gestor' : 'Usuário')}
+                    </span>
                   </div>
                 </div>
               </div>

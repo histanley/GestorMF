@@ -42,6 +42,15 @@ const createBaseIcon = () => {
   });
 };
 
+const formatMemberRole = (role) => {
+  if (!role) return 'Colaborador';
+  const r = String(role).trim().toLowerCase();
+  if (r === 'admin' || r === 'administrador') return 'Administrador';
+  if (r === 'manager' || r === 'gestor') return 'Gestor';
+  if (r === 'user' || r === 'usuário' || r === 'usuario') return 'Usuário';
+  return role;
+};
+
 const createMissionIcon = (index, status) => {
   const isCompleted = status === 'Concluída' || status === 'Finalizado' || status === 'Finalizada';
   const isExecuting = status === 'Em Execução';
@@ -505,7 +514,7 @@ export default function MapView({
                     </div>
                     <div style="min-width:0;">
                       <strong style="font-size:0.83rem;display:block;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${loc.memberName}</strong>
-                      <span style="font-size:0.7rem;opacity:0.75;display:block;">${loc.memberRole || 'Colaborador'} • <span style="color:${isMoving ? '#10b981' : '#f59e0b'};font-weight:600;">${statusText}</span></span>
+                      <span style="font-size:0.7rem;opacity:0.75;display:block;">${formatMemberRole(loc.memberRole)} • <span style="color:${isMoving ? '#10b981' : '#f59e0b'};font-weight:600;">${statusText}</span></span>
                       ${missionTag}
                     </div>
                   </div>
@@ -590,7 +599,7 @@ export default function MapView({
                     </div>
                     <div>
                       <h4 style="margin:0;font-size:0.92rem;font-weight:700;line-height:1.2;">${loc.memberName}</h4>
-                      <div style="font-size:0.72rem;opacity:0.75;margin-top:2px;">${loc.memberRole || 'Colaborador'} • ${loc.memberCompany || 'MegaFilmes'}</div>
+                      <div style="font-size:0.72rem;opacity:0.75;margin-top:2px;">${formatMemberRole(loc.memberRole)} • ${loc.memberCompany || 'MegaFilmes'}</div>
                     </div>
                   </div>
                   <div style="display:flex;align-items:center;gap:6px;margin:8px 0;flex-wrap:wrap;">
@@ -843,7 +852,7 @@ export default function MapView({
                     <div className="mrp-info">
                       <div className="mrp-name">{loc.memberName}</div>
                       <div className="mrp-role">
-                        {loc.memberRole || 'Colaborador'} •{' '}
+                        {formatMemberRole(loc.memberRole)} •{' '}
                         <span className={isMoving ? 'mrp-speed-moving' : 'mrp-speed-stopped'}>
                           {isMoving ? `🚗 ${speedKmh} km/h` : '🛑 Parado'}
                         </span>
