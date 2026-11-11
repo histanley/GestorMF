@@ -568,6 +568,7 @@ export default function TeamManager({
     setFormData({
       name: '',
       role: roles[0] || 'Cinegrafista',
+      secondaryRoles: [],
       company: 'MegaFilmes',
       phone: '',
       canDrive: false,
@@ -583,9 +584,14 @@ export default function TeamManager({
 
   const handleOpenEdit = (m) => {
     setEditingMember(m);
+    const parsedSec = Array.isArray(m.secondaryRoles)
+      ? m.secondaryRoles
+      : (m.secondary_roles ? (Array.isArray(m.secondary_roles) ? m.secondary_roles : JSON.parse(m.secondary_roles || '[]')) : []);
+
     setFormData({
       name: m.name,
       role: m.role || (roles[0] || 'Cinegrafista'),
+      secondaryRoles: parsedSec,
       company: m.company || 'MegaFilmes',
       phone: formatPhoneNumber(m.phone || ''),
       canDrive: Boolean(m.canDrive ?? m.hasCnh),
@@ -1006,9 +1012,20 @@ export default function TeamManager({
                   </div>
                   <div className="member-meta">
                     <h3 className="member-name">{m.name}</h3>
-                    <span className="member-role">
-                      <Briefcase size={12} /> {m.role}
-                    </span>
+                    <div className="member-role-stack">
+                      <span className="member-role" title="Função Principal">
+                        <Briefcase size={12} /> {m.role}
+                      </span>
+                      {Array.isArray(m.secondaryRoles) && m.secondaryRoles.length > 0 && (
+                        <div className="member-secondary-roles-wrap">
+                          {m.secondaryRoles.map((sr) => (
+                            <span key={sr} className="member-sec-role-tag" title={`Função Adicional: ${sr}`}>
+                              + {sr}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <span className={`member-company-tag ${m.company === 'Mega Print' ? 'tag-print' : 'tag-filmes'}`}>
                       {m.company}
                     </span>
@@ -1583,10 +1600,17 @@ export default function TeamManager({
 
               <div className="form-row">
                 <div className="form-group flex-1">
-                  <label>Função Principal</label>
+                  <label>Função Principal *</label>
                   <select
                     value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    onChange={(e) => {
+                      const newRole = e.target.value;
+                      setFormData({
+                        ...formData,
+                        role: newRole,
+                        secondaryRoles: (formData.secondaryRoles || []).filter((r) => r !== newRole),
+                      });
+                    }}
                   >
                     {roles.length > 0 ? (
                       roles.map((r) => (
@@ -1597,7 +1621,7 @@ export default function TeamManager({
                     )}
                   </select>
                   <small className="helper-text">
-                    Gerencie as funções clicando em "Gerenciar Funções"
+                    Gerencie a lista de funções clicando em "Gerenciar Funções"
                   </small>
                 </div>
 
@@ -1610,6 +1634,51 @@ export default function TeamManager({
                     <option value="MegaFilmes">MegaFilmes</option>
                     <option value="Mega Print">Mega Print</option>
                   </select>
+                </div>
+              </div>
+
+              {/* ===== Funções Adicionais na Empresa (Multi-função) ===== */}
+              <div className="form-group secondary-roles-group">
+                <div className="secondary-roles-header">
+                  <label className="secondary-roles-label">
+                    <span>Funções Adicionais na Empresa</span>
+                    <span className="secondary-roles-count">
+                      {(formData.secondaryRoles || []).length > 0
+                        ? `${(formData.secondaryRoles || []).length} selecionada(s)`
+                        : 'Opcional'}
+                    </span>
+                  </label>
+                  <small className="helper-text">
+                    Marque todas as outras atividades que o colaborador também desempenha (ex: Mateus é Cinegrafista, mas também atua como Editor de Vídeo).
+                  </small>
+                </div>
+
+                <div className="secondary-roles-chips-grid">
+                  {roles
+                    .filter((r) => r !== formData.role)
+                    .map((r) => {
+                      const isSelected = (formData.secondaryRoles || []).includes(r);
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          className={`sec-role-chip-btn ${isSelected ? 'is-active' : ''}`}
+                          onClick={() => {
+                            setFormData((prev) => {
+                              const curr = prev.secondaryRoles || [];
+                              const next = curr.includes(r)
+                                ? curr.filter((item) => item !== r)
+                                : [...curr, r];
+                              return { ...prev, secondaryRoles: next };
+                            });
+                          }}
+                          title={`Clique para ${isSelected ? 'remover' : 'adicionar'} ${r}`}
+                        >
+                          <span className="src-chip-icon">{isSelected ? '✓' : '+'}</span>
+                          <span className="src-chip-text">{r}</span>
+                        </button>
+                      );
+                    })}
                 </div>
               </div>
 

@@ -2290,19 +2290,26 @@ export default function MissionModal({
 
                     {(() => {
                       const isEditorRole = (m) => {
-                        const r = ((m && m.role) || '')
-                          .toLowerCase()
-                          .normalize('NFD')
-                          .replace(/[\u0300-\u036f]/g, '');
-                        return (
-                          r.includes('editor') ||
-                          r.includes('edicao') ||
-                          r.includes('designer') ||
-                          r.includes('pos') ||
-                          r.includes('video') ||
-                          r.includes('arte') ||
-                          r.includes('motion')
-                        );
+                        const rolesToCheck = [
+                          m?.role,
+                          ...(Array.isArray(m?.secondaryRoles) ? m.secondaryRoles : []),
+                        ].filter(Boolean);
+
+                        return rolesToCheck.some((rawRole) => {
+                          const r = String(rawRole)
+                            .toLowerCase()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '');
+                          return (
+                            r.includes('editor') ||
+                            r.includes('edicao') ||
+                            r.includes('designer') ||
+                            r.includes('pos') ||
+                            r.includes('video') ||
+                            r.includes('arte') ||
+                            r.includes('motion')
+                          );
+                        });
                       };
 
                       const editorMembers = members
@@ -2411,8 +2418,9 @@ export default function MissionModal({
               if (q) {
                 const name = (m.name || '').toLowerCase();
                 const role = (m.role || '').toLowerCase();
+                const secRoles = Array.isArray(m.secondaryRoles) ? m.secondaryRoles.join(' ').toLowerCase() : '';
                 const comp = (m.company || '').toLowerCase();
-                if (!name.includes(q) && !role.includes(q) && !comp.includes(q)) {
+                if (!name.includes(q) && !role.includes(q) && !secRoles.includes(q) && !comp.includes(q)) {
                   return false;
                 }
               }

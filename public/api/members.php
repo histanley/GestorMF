@@ -7,6 +7,16 @@ require_once __DIR__ . '/config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $db = getDB();
 
+function ensureMembersColumns($db) {
+    try {
+        $stmt = $db->query("SHOW COLUMNS FROM members LIKE 'secondary_roles'");
+        if (!$stmt || !$stmt->fetch()) {
+            $db->exec("ALTER TABLE members ADD COLUMN secondary_roles LONGTEXT NULL AFTER role");
+        }
+    } catch (Exception $e) {}
+}
+ensureMembersColumns($db);
+
 // LISTAR COLABORADORES (GET)
 if ($method === 'GET') {
     $user = requireAuth();
@@ -14,19 +24,25 @@ if ($method === 'GET') {
     $raw = $stmt->fetchAll();
 
     $members = array_map(function($m) {
+        $secRoles = [];
+        if (!empty($m['secondary_roles'])) {
+            $decoded = is_array($m['secondary_roles']) ? $m['secondary_roles'] : json_decode($m['secondary_roles'], true);
+            if (is_array($decoded)) $secRoles = $decoded;
+        }
         return [
-            'id'          => $m['id'],
-            'name'        => $m['name'],
-            'role'        => $m['role'],
-            'company'     => $m['company'],
-            'phone'       => $m['phone'],
-            'photoUrl'    => $m['photo_url'],
-            'canDrive'    => (bool)($m['can_drive'] ?? false),
-            'cnhCategory' => $m['cnh_category'] ?? 'B',
-            'userId'      => $m['user_id'] ?? null,
-            'active'      => (bool)$m['active'],
-            'createdAt'   => $m['created_at'],
-            'updatedAt'   => $m['updated_at']
+            'id'             => $m['id'],
+            'name'           => $m['name'],
+            'role'           => $m['role'],
+            'secondaryRoles' => $secRoles,
+            'company'        => $m['company'],
+            'phone'          => $m['phone'],
+            'photoUrl'       => $m['photo_url'],
+            'canDrive'       => (bool)($m['can_drive'] ?? false),
+            'cnhCategory'    => $m['cnh_category'] ?? 'B',
+            'userId'         => $m['user_id'] ?? null,
+            'active'         => (bool)$m['active'],
+            'createdAt'      => $m['created_at'],
+            'updatedAt'      => $m['updated_at']
         ];
     }, $raw);
 
@@ -164,12 +180,18 @@ if ($method === 'POST' || $method === 'PUT') {
             }
         }
 
+        $secRolesInput = $data['secondaryRoles'] ?? $data['secondary_roles'] ?? null;
+        $secondaryRolesJson = !empty($secRolesInput) && is_array($secRolesInput)
+            ? json_encode(array_values(array_unique(array_filter($secRolesInput))), JSON_UNESCAPED_UNICODE)
+            : null;
+
         $sql = "
-            INSERT INTO members (id, name, role, company, phone, photo_url, user_id, can_drive, cnh_category, active)
-            VALUES (:id, :name, :role, :company, :phone, :photo_url, :user_id, :can_drive, :cnh_category, :active)
+            INSERT INTO members (id, name, role, secondary_roles, company, phone, photo_url, user_id, can_drive, cnh_category, active)
+            VALUES (:id, :name, :role, :secondary_roles, :company, :phone, :photo_url, :user_id, :can_drive, :cnh_category, :active)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
                 role = VALUES(role),
+                secondary_roles = VALUES(secondary_roles),
                 company = VALUES(company),
                 phone = VALUES(phone),
                 photo_url = VALUES(photo_url),
@@ -181,16 +203,17 @@ if ($method === 'POST' || $method === 'PUT') {
 
         $stmtSave = $db->prepare($sql);
         $stmtSave->execute([
-            ':id'           => $id,
-            ':name'         => $name,
-            ':role'         => $role,
-            ':company'      => $data['company'] ?? 'MegaFilmes',
-            ':phone'        => $data['phone'] ?? '',
-            ':photo_url'    => $data['photoUrl'] ?? null,
-            ':user_id'      => $assignedUserId,
-            ':can_drive'    => $canDrive,
-            ':cnh_category' => $cnhCategory,
-            ':active'       => isset($data['active']) && !$data['active'] ? 0 : 1
+            ':id'              => $id,
+            ':name'            => $name,
+            ':role'            => $role,
+            ':secondary_roles' => $secondaryRolesJson,
+            ':company'         => $data['company'] ?? 'MegaFilmes',
+            ':phone'           => $data['phone'] ?? '',
+            ':photo_url'       => $data['photoUrl'] ?? null,
+            ':user_id'         => $assignedUserId,
+            ':can_drive'       => $canDrive,
+            ':cnh_category'    => $cnhCategory,
+            ':active'          => isset($data['active']) && !$data['active'] ? 0 : 1
         ]);
 
         $db->commit();

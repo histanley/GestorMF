@@ -21552,6 +21552,142 @@ body.light-theme .mm-multiday-calc-dates {
 }
 
 /* ==========================================================================
+   COLABORADORES: MÚLTIPLAS FUNÇÕES (FUNÇÃO PRINCIPAL + FUNÇÕES ADICIONAIS)
+   ========================================================================== */
+.member-role-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.member-secondary-roles-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.member-sec-role-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  line-height: 1.2;
+}
+
+/* Modal de Colaborador: Seletor de Funções Adicionais */
+.secondary-roles-group {
+  margin-top: 14px;
+  margin-bottom: 14px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.secondary-roles-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.secondary-roles-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.secondary-roles-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.secondary-roles-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.sec-role-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.sec-role-chip-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.sec-role-chip-btn.is-active {
+  background: rgba(14, 165, 233, 0.18);
+  border-color: #0ea5e9;
+  color: #38bdf8;
+  box-shadow: 0 2px 10px rgba(14, 165, 233, 0.2);
+}
+
+.src-chip-icon {
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+body.light-theme .secondary-roles-group {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+body.light-theme .sec-role-chip-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+body.light-theme .sec-role-chip-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+body.light-theme .sec-role-chip-btn.is-active {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+body.light-theme .member-sec-role-tag {
+  background: #e0f2fe;
+  color: #0284c7;
+  border-color: #bae6fd;
+}
+
+/* ==========================================================================
    TEMA CLARO (body.light-theme) - RECORRÊNCIA DE MISSÕES
    ========================================================================== */
 body.light-theme .mm-recurrence-box {
