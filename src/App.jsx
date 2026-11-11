@@ -1846,22 +1846,78 @@ export default function App() {
   };
 
   // Handlers de Funções da Empresa
-  const handleAddRole = (newRole) => {
-    if (newRole && !roles.includes(newRole)) {
-      setRoles((prev) => [...prev, newRole]);
+  const handleAddRole = async (newRole) => {
+    const trimmed = newRole ? newRole.trim() : '';
+    if (!trimmed || roles.includes(trimmed)) return;
+    const nextRoles = [...roles, trimmed];
+    setRoles(nextRoles);
+    localStorage.setItem('gestormf_roles', JSON.stringify(nextRoles));
+    try {
+      await apiSaveSettings(settings, nextRoles);
+    } catch (err) {
+      console.warn('Erro ao salvar nova função no servidor:', err);
     }
   };
 
-  const handleUpdateRole = (oldRole, updatedRole) => {
-    if (!updatedRole || oldRole === updatedRole) return;
-    setRoles((prev) => prev.map((r) => (r === oldRole ? updatedRole : r)));
-    setMembers((prev) =>
-      prev.map((m) => (m.role === oldRole ? { ...m, role: updatedRole } : m))
-    );
+  const handleUpdateRole = async (oldRole, updatedRole) => {
+    const trimmedOld = oldRole ? oldRole.trim() : '';
+    const trimmedNew = updatedRole ? updatedRole.trim() : '';
+    if (!trimmedNew || trimmedOld === trimmedNew) return;
+
+    const nextRoles = roles.map((r) => (r === trimmedOld ? trimmedNew : r));
+    setRoles(nextRoles);
+    localStorage.setItem('gestormf_roles', JSON.stringify(nextRoles));
+
+    // Atualiza colaboradores que tinham essa função como principal ou secundária
+    const membersToUpdate = [];
+    const nextMembers = members.map((m) => {
+      let changed = false;
+      let newRole = m.role;
+      let newSecRoles = Array.isArray(m.secondaryRoles) ? [...m.secondaryRoles] : [];
+
+      if (m.role === trimmedOld) {
+        newRole = trimmedNew;
+        changed = true;
+      }
+      if (newSecRoles.includes(trimmedOld)) {
+        newSecRoles = newSecRoles.map((sr) => (sr === trimmedOld ? trimmedNew : sr));
+        changed = true;
+      }
+
+      if (changed) {
+        const updatedMember = { ...m, role: newRole, secondaryRoles: newSecRoles };
+        membersToUpdate.push(updatedMember);
+        return updatedMember;
+      }
+      return m;
+    });
+
+    setMembers(nextMembers);
+    localStorage.setItem('gestormf_members', JSON.stringify(nextMembers));
+
+    try {
+      // 1. Salva a lista de funções atualizada no servidor MySQL
+      await apiSaveSettings(settings, nextRoles);
+
+      // 2. Atualiza todos os colaboradores afetados no banco de dados
+      for (const m of membersToUpdate) {
+        await apiSaveMember(m);
+      }
+    } catch (err) {
+      console.warn('Erro ao persistir renomeação de funções no servidor:', err);
+    }
   };
 
-  const handleDeleteRole = (roleToDelete) => {
-    setRoles((prev) => prev.filter((r) => r !== roleToDelete));
+  const handleDeleteRole = async (roleToDelete) => {
+    const trimmed = roleToDelete ? roleToDelete.trim() : '';
+    const nextRoles = roles.filter((r) => r !== trimmed);
+    setRoles(nextRoles);
+    localStorage.setItem('gestormf_roles', JSON.stringify(nextRoles));
+    try {
+      await apiSaveSettings(settings, nextRoles);
+    } catch (err) {
+      console.warn('Erro ao remover função no servidor:', err);
+    }
   };
 
   // Handlers de Membros (P1-08: Confirmação síncrona com tratamento de erro e rollback)

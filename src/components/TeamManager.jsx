@@ -749,10 +749,10 @@ export default function TeamManager({
   };
 
   // ---- Handlers de Funções ----
-  const handleAddRole = () => {
+  const handleAddRole = async () => {
     const trimmed = newRoleName.trim();
     if (!trimmed) return;
-    onAddRole(trimmed);
+    await onAddRole(trimmed);
     setNewRoleName('');
   };
 
@@ -760,17 +760,19 @@ export default function TeamManager({
     setEditingRole({ original: role, value: role });
   };
 
-  const handleSaveEditRole = () => {
+  const handleSaveEditRole = async () => {
     if (!editingRole) return;
     const trimmed = editingRole.value.trim();
     if (trimmed && trimmed !== editingRole.original) {
-      onUpdateRole(editingRole.original, trimmed);
+      await onUpdateRole(editingRole.original, trimmed);
     }
     setEditingRole(null);
   };
 
   const handleDeleteRole = async (role) => {
-    const inUse = members.filter((m) => m.role === role).length;
+    const inUse = members.filter(
+      (m) => m.role === role || (Array.isArray(m.secondaryRoles) && m.secondaryRoles.includes(role))
+    ).length;
     if (inUse > 0) {
       await alertDialog({
         title: 'Função em Uso',
@@ -1985,7 +1987,16 @@ export default function TeamManager({
               </div>
 
               <div className="modal-footer">
-                <button className="btn-primary" onClick={() => { setShowRolesModal(false); setEditingRole(null); }}>
+                <button
+                  className="btn-primary"
+                  onClick={async () => {
+                    if (editingRole) {
+                      await handleSaveEditRole();
+                    }
+                    setShowRolesModal(false);
+                    setEditingRole(null);
+                  }}
+                >
                   Concluído
                 </button>
               </div>

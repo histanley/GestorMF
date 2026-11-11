@@ -72,15 +72,40 @@ if ($method === 'POST' || $method === 'PUT') {
     $user = requireAuth(['ADMIN']);
     $data = getJsonInput();
 
+    // Auto-recuperação: garante que a coluna 'roles' exista na tabela settings
+    try {
+        $chkRoles = $db->query("SHOW COLUMNS FROM settings LIKE 'roles'")->fetch();
+        if (!$chkRoles) {
+            $db->exec("ALTER TABLE settings ADD COLUMN roles LONGTEXT NULL AFTER base_location");
+        }
+    } catch (Exception $e) {}
+
     $settingsData = $data['settings'] ?? $data;
     $rolesData = $data['roles'] ?? null;
 
-    $companyName = trim($settingsData['companyName'] ?? 'MegaFilmes & Mega Print');
-    $gasolinePrice = (float)($settingsData['gasolinePricePerLiter'] ?? ($settingsData['fuelPricePerLiter'] ?? 6.45));
-    $dieselPrice = (float)($settingsData['dieselPricePerLiter'] ?? 6.89);
-    $electricPrice = (float)($settingsData['electricPricePerKwh'] ?? 0.95);
-    $defaultAutonomy = (float)($settingsData['defaultAutonomy'] ?? 10.0);
-    $baseLocationJson = !empty($settingsData['baseLocation']) ? json_encode($settingsData['baseLocation'], JSON_UNESCAPED_UNICODE) : null;
+    // Busca configurações atuais para fallback inteligente caso enviadas parcialmente
+    $currentSettingsStmt = $db->query("SELECT * FROM settings WHERE id = 1");
+    $currentSettings = $currentSettingsStmt ? $currentSettingsStmt->fetch() : null;
+
+    $companyName = trim($settingsData['companyName'] ?? ($currentSettings['company_name'] ?? 'MegaFilmes & Mega Print'));
+    $gasolinePrice = (float)($settingsData['gasolinePricePerLiter'] ?? ($settingsData['fuelPricePerLiter'] ?? ($currentSettings['gasoline_price_per_liter'] ?? 6.45)));
+    $dieselPrice = (float)($settingsData['dieselPricePerLiter'] ?? ($currentSettings['diesel_price_per_liter'] ?? 6.89));
+    $electricPrice = (float)($settingsData['electricPricePerKwh'] ?? ($currentSettings['electric_price_per_kwh'] ?? 0.95));
+    $defaultAutonomy = (float)($settingsData['defaultAutonomy'] ?? ($currentSettings['default_autonomy'] ?? 10.0));
+    $baseLocationJson = !empty($settingsData['baseLocation']) 
+        ? json_encode($settingsData['baseLocation'], JSON_UNESCAPED_UNICODE) 
+        : (!empty($currentSettings['base_location']) ? $currentSettings['base_location'] : null);
+
+    // Processamento e sanitização segura da lista de funções (roles)
+    $hasRoles = 0;
+    $rolesJson = null;
+    if ($rolesData !== null && is_array($rolesData)) {
+        $hasRoles = 1;
+        $cleanRoles = array_values(array_filter(array_map('trim', $rolesData), function($r) {
+            return $r !== '';
+        }));
+        $rolesJson = json_encode($cleanRoles, JSON_UNESCAPED_UNICODE);
+    }
 
     $hasElecCol = false;
     try {
@@ -100,16 +125,18 @@ if ($method === 'POST' || $method === 'PUT') {
                 electric_price_per_kwh = VALUES(electric_price_per_kwh),
                 default_autonomy = VALUES(default_autonomy),
                 base_location = COALESCE(VALUES(base_location), base_location),
-                roles = COALESCE(VALUES(roles), roles)
+                roles = CASE WHEN :has_roles = 1 THEN :roles_val ELSE roles END
         ");
         $stmt->execute([
-            ':comp'  => $companyName,
-            ':gas'   => $gasolinePrice,
-            ':die'   => $dieselPrice,
-            ':elec'  => $electricPrice,
-            ':auto'  => $defaultAutonomy,
-            ':base'  => $baseLocationJson,
-            ':roles' => $rolesJson
+            ':comp'      => $companyName,
+            ':gas'       => $gasolinePrice,
+            ':die'       => $dieselPrice,
+            ':elec'      => $electricPrice,
+            ':auto'      => $defaultAutonomy,
+            ':base'      => $baseLocationJson,
+            ':roles'     => $rolesJson !== null ? $rolesJson : ($currentSettings['roles'] ?? '[]'),
+            ':has_roles' => $hasRoles,
+            ':roles_val' => $rolesJson
         ]);
     } else {
         $stmt = $db->prepare("
@@ -122,15 +149,17 @@ if ($method === 'POST' || $method === 'PUT') {
                 diesel_price_per_liter = VALUES(diesel_price_per_liter),
                 default_autonomy = VALUES(default_autonomy),
                 base_location = COALESCE(VALUES(base_location), base_location),
-                roles = COALESCE(VALUES(roles), roles)
+                roles = CASE WHEN :has_roles = 1 THEN :roles_val ELSE roles END
         ");
         $stmt->execute([
-            ':comp'  => $companyName,
-            ':gas'   => $gasolinePrice,
-            ':die'   => $dieselPrice,
-            ':auto'  => $defaultAutonomy,
-            ':base'  => $baseLocationJson,
-            ':roles' => $rolesJson
+            ':comp'      => $companyName,
+            ':gas'       => $gasolinePrice,
+            ':die'       => $dieselPrice,
+            ':auto'      => $defaultAutonomy,
+            ':base'      => $baseLocationJson,
+            ':roles'     => $rolesJson !== null ? $rolesJson : ($currentSettings['roles'] ?? '[]'),
+            ':has_roles' => $hasRoles,
+            ':roles_val' => $rolesJson
         ]);
     }
 
