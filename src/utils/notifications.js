@@ -1,8 +1,26 @@
 // ==============================================================================
 // GestorMF - Sistema de Notificações Push, Web Audio Chime & Vibração
 // ==============================================================================
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { isNativeApp } from './nativeBridge';
 
 let sharedAudioCtx = null;
+let channelCreated = false;
+
+async function ensureNotificationChannel() {
+  if (!isNativeApp() || channelCreated) return;
+  try {
+    await LocalNotifications.createChannel({
+      id: 'megagestao_alerts',
+      name: 'Alertas e Missões MegaGestão',
+      description: 'Notificações operacionais, avisos e missões em tempo real',
+      importance: 5,
+      visibility: 1,
+      vibration: true,
+    });
+    channelCreated = true;
+  } catch (e) {}
+}
 
 /**
  * Desbloqueia o motor de áudio no primeiro toque na tela do smartphone (iOS/Android)

@@ -333,6 +333,15 @@ export default function App() {
   });
   const [dismissNotificationPrompt, setDismissNotificationPrompt] = useState(false);
 
+  // No aplicativo nativo (iOS e Android), solicita permissão de notificações nativas na inicialização
+  useEffect(() => {
+    if (isNativeApp()) {
+      requestNotificationPermission().then((status) => {
+        setNotificationPermissionState(status);
+      }).catch(() => {});
+    }
+  }, []);
+
   // Central de Notificações & Mensagens Internas
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSendMessageOpen, setIsSendMessageOpen] = useState(false);
