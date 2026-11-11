@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   MapPin,
   Calendar,
+  CalendarRange,
   Clock,
   Car,
   Users,
@@ -52,6 +53,22 @@ import {
 } from '../utils/geo';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 
+// Calcula a quantidade exata de dias entre a data de início e a data final (inclusive)
+export function calculateDaysBetween(startDateStr, endDateStr) {
+  if (!startDateStr || !endDateStr) return 1;
+  try {
+    const [y1, m1, d1] = String(startDateStr).split('-').map(Number);
+    const [y2, m2, d2] = String(endDateStr).split('-').map(Number);
+    if (!y1 || !y2) return 1;
+    const utc1 = Date.UTC(y1, m1 - 1, d1);
+    const utc2 = Date.UTC(y2, m2 - 1, d2);
+    const diff = Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24)) + 1;
+    return diff > 0 ? diff : 1;
+  } catch (e) {
+    return 1;
+  }
+}
+
 // Função utilitária para identificação em tempo real de conflitos de horário com viaturas e colaboradores
 export function getScheduleConflicts(formData, missions = [], editingMissionId = null) {
   const result = {
@@ -75,9 +92,12 @@ export function getScheduleConflicts(formData, missions = [], editingMissionId =
   const targetStart = parseTime(formDate, formDep);
   if (!targetStart) return result;
 
-  let targetEnd = parseTime(formDate, formData.returnTimeEstimated || formData.arrivalTimeEstimated);
+  const targetEndDate = formData?.isMultiDay && formData?.endDate ? formData.endDate : formDate;
+  let targetEnd = parseTime(targetEndDate, formData.returnTimeEstimated || formData.arrivalTimeEstimated);
   if (!targetEnd || targetEnd <= targetStart) {
-    if (targetEnd && targetEnd <= targetStart) {
+    if (formData?.isMultiDay && formData?.endDate && formData.endDate > formDate) {
+      targetEnd = parseTime(formData.endDate, '23:59:59');
+    } else if (targetEnd && targetEnd <= targetStart) {
       targetEnd.setDate(targetEnd.getDate() + 1);
     } else {
       targetEnd = new Date(targetStart.getTime() + 90 * 60 * 1000);
@@ -92,15 +112,18 @@ export function getScheduleConflicts(formData, missions = [], editingMissionId =
     }
 
     const mDate = m.date || formDate;
+    const mEndDate = m.isMultiDay && m.endDate ? m.endDate : mDate;
     const mDep = m.departureTime;
     if (!mDep) continue;
 
     const mStart = parseTime(mDate, mDep);
     if (!mStart) continue;
 
-    let mEnd = parseTime(mDate, m.returnTimeEstimated || m.arrivalTimeEstimated);
+    let mEnd = parseTime(mEndDate, m.returnTimeEstimated || m.arrivalTimeEstimated);
     if (!mEnd || mEnd <= mStart) {
-      if (mEnd && mEnd <= mStart) {
+      if (m.isMultiDay && m.endDate && m.endDate > mDate) {
+        mEnd = parseTime(m.endDate, '23:59:59');
+      } else if (mEnd && mEnd <= mStart) {
         mEnd.setDate(mEnd.getDate() + 1);
       } else {
         mEnd = new Date(mStart.getTime() + 90 * 60 * 1000);
@@ -215,6 +238,8 @@ export default function MissionModal({
     missionStatus: 'Agendada',
     isRoundTrip: true,
     notes: '',
+    isMultiDay: false,
+    endDate: '',
   });
 
   const [searchResults, setSearchResults] = useState([]);
@@ -232,6 +257,9 @@ export default function MissionModal({
     estimatedFuelLiters: 0,
     estimatedFuelCost: 0,
   });
+
+  // Estado de Missão de Múltiplos Dias (Mais de um dia / Viagens de Longa Duração)
+  const [isMultiDay, setIsMultiDay] = useState(false);
 
   // Estado de Missão Recorrente (Agendamento Automático de Rotinas / Sessões Semanais)
   const [isRecurring, setIsRecurring] = useState(false);
@@ -303,11 +331,16 @@ export default function MissionModal({
         isOverdue: editingMission.isOverdue || 0,
         reopenReason: editingMission.reopenReason || '',
         isRoundTrip: true,
+        isMultiDay: Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date)),
+        endDate: editingMission.endDate || '',
         isRecurring: Boolean(editingMission.isRecurring || editingMission.recurrenceId),
         recurrenceId: editingMission.recurrenceId || null,
         recurrenceRule: editingMission.recurrenceRule || 'weekly',
         recurrenceDays: editingMission.recurrenceDays || '',
       });
+
+      const isMDay = Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date));
+      setIsMultiDay(isMDay);
 
       const isRec = Boolean(editingMission.isRecurring || editingMission.recurrenceId);
       setIsRecurring(isRec);
@@ -382,12 +415,15 @@ export default function MissionModal({
         missionStatus: 'Agendada',
         isRoundTrip: true,
         notes: '',
+        isMultiDay: false,
+        endDate: '',
         isRecurring: false,
         recurrenceId: null,
         recurrenceRule: 'weekly',
         recurrenceDays: '',
       });
 
+      setIsMultiDay(false);
       setIsRecurring(false);
       setUpdateSeries(false);
       const baseDate = initialCoords?.date || getLocalTodayStr();
@@ -401,6 +437,31 @@ export default function MissionModal({
     setTeamSearchQuery('');
     setTeamFilterTab('ALL');
   }, [isOpen, editingMission, initialCoords]);
+
+  // Manipuladores de Missão de Múltiplos Dias (Mais de um dia / Longa Duração)
+  const handleToggleMultiDay = (checked) => {
+    setIsMultiDay(checked);
+    setFormData((prev) => {
+      let nextEndDate = prev.endDate;
+      if (checked && (!nextEndDate || nextEndDate < prev.date)) {
+        try {
+          const [y, m, d] = (prev.date || getLocalTodayStr()).split('-').map(Number);
+          const dt = new Date(Date.UTC(y, m - 1, d + 1));
+          const yyyy = dt.getUTCFullYear();
+          const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+          const dd = String(dt.getUTCDate()).padStart(2, '0');
+          nextEndDate = `${yyyy}-${mm}-${dd}`;
+        } catch (e) {
+          nextEndDate = prev.date;
+        }
+      }
+      return {
+        ...prev,
+        isMultiDay: checked,
+        endDate: checked ? nextEndDate : '',
+      };
+    });
+  };
 
   // Manipuladores de Missão Recorrente
   const handleToggleRecurrence = (checked) => {
@@ -945,6 +1006,15 @@ export default function MissionModal({
       }
     }
 
+    if (isMultiDay && formData.endDate && formData.endDate < formData.date) {
+      alertDialog({
+        title: 'Data Inválida',
+        message: 'A Data Final da missão de múltiplos dias deve ser igual ou posterior à Data de Início.',
+        variant: 'warning',
+      });
+      return;
+    }
+
     const computedStatus = computeMissionAutoStatus(formData, new Date(), true);
     const generatedCode = generateNextMissionCode(formData.date, missions, editingMission);
 
@@ -958,6 +1028,9 @@ export default function MissionModal({
       suggestedDepartureTime: dynamicSuggestedDeparture || formData.suggestedDepartureTime || null,
       isRoundTrip: true,
       missionStatus: computedStatus,
+      // Missão de Múltiplos Dias
+      isMultiDay: isMultiDay,
+      endDate: isMultiDay ? (formData.endDate || formData.date) : null,
       vehicleAllocations: validAllocations,
       guests: guestsList,
       vehicleIds: validAllocations.map((a) => a.vehicleId),
@@ -1118,7 +1191,7 @@ export default function MissionModal({
 
             <div className="form-row mm-four-cols">
               <div className="form-group flex-1">
-                <label><Calendar size={13} /> Data da Missão <span className="req-star">*</span></label>
+                <label><Calendar size={13} /> {isMultiDay ? 'Data de Início da Missão' : 'Data da Missão'} <span className="req-star">*</span></label>
                 <input
                   type="date"
                   required
@@ -1210,6 +1283,73 @@ export default function MissionModal({
                 </div>
               </div>
             )}
+
+            {/* ============================================================== */}
+            {/* MISSÃO DE MÚLTIPLOS DIAS (Mais de um dia / Longa Duração)     */}
+            {/* ============================================================== */}
+            <div className={`mm-recurrence-box mm-multiday-box ${isMultiDay ? 'is-active' : ''}`}>
+              <div className="mm-rec-header">
+                <div className="mm-rec-info">
+                  <div className={`mm-rec-icon ${isMultiDay ? 'active' : ''}`}>
+                    <CalendarRange size={18} />
+                  </div>
+                  <div>
+                    <div className="mm-rec-title-row">
+                      <strong className="mm-rec-title">Missão de Mais de um Dia (Longa Duração)</strong>
+                      {isMultiDay && formData.date && formData.endDate && (
+                        <span className="mm-rec-badge-active mm-multiday-badge">
+                          {calculateDaysBetween(formData.date, formData.endDate)} {calculateDaysBetween(formData.date, formData.endDate) === 1 ? 'Dia' : 'Dias'} de Operação
+                        </span>
+                      )}
+                    </div>
+                    <p className="mm-rec-desc">
+                      Ative para missões que iniciam em um dia e terminam em outro (ex: viagens ou gravações que iniciam no dia 25/11 e terminam no dia 28/11).
+                    </p>
+                  </div>
+                </div>
+
+                <label className="mm-rec-switch-wrapper" title="Ativar duração de múltiplos dias para esta missão">
+                  <input
+                    type="checkbox"
+                    checked={isMultiDay}
+                    onChange={(e) => handleToggleMultiDay(e.target.checked)}
+                  />
+                  <span className="mm-rec-switch-slider"></span>
+                </label>
+              </div>
+
+              {isMultiDay && (
+                <div className="mm-rec-body mm-multiday-body">
+                  <div className="form-row mm-multiday-row" style={{ alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+                    <div className="form-group flex-1" style={{ minWidth: '220px' }}>
+                      <label>
+                        <CalendarRange size={13} /> Data Final / Retorno à Base <span className="req-star">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        required={isMultiDay}
+                        min={formData.date || getLocalTodayStr()}
+                        value={formData.endDate || ''}
+                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      />
+                      <small className="field-hint-sub">Data prevista de retorno da viatura e encerramento da missão</small>
+                    </div>
+
+                    {formData.date && formData.endDate && (
+                      <div className="mm-multiday-calc-card">
+                        <span className="mm-multiday-calc-label">Período de Duração:</span>
+                        <strong className="mm-multiday-calc-val">
+                          {calculateDaysBetween(formData.date, formData.endDate)} {calculateDaysBetween(formData.date, formData.endDate) === 1 ? 'dia' : 'dias'} de missão
+                        </strong>
+                        <small className="mm-multiday-calc-dates">
+                          De {formData.date.slice(8, 10)}/{formData.date.slice(5, 7)} até {formData.endDate.slice(8, 10)}/{formData.endDate.slice(5, 7)}
+                        </small>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* ============================================================== */}
             {/* RECORRÊNCIA DA MISSÃO (Agendamento Automático de Rotinas)      */}

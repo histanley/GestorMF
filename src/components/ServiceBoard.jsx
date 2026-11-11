@@ -885,7 +885,11 @@ export default function ServiceBoard({
                     {/* 3. DATA & HORÁRIOS */}
                     <td className="pcol-datetime">
                       <div className="pcell-datetime">
-                        <span className="print-date-badge">{formatDateBR(mission.date)}</span>
+                        <span className="print-date-badge">
+                          {Boolean(mission.isMultiDay && mission.endDate && mission.endDate !== mission.date)
+                            ? `${formatDateBR(mission.date)} a ${formatDateBR(mission.endDate)}`
+                            : formatDateBR(mission.date)}
+                        </span>
                         <div className="print-times-list">
                           <div>
                             <span>Saída:</span> <strong>{mission.departureTime || '--:--'}</strong>
@@ -1347,7 +1351,11 @@ export default function ServiceBoard({
                       <div className="agenda-compact-box">
                         <div className="agenda-date-header">
                           <Calendar size={12} className="date-icon" />
-                          <strong>{formatDateBR(mission.date)}</strong>
+                          <strong>
+                            {Boolean(mission.isMultiDay && mission.endDate && mission.endDate !== mission.date)
+                              ? `${formatDateBR(mission.date)} a ${formatDateBR(mission.endDate)}`
+                              : formatDateBR(mission.date)}
+                          </strong>
                         </div>
                         <div className={`agenda-times-grid ${mission.eventStartTime ? 'has-event-slot' : ''}`}>
                           <div className="ag-time-item highlight">
@@ -1850,7 +1858,12 @@ export default function ServiceBoard({
                 <div className="mmc-schedule-strip">
                   <div className="mmc-date-row">
                     <Calendar size={12} />
-                    <span><strong>Data da Missão:</strong> {formatDateBR(mission.date)}</span>
+                    <span>
+                      <strong>Data da Missão:</strong>{' '}
+                      {Boolean(mission.isMultiDay && mission.endDate && mission.endDate !== mission.date)
+                        ? `${formatDateBR(mission.date)} a ${formatDateBR(mission.endDate)}`
+                        : formatDateBR(mission.date)}
+                    </span>
                   </div>
                   <div className="mmc-times-grid">
                     <div className="mmc-time-box">
@@ -2228,7 +2241,9 @@ export default function ServiceBoard({
                 <div className="mdm-section">
                   <div className="mdm-section-title">
                     <Clock size={15} />
-                    <span>Cronograma &amp; Automação de Horários ({formatDateBR(detailMission.date)})</span>
+                    <span>
+                      Cronograma &amp; Automação de Horários ({Boolean(detailMission.isMultiDay && detailMission.endDate && detailMission.endDate !== detailMission.date) ? `${formatDateBR(detailMission.date)} a ${formatDateBR(detailMission.endDate)}` : formatDateBR(detailMission.date)})
+                    </span>
                   </div>
 
                   <div className={`mdm-timeline-grid ${detailEventStartTime ? 'has-event-slot-5' : ''}`}>

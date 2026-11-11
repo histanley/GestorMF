@@ -21458,6 +21458,100 @@ body.light-theme .mgc-note {
 }
 
 /* ==========================================================================
+   MISSÃO DE MÚLTIPLOS DIAS (LONGA DURAÇÃO)
+   ========================================================================== */
+.mm-multiday-box.is-active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(30, 41, 59, 0.8) 100%) !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.1) !important;
+}
+
+.mm-multiday-box .mm-rec-icon.active {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+}
+
+.mm-multiday-badge {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+.mm-multiday-calc-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 200px;
+}
+
+.mm-multiday-calc-label {
+  font-size: 0.72rem;
+  color: #fbbf24;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mm-multiday-calc-val {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 2px 0;
+}
+
+.mm-multiday-calc-dates {
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.mission-multiday-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+body.light-theme .mm-multiday-box.is-active {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+  border-color: #fcd34d !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.1) !important;
+}
+
+body.light-theme .mm-multiday-box .mm-rec-icon.active {
+  background: #fef3c7 !important;
+  color: #d97706 !important;
+}
+
+body.light-theme .mm-multiday-badge {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+
+body.light-theme .mm-multiday-calc-card {
+  background: #fffbeb !important;
+  border-color: #fcd34d !important;
+}
+
+body.light-theme .mm-multiday-calc-val {
+  color: #92400e !important;
+}
+
+body.light-theme .mm-multiday-calc-dates {
+  color: #64748b !important;
+}
+
+/* ==========================================================================
    TEMA CLARO (body.light-theme) - RECORRÊNCIA DE MISSÕES
    ========================================================================== */
 body.light-theme .mm-recurrence-box {

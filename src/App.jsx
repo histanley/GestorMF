@@ -2804,12 +2804,17 @@ export default function App() {
                         onClick={() => setSelectedMissionId(m.id)}
                       >
                         <div className="item-status-bar">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             <span className="mission-code-mini">#{mCode}</span>
                             <span className={`status-tag tag-${(m.missionStatus || 'Agendada').toLowerCase().replace(/\s+/g, '-')}`}>
                               {isExecuting && <span className="exec-pulse-dot"></span>}
                               {m.missionStatus || 'Agendada'}
                             </span>
+                            {Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date)) && (
+                              <span className="mission-multiday-tag" title={`Missão de múltiplos dias: de ${m.date} a ${m.endDate}`}>
+                                🗓️ {m.date && m.endDate ? `${m.date.slice(8, 10)}/${m.date.slice(5, 7)} a ${m.endDate.slice(8, 10)}/${m.endDate.slice(5, 7)}` : 'Múltiplos Dias'}
+                              </span>
+                            )}
                           </div>
                           <span className="item-time">Saída: {m.departureTime}</span>
                         </div>

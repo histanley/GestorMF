@@ -38,6 +38,8 @@ function ensureMissionColumnsExist($db) {
         'recurrence_id'           => 'VARCHAR(64) NULL',
         'recurrence_rule'         => 'VARCHAR(255) NULL',
         'recurrence_days'         => 'VARCHAR(100) NULL',
+        'is_multi_day'            => 'TINYINT(1) DEFAULT 0',
+        'end_date'                => 'VARCHAR(20) NULL',
         'version'                 => 'INT NOT NULL DEFAULT 1'
     ];
 
@@ -85,7 +87,7 @@ if ($method === 'GET') {
         $db->exec("
             UPDATE missions
             SET mission_status = 'Pendente', updated_at = NOW()
-            WHERE date < '{$todayDate}'
+            WHERE COALESCE(NULLIF(end_date, ''), date) < '{$todayDate}'
               AND {$hasPostProdCond}
               AND (edition_history NOT LIKE '%\"type\":\"APPROVED\"%' OR edition_history IS NULL)
               AND mission_status NOT IN ('Pendente', 'Cancelada')
@@ -94,7 +96,7 @@ if ($method === 'GET') {
         $db->exec("
             UPDATE missions
             SET mission_status = 'Finalizada', updated_at = NOW()
-            WHERE date < '{$todayDate}'
+            WHERE COALESCE(NULLIF(end_date, ''), date) < '{$todayDate}'
               AND {$noPostProdCond}
               AND mission_status NOT IN ('Finalizada', 'Finalizado', 'Cancelada')
         ");
@@ -104,7 +106,7 @@ if ($method === 'GET') {
         $db->exec("
             UPDATE missions
             SET mission_status = 'Pendente', updated_at = NOW()
-            WHERE date = '{$todayDate}'
+            WHERE COALESCE(NULLIF(end_date, ''), date) = '{$todayDate}'
               AND (
                   (return_time_estimated IS NOT NULL AND return_time_estimated != '' AND return_time_estimated <= '{$nowTime}')
                   OR
@@ -118,7 +120,7 @@ if ($method === 'GET') {
         $db->exec("
             UPDATE missions
             SET mission_status = 'Finalizada', updated_at = NOW()
-            WHERE date = '{$todayDate}'
+            WHERE COALESCE(NULLIF(end_date, ''), date) = '{$todayDate}'
               AND (
                   (return_time_estimated IS NOT NULL AND return_time_estimated != '' AND return_time_estimated <= '{$nowTime}')
                   OR
@@ -223,6 +225,8 @@ if ($method === 'GET') {
             'recurrenceId'             => $m['recurrence_id'] ?? null,
             'recurrenceRule'           => $m['recurrence_rule'] ?? null,
             'recurrenceDays'           => $m['recurrence_days'] ?? null,
+            'isMultiDay'               => !empty($m['is_multi_day']),
+            'endDate'                  => $m['end_date'] ?? null,
             'version'                  => (int)($m['version'] ?? 1),
             'createdAt'                => $m['created_at'],
             'updatedAt'                => $m['updated_at']
@@ -235,29 +239,31 @@ if ($method === 'GET') {
 // ==============================================================================
 // FUNÇÕES AUXILIARES DE CONFLITOS DE ESCALA (RODADA 2 - ROBUSTA E ATÔMICA)
 // ==============================================================================
-function getMissionTimeRangeTs($date, $depTime, $retTime) {
+function getMissionTimeRangeTs($date, $depTime, $retTime, $endDate = null) {
     $dateStr = !empty($date) ? trim($date) : date('Y-m-d');
     $depTimeStr = !empty($depTime) ? trim($depTime) : '08:00';
     $depTs = strtotime("{$dateStr} {$depTimeStr}");
     if (!$depTs) $depTs = strtotime("{$dateStr} 08:00:00");
 
+    $retDateStr = !empty($endDate) ? trim($endDate) : $dateStr;
     if (!empty($retTime)) {
         $retTimeStr = trim($retTime);
-        $retTs = strtotime("{$dateStr} {$retTimeStr}");
+        $retTs = strtotime("{$retDateStr} {$retTimeStr}");
         if ($retTs <= $depTs) {
-            $retTs += 86400; // Atravessa a meia-noite (dia seguinte)
+            $retTs = strtotime("{$retDateStr} {$retTimeStr}") + 86400; // Atravessa a meia-noite (dia seguinte)
         }
     } else {
-        $retTs = $depTs + 5400; // 90 min padrão
+        $retTs = strtotime("{$retDateStr} 23:59:59"); // Fim do dia final previsto
     }
     return [$depTs, $retTs];
 }
 
 function checkRosterConflicts($db, $targetMissionId, $data) {
     $date = $data['date'] ?? date('Y-m-d');
+    $endDate = !empty($data['endDate']) ? $data['endDate'] : $date;
     $depTime = $data['departureTime'] ?? '08:00';
     $retTime = $data['returnTimeEstimated'] ?? $data['arrivalTimeEstimated'] ?? null;
-    list($depTs, $retTs) = getMissionTimeRangeTs($date, $depTime, $retTime);
+    list($depTs, $retTs) = getMissionTimeRangeTs($date, $depTime, $retTime, $endDate);
 
     // Coleta todos os veículos da missão
     $vehicles = [];
@@ -287,27 +293,29 @@ function checkRosterConflicts($db, $targetMissionId, $data) {
         return null;
     }
 
-    $prevDate = date('Y-m-d', strtotime("{$date} - 1 day"));
-    $nextDate = date('Y-m-d', strtotime("{$date} + 1 day"));
+    $minDate = date('Y-m-d', $depTs - 86400);
+    $maxDate = date('Y-m-d', $retTs + 86400);
 
     $stmtOther = $db->prepare("
-        SELECT id, code, description, date, departure_time, return_time_estimated, arrival_time_estimated,
+        SELECT id, code, description, date, end_date, departure_time, return_time_estimated, arrival_time_estimated,
                vehicle_id, vehicle_name_display, vehicle_allocations,
                driver_id, driver_name, team_ids, team_names_display
         FROM missions
-        WHERE date IN (?, ?, ?)
-          AND id != ?
+        WHERE id != ?
           AND mission_status NOT IN ('Finalizada', 'Cancelada', 'Pendente')
+          AND date <= ?
+          AND COALESCE(NULLIF(end_date, ''), date) >= ?
         FOR UPDATE
     ");
-    $stmtOther->execute([$prevDate, $date, $nextDate, $targetMissionId]);
+    $stmtOther->execute([$targetMissionId, $maxDate, $minDate]);
     $otherMissions = $stmtOther->fetchAll();
 
     foreach ($otherMissions as $other) {
         $oDate = $other['date'] ?? $date;
+        $oEndDate = $other['end_date'] ?? null;
         $oDepTime = $other['departure_time'] ?? '08:00';
         $oRetTime = $other['return_time_estimated'] ?: ($other['arrival_time_estimated'] ?: null);
-        list($oDepTs, $oRetTs) = getMissionTimeRangeTs($oDate, $oDepTime, $oRetTime);
+        list($oDepTs, $oRetTs) = getMissionTimeRangeTs($oDate, $oDepTime, $oRetTime, $oEndDate);
 
         // Verifica sobreposição temporal exata: max(A, C) < min(B, D)
         $overlap = max($depTs, $oDepTs) < min($retTs, $oRetTs);
@@ -696,6 +704,11 @@ if ($method === 'POST' || $method === 'PUT') {
     $recurrenceId = !empty($data['recurrenceId']) ? trim($data['recurrenceId']) : ($isRecurring ? ('rec-' . bin2hex(random_bytes(8))) : null);
     $recurrenceRule = !empty($data['recurrenceRule']) ? trim($data['recurrenceRule']) : null;
     $recurrenceDays = !empty($data['recurrenceDays']) ? (is_array($data['recurrenceDays']) ? implode(', ', $data['recurrenceDays']) : trim($data['recurrenceDays'])) : null;
+    $isMultiDay = !empty($data['isMultiDay']) ? 1 : 0;
+    $endDate = !empty($data['endDate']) ? trim($data['endDate']) : null;
+    if (!$isMultiDay) {
+        $endDate = null;
+    }
 
     $sql = "
         INSERT INTO missions (
@@ -712,6 +725,7 @@ if ($method === 'POST' || $method === 'PUT') {
             estimated_fuel_liters, estimated_fuel_cost,
             route_coordinates, return_coordinates, notes,
             is_recurring, recurrence_id, recurrence_rule, recurrence_days,
+            is_multi_day, end_date,
             created_by
         ) VALUES (
             :id, :code, :description, :location_name, :address, :lat, :lon, :date,
@@ -727,6 +741,7 @@ if ($method === 'POST' || $method === 'PUT') {
             :estimated_fuel_liters, :estimated_fuel_cost,
             :route_coordinates, :return_coordinates, :notes,
             :is_recurring, :recurrence_id, :recurrence_rule, :recurrence_days,
+            :is_multi_day, :end_date,
             :created_by
         )
         ON DUPLICATE KEY UPDATE
@@ -780,7 +795,9 @@ if ($method === 'POST' || $method === 'PUT') {
             is_recurring = VALUES(is_recurring),
             recurrence_id = VALUES(recurrence_id),
             recurrence_rule = VALUES(recurrence_rule),
-            recurrence_days = VALUES(recurrence_days)
+            recurrence_days = VALUES(recurrence_days),
+            is_multi_day = VALUES(is_multi_day),
+            end_date = VALUES(end_date)
     ";
 
     $saveParams = [
@@ -835,6 +852,8 @@ if ($method === 'POST' || $method === 'PUT') {
         ':recurrence_id'               => $recurrenceId,
         ':recurrence_rule'             => $recurrenceRule,
         ':recurrence_days'             => $recurrenceDays,
+        ':is_multi_day'                => $isMultiDay,
+        ':end_date'                    => $endDate,
         ':created_by'                  => $user['id']
     ];
 
