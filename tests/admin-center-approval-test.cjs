@@ -119,3 +119,4 @@ assert.strictEqual(reopened.editionStatus, 'Em Edição');
 assert.strictEqual(reopened.reopenReason, 'Corrigir transição e vinheta aos 02:15');
 
 console.log('✅ TESTES DA CENTRAL DO ADMINISTRADOR (APROVAÇÃO DE PÓS-PRODUÇÃO E REABERTURA) PASSARAM COM 100% DE SUCESSO!');
+

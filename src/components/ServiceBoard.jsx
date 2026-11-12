@@ -41,7 +41,12 @@ import {
   Lock,
   Folder,
   HardDrive,
+  Table,
+  CalendarRange,
+  CalendarDays,
 } from 'lucide-react';
+import ServiceBoardWeekView from './ServiceBoardWeekView';
+import ServiceBoardMonthView from './ServiceBoardMonthView';
 import {
   getMissionTotalKm,
   getNavigationLinks,
@@ -108,6 +113,21 @@ export default function ServiceBoard({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMissionStatus, setFilterMissionStatus] = useState('ATIVAS');
   const [filterEditionStatus, setFilterEditionStatus] = useState('TODOS');
+  // Modos de Visualização da Tabela de Serviço: 'table' (Tabela detalhada), 'week' (Semana), 'month' (Mês)
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('gestormf_board_view_mode') || 'table';
+    } catch {
+      return 'table';
+    }
+  });
+
+  const handleSetViewMode = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('gestormf_board_view_mode', mode);
+    } catch {}
+  };
   const [selectedDetailMissionId, setSelectedDetailMissionId] = useState(null);
   const [selectedHistoryMission, setSelectedHistoryMission] = useState(null);
   const [reopenModal, setReopenModal] = useState({
@@ -1062,6 +1082,37 @@ export default function ServiceBoard({
         </div>
 
         <div className="board-header-actions">
+          {/* Seletor de 3 Modos de Visualização: Tabela, Semana e Mês */}
+          <div className="board-view-mode-pills">
+            <button
+              type="button"
+              className={`view-pill-btn ${viewMode === 'table' ? 'active' : ''}`}
+              onClick={() => handleSetViewMode('table')}
+              title="Modo Tabela Detalhada"
+            >
+              <Table size={14} />
+              <span>Tabela</span>
+            </button>
+            <button
+              type="button"
+              className={`view-pill-btn ${viewMode === 'week' ? 'active' : ''}`}
+              onClick={() => handleSetViewMode('week')}
+              title="Modo Semana (Visão de 7 dias da escala)"
+            >
+              <CalendarRange size={14} />
+              <span>Semana</span>
+            </button>
+            <button
+              type="button"
+              className={`view-pill-btn ${viewMode === 'month' ? 'active' : ''}`}
+              onClick={() => handleSetViewMode('month')}
+              title="Modo Mês (Calendário Mensal Completo)"
+            >
+              <CalendarDays size={14} />
+              <span>Mês</span>
+            </button>
+          </div>
+
           <button className="btn-secondary" onClick={handlePrint} title="Imprimir versão para parede ou PDF">
             <Printer size={16} /> Imprimir / Parede
           </button>
@@ -1238,8 +1289,11 @@ export default function ServiceBoard({
         </div>
       </div>
 
-      {/* Grid da Tabela de Serviço (Exclusivo Desktop / PC - 100% inalterado) */}
-      <div className="table-responsive-wrapper desktop-service-board">
+      {/* Visualização 1: Tabela (Desktop + Mobile + Paginação) */}
+      {viewMode === 'table' && (
+        <>
+          {/* Grid da Tabela de Serviço (Exclusivo Desktop / PC - 100% inalterado) */}
+          <div className="table-responsive-wrapper desktop-service-board">
         <table className="whiteboard-table compact-service-table">
           <thead>
             <tr>
@@ -2085,51 +2139,73 @@ export default function ServiceBoard({
         )}
       </div>
 
-      {/* Contador de Páginas / Paginador (Exibido quando passar de 10 missões por página) */}
-      {filteredMissions.length > ITEMS_PER_PAGE && (
-        <div className="board-pagination-bar">
-          <div className="pagination-info">
-            Exibindo{' '}
-            <strong>
-              {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredMissions.length)}
-            </strong>{' '}
-            de <strong>{filteredMissions.length}</strong> missões • Página{' '}
-            <strong>{safeCurrentPage}</strong> de <strong>{totalPages}</strong>
-          </div>
+          {/* Contador de Páginas / Paginador (Exibido quando passar de 10 missões por página) */}
+          {filteredMissions.length > ITEMS_PER_PAGE && (
+            <div className="board-pagination-bar">
+              <div className="pagination-info">
+                Exibindo{' '}
+                <strong>
+                  {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredMissions.length)}
+                </strong>{' '}
+                de <strong>{filteredMissions.length}</strong> missões • Página{' '}
+                <strong>{safeCurrentPage}</strong> de <strong>{totalPages}</strong>
+              </div>
 
-          <div className="pagination-controls">
-            <button
-              type="button"
-              className="pagination-btn"
-              disabled={safeCurrentPage <= 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            >
-              <ChevronLeft size={15} /> Anterior
-            </button>
-
-            <div className="pagination-pages">
-              {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
+              <div className="pagination-controls">
                 <button
-                  key={pageNum}
                   type="button"
-                  className={`pagination-page-num ${safeCurrentPage === pageNum ? 'active' : ''}`}
-                  onClick={() => setCurrentPage(pageNum)}
+                  className="pagination-btn"
+                  disabled={safeCurrentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 >
-                  {pageNum}
+                  <ChevronLeft size={15} /> Anterior
                 </button>
-              ))}
-            </div>
 
-            <button
-              type="button"
-              className="pagination-btn"
-              disabled={safeCurrentPage >= totalPages}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            >
-              Próxima <ChevronRight size={15} />
-            </button>
-          </div>
-        </div>
+                <div className="pagination-pages">
+                  {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      className={`pagination-page-num ${safeCurrentPage === pageNum ? 'active' : ''}`}
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  className="pagination-btn"
+                  disabled={safeCurrentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Próxima <ChevronRight size={15} />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Visualização 2: Semana (Visão de 7 dias da escala) */}
+      {viewMode === 'week' && (
+        <ServiceBoardWeekView
+          missions={filteredMissions}
+          vehicles={vehicles}
+          members={members}
+          onSelectMission={(id) => setSelectedDetailMissionId(id)}
+          onNewMission={onNewMission}
+        />
+      )}
+
+      {/* Visualização 3: Mês (Calendário Mensal Completo) */}
+      {viewMode === 'month' && (
+        <ServiceBoardMonthView
+          missions={filteredMissions}
+          onSelectMission={(id) => setSelectedDetailMissionId(id)}
+          onNewMission={onNewMission}
+        />
       )}
 
       {/* =========================================================

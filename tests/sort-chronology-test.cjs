@@ -104,3 +104,4 @@ assert.strictEqual(sorted[1].departureTime, '09:55');
 assert.strictEqual(sorted[7].missionStatus, 'Finalizada');
 
 console.log('\n✅ TODOS OS TESTES DE ORDENAÇÃO CRONOLÓGICA PASSARAM COM SUCESSO!');
+

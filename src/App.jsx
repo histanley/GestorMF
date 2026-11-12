@@ -3167,6 +3167,10 @@ export default function App() {
                     );
                   })
                 )}
+                {/* Espaçador inferior generoso para a barra de rolagem nunca cortar o último card */}
+                {filteredMapMissions.length > 0 && (
+                  <div className="missions-scroll-bottom-spacer" style={{ height: '90px', flexShrink: 0 }} />
+                )}
               </div>
             </aside>
 
