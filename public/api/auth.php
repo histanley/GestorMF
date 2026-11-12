@@ -64,7 +64,22 @@ if ($method === 'POST' && $action === 'login') {
 // ------------------------------------------------------------------------------
 if ($method === 'GET' && $action === 'me') {
     $auth = requireAuth();
-    $stmt = $db->prepare("SELECT id, name, email, role, title, department, phone, avatar, created_at FROM users WHERE id = ?");
+    // Auto-recuperação da coluna pix_key em users
+    try {
+        $chk = $db->query("SHOW COLUMNS FROM users LIKE 'pix_key'")->fetch();
+        if (!$chk) {
+            $db->exec("ALTER TABLE users ADD COLUMN pix_key VARCHAR(100) NULL AFTER phone");
+        }
+    } catch (Exception $e) {}
+
+    $stmt = $db->prepare("
+        SELECT u.id, u.name, u.email, u.role, u.title, u.department, u.phone, u.avatar, u.pix_key, u.created_at,
+               m.pix_key AS member_pix_key
+        FROM users u
+        LEFT JOIN members m ON (m.user_id = u.id OR LOWER(TRIM(m.name)) = LOWER(TRIM(u.name)))
+        WHERE u.id = ?
+        LIMIT 1
+    ");
     $stmt->execute([$auth['id']]);
     $user = $stmt->fetch();
 
@@ -72,22 +87,35 @@ if ($method === 'GET' && $action === 'me') {
         jsonResponse(['success' => false, 'error' => 'Usuário não encontrado.'], 404);
     }
 
+    $effectivePix = !empty($user['member_pix_key']) ? $user['member_pix_key'] : ($user['pix_key'] ?? '');
+    $user['pixKey'] = $effectivePix;
+
     $sessionToken = getBearerOrCookieToken();
     $csrfToken = generateCsrfToken($sessionToken);
     jsonResponse(['success' => true, 'user' => $user, 'csrfToken' => $csrfToken]);
 }
 
 // ------------------------------------------------------------------------------
-// ATUALIZAR PERFIL (NOME, FONE, DEPTO, FOTO)
+// ATUALIZAR PERFIL (NOME, FONE, DEPTO, FOTO, PIX)
 // ------------------------------------------------------------------------------
 if ($method === 'POST' && $action === 'update_profile') {
     $auth = requireAuth();
     $input = getJsonInput();
 
+    // Auto-recuperação da coluna pix_key em users
+    try {
+        $chk = $db->query("SHOW COLUMNS FROM users LIKE 'pix_key'")->fetch();
+        if (!$chk) {
+            $db->exec("ALTER TABLE users ADD COLUMN pix_key VARCHAR(100) NULL AFTER phone");
+        }
+    } catch (Exception $e) {}
+
     $name = trim($input['name'] ?? '');
     $phone = trim($input['phone'] ?? '');
     $department = trim($input['department'] ?? '');
     $avatar = $input['avatar'] ?? null;
+    $hasPix = isset($input['pixKey']) || isset($input['pix_key']);
+    $pixKey = $hasPix ? trim($input['pixKey'] ?? ($input['pix_key'] ?? '')) : null;
 
     if (empty($name)) {
         jsonResponse(['success' => false, 'error' => 'O nome completo é obrigatório.'], 400);
@@ -95,28 +123,37 @@ if ($method === 'POST' && $action === 'update_profile') {
 
     $stmt = $db->prepare("
         UPDATE users
-        SET name = ?, phone = ?, department = ?, avatar = COALESCE(?, avatar)
+        SET name = ?, phone = ?, department = ?, avatar = COALESCE(?, avatar)" . ($hasPix ? ", pix_key = ?" : "") . "
         WHERE id = ?
     ");
-    $stmt->execute([$name, $phone, $department, $avatar, $auth['id']]);
+    $params = [$name, $phone, $department, $avatar];
+    if ($hasPix) $params[] = $pixKey ?: null;
+    $params[] = $auth['id'];
+    $stmt->execute($params);
 
-    // Sincroniza foto e telefone na tabela members (reflete imediatamente na gestão de equipes e missões na Web)
+    // Sincroniza foto, telefone e PIX na tabela members (reflete imediatamente na gestão de equipes e missões na Web)
     try {
+        $updateFields = [
+            'phone = COALESCE(NULLIF(?, ""), phone)',
+            'user_id = COALESCE(user_id, ?)'
+        ];
+        $memParams = [$phone, $auth['id']];
+
         if (!empty($avatar)) {
-            $stmtMem = $db->prepare("
-                UPDATE members
-                SET photo_url = ?, phone = COALESCE(NULLIF(?, ''), phone), user_id = COALESCE(user_id, ?)
-                WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))
-            ");
-            $stmtMem->execute([$avatar, $phone, $auth['id'], $auth['id'], $name]);
-        } elseif (!empty($phone)) {
-            $stmtMem = $db->prepare("
-                UPDATE members
-                SET phone = ?, user_id = COALESCE(user_id, ?)
-                WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))
-            ");
-            $stmtMem->execute([$phone, $auth['id'], $auth['id'], $name]);
+            array_unshift($updateFields, 'photo_url = ?');
+            array_unshift($memParams, $avatar);
         }
+        if ($hasPix) {
+            $updateFields[] = 'pix_key = ?';
+            $memParams[] = $pixKey ?: null;
+        }
+
+        $memParams[] = $auth['id'];
+        $memParams[] = $name;
+
+        $sqlMem = "UPDATE members SET " . implode(', ', $updateFields) . " WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))";
+        $db->prepare($sqlMem)->execute($memParams);
+
         bumpSyncVersion("members");
     } catch (Exception $e) {
         error_log("[GestorMF Profile Sync Error] " . $e->getMessage());
@@ -125,18 +162,60 @@ if ($method === 'POST' && $action === 'update_profile') {
     logAudit('UPDATE_PROFILE', 'USERS', $auth['id'], [
         'name' => $name,
         'phone' => $phone,
-        'department' => $department
+        'department' => $department,
+        'pixKey' => $pixKey
     ], $auth['id'], $name);
 
-    $stmtGet = $db->prepare("SELECT id, name, email, role, title, department, phone, avatar FROM users WHERE id = ?");
+    $stmtGet = $db->prepare("
+        SELECT u.id, u.name, u.email, u.role, u.title, u.department, u.phone, u.avatar, u.pix_key,
+               m.pix_key AS member_pix_key
+        FROM users u
+        LEFT JOIN members m ON (m.user_id = u.id OR LOWER(TRIM(m.name)) = LOWER(TRIM(u.name)))
+        WHERE u.id = ?
+        LIMIT 1
+    ");
     $stmtGet->execute([$auth['id']]);
     $updatedUser = $stmtGet->fetch();
+    if ($updatedUser) {
+        $updatedUser['pixKey'] = !empty($updatedUser['member_pix_key']) ? $updatedUser['member_pix_key'] : ($updatedUser['pix_key'] ?? '');
+    }
 
     jsonResponse([
         'success' => true,
         'message' => 'Perfil atualizado com sucesso.',
         'user'    => $updatedUser
     ]);
+}
+
+// ------------------------------------------------------------------------------
+// ATUALIZAR, CADASTRAR OU EXCLUIR CHAVE PIX (DIRETAMENTE PELO COLABORADOR OU ADMIN)
+// ------------------------------------------------------------------------------
+if ($method === 'POST' && $action === 'update_pix') {
+    $auth = requireAuth();
+    $input = getJsonInput();
+    $pixKey = trim($input['pixKey'] ?? ($input['pix_key'] ?? ''));
+
+    // Auto-recuperação da coluna pix_key em users
+    try {
+        $chk = $db->query("SHOW COLUMNS FROM users LIKE 'pix_key'")->fetch();
+        if (!$chk) {
+            $db->exec("ALTER TABLE users ADD COLUMN pix_key VARCHAR(100) NULL AFTER phone");
+        }
+    } catch (Exception $e) {}
+
+    $val = $pixKey !== '' ? $pixKey : null;
+
+    $db->prepare("UPDATE users SET pix_key = ? WHERE id = ?")->execute([$val, $auth['id']]);
+    $db->prepare("
+        UPDATE members
+        SET pix_key = ?, user_id = COALESCE(user_id, ?)
+        WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))
+    ")->execute([$val, $auth['id'], $auth['id'], $auth['name']]);
+
+    bumpSyncVersion("members");
+    logAudit('UPDATE_PIX', 'MEMBERS', $auth['id'], ($pixKey ? "Chave PIX atualizada para '{$pixKey}'" : "Chave PIX removida") . " por {$auth['name']}.", $auth['id'], $auth['name']);
+
+    jsonResponse(['success' => true, 'pixKey' => $pixKey]);
 }
 
 // ------------------------------------------------------------------------------

@@ -26316,6 +26316,305 @@ body.light-theme .cs-btn-copy-pix {
   color: #ffffff !important;
 }
 
+.cs-pix-value.is-empty {
+  color: #94a3b8;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.cs-pix-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cs-btn-pix-action {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  padding: 6px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.cs-btn-pix-action:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.cs-btn-pix-action.btn-delete {
+  color: #f87171;
+}
+
+.cs-btn-pix-action.btn-delete:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.cs-btn-pix-add {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35));
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #f59e0b;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.cs-btn-pix-add:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(217, 119, 6, 0.5));
+  color: #fbbf24;
+  transform: translateY(-1px);
+}
+
+.cs-pix-edit-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.cs-pix-edit-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cs-pix-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.cs-pix-input {
+  flex: 1;
+  min-width: 180px;
+  background: rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  color: #f8fafc !important;
+  font-size: 0.82rem !important;
+  min-height: 36px !important;
+  outline: none;
+}
+
+.cs-pix-input:focus {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2) !important;
+}
+
+.cs-btn-pix-save {
+  background: #10b981;
+  border: none;
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  height: 36px;
+}
+
+.cs-btn-pix-save:hover {
+  background: #059669;
+}
+
+.cs-btn-pix-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  transition: all 0.2s;
+}
+
+.cs-btn-pix-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+}
+
+/* Light mode para os novos botões do PIX */
+[data-theme="light"] .cs-btn-pix-action,
+body.light-theme .cs-btn-pix-action {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+[data-theme="light"] .cs-btn-pix-add,
+body.light-theme .cs-btn-pix-add {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+}
+
+[data-theme="light"] .cs-pix-input,
+body.light-theme .cs-pix-input {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Badges de Função no Hero do Colaborador */
+.cs-role-tag-badge {
+  font-size: 0.65rem;
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 5px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.cs-role-tag-badge.sec {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+}
+
+.cs-hero-role-secondary {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+[data-theme="light"] .cs-hero-role-secondary,
+body.light-theme .cs-hero-role-secondary {
+  background: #e0f2fe !important;
+  border-color: #7dd3fc !important;
+  color: #0369a1 !important;
+}
+
+/* Seção de Funções e PIX no Modal de Perfil */
+.profile-pix-field-span {
+  grid-column: 1 / -1;
+}
+
+.profile-badge-readonly {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.profile-readonly-desc {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: -0.25rem 0 0.85rem 0;
+  line-height: 1.4;
+}
+
+.profile-roles-display-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.profile-role-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 140px;
+}
+
+.profile-role-pill.role-pill-main {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.03));
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.profile-role-pill.role-pill-sec {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(56, 189, 248, 0.03));
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.role-pill-type {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.role-pill-main .role-pill-type {
+  color: #f59e0b;
+}
+
+.role-pill-sec .role-pill-type {
+  color: #38bdf8;
+}
+
+.role-pill-name {
+  font-size: 0.88rem;
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+[data-theme="light"] .profile-role-pill,
+body.light-theme .profile-role-pill {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .profile-role-pill.role-pill-main,
+body.light-theme .profile-role-pill.role-pill-main {
+  background: #fffbeb !important;
+  border-color: #fde68a !important;
+}
+
+[data-theme="light"] .profile-role-pill.role-pill-sec,
+body.light-theme .profile-role-pill.role-pill-sec {
+  background: #f0f9ff !important;
+  border-color: #bae6fd !important;
+}
+
+[data-theme="light"] .role-pill-name,
+body.light-theme .role-pill-name {
+  color: #0f172a !important;
+}
+
 .cs-section-block {
   margin-bottom: 1.75rem;
 }

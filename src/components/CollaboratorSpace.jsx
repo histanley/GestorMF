@@ -21,6 +21,10 @@ import {
   Shield,
   CreditCard,
   MessageCircle,
+  Edit2,
+  Trash2,
+  X,
+  Lock,
 } from 'lucide-react';
 import {
   OFFICIAL_COMPANY_ROLES,
@@ -29,8 +33,8 @@ import {
   normalizeToOfficialRole,
   computeMemberRoleCounts,
 } from '../utils/companyRoles';
-import { apiRequestExtraHours } from '../utils/api';
-import { alertDialog } from '../utils/dialog';
+import { apiRequestExtraHours, apiUpdatePixKey } from '../utils/api';
+import { alertDialog, confirmDialog } from '../utils/dialog';
 import { calculateMissionOffHours } from '../utils/workHours';
 
 // Formata data ISO para PT-BR
@@ -53,6 +57,7 @@ export default function CollaboratorSpace({
   missions = [],
   closures = {},
   onReloadMissions = null,
+  onUpdatePixKey = null,
 }) {
   // Identifica o colaborador correspondente ao usuário logado
   const myMember = useMemo(() => {
@@ -70,6 +75,11 @@ export default function CollaboratorSpace({
 
   // Estado de cópia de PIX
   const [copiedPix, setCopiedPix] = useState(false);
+
+  // Estados de Cadastro / Edição / Exclusão de Chave PIX
+  const [isEditingPix, setIsEditingPix] = useState(false);
+  const [pixInput, setPixInput] = useState('');
+  const [isSavingPix, setIsSavingPix] = useState(false);
 
   // Modal / Form de Solicitação de Horas Extras Adicionais
   const [requestModalMission, setRequestModalMission] = useState(null);
@@ -182,6 +192,78 @@ export default function CollaboratorSpace({
     setTimeout(() => setCopiedPix(false), 2000);
   };
 
+  // Iniciar cadastro / edição de PIX
+  const handleStartEditPix = () => {
+    setPixInput(myMember?.pixKey || '');
+    setIsEditingPix(true);
+  };
+
+  const handleCancelEditPix = () => {
+    setIsEditingPix(false);
+    setPixInput('');
+  };
+
+  const handleSavePix = async () => {
+    const trimmed = pixInput.trim();
+    setIsSavingPix(true);
+    try {
+      if (onUpdatePixKey && myMember?.id) {
+        await onUpdatePixKey(myMember.id, trimmed);
+      } else {
+        await apiUpdatePixKey(trimmed);
+      }
+      setIsEditingPix(false);
+      await alertDialog({
+        title: 'Chave PIX Salva',
+        message: trimmed ? 'Sua chave PIX foi atualizada com sucesso!' : 'Sua chave PIX foi removida.',
+        variant: 'success',
+      });
+    } catch (e) {
+      await alertDialog({
+        title: 'Erro ao Salvar PIX',
+        message: 'Não foi possível salvar a chave PIX no momento. Tente novamente.',
+        variant: 'danger',
+      });
+    } finally {
+      setIsSavingPix(false);
+    }
+  };
+
+  const handleDeletePix = async () => {
+    const confirmed = await confirmDialog({
+      title: 'Excluir Chave PIX',
+      message: 'Tem certeza que deseja excluir sua chave PIX cadastrada?',
+      confirmText: 'Excluir Chave',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    setIsSavingPix(true);
+    try {
+      if (onUpdatePixKey && myMember?.id) {
+        await onUpdatePixKey(myMember.id, '');
+      } else {
+        await apiUpdatePixKey('');
+      }
+      setIsEditingPix(false);
+      setPixInput('');
+      await alertDialog({
+        title: 'Chave PIX Excluída',
+        message: 'Sua chave PIX foi removida com sucesso.',
+        variant: 'success',
+      });
+    } catch (e) {
+      await alertDialog({
+        title: 'Erro ao Excluir PIX',
+        message: 'Não foi possível excluir a chave PIX.',
+        variant: 'danger',
+      });
+    } finally {
+      setIsSavingPix(false);
+    }
+  };
+
   // Enviar solicitação de hora extra
   const handleSubmitExtraHoursRequest = async (e) => {
     e.preventDefault();
@@ -255,9 +337,16 @@ export default function CollaboratorSpace({
               </span>
             </div>
             <div className="cs-hero-badges-row">
-              <span className="cs-hero-role">
+              <span className="cs-hero-role" title="Função Principal na Empresa (Somente Leitura)">
                 💼 {myMember.role || 'Colaborador'}
+                <span className="cs-role-tag-badge">Principal</span>
               </span>
+              {Array.isArray(myMember.secondaryRoles) && myMember.secondaryRoles.map((secRole) => (
+                <span key={secRole} className="cs-hero-role-secondary" title="Função Adicional habilitada na Empresa (Somente Leitura)">
+                  🎯 {secRole}
+                  <span className="cs-role-tag-badge sec">Adicional</span>
+                </span>
+              ))}
               {myMember.canDrive && (
                 <span className="cs-hero-cnh">
                   🚗 CNH {myMember.cnhCategory || 'AB'}
@@ -267,23 +356,102 @@ export default function CollaboratorSpace({
           </div>
         </div>
 
-        {/* Chave PIX rápida com cópia */}
+        {/* Chave PIX com Cadastro, Edição e Exclusão */}
         <div className="cs-pix-box">
-          <div className="cs-pix-info">
-            <span className="cs-pix-label">Chave PIX Cadastrada</span>
-            <strong className="cs-pix-value">
-              {myMember.pixKey || 'Não cadastrada'}
-            </strong>
-          </div>
-          {myMember.pixKey && (
-            <button
-              type="button"
-              onClick={handleCopyPix}
-              className={`cs-btn-copy-pix ${copiedPix ? 'copied' : ''}`}
-            >
-              {copiedPix ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copiedPix ? 'Copiado!' : 'Copiar'}</span>
-            </button>
+          {isEditingPix ? (
+            <div className="cs-pix-edit-wrap">
+              <span className="cs-pix-edit-title">
+                {myMember?.pixKey ? '✏️ Editar Chave PIX' : '➕ Cadastrar Chave PIX'}
+              </span>
+              <div className="cs-pix-edit-row">
+                <input
+                  type="text"
+                  className="cs-pix-input"
+                  placeholder="CPF, celular, e-mail ou aleatória..."
+                  value={pixInput}
+                  autoFocus
+                  onChange={(e) => setPixInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSavePix();
+                    }
+                    if (e.key === 'Escape') handleCancelEditPix();
+                  }}
+                />
+                <button
+                  type="button"
+                  className="cs-btn-pix-save"
+                  onClick={handleSavePix}
+                  disabled={isSavingPix}
+                  title="Salvar Chave PIX"
+                >
+                  <Check size={13} />
+                  <span>Salvar</span>
+                </button>
+                <button
+                  type="button"
+                  className="cs-btn-pix-cancel"
+                  onClick={handleCancelEditPix}
+                  disabled={isSavingPix}
+                  title="Cancelar"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="cs-pix-info">
+                <span className="cs-pix-label">Chave PIX Cadastrada</span>
+                <strong className={`cs-pix-value ${!myMember?.pixKey ? 'is-empty' : ''}`}>
+                  {myMember?.pixKey || 'Não cadastrada'}
+                </strong>
+              </div>
+
+              <div className="cs-pix-actions">
+                {myMember?.pixKey ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleCopyPix}
+                      className={`cs-btn-copy-pix ${copiedPix ? 'copied' : ''}`}
+                      title="Copiar Chave PIX"
+                    >
+                      {copiedPix ? <Check size={13} /> : <Copy size={13} />}
+                      <span>{copiedPix ? 'Copiado!' : 'Copiar'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStartEditPix}
+                      className="cs-btn-pix-action btn-edit"
+                      title="Editar Chave PIX"
+                    >
+                      <Edit2 size={13} />
+                      <span>Editar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeletePix}
+                      className="cs-btn-pix-action btn-delete"
+                      title="Excluir Chave PIX"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleStartEditPix}
+                    className="cs-btn-pix-add"
+                    title="Cadastrar Chave PIX para recebimentos"
+                  >
+                    <Plus size={13} />
+                    <span>Cadastrar PIX</span>
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

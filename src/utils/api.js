@@ -185,6 +185,13 @@ export async function apiUpdateUserAvatar(userId, avatar) {
   });
 }
 
+export async function apiUpdatePixKey(pixKey) {
+  return await apiRequest('/auth.php?action=update_pix', {
+    method: 'POST',
+    body: JSON.stringify({ pixKey })
+  });
+}
+
 export async function apiUpdateUser(userId, userData) {
   return await apiRequest('/auth.php?action=update_user', {
     method: 'POST',

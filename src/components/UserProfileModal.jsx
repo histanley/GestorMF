@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   User,
   Mail,
@@ -14,6 +14,8 @@ import {
   Camera,
   Upload,
   Trash2,
+  CreditCard,
+  X,
 } from 'lucide-react';
 import { ROLE_CONFIG, ROLES, setCurrentUser, normalizeRole } from '../utils/auth';
 import { apiUpdateProfile, apiChangePassword } from '../utils/api';
@@ -51,11 +53,24 @@ const processProfilePhoto = (file) => {
   });
 };
 
-export default function UserProfileModal({ isOpen, onClose, currentUser, onUserUpdated }) {
+export default function UserProfileModal({ isOpen, onClose, currentUser, onUserUpdated, members = [] }) {
+  // Identifica o colaborador correspondente para obter Funções e PIX
+  const userMember = useMemo(() => {
+    if (!currentUser) return null;
+    const curId = String(currentUser.id || '');
+    const curName = String(currentUser.name || '').trim().toLowerCase();
+    return (
+      members.find((m) => String(m.id) === curId || String(m.userId) === curId) ||
+      members.find((m) => m.name && m.name.trim().toLowerCase() === curName) ||
+      null
+    );
+  }, [currentUser, members]);
+
   const [name, setName] = useState(currentUser?.name || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [department, setDepartment] = useState(currentUser?.department || '');
   const [avatar, setAvatar] = useState(currentUser?.avatar || '');
+  const [pixKey, setPixKey] = useState(userMember?.pixKey || currentUser?.pixKey || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -70,13 +85,14 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
       setPhone(currentUser.phone || '');
       setDepartment(currentUser.department || '');
       setAvatar(currentUser.avatar || '');
+      setPixKey(userMember?.pixKey || currentUser?.pixKey || '');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setShowPassword(false);
       setFeedback({ type: '', msg: '' });
     }
-  }, [isOpen, currentUser?.id]);
+  }, [isOpen, currentUser?.id, userMember?.pixKey]);
 
   if (!isOpen || !currentUser) return null;
 
@@ -141,6 +157,7 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
       phone: phone.trim(),
       department: department.trim(),
       avatar: avatar,
+      pixKey: pixKey.trim(),
       password: updatedPassword,
     };
 
@@ -150,7 +167,8 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
         name: updatedUser.name,
         phone: updatedUser.phone,
         department: updatedUser.department,
-        avatar: updatedUser.avatar
+        avatar: updatedUser.avatar,
+        pixKey: updatedUser.pixKey
       });
     } catch (err) {
       // segue se offline
@@ -331,6 +349,73 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
                   />
                 </div>
               </div>
+
+              {/* Chave PIX */}
+              <div className="form-group profile-pix-field-span">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>Chave PIX (Recebimento de Diárias & Horas)</label>
+                  {pixKey && (
+                    <button
+                      type="button"
+                      className="btn-link-action text-danger"
+                      onClick={() => setPixKey('')}
+                      title="Excluir Chave PIX"
+                      style={{ fontSize: '0.72rem', background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#ef4444' }}
+                    >
+                      <Trash2 size={11} /> Excluir Chave
+                    </button>
+                  )}
+                </div>
+                <div className="input-with-icon" style={{ marginTop: '6px' }}>
+                  <CreditCard size={15} className="input-icon" />
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={pixKey}
+                    onChange={(e) => setPixKey(e.target.value)}
+                    placeholder="CPF, celular, e-mail ou chave aleatória..."
+                  />
+                  {pixKey && (
+                    <button
+                      type="button"
+                      className="btn-icon-clear-pix"
+                      onClick={() => setPixKey('')}
+                      title="Limpar campo"
+                      style={{ position: 'absolute', right: '10px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+                <small className="field-hint-sub">Chave utilizada pela administração para pagamento de diárias, horas extras e fechamentos.</small>
+              </div>
+            </div>
+          </div>
+
+          {/* Minhas Funções na Empresa (Somente Leitura) */}
+          <div className="profile-section-block">
+            <div className="profile-section-header">
+              <h4 className="profile-section-title">
+                <Briefcase size={15} /> Minhas Funções na Empresa
+              </h4>
+              <span className="profile-badge-readonly" title="Funções atribuídas pela diretoria (somente visualização)">
+                <Lock size={11} /> Somente Leitura
+              </span>
+            </div>
+            <p className="profile-readonly-desc">
+              Suas atribuições oficiais na empresa são definidas pela diretoria e determinam suas escalas e missões no sistema.
+            </p>
+            <div className="profile-roles-display-row">
+              <div className="profile-role-pill role-pill-main" title="Sua Função Principal na empresa">
+                <span className="role-pill-type">Função Principal</span>
+                <span className="role-pill-name">💼 {userMember?.role || currentUser.title || 'Colaborador'}</span>
+              </div>
+              {Array.isArray(userMember?.secondaryRoles) && userMember.secondaryRoles.map((secRole) => (
+                <div key={secRole} className="profile-role-pill role-pill-sec" title="Função Adicional habilitada">
+                  <span className="role-pill-type">Função Adicional</span>
+                  <span className="role-pill-name">🎯 {secRole}</span>
+                </div>
+              ))}
             </div>
           </div>
 

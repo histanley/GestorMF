@@ -90,6 +90,7 @@ import {
   apiDeleteMessage,
   apiDismissAllMessages,
   apiRespondExtraHours,
+  apiUpdatePixKey,
 } from './utils/api';
 import {
   sendPushNotification,
@@ -2011,6 +2012,27 @@ export default function App() {
     }
   };
 
+  const handleUpdatePixKey = async (memberId, newPixKey) => {
+    const trimmed = (newPixKey || '').trim();
+    setMembers((prev) => {
+      const next = prev.map((m) => (m.id === memberId ? { ...m, pixKey: trimmed } : m));
+      localStorage.setItem('gestormf_members', JSON.stringify(next));
+      return next;
+    });
+
+    if (currentUser) {
+      const updatedCur = { ...currentUser, pixKey: trimmed };
+      setCurrentUser(updatedCur);
+      setStoredCurrentUser(updatedCur);
+    }
+
+    try {
+      await apiUpdatePixKey(trimmed);
+    } catch (err) {
+      console.warn('Erro ao sincronizar Chave PIX com o backend:', err);
+    }
+  };
+
   // Reset e Backup
   const handleResetDemoData = () => {
     setSettings(DEFAULT_SETTINGS);
@@ -3169,6 +3191,7 @@ export default function App() {
             members={members}
             missions={missions}
             onReloadMissions={reloadServerMissions}
+            onUpdatePixKey={handleUpdatePixKey}
           />
         )}
       </main>
@@ -3212,6 +3235,7 @@ export default function App() {
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         currentUser={currentUser}
+        members={members}
         onUserUpdated={(updated) => {
           setStoredCurrentUser(updated);
           setCurrentUser(updated);
@@ -3219,7 +3243,13 @@ export default function App() {
             prev.map((m) =>
               (updated.memberId && m.id === updated.memberId) ||
                 (!updated.memberId && m.name && m.name.toLowerCase() === updated.name.toLowerCase())
-                ? { ...m, photoUrl: updated.avatar, name: updated.name, phone: updated.phone || m.phone }
+                ? {
+                    ...m,
+                    photoUrl: updated.avatar,
+                    name: updated.name,
+                    phone: updated.phone || m.phone,
+                    pixKey: updated.pixKey !== undefined ? updated.pixKey : m.pixKey,
+                  }
                 : m
             )
           );
