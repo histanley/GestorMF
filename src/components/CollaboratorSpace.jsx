@@ -36,6 +36,7 @@ import {
 import { apiRequestExtraHours, apiUpdatePixKey } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 import { calculateMissionOffHours } from '../utils/workHours';
+import { sortMissionsByStatusPriority } from '../utils/geo';
 
 // Formata data ISO para PT-BR
 function formatDateBR(dateStr) {
@@ -126,6 +127,11 @@ export default function CollaboratorSpace({
     if (!myMember) return {};
     return computeMemberRoleCounts(myMember, myMissions);
   }, [myMember, myMissions]);
+
+  // Missões ordenadas estritamente por ordem de acontecimento (o que vai acontecer logo aparece primeiro)
+  const sortedMyMissions = useMemo(() => {
+    return sortMissionsByStatusPriority(myMissions);
+  }, [myMissions]);
 
   // Resumo financeiro do mês
   const financialSummary = useMemo(() => {
@@ -569,13 +575,13 @@ export default function CollaboratorSpace({
           Minhas Missões &amp; Solicitação de Horas Extras
         </h3>
 
-        {myMissions.length === 0 ? (
+        {sortedMyMissions.length === 0 ? (
           <div className="cs-empty-notice">
             Você ainda não possui missões registradas nesta base.
           </div>
         ) : (
           <div className="cs-missions-list">
-            {myMissions.slice(0, 10).map((m) => {
+            {sortedMyMissions.slice(0, 15).map((m) => {
               const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
               const requests = Array.isArray(m.extraHoursRequests) ? m.extraHoursRequests : [];
               const myRequests = requests.filter((r) => String(r.memberId) === String(myMember.id));

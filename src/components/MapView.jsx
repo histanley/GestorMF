@@ -19,8 +19,9 @@ import {
   MessageCircle,
   Eye,
   EyeOff,
+  Calendar,
 } from 'lucide-react';
-import { getNavigationLinks, getMissionTotalKm, fetchRouteOSRM } from '../utils/geo';
+import { getNavigationLinks, getMissionTotalKm, fetchRouteOSRM, formatDateBR } from '../utils/geo';
 import { apiGetActiveGpsLocations, apiSendGpsLocation, apiStopGpsLocation } from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 
@@ -907,14 +908,21 @@ export default function MapView({
       {activeMission && (
         <div className="map-mission-floating-card">
           <div className="card-top-bar">
-            <span
-              className={`mission-tag-status tag-${(activeMission.missionStatus || 'Agendada')
-                .toLowerCase()
-                .replace(/\s+/g, '-')}`}
-            >
-              <span className="status-indicator-dot"></span>
-              {activeMission.missionStatus || 'Agendada'}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span
+                className={`mission-tag-status tag-${(activeMission.missionStatus || 'Agendada')
+                  .toLowerCase()
+                  .replace(/\s+/g, '-')}`}
+              >
+                <span className="status-indicator-dot"></span>
+                {activeMission.missionStatus || 'Agendada'}
+              </span>
+              <span className="floating-card-date-badge">
+                📅 {Boolean(activeMission.isMultiDay && activeMission.endDate && activeMission.endDate !== activeMission.date)
+                  ? `${formatDateBR(activeMission.date)} a ${formatDateBR(activeMission.endDate)}`
+                  : formatDateBR(activeMission.date)}
+              </span>
+            </div>
             <button className="card-close-btn" onClick={() => onSelectMission(null)} title="Fechar Detalhes">
               ✕
             </button>
@@ -928,6 +936,20 @@ export default function MapView({
             </div>
 
             <div className="card-metrics-grid">
+              <div className="metric-item highlight-date-item">
+                <div className="metric-label">
+                  <Calendar size={13} /> Data da Missão
+                </div>
+                <div className="metric-value">
+                  {Boolean(activeMission.isMultiDay && activeMission.endDate && activeMission.endDate !== activeMission.date)
+                    ? `${formatDateBR(activeMission.date)} a ${formatDateBR(activeMission.endDate)}`
+                    : formatDateBR(activeMission.date)}
+                  <span className="metric-sub">
+                    Saída: {activeMission.departureTime || '--:--'} • Prev. Retorno: {activeMission.returnTimeEstimated || activeMission.arrivalTimeEstimated || '--:--'}
+                  </span>
+                </div>
+              </div>
+
               <div className="metric-item">
                 <div className="metric-label">
                   <Navigation size={13} /> Distância (Ida e Volta)

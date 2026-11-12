@@ -3066,8 +3066,28 @@ body.light-theme .mm-modal-footer {
   color: var(--accent-gold);
 }
 
+.item-schedule-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.item-date {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-gold, #f59e0b);
+  letter-spacing: 0.2px;
+}
+
+body.light-theme .item-date {
+  color: #b45309 !important;
+}
+
 .item-time {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-family: var(--font-mono);
   color: var(--text-secondary);
 }
@@ -3345,6 +3365,36 @@ body.light-theme .mm-modal-footer {
   background: rgba(245, 158, 11, 0.15);
   padding: 3px 8px;
   border-radius: 12px;
+}
+
+.floating-card-date-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-gold, #f59e0b);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 3px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.2px;
+}
+
+body.light-theme .floating-card-date-badge {
+  color: #b45309 !important;
+  background: #fef3c7 !important;
+  border-color: #fcd34d !important;
+}
+
+.metric-item.highlight-date-item {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  background: rgba(245, 158, 11, 0.05) !important;
+}
+
+body.light-theme .metric-item.highlight-date-item {
+  border-color: #f59e0b !important;
+  background: #fffbeb !important;
 }
 
 .status-indicator-dot {

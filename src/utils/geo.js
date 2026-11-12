@@ -424,34 +424,56 @@ export function getMissionStatusPriority(mission) {
 
 /**
  * Ordena a lista de missões priorizando rigorosamente:
- * 1. Missões Em Execução / Em Andamento
- * 2. Missões Pendentes
- * 3. Missões Agendadas
- * 4. Missões Finalizadas / Concluídas
- * Como critério de desempate no mesmo status: Data mais recente primeiro (date DESC),
- * horário de saída crescente (departureTime ASC) e ID decrescente.
+ * 1. Missões Em Execução / Em Andamento (acontecendo no momento imediato na rua)
+ * 2. Ordem de acontecimento cronológico estrito (o que vai acontecer logo aparece primeiro: date ASC)
+ * 3. No mesmo dia: horário de saída crescente (departureTime ASC)
+ * 4. Missões Finalizadas / Canceladas (ficam ao final; entre si, ordenadas por mais recentes primeiro: date DESC)
  */
 export function sortMissionsByStatusPriority(missions = []) {
   if (!Array.isArray(missions)) return [];
   return [...missions].sort((a, b) => {
-    const pA = getMissionStatusPriority(a);
-    const pB = getMissionStatusPriority(b);
-    if (pA !== pB) {
-      return pA - pB;
+    const isFinA = isMissionFinalizada(a) || a.missionStatus === 'Cancelada';
+    const isFinB = isMissionFinalizada(b) || b.missionStatus === 'Cancelada';
+
+    // Missões ativas sempre vêm antes de missões finalizadas/canceladas
+    if (!isFinA && isFinB) return -1;
+    if (isFinA && !isFinB) return 1;
+
+    // Se ambas forem finalizadas/canceladas: mais recentes primeiro (data DESC, hora DESC)
+    if (isFinA && isFinB) {
+      const dateComp = String(b.date || '').localeCompare(String(a.date || ''));
+      if (dateComp !== 0) return dateComp;
+      const timeComp = String(b.departureTime || '00:00').localeCompare(String(a.departureTime || '00:00'));
+      if (timeComp !== 0) return timeComp;
+      return String(b.id || '').localeCompare(String(a.id || ''));
     }
 
-    // Critério secundário: data mais recente primeiro
-    const dateComp = String(b.date || '').localeCompare(String(a.date || ''));
+    // Ambas são ativas:
+    // 1º lugar: Em Execução / Em Andamento tem prioridade máxima imediata no terreno
+    const isExecA = a.missionStatus === 'Em Execução' || a.missionStatus === 'Em Andamento';
+    const isExecB = b.missionStatus === 'Em Execução' || b.missionStatus === 'Em Andamento';
+    if (isExecA && !isExecB) return -1;
+    if (!isExecA && isExecB) return 1;
+
+    // 2º lugar: Ordem de acontecimento cronológico estrito (o que vai acontecer logo aparece primeiro)
+    const dateA = String(a.date || '9999-99-99');
+    const dateB = String(b.date || '9999-99-99');
+    const dateComp = dateA.localeCompare(dateB);
     if (dateComp !== 0) return dateComp;
 
-    // Critério terciário: horário de saída crescente
+    // 3º lugar: No mesmo dia, o horário de saída mais cedo vem primeiro
     const timeA = String(a.departureTime || a.eventStartTime || '99:99');
     const timeB = String(b.departureTime || b.eventStartTime || '99:99');
     const timeComp = timeA.localeCompare(timeB);
     if (timeComp !== 0) return timeComp;
 
-    // Critério quaternário: ID decrescente
-    return String(b.id || '').localeCompare(String(a.id || ''));
+    // 4º lugar: Prioridade de status (Pendente vs Agendada)
+    const pA = getMissionStatusPriority(a);
+    const pB = getMissionStatusPriority(b);
+    if (pA !== pB) return pA - pB;
+
+    // 5º lugar: ID crescente (código mais antigo / menor código primeiro)
+    return String(a.id || '').localeCompare(String(b.id || ''));
   });
 }
 

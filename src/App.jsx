@@ -3125,7 +3125,14 @@ export default function App() {
                               </span>
                             )}
                           </div>
-                          <span className="item-time">Saída: {m.departureTime}</span>
+                          <div className="item-schedule-meta">
+                            <span className="item-date">
+                              📅 {Boolean(m.isMultiDay && m.endDate && m.endDate !== m.date)
+                                ? `${formatDateBR(m.date)} a ${formatDateBR(m.endDate)}`
+                                : formatDateBR(m.date)}
+                            </span>
+                            <span className="item-time">Saída: {m.departureTime || '--:--'}</span>
+                          </div>
                         </div>
 
                         <h4 className="item-title">{m.description}</h4>
