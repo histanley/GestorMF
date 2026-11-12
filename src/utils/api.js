@@ -268,6 +268,21 @@ export async function apiSaveSettings(settings, roles = null) {
 }
 
 // ------------------------------------------------------------------------------
+// 5.1 FECHAMENTO DE DIÁRIAS, HORAS & PAGAMENTOS (PAYOUTS)
+// ------------------------------------------------------------------------------
+export async function apiGetPayouts(monthKey) {
+  const q = monthKey ? `?month=${encodeURIComponent(monthKey)}` : '';
+  return await apiRequest(`/payouts.php${q}`);
+}
+
+export async function apiSavePayout(payoutData) {
+  return await apiRequest('/payouts.php', {
+    method: 'POST',
+    body: JSON.stringify(payoutData)
+  });
+}
+
+// ------------------------------------------------------------------------------
 // 6. TRILHA DE AUDITORIA (AUDIT LOGS)
 // ------------------------------------------------------------------------------
 export async function apiGetAuditLogs(module = '', search = '', limit = 60) {

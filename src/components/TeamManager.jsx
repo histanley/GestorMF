@@ -35,8 +35,10 @@ import {
   Car,
   Trophy,
   Sparkles,
+  DollarSign,
 } from 'lucide-react';
 import TeamPerformanceRanking from './TeamPerformanceRanking';
+import TeamPayoutsDashboard from './TeamPayoutsDashboard';
 import { getActiveMissionForMember as findActiveMissionForMember } from '../utils/geo';
 import {
   ROLES,
@@ -578,6 +580,11 @@ export default function TeamManager({
       cnhCategory: 'B',
       active: true,
       photoUrl: '',
+      hourlyRate: 50,
+      dailyRate: 200,
+      rateModel: 'hourly',
+      blockRate: 200,
+      pixKey: '',
     });
     setAccount(EMPTY_ACCOUNT);
     setAccountError('');
@@ -601,6 +608,11 @@ export default function TeamManager({
       cnhCategory: m.cnhCategory || 'B',
       active: m.active ?? true,
       photoUrl: m.photoUrl || '',
+      hourlyRate: Number(m.hourlyRate ?? m.hourly_rate ?? 50),
+      dailyRate: Number(m.dailyRate ?? m.daily_rate ?? 200),
+      rateModel: m.rateModel || m.rate_model || 'hourly',
+      blockRate: Number(m.blockRate ?? m.block_rate ?? 200),
+      pixKey: m.pixKey || m.pix_key || '',
     });
     const linked = findUserByMemberId(m.id, m.name);
     setAccount({
@@ -650,6 +662,16 @@ export default function TeamManager({
 
     const memberPayload = {
       ...formData,
+      hourlyRate: Number(formData.hourlyRate ?? 50),
+      hourly_rate: Number(formData.hourlyRate ?? 50),
+      dailyRate: Number(formData.dailyRate ?? 200),
+      daily_rate: Number(formData.dailyRate ?? 200),
+      rateModel: formData.rateModel || 'hourly',
+      rate_model: formData.rateModel || 'hourly',
+      blockRate: Number(formData.blockRate ?? 200),
+      block_rate: Number(formData.blockRate ?? 200),
+      pixKey: (formData.pixKey || '').trim(),
+      pix_key: (formData.pixKey || '').trim(),
       id: memberId,
       email: account.email.trim(),
       account: {
@@ -815,21 +837,27 @@ export default function TeamManager({
               ? 'EQUIPES & PROFISSIONAIS'
               : teamSubView === 'admins'
               ? 'DIRETORIA & TI'
-              : '📊 INTELIGÊNCIA & PERFORMANCE (ADMIN)'}
+              : teamSubView === 'ranking'
+              ? '📊 INTELIGÊNCIA & PERFORMANCE (ADMIN)'
+              : '💵 DIÁRIAS, CACHÊS & FECHAMENTO (ADMIN)'}
           </div>
           <h1 className="board-main-title">
             {teamSubView === 'field'
               ? 'Membros e Equipes de Campo'
               : teamSubView === 'admins'
               ? 'Administradores do Sistema'
-              : 'Ranking & Raio-X dos Colaboradores'}
+              : teamSubView === 'ranking'
+              ? 'Ranking & Raio-X dos Colaboradores'
+              : 'Diárias, Horas & Folha de Pagamento'}
           </h1>
           <p className="board-subtitle">
             {teamSubView === 'field'
               ? 'Organização de diretores, cinegrafistas, pilotos de drone, editores e técnicos de campo'
               : teamSubView === 'admins'
               ? 'Usuários com acesso total às configurações, gestão de frotas e controle geral da plataforma'
-              : 'Métricas executivas de assiduidade, condução de viaturas, missões audiovisuais e ranking corporativo de pontuação'}
+              : teamSubView === 'ranking'
+              ? 'Métricas executivas de assiduidade, condução de viaturas, missões audiovisuais e ranking corporativo de pontuação'
+              : 'Gestão de taxas individuais por hora, diárias de viagens longas, fechamento mensal do dia 5 e espelhos para pagamento'}
           </p>
         </div>
 
@@ -895,6 +923,18 @@ export default function TeamManager({
               <span className="seg-counter ranking-count">EXCLUSIVO</span>
             </button>
           )}
+
+          {userRole === 'admin' && (
+            <button
+              type="button"
+              className={`team-seg-btn team-seg-payouts-btn ${teamSubView === 'payouts' ? 'is-active is-payouts-active' : ''}`}
+              onClick={() => setTeamSubView('payouts')}
+            >
+              <DollarSign size={16} />
+              <span className="seg-label">Diárias &amp; Fechamento</span>
+              <span className="seg-counter payouts-count">FOLHA</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -905,7 +945,15 @@ export default function TeamManager({
           missions={missions}
           onOpenEditMember={handleOpenEdit}
         />
-      ) : teamSubView === 'field' ? (
+      ) : teamSubView === 'payouts' && userRole === 'admin' ? (
+        <TeamPayoutsDashboard
+          members={members}
+          missions={missions}
+          onUpdateMember={onUpdateMember}
+        />
+      ) : (
+        <>
+          {teamSubView === 'field' ? (
         <div className="fleet-kpi-grid team-kpi-grid">
           <div className="kpi-card kpi-gold">
             <div className="kpi-icon-box bg-gold">
@@ -1378,6 +1426,8 @@ export default function TeamManager({
           </div>
         </div>
       )}
+        </>
+      )}
 
       {/* Input oculto para troca rápida de foto de membro de campo */}
       <input
@@ -1778,6 +1828,88 @@ export default function TeamManager({
                   )}
                 </div>
               </div>
+
+              {/* ===== Remuneração Individual, Diárias & Folha (Exclusivo Administrador) ===== */}
+              {userRole === 'admin' && (
+                <div className="member-finance-section">
+                  <div className="member-access-header">
+                    <strong style={{ color: '#10b981' }}>
+                      <DollarSign size={15} /> Remuneração Individual &amp; Diárias (Folha)
+                    </strong>
+                    <small>
+                      Configure as taxas praticadas para este colaborador em eventos locais e viagens longas.
+                    </small>
+                  </div>
+
+                  <div className="member-finance-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginTop: '12px' }}>
+                    <div className="form-group">
+                      <label>Modelo de Remuneração Local</label>
+                      <select
+                        value={formData.rateModel || 'hourly'}
+                        onChange={(e) => setFormData({ ...formData, rateModel: e.target.value })}
+                      >
+                        <option value="hourly">Por Hora Exata (Padrão)</option>
+                        <option value="block_4h">Por Bloco de 4 Horas (Pacote)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>
+                        {formData.rateModel === 'block_4h' ? 'Valor do Bloco (4 Horas)' : 'Valor da Hora (R$/h)'}
+                      </label>
+                      <div className="finance-input-prefix-wrap" style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#10b981', fontWeight: 600, fontSize: '13px' }}>R$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="5"
+                          style={{ paddingLeft: '34px' }}
+                          placeholder={formData.rateModel === 'block_4h' ? '200' : '50'}
+                          value={formData.rateModel === 'block_4h' ? (formData.blockRate ?? 200) : (formData.hourlyRate ?? 50)}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            if (formData.rateModel === 'block_4h') {
+                              setFormData({ ...formData, blockRate: val });
+                            } else {
+                              setFormData({ ...formData, hourlyRate: val });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Diária de Viagem Longa (+1 dia)</label>
+                      <div className="finance-input-prefix-wrap" style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#f59e0b', fontWeight: 600, fontSize: '13px' }}>R$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="10"
+                          style={{ paddingLeft: '34px' }}
+                          placeholder="200"
+                          value={formData.dailyRate ?? 200}
+                          onChange={(e) => setFormData({ ...formData, dailyRate: Number(e.target.value) })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Chave PIX (Para Pagamento)</label>
+                      <div className="finance-input-prefix-wrap" style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#06b6d4', fontWeight: 600, fontSize: '11px' }}>PIX</span>
+                        <input
+                          type="text"
+                          style={{ paddingLeft: '36px' }}
+                          placeholder="CPF, celular, e-mail ou aleatória"
+                          value={formData.pixKey || ''}
+                          onChange={(e) => setFormData({ ...formData, pixKey: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* ===== Acesso ao Sistema e Credenciais (Obrigatório e Natural) ===== */}
               <div className="member-access-section">

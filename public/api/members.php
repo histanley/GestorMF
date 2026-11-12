@@ -14,6 +14,17 @@ function ensureMembersColumns($db) {
             $db->exec("ALTER TABLE members ADD COLUMN secondary_roles LONGTEXT NULL AFTER role");
         }
     } catch (Exception $e) {}
+
+    try {
+        $stmt = $db->query("SHOW COLUMNS FROM members LIKE 'hourly_rate'");
+        if (!$stmt || !$stmt->fetch()) {
+            $db->exec("ALTER TABLE members ADD COLUMN hourly_rate DECIMAL(10,2) DEFAULT 0.00 AFTER cnh_category");
+            $db->exec("ALTER TABLE members ADD COLUMN daily_rate DECIMAL(10,2) DEFAULT 0.00 AFTER hourly_rate");
+            $db->exec("ALTER TABLE members ADD COLUMN rate_model VARCHAR(30) DEFAULT 'hourly' AFTER daily_rate");
+            $db->exec("ALTER TABLE members ADD COLUMN block_rate DECIMAL(10,2) DEFAULT 0.00 AFTER rate_model");
+            $db->exec("ALTER TABLE members ADD COLUMN pix_key VARCHAR(100) NULL AFTER block_rate");
+        }
+    } catch (Exception $e) {}
 }
 ensureMembersColumns($db);
 
@@ -39,6 +50,11 @@ if ($method === 'GET') {
             'photoUrl'       => $m['photo_url'],
             'canDrive'       => (bool)($m['can_drive'] ?? false),
             'cnhCategory'    => $m['cnh_category'] ?? 'B',
+            'hourlyRate'     => isset($m['hourly_rate']) ? (float)$m['hourly_rate'] : 0.0,
+            'dailyRate'      => isset($m['daily_rate']) ? (float)$m['daily_rate'] : 0.0,
+            'rateModel'      => $m['rate_model'] ?? 'hourly',
+            'blockRate'      => isset($m['block_rate']) ? (float)$m['block_rate'] : 0.0,
+            'pixKey'         => $m['pix_key'] ?? '',
             'userId'         => $m['user_id'] ?? null,
             'active'         => (bool)$m['active'],
             'createdAt'      => $m['created_at'],
@@ -185,9 +201,15 @@ if ($method === 'POST' || $method === 'PUT') {
             ? json_encode(array_values(array_unique(array_filter($secRolesInput))), JSON_UNESCAPED_UNICODE)
             : null;
 
+        $hourlyRate = isset($data['hourlyRate']) ? (float)$data['hourlyRate'] : (isset($data['hourly_rate']) ? (float)$data['hourly_rate'] : 0.00);
+        $dailyRate = isset($data['dailyRate']) ? (float)$data['dailyRate'] : (isset($data['daily_rate']) ? (float)$data['daily_rate'] : 0.00);
+        $rateModel = trim($data['rateModel'] ?? ($data['rate_model'] ?? 'hourly'));
+        $blockRate = isset($data['blockRate']) ? (float)$data['blockRate'] : (isset($data['block_rate']) ? (float)$data['block_rate'] : 0.00);
+        $pixKey = trim($data['pixKey'] ?? ($data['pix_key'] ?? ''));
+
         $sql = "
-            INSERT INTO members (id, name, role, secondary_roles, company, phone, photo_url, user_id, can_drive, cnh_category, active)
-            VALUES (:id, :name, :role, :secondary_roles, :company, :phone, :photo_url, :user_id, :can_drive, :cnh_category, :active)
+            INSERT INTO members (id, name, role, secondary_roles, company, phone, photo_url, user_id, can_drive, cnh_category, hourly_rate, daily_rate, rate_model, block_rate, pix_key, active)
+            VALUES (:id, :name, :role, :secondary_roles, :company, :phone, :photo_url, :user_id, :can_drive, :cnh_category, :hourly_rate, :daily_rate, :rate_model, :block_rate, :pix_key, :active)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
                 role = VALUES(role),
@@ -198,6 +220,11 @@ if ($method === 'POST' || $method === 'PUT') {
                 user_id = VALUES(user_id),
                 can_drive = VALUES(can_drive),
                 cnh_category = VALUES(cnh_category),
+                hourly_rate = VALUES(hourly_rate),
+                daily_rate = VALUES(daily_rate),
+                rate_model = VALUES(rate_model),
+                block_rate = VALUES(block_rate),
+                pix_key = VALUES(pix_key),
                 active = VALUES(active)
         ";
 
@@ -213,6 +240,11 @@ if ($method === 'POST' || $method === 'PUT') {
             ':user_id'         => $assignedUserId,
             ':can_drive'       => $canDrive,
             ':cnh_category'    => $cnhCategory,
+            ':hourly_rate'     => $hourlyRate,
+            ':daily_rate'      => $dailyRate,
+            ':rate_model'      => $rateModel,
+            ':block_rate'      => $blockRate,
+            ':pix_key'         => $pixKey,
             ':active'          => isset($data['active']) && !$data['active'] ? 0 : 1
         ]);
 
