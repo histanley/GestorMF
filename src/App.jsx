@@ -30,6 +30,7 @@ import {
   BellRing,
   Radio,
   Shield,
+  ShieldCheck,
   Zap,
   User,
 } from 'lucide-react';
@@ -38,6 +39,7 @@ import MapView from './components/MapView';
 import ServiceBoard from './components/ServiceBoard';
 import VehicleManager from './components/VehicleManager';
 import TeamManager from './components/TeamManager';
+import AdminCenter from './components/AdminCenter';
 import CollaboratorSpace from './components/CollaboratorSpace';
 import MissionModal from './components/MissionModal';
 import SettingsModal from './components/SettingsModal';
@@ -193,12 +195,19 @@ export default function App() {
   // Estado de Navegação de Abas: 'map' (Mapa), 'board' (Tabela de Serviço), 'vehicles' (Viaturas), 'teams' (Equipes)
   const [activeTab, setActiveTab] = useState('map');
 
-  // Redireciona automaticamente para o Mapa se um usuário básico tentar acessar Viaturas ou Equipes
+  // Protege e direciona abas conforme permissões:
+  // Administradores usam 'admin' (Central do Admin); Colaboradores usam 'me' (Meu Espaço)
   useEffect(() => {
+    if (isAdminUser && activeTab === 'me') {
+      setActiveTab('admin');
+    }
+    if (!isAdminUser && activeTab === 'admin') {
+      setActiveTab('me');
+    }
     if (!canManageFleetAndTeams && (activeTab === 'vehicles' || activeTab === 'teams')) {
       setActiveTab('map');
     }
-  }, [canManageFleetAndTeams, activeTab]);
+  }, [isAdminUser, canManageFleetAndTeams, activeTab]);
 
   // Estado do Tema (Modo Escuro / Modo Claro) persistente no LocalStorage
   const [theme, setTheme] = useState(() => {
@@ -2422,15 +2431,36 @@ export default function App() {
             </>
           )}
 
-          <button
-            className={`tab-btn ${activeTab === 'me' ? 'active' : ''}`}
-            onClick={() => setActiveTab('me')}
-          >
-            <span className="tab-icon-box">
-              <Sparkles size={15} />
-            </span>
-            <span className="tab-label">Meu Espaço</span>
-          </button>
+          {/* Se for ADMINISTRADOR: Exibe a Central do Admin e NÃO exibe Meu Espaço */}
+          {isAdminUser ? (
+            <button
+              className={`tab-btn tab-btn-admin ${activeTab === 'admin' ? 'active' : ''}`}
+              onClick={() => setActiveTab('admin')}
+              title="Central do Administrador: Aprovações, Diárias & Fechamento, Inteligência & Ranking"
+            >
+              <span className="tab-icon-box">
+                <ShieldCheck size={15} />
+              </span>
+              <span className="tab-label">Central do Admin</span>
+              {pendingExtraHoursRequests.length > 0 && (
+                <span className="tab-badge badge-danger-pulse">
+                  ⏱️ {pendingExtraHoursRequests.length}
+                </span>
+              )}
+            </button>
+          ) : (
+            /* Se for COLABORADOR: Exibe Meu Espaço */
+            <button
+              className={`tab-btn ${activeTab === 'me' ? 'active' : ''}`}
+              onClick={() => setActiveTab('me')}
+              title="Meu Espaço Individual: Horas Extras, Diárias e Funções"
+            >
+              <span className="tab-icon-box">
+                <Sparkles size={15} />
+              </span>
+              <span className="tab-label">Meu Espaço</span>
+            </button>
+          )}
         </nav>
 
         {/* Ações Rápidas no Header */}
@@ -2626,13 +2656,26 @@ export default function App() {
                 </>
               )}
 
-              <button
-                className={`md-nav-item ${activeTab === 'me' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('me'); setIsMobileDrawerOpen(false); }}
-              >
-                <Sparkles size={18} />
-                <span>Meu Espaço (Colaborador)</span>
-              </button>
+              {isAdminUser ? (
+                <button
+                  className={`md-nav-item ${activeTab === 'admin' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('admin'); setIsMobileDrawerOpen(false); }}
+                >
+                  <ShieldCheck size={18} />
+                  <span>Central do Admin</span>
+                  {pendingExtraHoursRequests.length > 0 && (
+                    <span className="md-nav-badge danger">⏱️ {pendingExtraHoursRequests.length}</span>
+                  )}
+                </button>
+              ) : (
+                <button
+                  className={`md-nav-item ${activeTab === 'me' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('me'); setIsMobileDrawerOpen(false); }}
+                >
+                  <Sparkles size={18} />
+                  <span>Meu Espaço (Colaborador)</span>
+                </button>
+              )}
             </nav>
 
             {canCreateMission && (
@@ -2900,63 +2943,77 @@ export default function App() {
           </div>
 
           <div className="dbg-right">
-            {activeTab !== 'me' ? (
-              <button
-                type="button"
-                className="dbg-btn-space"
-                onClick={() => setActiveTab('me')}
-                title="Ver meu extrato financeiro, histórico de missões e métricas"
-              >
-                <Sparkles size={14} />
-                <span>Meu Espaço</span>
-              </button>
+            {isAdminUser ? (
+              activeTab !== 'admin' ? (
+                <button
+                  type="button"
+                  className="dbg-btn-space"
+                  onClick={() => setActiveTab('admin')}
+                  title="Abrir Central do Administrador: Aprovações, Diárias & Fechamento, Inteligência & Ranking"
+                >
+                  <ShieldCheck size={14} />
+                  <span>Central do Admin</span>
+                  {pendingExtraHoursRequests.length > 0 && (
+                    <span className="dbg-badge-count">
+                      ⏱️ {pendingExtraHoursRequests.length}
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="dbg-btn-space active"
+                  onClick={() => setActiveTab('map')}
+                  title="Voltar ao monitoramento de missões"
+                >
+                  <Navigation size={14} />
+                  <span>Mapa &amp; Frotas</span>
+                </button>
+              )
             ) : (
-              <button
-                type="button"
-                className="dbg-btn-space active"
-                onClick={() => setActiveTab('map')}
-                title="Voltar ao monitoramento de missões"
-              >
-                <Navigation size={14} />
-                <span>Mapa &amp; Frotas</span>
-              </button>
+              activeTab !== 'me' ? (
+                <button
+                  type="button"
+                  className="dbg-btn-space"
+                  onClick={() => setActiveTab('me')}
+                  title="Ver meu extrato financeiro, histórico de missões e métricas"
+                >
+                  <Sparkles size={14} />
+                  <span>Meu Espaço</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="dbg-btn-space active"
+                  onClick={() => setActiveTab('map')}
+                  title="Voltar ao monitoramento de missões"
+                >
+                  <Navigation size={14} />
+                  <span>Mapa &amp; Frotas</span>
+                </button>
+              )
             )}
           </div>
         </div>
 
-        {/* ALERTA DE HORAS EXTRAS PENDENTES (Para Administradores) */}
-        {isAdminUser && pendingExtraHoursRequests.length > 0 && (
+        {/* ALERTA DE HORAS EXTRAS PENDENTES (Para Administradores fora da aba admin) */}
+        {isAdminUser && activeTab !== 'admin' && pendingExtraHoursRequests.length > 0 && (
           <div className="ehr-pending-admin-alert">
             <div className="ehr-alert-header">
               <Clock size={16} className="text-amber" />
-              <strong>⏱️ {pendingExtraHoursRequests.length} Solicitação{pendingExtraHoursRequests.length !== 1 ? 'ões' : ''} de Hora Extra Aguardando Sua Aprovação:</strong>
+              <strong>⏱️ {pendingExtraHoursRequests.length} Solicitação{pendingExtraHoursRequests.length !== 1 ? 'ões' : ''} de Hora Extra Aguardando Sua Aprovação</strong>
             </div>
-            <div className="ehr-alert-list">
-              {pendingExtraHoursRequests.map((req) => (
-                <div key={req.id} className="ehr-alert-item">
-                  <div className="ehr-item-info">
-                    <strong>{req.memberName}</strong> solicitou <strong>+{req.hoursRequested}h</strong> na missão <em>"{req.missionTitle}"</em>
-                    <small className="ehr-item-reason">Motivo: {req.reason}</small>
-                  </div>
-                  <div className="ehr-item-actions">
-                    <button
-                      type="button"
-                      className="btn-ehr-approve"
-                      onClick={() => handleRespondExtraHours(req.missionId, req.id, 'APPROVE')}
-                    >
-                      Aprovar +{req.hoursRequested}h
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ehr-reject"
-                      onClick={() => handleRespondExtraHours(req.missionId, req.id, 'REJECT')}
-                    >
-                      Recusar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="ehr-alert-msg">
+              Colaboradores de campo solicitaram horas extras que necessitam da sua validação para cômputo na folha.
+            </p>
+            <button
+              type="button"
+              className="btn-ehr-open-admin"
+              onClick={() => setActiveTab('admin')}
+            >
+              <span>Avaliar na Central do Admin</span>
+              <ChevronRight size={14} />
+            </button>
           </div>
         )}
 
@@ -3184,8 +3241,20 @@ export default function App() {
           />
         )}
 
-        {/* ABA 5: MEU ESPAÇO (Área Individual do Colaborador) */}
-        {activeTab === 'me' && (
+        {/* ABA 5: CENTRAL DO ADMINISTRADOR (Exclusiva para Administradores) */}
+        {activeTab === 'admin' && isAdminUser && (
+          <AdminCenter
+            currentUser={currentUser}
+            members={members}
+            missions={missions}
+            onUpdateMember={handleUpdateMember}
+            onRespondExtraHours={handleRespondExtraHours}
+            reloadServerMissions={reloadServerMissions}
+          />
+        )}
+
+        {/* ABA 6: MEU ESPAÇO (Área Individual do Colaborador - Apenas para Colaboradores) */}
+        {activeTab === 'me' && !isAdminUser && (
           <CollaboratorSpace
             currentUser={currentUser}
             members={members}
@@ -3320,7 +3389,19 @@ export default function App() {
             </button>
           )}
 
-          {canManageFleetAndTeams ? (
+          {isAdminUser ? (
+            <button
+              type="button"
+              className={`mbn-item ${activeTab === 'admin' ? 'active' : ''}`}
+              onClick={() => setActiveTab('admin')}
+            >
+              <ShieldCheck size={19} />
+              <span>Admin</span>
+              {pendingExtraHoursRequests.length > 0 && (
+                <span className="mbn-badge danger">{pendingExtraHoursRequests.length}</span>
+              )}
+            </button>
+          ) : canManageFleetAndTeams ? (
             <button
               type="button"
               className={`mbn-item ${activeTab === 'teams' ? 'active' : ''}`}
@@ -3332,11 +3413,11 @@ export default function App() {
           ) : (
             <button
               type="button"
-              className="mbn-item"
-              onClick={() => setIsProfileModalOpen(true)}
+              className={`mbn-item ${activeTab === 'me' ? 'active' : ''}`}
+              onClick={() => setActiveTab('me')}
             >
-              <Shield size={19} />
-              <span>Perfil</span>
+              <Sparkles size={19} />
+              <span>Meu Espaço</span>
             </button>
           )}
         </nav>

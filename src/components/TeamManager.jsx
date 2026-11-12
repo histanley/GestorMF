@@ -33,12 +33,8 @@ import {
   MessageCircle,
   AlertTriangle,
   Car,
-  Trophy,
   Sparkles,
-  DollarSign,
 } from 'lucide-react';
-import TeamPerformanceRanking from './TeamPerformanceRanking';
-import TeamPayoutsDashboard from './TeamPayoutsDashboard';
 import { getActiveMissionForMember as findActiveMissionForMember } from '../utils/geo';
 import {
   ROLES,
@@ -835,29 +831,17 @@ export default function TeamManager({
           <div className="board-badge">
             {teamSubView === 'field'
               ? 'EQUIPES & PROFISSIONAIS'
-              : teamSubView === 'admins'
-              ? 'DIRETORIA & TI'
-              : teamSubView === 'ranking'
-              ? '📊 INTELIGÊNCIA & PERFORMANCE (ADMIN)'
-              : '💵 DIÁRIAS, CACHÊS & FECHAMENTO (ADMIN)'}
+              : 'DIRETORIA & TI'}
           </div>
           <h1 className="board-main-title">
             {teamSubView === 'field'
               ? 'Membros e Equipes de Campo'
-              : teamSubView === 'admins'
-              ? 'Administradores do Sistema'
-              : teamSubView === 'ranking'
-              ? 'Ranking & Raio-X dos Colaboradores'
-              : 'Diárias, Horas & Folha de Pagamento'}
+              : 'Administradores do Sistema'}
           </h1>
           <p className="board-subtitle">
             {teamSubView === 'field'
               ? 'Organização de diretores, cinegrafistas, pilotos de drone, editores e técnicos de campo'
-              : teamSubView === 'admins'
-              ? 'Usuários com acesso total às configurações, gestão de frotas e controle geral da plataforma'
-              : teamSubView === 'ranking'
-              ? 'Métricas executivas de assiduidade, condução de viaturas, missões audiovisuais e ranking corporativo de pontuação'
-              : 'Gestão de taxas individuais por hora, diárias de viagens longas, fechamento mensal do dia 5 e espelhos para pagamento'}
+              : 'Usuários com acesso total às configurações, gestão de frotas e controle geral da plataforma'}
           </p>
         </div>
 
@@ -911,49 +895,12 @@ export default function TeamManager({
             <span className="seg-label">Administradores do Sistema</span>
             <span className="seg-counter admin-count">{adminUsers.length}</span>
           </button>
-
-          {userRole === 'admin' && (
-            <button
-              type="button"
-              className={`team-seg-btn team-seg-ranking-btn ${teamSubView === 'ranking' ? 'is-active is-ranking-active' : ''}`}
-              onClick={() => setTeamSubView('ranking')}
-            >
-              <Trophy size={16} />
-              <span className="seg-label">Inteligência &amp; Ranking</span>
-              <span className="seg-counter ranking-count">EXCLUSIVO</span>
-            </button>
-          )}
-
-          {userRole === 'admin' && (
-            <button
-              type="button"
-              className={`team-seg-btn team-seg-payouts-btn ${teamSubView === 'payouts' ? 'is-active is-payouts-active' : ''}`}
-              onClick={() => setTeamSubView('payouts')}
-            >
-              <DollarSign size={16} />
-              <span className="seg-label">Diárias &amp; Fechamento</span>
-              <span className="seg-counter payouts-count">FOLHA</span>
-            </button>
-          )}
         </div>
       </div>
 
-      {/* ---- Conteúdo da Subvisão ---- */}
-      {teamSubView === 'ranking' && userRole === 'admin' ? (
-        <TeamPerformanceRanking
-          members={members}
-          missions={missions}
-          onOpenEditMember={handleOpenEdit}
-        />
-      ) : teamSubView === 'payouts' && userRole === 'admin' ? (
-        <TeamPayoutsDashboard
-          members={members}
-          missions={missions}
-          onUpdateMember={onUpdateMember}
-        />
-      ) : (
-        <>
-          {teamSubView === 'field' ? (
+      {/* ---- Conteúdo da Subvisão (Equipes de Campo vs Administradores) ---- */}
+      <>
+        {teamSubView === 'field' ? (
         <div className="fleet-kpi-grid team-kpi-grid">
           <div className="kpi-card kpi-gold">
             <div className="kpi-icon-box bg-gold">
@@ -1426,8 +1373,7 @@ export default function TeamManager({
           </div>
         </div>
       )}
-        </>
-      )}
+      </>
 
       {/* Input oculto para troca rápida de foto de membro de campo */}
       <input
