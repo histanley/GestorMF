@@ -31,7 +31,15 @@ import {
   Building,
   Activity,
   Zap,
+  Briefcase,
 } from 'lucide-react';
+import {
+  OFFICIAL_COMPANY_ROLES,
+  ROLE_ICONS_MAP,
+  ROLE_COLORS_MAP,
+  normalizeToOfficialRole,
+  computeMemberRoleCounts,
+} from '../utils/companyRoles';
 
 // Formata data ISO para PT-BR (dd/mm/aaaa)
 function formatDateBR(dateStr) {
@@ -241,9 +249,13 @@ export default function TeamPerformanceRanking({
         badges.push({ id: 'mestre-edicao', icon: '🎬', name: 'Mestre da Ilha', desc: 'Edição e finalização de pautas' });
       }
 
+      // Contagem fiel de cada uma das 11 funções exercidas pelo colaborador
+      const roleCounts = computeMemberRoleCounts(member, filteredMissions);
+
       return {
         ...member,
         allRoles,
+        roleCounts,
         totalMissions,
         drivingCount,
         multiDayCount,
@@ -689,6 +701,30 @@ export default function TeamPerformanceRanking({
                     ))}
                   </div>
 
+                  {/* Chips rápidos das 11 funções cumpridas */}
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                    {OFFICIAL_COMPANY_ROLES.filter((r) => (member.roleCounts?.[r] || 0) > 0).map((r) => (
+                      <span
+                        key={r}
+                        style={{
+                          fontSize: '0.68rem',
+                          padding: '1px 6px',
+                          borderRadius: '6px',
+                          background: 'rgba(255,255,255,0.04)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          color: '#cbd5e1',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                      >
+                        <span>{ROLE_ICONS_MAP[r] || '💼'}</span>
+                        <span>{r}:</span>
+                        <strong style={{ color: '#f59e0b' }}>{member.roleCounts[r]}x</strong>
+                      </span>
+                    ))}
+                  </div>
+
                   {/* Barra de Engajamento */}
                   <div className="rmc-progress-track">
                     <div
@@ -835,6 +871,79 @@ export default function TeamPerformanceRanking({
                     <span className="rsb-kpi-num text-green">{selectedMemberDetail.estimatedDistanceKm}</span>
                     <span className="rsb-kpi-lbl">Km Guiados</span>
                   </div>
+                </div>
+              </div>
+
+              {/* ATUAÇÃO FIEL PELAS 11 FUNÇÕES DA EMPRESA */}
+              <div className="ray-roles-matrix-section">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '4px' }}>
+                  <h4 className="ray-sub-heading" style={{ margin: 0 }}>
+                    <Briefcase size={15} /> Atuação por Função na Empresa (11 Funções Oficiais)
+                  </h4>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    Contagem fiel de missões exercidas em cada função
+                  </span>
+                </div>
+
+                <div className="ray-roles-matrix-grid" style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+                  gap: '0.6rem',
+                  marginBottom: '1.25rem'
+                }}>
+                  {OFFICIAL_COMPANY_ROLES.map((roleName) => {
+                    const count = selectedMemberDetail.roleCounts?.[roleName] || 0;
+                    const isMainRole = normalizeToOfficialRole(selectedMemberDetail.role) === roleName;
+                    const isSecRole = Array.isArray(selectedMemberDetail.secondaryRoles) &&
+                      selectedMemberDetail.secondaryRoles.map(normalizeToOfficialRole).includes(roleName);
+                    const icon = ROLE_ICONS_MAP[roleName] || '💼';
+
+                    return (
+                      <div
+                        key={roleName}
+                        style={{
+                          background: count > 0 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+                          border: count > 0 ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(255,255,255,0.05)',
+                          borderRadius: '10px',
+                          padding: '8px 10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '6px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                          <span style={{ fontSize: '1.15rem' }}>{icon}</span>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              color: count > 0 ? '#f8fafc' : '#64748b',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }} title={roleName}>
+                              {roleName}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: isMainRole ? '#fbbf24' : isSecRole ? '#38bdf8' : '#64748b' }}>
+                              {isMainRole ? 'Principal' : isSecRole ? 'Secundária' : count > 0 ? 'Exercida' : 'Sem atuação'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          background: count > 0 ? '#f59e0b' : 'rgba(255,255,255,0.06)',
+                          color: count > 0 ? '#0f172a' : '#64748b'
+                        }}>
+                          {count}x
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

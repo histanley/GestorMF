@@ -178,7 +178,9 @@ export default function TeamPayoutsDashboard({
       const pixKey = member.pixKey || member.pix_key || '';
 
       let totalHours = 0;
+      let totalOffHoursAmount = 0;
       let totalTravelDays = 0;
+      let totalDailyAmount = 0;
       let missionCount = 0;
       let totalAmount = 0;
       const statementMissions = [];
@@ -210,8 +212,6 @@ export default function TeamPayoutsDashboard({
           const missionHours = calculateMissionHours(m.departureTime, m.returnTimeEstimated);
 
           // Apuração de horas comerciais vs. fora do expediente (Banco de Horas)
-          // Regra: Seg-Sex 08-18h e Sáb 08-12h = Comercial (R$ 0 no banco de horas)
-          // Fora desse horário = Horas Extras / Banco de Horas
           const offHoursInfo = calculateMissionOffHours(
             m.date,
             m.departureTime,
@@ -222,34 +222,41 @@ export default function TeamPayoutsDashboard({
           const offHoursWorked = offHoursInfo.offHours;
           const inHoursWorked = offHoursInfo.inHours;
 
-          // Taxa horária da missão (prioriza valor personalizado na missão ou usa taxa padrão do membro)
+          // Taxa personalizada na missão ou taxa padrão do perfil
           const customRate = (m.customRates && m.customRates[member.id] !== undefined && m.customRates[member.id] !== null && m.customRates[member.id] !== '')
             ? Number(m.customRates[member.id])
             : null;
           const effectiveHourlyRate = customRate !== null ? customRate : hourlyRate;
+          const effectiveDailyRate = customRate !== null ? customRate : (dailyRate > 0 ? dailyRate : 200);
 
           let itemAmount = 0;
           let daysCount = 1;
 
-          if (isMDay) {
-            daysCount = calculateDaysBetween(m.date, m.endDate);
+          // Regra mandatória: se for mais de um dia OU configurada como Diária, calcula por Diária
+          const isDailyRemuneration = Boolean(isMDay || m.remunerationType === 'daily');
+
+          if (isDailyRemuneration) {
+            daysCount = isMDay ? calculateDaysBetween(m.date, m.endDate) : 1;
             totalTravelDays += daysCount;
-            // Diária de viagem fechada por dia
-            itemAmount = daysCount * (dailyRate > 0 ? dailyRate : 200);
+            itemAmount = daysCount * effectiveDailyRate;
+            totalDailyAmount += itemAmount;
           } else {
-            // Banco de Horas: SÓ contabiliza horas ocorridas FORA do expediente comercial!
-            totalHours += offHoursWorked;
-            if (offHoursWorked > 0) {
+            // Banco de Horas: Horas fora do expediente + Horas extras aprovadas pela gestão
+            const extraApproved = Number(m.extraHoursApproved) || 0;
+            const totalMissionOffHours = offHoursWorked + extraApproved;
+            totalHours += totalMissionOffHours;
+
+            if (totalMissionOffHours > 0) {
               if (rateModel === 'block_4h') {
                 const ratePerHour = customRate !== null ? customRate : ((blockRate > 0 ? blockRate : 200) / 4);
-                itemAmount = offHoursWorked * ratePerHour;
+                itemAmount = totalMissionOffHours * ratePerHour;
               } else {
-                itemAmount = offHoursWorked * effectiveHourlyRate;
+                itemAmount = totalMissionOffHours * effectiveHourlyRate;
               }
             } else {
-              // Missão realizada 100% no horário comercial normal (sem adicional no banco de horas)
               itemAmount = 0;
             }
+            totalOffHoursAmount += itemAmount;
           }
 
           totalAmount += itemAmount;
@@ -260,6 +267,7 @@ export default function TeamPayoutsDashboard({
             date: m.date,
             endDate: m.endDate,
             isMultiDay: isMDay,
+            remunerationType: isDailyRemuneration ? 'daily' : 'off_hours',
             daysCount,
             description: m.description || 'Missão sem título',
             locationName: m.locationName || 'Local de gravação',
@@ -267,10 +275,12 @@ export default function TeamPayoutsDashboard({
             returnTimeEstimated: m.returnTimeEstimated || '--:--',
             hoursWorked: missionHours,
             offHoursWorked,
+            extraHoursApproved: Number(m.extraHoursApproved) || 0,
             inHoursWorked,
             isOffHours: offHoursInfo.isOffHours,
             offHoursSegments: offHoursInfo.offHoursSegments || [],
             effectiveHourlyRate,
+            effectiveDailyRate,
             isCustomRate: customRate !== null,
             itemAmount,
             roleInMission: isDriver ? 'Motorista / Condutor' : (inEditorIds || inEditorDisplay) ? 'Editor / Pós-Produção' : 'Equipe de Campo',
@@ -293,7 +303,9 @@ export default function TeamPayoutsDashboard({
         blockRate: blockRate > 0 ? blockRate : 200,
         pixKey,
         totalHours: Number(totalHours.toFixed(1)),
+        totalOffHoursAmount: Number(totalOffHoursAmount.toFixed(2)),
         totalTravelDays,
+        totalDailyAmount: Number(totalDailyAmount.toFixed(2)),
         missionCount,
         totalAmount: Number(totalAmount.toFixed(2)),
         status,
@@ -326,14 +338,18 @@ export default function TeamPayoutsDashboard({
   const summaryTotals = useMemo(() => {
     const totalFolha = memberPayouts.reduce((acc, m) => acc + m.totalAmount, 0);
     const totalHoras = memberPayouts.reduce((acc, m) => acc + m.totalHours, 0);
+    const totalHorasValor = memberPayouts.reduce((acc, m) => acc + (m.totalOffHoursAmount || 0), 0);
     const totalViagens = memberPayouts.reduce((acc, m) => acc + m.totalTravelDays, 0);
+    const totalDiariasValor = memberPayouts.reduce((acc, m) => acc + (m.totalDailyAmount || 0), 0);
     const totalPagos = memberPayouts.filter((m) => m.status === 'Pago').length;
     const totalPendentes = memberPayouts.filter((m) => m.status !== 'Pago' && m.totalAmount > 0).length;
 
     return {
       totalFolha,
       totalHoras: Number(totalHoras.toFixed(1)),
+      totalHorasValor,
       totalViagens,
+      totalDiariasValor,
       totalPagos,
       totalPendentes,
     };
@@ -462,9 +478,9 @@ export default function TeamPayoutsDashboard({
       `📅 *Mês de Referência:* ${monthLabel}`,
       `---------------------------------------`,
       `🎯 *Missões Participadas:* ${member.missionCount}`,
-      `🌙 *Banco de Horas (Fora do Expediente):* ${member.totalHours}h`,
-      `🏕️ *Diárias de Viagem (+1d):* ${member.totalTravelDays} dias`,
-      `💰 *Total Líquido Apurado:* ${formatBRL(member.totalAmount)}`,
+      `⏱️ *Horas Extras:* ${member.totalHours}h (${formatBRL(member.totalOffHoursAmount)})`,
+      `📅 *Diárias de Campo/Viagem:* ${member.totalTravelDays} diárias (${formatBRL(member.totalDailyAmount)})`,
+      `💰 *Total Líquido Geral:* ${formatBRL(member.totalAmount)}`,
       member.pixKey ? `💳 *Chave PIX:* ${member.pixKey}` : null,
       `---------------------------------------`,
       isPaid
@@ -552,8 +568,8 @@ export default function TeamPayoutsDashboard({
             <Clock size={24} />
           </div>
           <div className="psc-info">
-            <span className="psc-label">Banco de Horas (Extra)</span>
-            <strong className="psc-value">{summaryTotals.totalHoras} h</strong>
+            <span className="psc-label">Horas Extras ({summaryTotals.totalHoras}h)</span>
+            <strong className="psc-value text-amber">{formatBRL(summaryTotals.totalHorasValor)}</strong>
             <span className="psc-sub">Fora do expediente comercial</span>
           </div>
         </div>
@@ -563,9 +579,9 @@ export default function TeamPayoutsDashboard({
             <Compass size={24} />
           </div>
           <div className="psc-info">
-            <span className="psc-label">Diárias de Viagem (+1 Dia)</span>
-            <strong className="psc-value">{summaryTotals.totalViagens} diárias</strong>
-            <span className="psc-sub">Missões de longa duração</span>
+            <span className="psc-label">Diárias ({summaryTotals.totalViagens} d)</span>
+            <strong className="psc-value text-cyan">{formatBRL(summaryTotals.totalDiariasValor)}</strong>
+            <span className="psc-sub">Viagens e diárias de campo</span>
           </div>
         </div>
 
@@ -703,12 +719,12 @@ export default function TeamPayoutsDashboard({
                     </div>
                     <div className="pmc-prod-metric">
                       <span className="pmc-prod-val text-amber">{member.totalHours} h</span>
-                      <span className="pmc-prod-lbl">Banco Horas (Extra)</span>
+                      <span className="pmc-prod-lbl">Extras ({formatBRL(member.totalOffHoursAmount)})</span>
                     </div>
                     {member.totalTravelDays > 0 ? (
                       <div className="pmc-prod-metric">
                         <span className="pmc-prod-val text-cyan">{member.totalTravelDays} d</span>
-                        <span className="pmc-prod-lbl">Viagens (+1d)</span>
+                        <span className="pmc-prod-lbl">Diárias ({formatBRL(member.totalDailyAmount)})</span>
                       </div>
                     ) : null}
                   </div>
@@ -920,15 +936,17 @@ export default function TeamPayoutsDashboard({
                   <strong className="ssb-val">{viewingStatementMember.missionCount}</strong>
                 </div>
                 <div className="ssb-item">
-                  <span className="ssb-lbl">Banco Horas (Extra)</span>
+                  <span className="ssb-lbl">Horas Extras</span>
                   <strong className="ssb-val text-amber">{viewingStatementMember.totalHours} h</strong>
+                  <small style={{ fontSize: '0.75rem', color: '#fbbf24', opacity: 0.85 }}>{formatBRL(viewingStatementMember.totalOffHoursAmount)}</small>
                 </div>
                 <div className="ssb-item">
-                  <span className="ssb-lbl">Diárias de Viagem</span>
-                  <strong className="ssb-val text-cyan">{viewingStatementMember.totalTravelDays} dias</strong>
+                  <span className="ssb-lbl">Diárias</span>
+                  <strong className="ssb-val text-cyan">{viewingStatementMember.totalTravelDays} d</strong>
+                  <small style={{ fontSize: '0.75rem', color: '#38bdf8', opacity: 0.85 }}>{formatBRL(viewingStatementMember.totalDailyAmount)}</small>
                 </div>
                 <div className="ssb-item ssb-total">
-                  <span className="ssb-lbl">{viewingStatementMember.status === 'Pago' ? 'Total Quitado' : 'Total do Mês'}</span>
+                  <span className="ssb-lbl">{viewingStatementMember.status === 'Pago' ? 'Total Quitado' : 'Total Líquido'}</span>
                   <strong className={`ssb-val ${viewingStatementMember.status === 'Pago' ? 'text-green' : 'text-gold'}`}>
                     {formatBRL(viewingStatementMember.totalAmount)}
                   </strong>
@@ -958,11 +976,14 @@ export default function TeamPayoutsDashboard({
                             <Calendar size={12} /> {formatDateBR(item.date)}
                             {item.isMultiDay && item.endDate && ` a ${formatDateBR(item.endDate)}`}
                           </span>
-                          {item.isMultiDay ? (
-                            <span className="sir-badge-multiday">🏕️ Viagem ({item.daysCount}d)</span>
-                          ) : item.offHoursWorked > 0 ? (
+                          {item.remunerationType === 'daily' ? (
+                            <span className="sir-badge-multiday">
+                              📅 Diária {item.isMultiDay ? `Viagem (${item.daysCount}d)` : 'Campo (1d)'}
+                            </span>
+                          ) : (item.offHoursWorked > 0 || item.extraHoursApproved > 0) ? (
                             <span className="sir-badge-hours sir-badge-offhours" title="Horas fora do expediente comercial computadas no banco de horas">
-                              🌙 +{item.offHoursWorked}h Banco de Horas
+                              ⏱️ +{item.offHoursWorked + (item.extraHoursApproved || 0)}h Extras
+                              {item.extraHoursApproved > 0 && ` (+${item.extraHoursApproved}h aprovadas)`}
                             </span>
                           ) : (
                             <span className="sir-badge-hours sir-badge-inhours" title="Missão realizada 100% dentro do expediente comercial normal">
@@ -972,12 +993,21 @@ export default function TeamPayoutsDashboard({
                         </div>
                         <strong className="sir-desc">{item.description}</strong>
                         <span className="sir-loc">{item.locationName}</span>
-                        {!item.isMultiDay && (
+                        {item.remunerationType === 'daily' ? (
+                          <div className="sir-times-breakdown">
+                            <span className="sir-times">
+                              <Calendar size={11} /> Modalidade Diária: {item.daysCount} {item.daysCount === 1 ? 'diária' : 'diárias'}
+                            </span>
+                            <span className="sir-rate-applied">
+                              • Valor da Diária: {formatBRL(item.effectiveDailyRate)}/dia {item.isCustomRate ? '(Definida na Missão)' : '(Padrão)'}
+                            </span>
+                          </div>
+                        ) : (
                           <div className="sir-times-breakdown">
                             <span className="sir-times">
                               <Clock size={11} /> Saída: {item.departureTime} • Retorno: {item.returnTimeEstimated} ({item.hoursWorked}h de missão)
                             </span>
-                            {item.offHoursWorked > 0 ? (
+                            {(item.offHoursWorked > 0 || item.extraHoursApproved > 0) ? (
                               <span className="sir-rate-applied">
                                 • Taxa: {formatBRL(item.effectiveHourlyRate)}/h {item.isCustomRate ? '(Definida na Missão)' : '(Padrão)'}
                               </span>

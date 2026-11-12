@@ -23,7 +23,15 @@ import {
   X,
   Repeat,
   DollarSign,
+  Briefcase,
+  ShieldCheck,
+  Lock,
 } from 'lucide-react';
+import {
+  OFFICIAL_COMPANY_ROLES,
+  ROLE_ICONS_MAP,
+  normalizeToOfficialRole,
+} from '../utils/companyRoles';
 import { calculateMissionOffHours } from '../utils/workHours';
 import {
   RECURRENCE_DAYS,
@@ -243,6 +251,8 @@ export default function MissionModal({
     notes: '',
     isMultiDay: false,
     endDate: '',
+    remunerationType: 'off_hours',
+    memberRoles: {},
     customRates: {},
   });
 
@@ -337,6 +347,10 @@ export default function MissionModal({
         isRoundTrip: true,
         isMultiDay: Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date)),
         endDate: editingMission.endDate || '',
+        remunerationType: Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date))
+          ? 'daily'
+          : (editingMission.remunerationType || 'off_hours'),
+        memberRoles: editingMission.memberRoles || {},
         customRates: editingMission.customRates || {},
         isRecurring: Boolean(editingMission.isRecurring || editingMission.recurrenceId),
         recurrenceId: editingMission.recurrenceId || null,
@@ -422,6 +436,9 @@ export default function MissionModal({
         notes: '',
         isMultiDay: false,
         endDate: '',
+        remunerationType: 'off_hours',
+        memberRoles: {},
+        customRates: {},
         isRecurring: false,
         recurrenceId: null,
         recurrenceRule: 'weekly',
@@ -464,6 +481,7 @@ export default function MissionModal({
         ...prev,
         isMultiDay: checked,
         endDate: checked ? nextEndDate : '',
+        remunerationType: checked ? 'daily' : (prev.remunerationType || 'off_hours'),
       };
     });
   };
@@ -893,6 +911,24 @@ export default function MissionModal({
     });
   };
 
+  const handleMemberRoleChange = (memberId, roleName) => {
+    setFormData((prev) => ({
+      ...prev,
+      memberRoles: {
+        ...(prev.memberRoles || {}),
+        [memberId]: roleName,
+      },
+    }));
+  };
+
+  const handleRemunerationTypeChange = (type) => {
+    if (isMultiDay) return; // Se for viagem de mais de um dia, é estritamente Diária
+    setFormData((prev) => ({
+      ...prev,
+      remunerationType: type,
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.description) {
@@ -1103,8 +1139,13 @@ export default function MissionModal({
       recurrenceDays: isRecurring ? formatDaysDisplay(selectedDows) : null,
       recurringDates: isRecurring && !editingMission ? futureOccurrenceDates : [],
       updateSeries: Boolean(editingMission && isRecurring && updateSeries),
-      // Banco de Horas e Taxas Personalizadas da Missão
-      offHours: missionOffHours.offHours || 0,
+      // Banco de Horas, Modalidade e Taxas Personalizadas da Missão
+      offHours: isMultiDay ? 0 : (missionOffHours.offHours || 0),
+      remunerationType: isMultiDay ? 'daily' : (formData.remunerationType || 'off_hours'),
+      memberRoles: formData.memberRoles || {},
+      extraHoursPlanned: isMultiDay ? 0 : (missionOffHours.offHours || 0),
+      extraHoursApproved: editingMission?.extraHoursApproved || 0,
+      extraHoursRequests: editingMission?.extraHoursRequests || [],
       customRates: formData.customRates || {},
     };
 
@@ -2779,80 +2820,194 @@ export default function MissionModal({
                     )}
                   </div>
 
-                  {/* CONFIGURAÇÃO DE TAXAS DA MISSÃO FORA DO EXPEDIENTE */}
-                  {missionOffHours.isOffHours && formData.teamIds.length > 0 && (
+                  {/* CONFIGURAÇÃO DE FUNÇÕES & REMUNERAÇÃO DA EQUIPE DE CAMPO */}
+                  {formData.teamIds.length > 0 && (
                     <div className="mm-offhours-rates-section">
                       <div className="mm-offhours-rates-header">
                         <div className="mm-offhours-rates-title-wrap">
-                          <DollarSign size={16} className="text-amber" />
-                          <strong>Taxa Individual da Missão (Fora do Expediente Comercial)</strong>
-                          <span className="mm-offhours-rates-badge">
-                            +{missionOffHours.offHours}h nesta missão
-                          </span>
+                          <Briefcase size={16} className="text-amber" />
+                          <strong>Funções nesta Missão &amp; Remuneração da Equipe</strong>
+                          {isMultiDay ? (
+                            <span className="mm-offhours-rates-badge" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                              <Lock size={11} style={{ marginRight: 4, display: 'inline' }} />
+                              Obrigatório: Diária de Viagem ({calculateDaysBetween(formData.date, formData.endDate)} {calculateDaysBetween(formData.date, formData.endDate) === 1 ? 'dia' : 'dias'})
+                            </span>
+                          ) : missionOffHours.isOffHours ? (
+                            <span className="mm-offhours-rates-badge">
+                              +{missionOffHours.offHours}h fora do expediente
+                            </span>
+                          ) : (
+                            <span className="mm-offhours-rates-badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                              Expediente Comercial
+                            </span>
+                          )}
                         </div>
                         <p className="mm-offhours-rates-subtitle">
-                          Como esta missão possui <strong>{missionOffHours.offHours}h fora do expediente comercial</strong>, você pode personalizar a taxa horária de cada colaborador para esta missão, ou manter o valor padrão de cada perfil.
+                          {isMultiDay
+                            ? 'Como esta missão é uma viagem com mais de um dia fora, a modalidade de remuneração é obrigatoriamente por Diária. Especifique a função desempenhada por cada colaborador e ajuste as diárias se necessário.'
+                            : 'Defina a função específica exercida por cada colaborador nesta missão (essencial para as métricas e ranking da empresa) e selecione a modalidade de remuneração.'}
                         </p>
+
+                        {/* SELETOR DE MODALIDADE DE REMUNERAÇÃO */}
+                        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>Modalidade:</span>
+                          <button
+                            type="button"
+                            disabled={isMultiDay}
+                            onClick={() => handleRemunerationTypeChange('off_hours')}
+                            className={`btn-rate-mode ${(!isMultiDay && formData.remunerationType !== 'daily') ? 'active' : ''}`}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '8px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              cursor: isMultiDay ? 'not-allowed' : 'pointer',
+                              opacity: isMultiDay ? 0.4 : 1,
+                              border: (!isMultiDay && formData.remunerationType !== 'daily') ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+                              background: (!isMultiDay && formData.remunerationType !== 'daily') ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.03)',
+                              color: (!isMultiDay && formData.remunerationType !== 'daily') ? '#fbbf24' : '#94a3b8',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <Clock size={13} />
+                            Hora Extra (Banco de Horas)
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemunerationTypeChange('daily')}
+                            className={`btn-rate-mode ${(isMultiDay || formData.remunerationType === 'daily') ? 'active' : ''}`}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '8px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              border: (isMultiDay || formData.remunerationType === 'daily') ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                              background: (isMultiDay || formData.remunerationType === 'daily') ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.03)',
+                              color: (isMultiDay || formData.remunerationType === 'daily') ? '#60a5fa' : '#94a3b8',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <CalendarRange size={13} />
+                            {isMultiDay ? '🔒 Diária de Viagem (Obrigatória)' : 'Diária Fechada de Campo'}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="mm-offhours-rates-grid">
                         {formData.teamIds.map((mId) => {
                           const mem = members.find((x) => x.id === mId);
                           if (!mem) return null;
-                          const defaultRate = Number(mem.hourlyRate ?? mem.hourly_rate ?? 50);
+
+                          const isDailyMode = isMultiDay || formData.remunerationType === 'daily';
+                          const defaultDailyRate = Number(mem.dailyRate ?? mem.daily_rate ?? 200);
+                          const defaultHourlyRate = Number(mem.hourlyRate ?? mem.hourly_rate ?? 50);
+
                           const currentVal = formData.customRates && formData.customRates[mId] !== undefined
                             ? formData.customRates[mId]
                             : '';
-                          const effectiveRate = currentVal !== '' ? Number(currentVal) : defaultRate;
-                          const estimatedSubtotal = (effectiveRate * missionOffHours.offHours).toFixed(2);
+
+                          const effectiveRate = currentVal !== ''
+                            ? Number(currentVal)
+                            : (isDailyMode ? defaultDailyRate : defaultHourlyRate);
+
+                          const travelDays = isMultiDay ? calculateDaysBetween(formData.date, formData.endDate) : 1;
+                          const estimatedSubtotal = isDailyMode
+                            ? (effectiveRate * travelDays).toFixed(2)
+                            : (missionOffHours.isOffHours ? (effectiveRate * missionOffHours.offHours).toFixed(2) : '0.00');
+
+                          const selectedRole = formData.memberRoles?.[mId] || normalizeToOfficialRole(mem.role);
 
                           return (
-                            <div key={mId} className="mm-offhours-rate-item">
-                              <div className="mori-left">
-                                <div className="mori-avatar">
-                                  {mem.photoUrl ? (
-                                    <img src={mem.photoUrl} alt={mem.name} />
-                                  ) : (
-                                    <span>{mem.name.slice(0, 2).toUpperCase()}</span>
-                                  )}
+                            <div key={mId} className="mm-offhours-rate-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.75rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                <div className="mori-left">
+                                  <div className="mori-avatar">
+                                    {mem.photoUrl ? (
+                                      <img src={mem.photoUrl} alt={mem.name} />
+                                    ) : (
+                                      <span>{mem.name.slice(0, 2).toUpperCase()}</span>
+                                    )}
+                                  </div>
+                                  <div className="mori-info">
+                                    <strong className="mori-name">{mem.name}</strong>
+                                    <span className="mori-role">{mem.company || 'MegaFilmes'}</span>
+                                  </div>
                                 </div>
-                                <div className="mori-info">
-                                  <strong className="mori-name">{mem.name}</strong>
-                                  <span className="mori-role">{mem.role || 'Colaborador'} • {mem.company || 'MegaFilmes'}</span>
-                                  <span className="mori-default-rate">
-                                    Padrão: R$ {defaultRate.toFixed(2)}/h
-                                  </span>
+
+                                {/* SELETOR DA FUNÇÃO ESPECÍFICA NA MISSÃO (11 FUNÇÕES OFICIAIS) */}
+                                <div style={{ minWidth: '220px', flex: '1 1 220px' }}>
+                                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                                    🎯 Função nesta Missão:
+                                  </label>
+                                  <select
+                                    value={selectedRole}
+                                    onChange={(e) => handleMemberRoleChange(mId, e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '6px 10px',
+                                      background: '#0f172a',
+                                      border: '1px solid rgba(255,255,255,0.15)',
+                                      borderRadius: '8px',
+                                      color: '#f8fafc',
+                                      fontSize: '0.82rem',
+                                      fontWeight: 500
+                                    }}
+                                  >
+                                    {OFFICIAL_COMPANY_ROLES.map((r) => (
+                                      <option key={r} value={r}>
+                                        {ROLE_ICONS_MAP[r] || '💼'} {r}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
                               </div>
 
-                              <div className="mori-right">
-                                <div className="mori-input-wrap">
-                                  <label>Valor da Hora (R$):</label>
-                                  <div className="mori-input-box">
-                                    <span className="mori-currency">R$</span>
-                                    <input
-                                      type="number"
-                                      step="5"
-                                      min="0"
-                                      placeholder={defaultRate.toFixed(2)}
-                                      value={currentVal}
-                                      onChange={(e) => handleCustomRateChange(mId, e.target.value)}
-                                      className="mori-input"
-                                    />
-                                    {currentVal !== '' && (
-                                      <button
-                                        type="button"
-                                        className="mori-btn-reset"
-                                        onClick={() => handleCustomRateChange(mId, '')}
-                                        title="Restaurar taxa padrão do colaborador"
-                                      >
-                                        <X size={12} />
-                                      </button>
-                                    )}
+                              {/* PARTE FINANCEIRA: VALOR DA DIÁRIA OU DA HORA EXTRA */}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.6rem', gap: '1rem', flexWrap: 'wrap' }}>
+                                <div className="mori-right" style={{ flex: '1 1 auto' }}>
+                                  <div className="mori-input-wrap">
+                                    <label style={{ fontSize: '0.75rem' }}>
+                                      {isDailyMode ? 'Valor da Diária (R$/dia):' : 'Valor da Hora Extra (R$/h):'}
+                                    </label>
+                                    <div className="mori-input-box">
+                                      <span className="mori-currency">R$</span>
+                                      <input
+                                        type="number"
+                                        step={isDailyMode ? '10' : '5'}
+                                        min="0"
+                                        placeholder={(isDailyMode ? defaultDailyRate : defaultHourlyRate).toFixed(2)}
+                                        value={currentVal}
+                                        onChange={(e) => handleCustomRateChange(mId, e.target.value)}
+                                        className="mori-input"
+                                      />
+                                      {currentVal !== '' && (
+                                        <button
+                                          type="button"
+                                          className="mori-btn-reset"
+                                          onClick={() => handleCustomRateChange(mId, '')}
+                                          title="Restaurar taxa padrão do colaborador"
+                                        >
+                                          <X size={12} />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="mori-subtotal-badge">
-                                  <span>Total ({missionOffHours.offHours}h):</span>
+
+                                <div className="mori-subtotal-badge" style={{ minWidth: '150px' }}>
+                                  <span>
+                                    {isDailyMode
+                                      ? `Total (${travelDays} diária${travelDays !== 1 ? 's' : ''}):`
+                                      : missionOffHours.isOffHours
+                                      ? `Total (${missionOffHours.offHours}h):`
+                                      : 'Expediente Normal:'}
+                                  </span>
                                   <strong>R$ {estimatedSubtotal}</strong>
                                 </div>
                               </div>

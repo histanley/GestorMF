@@ -25791,3 +25791,211 @@ body.light-theme .mori-input {
   border-color: rgba(16, 185, 129, 0.45);
   color: #34d399;
 }
+
+/* ============================================================================== */
+/* SAUDAÇÃO AUTOMÁTICA NO CORPO DA PÁGINA (ABAIXO DO MENU)                       */
+/* ============================================================================== */
+.dynamic-body-greeting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 12px 18px;
+  margin: 0.75rem 1rem 0.5rem 1rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s ease;
+}
+
+.dbg-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+}
+
+.dbg-icon-badge {
+  font-size: 1.8rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.4));
+  animation: pulse-subtle 3s infinite ease-in-out;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+.dbg-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dbg-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: -0.3px;
+}
+
+.dbg-name {
+  color: #f59e0b;
+  text-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+}
+
+.dbg-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.dbg-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dbg-btn-space {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dbg-btn-space:hover {
+  background: rgba(245, 158, 11, 0.3);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.dbg-btn-space.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #60a5fa;
+}
+
+/* ============================================================================== */
+/* ALERTA DE HORAS EXTRAS PENDENTES (ADMIN)                                       */
+/* ============================================================================== */
+.ehr-pending-admin-alert {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 0 1rem 0.75rem 1rem;
+}
+
+.ehr-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fbbf24;
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.ehr-alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ehr-alert-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 12px;
+  flex-wrap: wrap;
+}
+
+.ehr-item-info {
+  font-size: 0.82rem;
+  color: #f8fafc;
+}
+
+.ehr-item-reason {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.ehr-item-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-ehr-approve {
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-ehr-approve:hover {
+  opacity: 0.88;
+}
+
+.btn-ehr-reject {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-ehr-reject:hover {
+  background: rgba(239, 68, 68, 0.35);
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .dynamic-body-greeting {
+    margin: 0.5rem 0.75rem;
+    padding: 10px 14px;
+  }
+  .dbg-title {
+    font-size: 1.02rem;
+  }
+  .dbg-subtitle {
+    font-size: 0.72rem;
+  }
+  .dbg-icon-badge {
+    font-size: 1.5rem;
+  }
+  .ehr-pending-admin-alert {
+    margin: 0 0.75rem 0.5rem 0.75rem;
+  }
+}

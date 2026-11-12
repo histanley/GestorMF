@@ -42,6 +42,11 @@ function ensureMissionColumnsExist($db) {
         'end_date'                => 'VARCHAR(20) NULL',
         'custom_rates'            => 'LONGTEXT NULL',
         'off_hours'               => 'DECIMAL(5,1) DEFAULT 0.0',
+        'remuneration_type'       => "VARCHAR(20) DEFAULT 'off_hours'",
+        'member_roles'            => 'LONGTEXT NULL',
+        'extra_hours_planned'     => 'DECIMAL(6,2) DEFAULT 0.00',
+        'extra_hours_approved'    => 'DECIMAL(6,2) DEFAULT 0.00',
+        'extra_hours_requests'    => 'LONGTEXT NULL',
         'version'                 => 'INT NOT NULL DEFAULT 1'
     ];
 
@@ -231,6 +236,11 @@ if ($method === 'GET') {
             'endDate'                  => $m['end_date'] ?? null,
             'customRates'              => !empty($m['custom_rates']) ? json_decode($m['custom_rates'], true) : null,
             'offHours'                 => isset($m['off_hours']) ? (float)$m['off_hours'] : 0.0,
+            'remunerationType'         => $m['remuneration_type'] ?? (!empty($m['is_multi_day']) ? 'daily' : 'off_hours'),
+            'memberRoles'              => !empty($m['member_roles']) ? json_decode($m['member_roles'], true) : new stdClass(),
+            'extraHoursPlanned'        => isset($m['extra_hours_planned']) ? (float)$m['extra_hours_planned'] : 0.0,
+            'extraHoursApproved'       => isset($m['extra_hours_approved']) ? (float)$m['extra_hours_approved'] : 0.0,
+            'extraHoursRequests'       => !empty($m['extra_hours_requests']) ? json_decode($m['extra_hours_requests'], true) : [],
             'version'                  => (int)($m['version'] ?? 1),
             'createdAt'                => $m['created_at'],
             'updatedAt'                => $m['updated_at']
@@ -392,6 +402,129 @@ function checkRosterConflicts($db, $targetMissionId, $data) {
 // ------------------------------------------------------------------------------
 // SALVAR OU ATUALIZAR MISSÃO (POST / PUT)
 // ------------------------------------------------------------------------------
+$action = $_GET['action'] ?? '';
+
+// SOLICITAR HORAS EXTRAS ADICIONAIS (+1h, +2h) PELO COLABORADOR EM CAMPO
+if ($method === 'POST' && $action === 'request_extra_hours') {
+    $user = requireAuth();
+    $data = getJsonInput();
+    $missionId = trim($data['missionId'] ?? '');
+    $hours = max(0.5, (float)($data['hoursRequested'] ?? 1.0));
+    $reason = trim($data['reason'] ?? 'Necessário tempo adicional para finalizar os trabalhos.');
+
+    if (empty($missionId)) {
+        jsonResponse(['success' => false, 'error' => 'ID da missão é obrigatório.'], 400);
+    }
+
+    ensureMissionColumnsExist($db);
+    $stmt = $db->prepare("SELECT * FROM missions WHERE id = ?");
+    $stmt->execute([$missionId]);
+    $m = $stmt->fetch();
+    if (!$m) {
+        jsonResponse(['success' => false, 'error' => 'Missão não encontrada.'], 404);
+    }
+
+    $existingRequests = !empty($m['extra_hours_requests']) ? json_decode($m['extra_hours_requests'], true) : [];
+    if (!is_array($existingRequests)) $existingRequests = [];
+
+    $newReq = [
+        'id'             => 'ehr-' . bin2hex(random_bytes(6)),
+        'memberId'       => $data['memberId'] ?? $user['id'],
+        'memberName'     => $data['memberName'] ?? $user['name'],
+        'hoursRequested' => $hours,
+        'reason'         => $reason,
+        'status'         => 'PENDING',
+        'createdAt'      => date('Y-m-d H:i:s')
+    ];
+    $existingRequests[] = $newReq;
+
+    $stmtUp = $db->prepare("UPDATE missions SET extra_hours_requests = ?, version = version + 1 WHERE id = ?");
+    $stmtUp->execute([json_encode($existingRequests, JSON_UNESCAPED_UNICODE), $missionId]);
+
+    // Cria notificação no sistema para Administradores
+    try {
+        $msgId = 'msg-ehr-' . bin2hex(random_bytes(6));
+        $db->prepare("
+            INSERT INTO system_messages (id, title, message, type, priority, requires_confirmation, created_by)
+            VALUES (?, ?, ?, 'ALERT', 'HIGH', 0, ?)
+        ")->execute([
+            $msgId,
+            "⏱️ Solicitação de Hora Extra: +{$hours}h",
+            "{$user['name']} solicitou +{$hours}h adicional na missão '{$m['description']}'. Motivo: {$reason}",
+            $user['id']
+        ]);
+    } catch (Exception $e) {}
+
+    logAudit('REQUEST_EXTRA_HOURS', 'MISSIONS', $missionId, "{$user['name']} solicitou +{$hours}h de hora extra.", $user['id'], $user['name']);
+    bumpSyncVersion("mission_{$missionId}");
+
+    jsonResponse(['success' => true, 'request' => $newReq, 'message' => 'Solicitação de hora extra enviada para a gestão.']);
+}
+
+// GESTÃO APROVA OU RECUSA HORA EXTRA ADICIONAL
+if ($method === 'POST' && $action === 'respond_extra_hours') {
+    $user = requireAuth(['ADMIN', 'MANAGER']);
+    $data = getJsonInput();
+    $missionId = trim($data['missionId'] ?? '');
+    $requestId = trim($data['requestId'] ?? '');
+    $decision = strtoupper(trim($data['decision'] ?? 'APPROVE')); // 'APPROVE' or 'REJECT'
+
+    if (empty($missionId) || empty($requestId)) {
+        jsonResponse(['success' => false, 'error' => 'Parâmetros incompletos.'], 400);
+    }
+
+    ensureMissionColumnsExist($db);
+    $stmt = $db->prepare("SELECT * FROM missions WHERE id = ?");
+    $stmt->execute([$missionId]);
+    $m = $stmt->fetch();
+    if (!$m) {
+        jsonResponse(['success' => false, 'error' => 'Missão não encontrada.'], 404);
+    }
+
+    $existingRequests = !empty($m['extra_hours_requests']) ? json_decode($m['extra_hours_requests'], true) : [];
+    if (!is_array($existingRequests)) $existingRequests = [];
+
+    $found = false;
+    $approvedHoursDelta = 0.0;
+    foreach ($existingRequests as &$req) {
+        if ($req['id'] === $requestId) {
+            $req['status'] = ($decision === 'APPROVE') ? 'APPROVED' : 'REJECTED';
+            $req['respondedAt'] = date('Y-m-d H:i:s');
+            $req['respondedBy'] = $user['name'];
+            if ($decision === 'APPROVE') {
+                $approvedHoursDelta = (float)($req['hoursRequested'] ?? 1.0);
+            }
+            $found = true;
+            break;
+        }
+    }
+
+    if (!$found) {
+        jsonResponse(['success' => false, 'error' => 'Solicitação não encontrada nesta missão.'], 404);
+    }
+
+    $newApproved = (float)($m['extra_hours_approved'] ?? 0.0) + $approvedHoursDelta;
+    $stmtUp = $db->prepare("
+        UPDATE missions
+        SET extra_hours_requests = ?, extra_hours_approved = ?, version = version + 1
+        WHERE id = ?
+    ");
+    $stmtUp->execute([
+        json_encode($existingRequests, JSON_UNESCAPED_UNICODE),
+        $newApproved,
+        $missionId
+    ]);
+
+    logAudit('RESPOND_EXTRA_HOURS', 'MISSIONS', $missionId, "Gestão {$decision} solicitação {$requestId} de {$approvedHoursDelta}h.", $user['id'], $user['name']);
+    bumpSyncVersion("mission_{$missionId}");
+
+    jsonResponse([
+        'success' => true,
+        'approvedHours' => $newApproved,
+        'message' => 'Solicitação de hora extra ' . ($decision === 'APPROVE' ? 'aprovada' : 'recusada') . ' com sucesso.'
+    ]);
+}
+
 if ($method === 'POST' || $method === 'PUT') {
     $user = requireAuth();
     $data = getJsonInput();
@@ -731,6 +864,7 @@ if ($method === 'POST' || $method === 'PUT') {
             is_recurring, recurrence_id, recurrence_rule, recurrence_days,
             is_multi_day, end_date,
             custom_rates, off_hours,
+            remuneration_type, member_roles, extra_hours_planned, extra_hours_approved, extra_hours_requests,
             created_by
         ) VALUES (
             :id, :code, :description, :location_name, :address, :lat, :lon, :date,
@@ -748,6 +882,7 @@ if ($method === 'POST' || $method === 'PUT') {
             :is_recurring, :recurrence_id, :recurrence_rule, :recurrence_days,
             :is_multi_day, :end_date,
             :custom_rates, :off_hours,
+            :remuneration_type, :member_roles, :extra_hours_planned, :extra_hours_approved, :extra_hours_requests,
             :created_by
         )
         ON DUPLICATE KEY UPDATE
@@ -805,7 +940,12 @@ if ($method === 'POST' || $method === 'PUT') {
             is_multi_day = VALUES(is_multi_day),
             end_date = VALUES(end_date),
             custom_rates = VALUES(custom_rates),
-            off_hours = VALUES(off_hours)
+            off_hours = VALUES(off_hours),
+            remuneration_type = VALUES(remuneration_type),
+            member_roles = VALUES(member_roles),
+            extra_hours_planned = VALUES(extra_hours_planned),
+            extra_hours_approved = VALUES(extra_hours_approved),
+            extra_hours_requests = VALUES(extra_hours_requests)
     ";
 
     $saveParams = [
@@ -864,6 +1004,11 @@ if ($method === 'POST' || $method === 'PUT') {
         ':end_date'                    => $endDate,
         ':custom_rates'                => !empty($data['customRates']) ? json_encode($data['customRates'], JSON_UNESCAPED_UNICODE) : null,
         ':off_hours'                   => isset($data['offHours']) ? (float)$data['offHours'] : 0.0,
+        ':remuneration_type'           => $data['remunerationType'] ?? ($isMultiDay ? 'daily' : 'off_hours'),
+        ':member_roles'                => !empty($data['memberRoles']) ? (is_array($data['memberRoles']) ? json_encode($data['memberRoles'], JSON_UNESCAPED_UNICODE) : $data['memberRoles']) : null,
+        ':extra_hours_planned'         => isset($data['extraHoursPlanned']) ? (float)$data['extraHoursPlanned'] : 0.0,
+        ':extra_hours_approved'        => isset($data['extraHoursApproved']) ? (float)$data['extraHoursApproved'] : 0.0,
+        ':extra_hours_requests'        => !empty($data['extraHoursRequests']) ? (is_array($data['extraHoursRequests']) ? json_encode($data['extraHoursRequests'], JSON_UNESCAPED_UNICODE) : $data['extraHoursRequests']) : null,
         ':created_by'                  => $user['id']
     ];
 

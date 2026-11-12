@@ -16,15 +16,16 @@ export const DEFAULT_SETTINGS = {
 
 export const DEFAULT_ROLES = [
   'Diretor(a) de Cena',
-  'Cinegrafista / Câmera',
+  'Cinegrafista',
   'Piloto de Drone',
   'Fotógrafo(a)',
   'Editor de Vídeo',
-  'Técnico de Instalação (Mega Print)',
   'Motorista / Produção',
   'Assistente Geral',
-  'Designer Gráfico (Mega Print)',
+  'Designer Gráfico',
   'Operador de Áudio',
+  'Social Mídia',
+  'Transmissão (Streamer)',
 ];
 
 export const INITIAL_VEHICLES = [];

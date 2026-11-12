@@ -213,6 +213,20 @@ export async function apiDeleteMission(missionId, deleteSeries = false) {
   });
 }
 
+export async function apiRequestExtraHours({ missionId, hoursRequested = 1.0, reason = '', memberId = null, memberName = null }) {
+  return await apiRequest('/missions.php?action=request_extra_hours', {
+    method: 'POST',
+    body: JSON.stringify({ missionId, hoursRequested, reason, memberId, memberName })
+  });
+}
+
+export async function apiRespondExtraHours({ missionId, requestId, decision = 'APPROVE' }) {
+  return await apiRequest('/missions.php?action=respond_extra_hours', {
+    method: 'POST',
+    body: JSON.stringify({ missionId, requestId, decision })
+  });
+}
+
 // ------------------------------------------------------------------------------
 // 3. VIATURAS (CRUD + AUDITORIA)
 // ------------------------------------------------------------------------------

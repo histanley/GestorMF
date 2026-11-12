@@ -31,12 +31,14 @@ import {
   Radio,
   Shield,
   Zap,
+  User,
 } from 'lucide-react';
 
 import MapView from './components/MapView';
 import ServiceBoard from './components/ServiceBoard';
 import VehicleManager from './components/VehicleManager';
 import TeamManager from './components/TeamManager';
+import CollaboratorSpace from './components/CollaboratorSpace';
 import MissionModal from './components/MissionModal';
 import SettingsModal from './components/SettingsModal';
 import LoginScreen from './components/LoginScreen';
@@ -87,6 +89,7 @@ import {
   apiMarkMessageRead,
   apiDeleteMessage,
   apiDismissAllMessages,
+  apiRespondExtraHours,
 } from './utils/api';
 import {
   sendPushNotification,
@@ -2200,6 +2203,80 @@ export default function App() {
     }
   }, [missions, currentUser, isUserInMission]);
 
+  // Saudação Dinâmica no Corpo da Página (Horário + Nome)
+  const greetingInfo = useMemo(() => {
+    const hr = new Date().getHours();
+    let text = 'Boa noite';
+    let icon = '🌙';
+    if (hr >= 5 && hr < 12) {
+      text = 'Bom dia';
+      icon = '☀️';
+    } else if (hr >= 12 && hr < 18) {
+      text = 'Boa tarde';
+      icon = '🌤️';
+    }
+    const firstName = currentUser?.name ? currentUser.name.trim().split(' ')[0] : 'Colaborador';
+    const now = new Date();
+    const dateFormatted = now.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    return {
+      text,
+      icon,
+      firstName,
+      dateFormatted: dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1)
+    };
+  }, [currentUser]);
+
+  // Solicitações de Horas Extras Pendentes para Administradores
+  const pendingExtraHoursRequests = useMemo(() => {
+    if (!isAdminUser) return [];
+    const list = [];
+    missions.forEach((m) => {
+      const reqs = Array.isArray(m.extraHoursRequests) ? m.extraHoursRequests : [];
+      reqs.forEach((r) => {
+        if (r.status === 'PENDING') {
+          list.push({
+            ...r,
+            missionId: m.id,
+            missionTitle: m.description,
+            missionCode: m.code,
+          });
+        }
+      });
+    });
+    return list;
+  }, [isAdminUser, missions]);
+
+  const handleRespondExtraHours = async (missionId, requestId, decision) => {
+    try {
+      const res = await apiRespondExtraHours({ missionId, requestId, decision });
+      if (res.success) {
+        await alertDialog({
+          title: decision === 'APPROVE' ? 'Hora Extra Aprovada' : 'Hora Extra Recusada',
+          message: res.message || 'Status atualizado com sucesso.',
+          variant: decision === 'APPROVE' ? 'success' : 'info',
+        });
+        refreshRemoteData();
+      } else {
+        await alertDialog({
+          title: 'Erro',
+          message: res.error || 'Não foi possível atualizar a solicitação.',
+          variant: 'danger',
+        });
+      }
+    } catch (err) {
+      await alertDialog({
+        title: 'Erro de Conexão',
+        message: 'Falha ao processar solicitação de hora extra.',
+        variant: 'danger',
+      });
+    }
+  };
+
   const currentLogo = settings?.logoUrl || (theme === 'light' ? logoLight : logoDark);
 
   // Se nenhum usuário estiver logado, exibe a tela de login moderna com autenticação
@@ -2320,6 +2397,16 @@ export default function App() {
               </button>
             </>
           )}
+
+          <button
+            className={`tab-btn ${activeTab === 'me' ? 'active' : ''}`}
+            onClick={() => setActiveTab('me')}
+          >
+            <span className="tab-icon-box">
+              <Sparkles size={15} />
+            </span>
+            <span className="tab-label">Meu Espaço</span>
+          </button>
         </nav>
 
         {/* Ações Rápidas no Header */}
@@ -2514,6 +2601,14 @@ export default function App() {
                   </button>
                 </>
               )}
+
+              <button
+                className={`md-nav-item ${activeTab === 'me' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('me'); setIsMobileDrawerOpen(false); }}
+              >
+                <Sparkles size={18} />
+                <span>Meu Espaço (Colaborador)</span>
+              </button>
             </nav>
 
             {canCreateMission && (
@@ -2764,6 +2859,83 @@ export default function App() {
 
       {/* Conteúdo Principal com Abas */}
       <main className="app-main-content">
+        {/* ============================================================== */}
+        {/* SAUDAÇÃO AUTOMÁTICA NO CORPO DA PÁGINA (Abaixo do Menu)        */}
+        {/* ============================================================== */}
+        <div className="dynamic-body-greeting">
+          <div className="dbg-left">
+            <div className="dbg-icon-badge">{greetingInfo.icon}</div>
+            <div className="dbg-text">
+              <h1 className="dbg-title">
+                {greetingInfo.text}, <span className="dbg-name">{greetingInfo.firstName}</span>!
+              </h1>
+              <p className="dbg-subtitle">
+                {greetingInfo.dateFormatted} • {countAtivas} {countAtivas === 1 ? 'missão ativa' : 'missões ativas'} na base
+              </p>
+            </div>
+          </div>
+
+          <div className="dbg-right">
+            {activeTab !== 'me' ? (
+              <button
+                type="button"
+                className="dbg-btn-space"
+                onClick={() => setActiveTab('me')}
+                title="Ver meu extrato financeiro, histórico de missões e métricas"
+              >
+                <Sparkles size={14} />
+                <span>Meu Espaço</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="dbg-btn-space active"
+                onClick={() => setActiveTab('map')}
+                title="Voltar ao monitoramento de missões"
+              >
+                <Navigation size={14} />
+                <span>Mapa &amp; Frotas</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ALERTA DE HORAS EXTRAS PENDENTES (Para Administradores) */}
+        {isAdminUser && pendingExtraHoursRequests.length > 0 && (
+          <div className="ehr-pending-admin-alert">
+            <div className="ehr-alert-header">
+              <Clock size={16} className="text-amber" />
+              <strong>⏱️ {pendingExtraHoursRequests.length} Solicitação{pendingExtraHoursRequests.length !== 1 ? 'ões' : ''} de Hora Extra Aguardando Sua Aprovação:</strong>
+            </div>
+            <div className="ehr-alert-list">
+              {pendingExtraHoursRequests.map((req) => (
+                <div key={req.id} className="ehr-alert-item">
+                  <div className="ehr-item-info">
+                    <strong>{req.memberName}</strong> solicitou <strong>+{req.hoursRequested}h</strong> na missão <em>"{req.missionTitle}"</em>
+                    <small className="ehr-item-reason">Motivo: {req.reason}</small>
+                  </div>
+                  <div className="ehr-item-actions">
+                    <button
+                      type="button"
+                      className="btn-ehr-approve"
+                      onClick={() => handleRespondExtraHours(req.missionId, req.id, 'APPROVE')}
+                    >
+                      Aprovar +{req.hoursRequested}h
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ehr-reject"
+                      onClick={() => handleRespondExtraHours(req.missionId, req.id, 'REJECT')}
+                    >
+                      Recusar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ABA 1: MAPA E MONITORAMENTO DE MISSÕES EM TEMPO REAL (Prioritária) */}
         {activeTab === 'map' && (
           <div className="map-view-layout">
@@ -2985,6 +3157,16 @@ export default function App() {
             onAddRole={handleAddRole}
             onUpdateRole={handleUpdateRole}
             onDeleteRole={handleDeleteRole}
+          />
+        )}
+
+        {/* ABA 5: MEU ESPAÇO (Área Individual do Colaborador) */}
+        {activeTab === 'me' && (
+          <CollaboratorSpace
+            currentUser={currentUser}
+            members={members}
+            missions={missions}
+            onReloadMissions={refreshRemoteData}
           />
         )}
       </main>
