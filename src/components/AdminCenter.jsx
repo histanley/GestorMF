@@ -14,6 +14,7 @@ import {
   MapPin,
   Car,
   User,
+  Users,
   CreditCard,
   Briefcase,
   ChevronRight,
@@ -510,21 +511,14 @@ export default function AdminCenter({
                       key={mission.id}
                       className={`ac-request-card ${isPending ? 'card-pending-pp' : 'card-approved'}`}
                     >
-                      {/* Topo do Card: Código, Status e Agendamento */}
+                      {/* Topo do Card: Código, Status e Ações Rápidas */}
                       <div className="ac-rc-header">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <div className="ac-rc-header-left">
                           <span className="ac-rc-code">#{mCode}</span>
                           <span className={`ac-rc-status-pill ${isPending ? 'status-pending-gold' : 'status-approved'}`}>
-                            {isPending ? '🟡 Aguardando Confirmação' : '🟢 Missão Finalizada'}
+                            <span className="ac-status-dot" />
+                            {isPending ? 'Aguardando Confirmação' : 'Missão Finalizada'}
                           </span>
-                          <span className="ac-rc-date">
-                            📅 {formatDateBR(mission.date)}
-                          </span>
-                          {mission.departureTime && (
-                            <span className="ac-rc-time">
-                              🕒 Saída: {mission.departureTime}
-                            </span>
-                          )}
                         </div>
 
                         <div className="ac-rc-actions-quick">
@@ -540,11 +534,25 @@ export default function AdminCenter({
                         </div>
                       </div>
 
+                      {/* Sub-header com Data e Saída em chips elegantes */}
+                      <div className="ac-rc-meta-chips">
+                        <span className="ac-meta-chip">
+                          <Calendar size={12} className="text-amber" />
+                          <span>{formatDateBR(mission.date)}</span>
+                        </span>
+                        {mission.departureTime && (
+                          <span className="ac-meta-chip">
+                            <Clock size={12} className="text-cyan" />
+                            <span>Saída: {mission.departureTime}</span>
+                          </span>
+                        )}
+                      </div>
+
                       {/* Descrição / Pauta e Local */}
-                      <div className="ac-rc-mission-box" style={{ marginTop: '8px' }}>
-                        <strong className="ac-rc-mission-title" style={{ fontSize: '1.08rem' }}>
+                      <div className="ac-rc-mission-box">
+                        <h4 className="ac-rc-mission-title">
                           {mission.description}
-                        </strong>
+                        </h4>
                         <div className="ac-rc-mission-loc">
                           <MapPin size={13} className="text-amber" />
                           <span>{mission.locationName || mission.address || 'Local não definido'}</span>
@@ -557,8 +565,10 @@ export default function AdminCenter({
                         <div className="ac-pp-detail-item">
                           <span className="ac-pp-label">Editor Responsável:</span>
                           <div className="ac-pp-val-row">
-                            <User size={13} className="text-cyan" />
-                            <strong>{editorName}</strong>
+                            <div className="ac-pp-user-chip">
+                              <User size={13} className="text-cyan" />
+                              <strong>{editorName}</strong>
+                            </div>
                           </div>
                         </div>
 
@@ -566,7 +576,7 @@ export default function AdminCenter({
                         <div className="ac-pp-detail-item">
                           <span className="ac-pp-label">Prazo de Entrega:</span>
                           <div className="ac-pp-val-row">
-                            <Clock size={13} />
+                            <Clock size={13} className="text-muted" />
                             <span>
                               {mission.deliveryDeadlineDate ? `${formatDateBR(mission.deliveryDeadlineDate)} às ${mission.deliveryDeadlineTime || '18:00'}` : 'Não estipulado'}
                             </span>
@@ -581,8 +591,8 @@ export default function AdminCenter({
                           <div className="ac-pp-detail-item full-width">
                             <span className="ac-pp-label">Local dos Arquivos no Servidor:</span>
                             <div className="ac-pp-server-path-box">
-                              <HardDrive size={14} className="text-amber" />
-                              <code className="ac-pp-path-text">{serverPath}</code>
+                              <HardDrive size={14} className="text-amber icon-shrink" />
+                              <code className="ac-pp-path-text" title={serverPath}>{serverPath}</code>
                               <button
                                 type="button"
                                 className="ac-btn-copy-path"
@@ -614,17 +624,34 @@ export default function AdminCenter({
                         )}
 
                         {/* Equipe de Campo */}
-                        <div className="ac-pp-detail-item full-width" style={{ marginTop: '2px' }}>
+                        <div className="ac-pp-detail-item full-width">
                           <span className="ac-pp-label">Equipe de Gravação em Campo:</span>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            🚗 {mission.vehicleNameDisplay || 'Sem viatura'} • 🛞 Motorista: {mission.driverName || 'Não definido'} • 👥 {mission.teamNamesDisplay || 'Equipe'}
+                          <div className="ac-pp-team-chips">
+                            {mission.vehicleNameDisplay && (
+                              <span className="ac-team-chip">
+                                <Car size={12} className="text-rose" />
+                                <span>{mission.vehicleNameDisplay}</span>
+                              </span>
+                            )}
+                            {mission.driverName && (
+                              <span className="ac-team-chip">
+                                <User size={12} className="text-amber" />
+                                <span>Motorista: {mission.driverName}</span>
+                              </span>
+                            )}
+                            {mission.teamNamesDisplay && (
+                              <span className="ac-team-chip">
+                                <Users size={12} className="text-indigo" />
+                                <span>{mission.teamNamesDisplay}</span>
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
 
                       {/* Botões de Ação para o Administrador */}
                       {isPending && (
-                        <div className="ac-rc-actions-row" style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+                        <div className="ac-rc-actions-row">
                           <button
                             type="button"
                             className="ac-btn-reject"
@@ -638,7 +665,7 @@ export default function AdminCenter({
                             })}
                             title="Rejeitar material e solicitar ajustes com novo prazo"
                           >
-                            <RotateCcw size={14} />
+                            <RotateCcw size={15} />
                             <span>Rejeitar e Reabrir</span>
                           </button>
 
