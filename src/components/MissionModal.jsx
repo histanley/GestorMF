@@ -1899,8 +1899,8 @@ export default function MissionModal({
                               const labelV = isElecV
                                 ? '⚡ Elétrico'
                                 : (v.fuelType || 'Gasolina').toLowerCase() === 'diesel'
-                                ? '🛢️ Diesel'
-                                : '⛽ Gasolina';
+                                  ? '🛢️ Diesel'
+                                  : '⛽ Gasolina';
                               return (
                                 <option
                                   key={v.id}
@@ -1997,129 +1997,129 @@ export default function MissionModal({
                         </div>
                       </div>
 
-                    {/* TELEMETRIA MINUCIOSA DO TANQUE / BATERIA DESTA VIATURA NA MISSÃO */}
-                    {vehObj && bd && (() => {
-                      const isElecAlloc = isElectricVehicle(vehObj);
-                      const unitAlloc = isElecAlloc ? 'kWh' : 'L';
-                      const nounAlloc = isElecAlloc ? 'Bateria' : 'Tanque';
-                      const actionAlloc = isElecAlloc ? 'recarregar' : 'abastecer';
+                      {/* TELEMETRIA MINUCIOSA DO TANQUE / BATERIA DESTA VIATURA NA MISSÃO */}
+                      {vehObj && bd && (() => {
+                        const isElecAlloc = isElectricVehicle(vehObj);
+                        const unitAlloc = isElecAlloc ? 'kWh' : 'L';
+                        const nounAlloc = isElecAlloc ? 'Bateria' : 'Tanque';
+                        const actionAlloc = isElecAlloc ? 'recarregar' : 'abastecer';
 
-                      return (
-                        <div
-                          className={`vac-fuel-telemetry-box ${bd.triggersReserveAlert ? 'vac-fuel-reserve-danger' : ''
-                            }`}
-                        >
-                          <div className="vft-top-row">
-                            <div className="vft-metric">
-                              <span>{nounAlloc} Antes da Missão</span>
-                              <strong>
-                                {bd.litersBefore} {unitAlloc} / {bd.tankCapacity} {unitAlloc} ({bd.percentBefore}%)
-                              </strong>
-                              <small>Alcance máx 1 {nounAlloc.toLowerCase()}: {bd.maxTankRangeKm} km</small>
-                            </div>
-
-                            <div className="vft-metric vft-deduction">
-                              <span>Dedução desta Missão ({bd.km} km)</span>
-                              <strong>
-                                -{bd.litersNeeded} {unitAlloc} (-{bd.percentOfTankUsed}%)
-                              </strong>
-                              <small>Custo: R$ {bd.totalCost.toFixed(2)}</small>
-                            </div>
-
-                            <div className="vft-metric">
-                              <span>{nounAlloc} Após a Missão</span>
-                              <strong
-                                className={
-                                  bd.triggersReserveAlert ? 'text-danger-bright' : 'text-green-bright'
-                                }
-                              >
-                                {bd.litersAfter} {unitAlloc} / {bd.tankCapacity} {unitAlloc} ({bd.percentAfter}%)
-                              </strong>
-                              <small>Autonomia restante: ~{bd.remainingRangeAfterKm} km</small>
-                            </div>
-                          </div>
-
-                          {/* Barra Visual Antes -> Depois com Marcador de Reserva (10%) */}
-                          <div className="fuel-progress-bg" style={{ marginTop: 8 }}>
-                            <div
-                              className="fuel-reserve-marker"
-                              style={{ left: '10%' }}
-                              title={`Reserva / Bateria Crítica (10%)`}
-                            />
-                            <div
-                              className={`fuel-progress-fill ${bd.triggersReserveAlert ? 'fill-danger reserve-pulse' : 'fill-good'
-                                }`}
-                              style={{ width: `${Math.min(100, Math.max(0, bd.percentAfter))}%` }}
-                            />
-                          </div>
-
-                          {/* Alertas */}
-                          {bd.exceedsCurrentAvailableFuel && (
-                            <div className="vft-deficit-alert">
-                              <AlertTriangle size={14} />
-                              <span>
-                                <strong>{isElecAlloc ? 'Carga da bateria insuficiente para concluir sem recarregar:' : 'Combustível atual insuficiente para concluir sem abastecer:'}</strong>{' '}
-                                Esta missão consome <strong>{bd.litersNeeded} {unitAlloc}</strong> e a viatura possui{' '}
-                                <strong>{bd.litersBefore} {unitAlloc}</strong> no {nounAlloc.toLowerCase()}. Será necessário {actionAlloc} pelo menos{' '}
-                                <strong>+{bd.deficitFromCurrentLiters} {unitAlloc}</strong> (Valor adicional:{' '}
-                                <strong>+R$ {Number(bd.deficitFromCurrentCost || 0).toFixed(2)}</strong>).
-                              </span>
-                            </div>
-                          )}
-
-                          {bd.exceedsFullTankCapacity && (
-                            <div className="vft-excess-tank-alert">
-                              <Fuel size={14} />
-                              <span>
-                                <strong>Ultrapassa 1 {nounAlloc.toLowerCase()} completo(a) ({bd.maxTankRangeKm} km):</strong>{' '}
-                                Excedente além de 1 {nounAlloc.toLowerCase()}: <strong>+{bd.excessOverFullTankKm} km</strong> •{' '}
-                                <strong>+{bd.excessOverFullTankLiters} {unitAlloc} (+{bd.excessOverFullTankPercent}% de 1 {nounAlloc.toLowerCase()})</strong> •{' '}
-                                Valor Excedente: <strong>+R$ {Number(bd.excessOverFullTankCost || 0).toFixed(2)}</strong>.
-                              </span>
-                            </div>
-                          )}
-
-                          {bd.triggersReserveAlert && (
-                            <div className="vft-reserve-alert">
-                              <AlertTriangle size={14} />
-                              <span>
-                                <strong>{isElecAlloc ? '⚡ ALERTA DE BATERIA BAIXA (≤ 10%):' : '🚨 ALERTA DE RESERVA DE COMBUSTÍVEL (≤ 10%):'}</strong> Após esta missão, {isElecAlloc ? 'a bateria' : 'o tanque'} ficará em{' '}
-                                <strong>{bd.percentAfter}% ({bd.litersAfter} {unitAlloc})</strong> — sinalizando{' '}
-                                <strong>{isElecAlloc ? 'recarga imediata' : 'abastecimento imediato'}</strong> da viatura!
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    <div className="driver-quick-chips">
-                      <span className="driver-chips-label">Atribuição Rápida de Condutor:</span>
-                      {[...habilitados, ...demaisMembros].map((m) => {
-                        const isThisDriver = alloc.driverId === m.id;
-                        const isHabilitado = Boolean(m.canDrive ?? m.hasCnh);
                         return (
-                          <button
-                            key={m.id}
-                            type="button"
-                            className={`driver-quick-chip ${isThisDriver ? 'active' : ''} ${isHabilitado ? 'chip-habilitado' : ''}`}
-                            onClick={() =>
-                              handleChangeAllocationDriver(idx, isThisDriver ? '' : m.id)
-                            }
-                            title={isHabilitado ? `Habilitado a conduzir • CNH ${m.cnhCategory || 'B'}` : 'Sem CNH registrada'}
+                          <div
+                            className={`vac-fuel-telemetry-box ${bd.triggersReserveAlert ? 'vac-fuel-reserve-danger' : ''
+                              }`}
                           >
-                            <Car size={11} className={isHabilitado ? 'text-cyan-bright' : ''} />
-                            <span>{m.name}</span>
-                            {isHabilitado && <small className="chip-cnh-tag">CNH {m.cnhCategory || 'B'}</small>}
-                            {isThisDriver && <Check size={11} />}
-                          </button>
+                            <div className="vft-top-row">
+                              <div className="vft-metric">
+                                <span>{nounAlloc} Antes da Missão</span>
+                                <strong>
+                                  {bd.litersBefore} {unitAlloc} / {bd.tankCapacity} {unitAlloc} ({bd.percentBefore}%)
+                                </strong>
+                                <small>Alcance máx 1 {nounAlloc.toLowerCase()}: {bd.maxTankRangeKm} km</small>
+                              </div>
+
+                              <div className="vft-metric vft-deduction">
+                                <span>Dedução desta Missão ({bd.km} km)</span>
+                                <strong>
+                                  -{bd.litersNeeded} {unitAlloc} (-{bd.percentOfTankUsed}%)
+                                </strong>
+                                <small>Custo: R$ {bd.totalCost.toFixed(2)}</small>
+                              </div>
+
+                              <div className="vft-metric">
+                                <span>{nounAlloc} Após a Missão</span>
+                                <strong
+                                  className={
+                                    bd.triggersReserveAlert ? 'text-danger-bright' : 'text-green-bright'
+                                  }
+                                >
+                                  {bd.litersAfter} {unitAlloc} / {bd.tankCapacity} {unitAlloc} ({bd.percentAfter}%)
+                                </strong>
+                                <small>Autonomia restante: ~{bd.remainingRangeAfterKm} km</small>
+                              </div>
+                            </div>
+
+                            {/* Barra Visual Antes -> Depois com Marcador de Reserva (10%) */}
+                            <div className="fuel-progress-bg" style={{ marginTop: 8 }}>
+                              <div
+                                className="fuel-reserve-marker"
+                                style={{ left: '10%' }}
+                                title={`Reserva / Bateria Crítica (10%)`}
+                              />
+                              <div
+                                className={`fuel-progress-fill ${bd.triggersReserveAlert ? 'fill-danger reserve-pulse' : 'fill-good'
+                                  }`}
+                                style={{ width: `${Math.min(100, Math.max(0, bd.percentAfter))}%` }}
+                              />
+                            </div>
+
+                            {/* Alertas */}
+                            {bd.exceedsCurrentAvailableFuel && (
+                              <div className="vft-deficit-alert">
+                                <AlertTriangle size={14} />
+                                <span>
+                                  <strong>{isElecAlloc ? 'Carga da bateria insuficiente para concluir sem recarregar:' : 'Combustível atual insuficiente para concluir sem abastecer:'}</strong>{' '}
+                                  Esta missão consome <strong>{bd.litersNeeded} {unitAlloc}</strong> e a viatura possui{' '}
+                                  <strong>{bd.litersBefore} {unitAlloc}</strong> no {nounAlloc.toLowerCase()}. Será necessário {actionAlloc} pelo menos{' '}
+                                  <strong>+{bd.deficitFromCurrentLiters} {unitAlloc}</strong> (Valor adicional:{' '}
+                                  <strong>+R$ {Number(bd.deficitFromCurrentCost || 0).toFixed(2)}</strong>).
+                                </span>
+                              </div>
+                            )}
+
+                            {bd.exceedsFullTankCapacity && (
+                              <div className="vft-excess-tank-alert">
+                                <Fuel size={14} />
+                                <span>
+                                  <strong>Ultrapassa 1 {nounAlloc.toLowerCase()} completo(a) ({bd.maxTankRangeKm} km):</strong>{' '}
+                                  Excedente além de 1 {nounAlloc.toLowerCase()}: <strong>+{bd.excessOverFullTankKm} km</strong> •{' '}
+                                  <strong>+{bd.excessOverFullTankLiters} {unitAlloc} (+{bd.excessOverFullTankPercent}% de 1 {nounAlloc.toLowerCase()})</strong> •{' '}
+                                  Valor Excedente: <strong>+R$ {Number(bd.excessOverFullTankCost || 0).toFixed(2)}</strong>.
+                                </span>
+                              </div>
+                            )}
+
+                            {bd.triggersReserveAlert && (
+                              <div className="vft-reserve-alert">
+                                <AlertTriangle size={14} />
+                                <span>
+                                  <strong>{isElecAlloc ? '⚡ ALERTA DE BATERIA BAIXA (≤ 10%):' : '🚨 ALERTA DE RESERVA DE COMBUSTÍVEL (≤ 10%):'}</strong> Após esta missão, {isElecAlloc ? 'a bateria' : 'o tanque'} ficará em{' '}
+                                  <strong>{bd.percentAfter}% ({bd.litersAfter} {unitAlloc})</strong> — sinalizando{' '}
+                                  <strong>{isElecAlloc ? 'recarga imediata' : 'abastecimento imediato'}</strong> da viatura!
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         );
-                      })}
+                      })()}
+
+                      <div className="driver-quick-chips">
+                        <span className="driver-chips-label">Atribuição Rápida de Condutor:</span>
+                        {[...habilitados, ...demaisMembros].map((m) => {
+                          const isThisDriver = alloc.driverId === m.id;
+                          const isHabilitado = Boolean(m.canDrive ?? m.hasCnh);
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              className={`driver-quick-chip ${isThisDriver ? 'active' : ''} ${isHabilitado ? 'chip-habilitado' : ''}`}
+                              onClick={() =>
+                                handleChangeAllocationDriver(idx, isThisDriver ? '' : m.id)
+                              }
+                              title={isHabilitado ? `Habilitado a conduzir • CNH ${m.cnhCategory || 'B'}` : 'Sem CNH registrada'}
+                            >
+                              <Car size={11} className={isHabilitado ? 'text-cyan-bright' : ''} />
+                              <span>{m.name}</span>
+                              {isHabilitado && <small className="chip-cnh-tag">CNH {m.cnhCategory || 'B'}</small>}
+                              {isThisDriver && <Check size={11} />}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                );
-              });
-            })()}
+                  );
+                });
+              })()}
             </div>
           </div>
 
@@ -2134,9 +2134,9 @@ export default function MissionModal({
                 style={
                   isEditionNotApplicable
                     ? {
-                        border: '1px solid rgba(234, 179, 8, 0.35)',
-                        transition: 'all 0.3s ease',
-                      }
+                      border: '1px solid rgba(234, 179, 8, 0.35)',
+                      transition: 'all 0.3s ease',
+                    }
                     : { transition: 'all 0.3s ease' }
                 }
               >
@@ -2210,11 +2210,11 @@ export default function MissionModal({
                           color: '#ffffff',
                           ...(isEditionNotApplicable
                             ? {
-                                borderColor: 'rgba(234, 179, 8, 0.7)',
-                                background: '#111827',
-                                fontWeight: 600,
-                                boxShadow: '0 0 10px rgba(234, 179, 8, 0.2)',
-                              }
+                              borderColor: 'rgba(234, 179, 8, 0.7)',
+                              background: '#111827',
+                              fontWeight: 600,
+                              boxShadow: '0 0 10px rgba(234, 179, 8, 0.2)',
+                            }
                             : {}),
                         }}
                       >
@@ -2638,9 +2638,8 @@ export default function MissionModal({
                         return (
                           <div
                             key={m.id}
-                            className={`mm-member-card ${isSelected ? 'selected' : ''} ${
-                              isDriver ? 'is-driver' : ''
-                            } ${memConflict ? 'has-conflict' : ''}`}
+                            className={`mm-member-card ${isSelected ? 'selected' : ''} ${isDriver ? 'is-driver' : ''
+                              } ${memConflict ? 'has-conflict' : ''}`}
                             onClick={() => toggleTeamMember(m.id)}
                           >
                             <div className="mm-member-card-body">
@@ -2719,85 +2718,85 @@ export default function MissionModal({
                     )}
                   </div>
 
-              {/* SUBSEÇÃO: CONVIDADOS EXTERNOS & FREELANCERS */}
-              <div className="mm-guests-section">
-                <div className="mm-guests-header">
-                  <div className="mm-guests-title-wrap">
-                    <UserPlus size={16} className="text-purple" />
-                    <strong>Convidados Externos &amp; Freelancers</strong>
-                    <span className="mm-guests-count-badge">
-                      {(formData.guests || []).length} adicionado{(formData.guests || []).length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <small className="mm-guests-subtitle">
-                    Pessoas de fora da empresa, convidados ou freelancers. Não possuem login no sistema, não recebem notificações e não transmitem GPS, mas ficam registrados na ficha e no histórico da missão.
-                  </small>
-                </div>
+                  {/* SUBSEÇÃO: CONVIDADOS EXTERNOS & FREELANCERS */}
+                  <div className="mm-guests-section">
+                    <div className="mm-guests-header">
+                      <div className="mm-guests-title-wrap">
+                        <UserPlus size={16} className="text-purple" />
+                        <strong>Convidados Externos &amp; Freelancers</strong>
+                        <span className="mm-guests-count-badge">
+                          {(formData.guests || []).length} adicionado{(formData.guests || []).length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <small className="mm-guests-subtitle">
+                        Pessoas de fora da empresa, convidados ou freelancers. Não possuem login no sistema, não recebem notificações e não transmitem GPS, mas ficam registrados na ficha e no histórico da missão.
+                      </small>
+                    </div>
 
-                <div className="mm-guest-input-row">
-                  <div className="mm-guest-input-wrap">
-                    <input
-                      type="text"
-                      className="mm-guest-input"
-                      placeholder="Digite o nome do convidado ou freelancer (ex: Carlos Silva, Roberto Câmera...)"
-                      value={guestInput}
-                      onChange={(e) => setGuestInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddGuest();
-                        }
-                      }}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-add-guest"
-                    onClick={handleAddGuest}
-                    disabled={!guestInput.trim()}
-                    title="Adicionar convidado à escala de campo"
-                  >
-                    <Plus size={15} />
-                    <span>Adicionar Convidado</span>
-                  </button>
-                </div>
+                    <div className="mm-guest-input-row">
+                      <div className="mm-guest-input-wrap">
+                        <input
+                          type="text"
+                          className="mm-guest-input"
+                          placeholder="Digite o nome do convidado ou freelancer (ex: Carlos Silva, Roberto Câmera...)"
+                          value={guestInput}
+                          onChange={(e) => setGuestInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddGuest();
+                            }
+                          }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-add-guest"
+                        onClick={handleAddGuest}
+                        disabled={!guestInput.trim()}
+                        title="Adicionar convidado à escala de campo"
+                      >
+                        <Plus size={15} />
+                        <span>Adicionar Convidado</span>
+                      </button>
+                    </div>
 
-                {/* Lista de convidados adicionados */}
-                {(formData.guests || []).length > 0 ? (
-                  <div className="mm-guests-list">
-                    {(formData.guests || []).map((guest, idx) => {
-                      const guestName = typeof guest === 'string' ? guest : guest.name;
-                      return (
-                        <div key={idx} className="mm-guest-chip">
-                          <span className="mgc-avatar">
-                            {guestName.slice(0, 2).toUpperCase()}
-                          </span>
-                          <div className="mgc-info">
-                            <strong className="mgc-name">{guestName}</strong>
-                            <span className="mgc-badge">Freelancer / Externo</span>
-                          </div>
-                          <button
-                            type="button"
-                            className="btn-remove-guest"
-                            onClick={() => handleRemoveGuest(idx)}
-                            title={`Remover ${guestName}`}
-                          >
-                            <X size={13} />
-                          </button>
-                        </div>
-                      );
-                    })}
+                    {/* Lista de convidados adicionados */}
+                    {(formData.guests || []).length > 0 ? (
+                      <div className="mm-guests-list">
+                        {(formData.guests || []).map((guest, idx) => {
+                          const guestName = typeof guest === 'string' ? guest : guest.name;
+                          return (
+                            <div key={idx} className="mm-guest-chip">
+                              <span className="mgc-avatar">
+                                {guestName.slice(0, 2).toUpperCase()}
+                              </span>
+                              <div className="mgc-info">
+                                <strong className="mgc-name">{guestName}</strong>
+                                <span className="mgc-badge">Freelancer / Externo</span>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn-remove-guest"
+                                onClick={() => handleRemoveGuest(idx)}
+                                title={`Remover ${guestName}`}
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="mm-guests-empty-hint">
+                        Nenhum convidado ou freelancer adicionado. Digite o nome acima e pressione Enter ou clique em "Adicionar Convidado".
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="mm-guests-empty-hint">
-                    Nenhum convidado ou freelancer adicionado. Digite o nome acima e pressione Enter ou clique em "Adicionar Convidado".
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
-        );
-      })()}
+            );
+          })()}
 
           {/* ============================================================== */}
           {/* PASSO 6: BRIEFING & OBSERVAÇÕES                                */}

@@ -61,3 +61,4 @@ assert(appCss.includes('.ranking-member-card'),
 console.log('[PASS] 03. Estilos CSS (App.css): Classes de dashboard, pódio dourado/prateado/bronze e raio-x verificadas.');
 
 console.log('\nTODOS OS TESTES DE RANKING & INTELIGÊNCIA OPERACIONAL PASSARAM COM SUCESSO!\n');
+

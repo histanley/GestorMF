@@ -58,3 +58,4 @@ assert(teamManagerJsx.includes('if (editingRole) {') && teamManagerJsx.includes(
 console.log('[PASS] 03. Frontend (TeamManager.jsx): Salvamento de renomeação e fechamento com salvamento automático verificados.');
 
 console.log('\nTODOS OS TESTES DE PERSISTÊNCIA DE FUNÇÕES PASSARAM COM SUCESSO!\n');
+
