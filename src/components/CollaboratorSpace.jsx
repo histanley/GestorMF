@@ -226,79 +226,40 @@ export default function CollaboratorSpace({
 
   if (!myMember) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+      <div className="cs-loading-notice">
         Carregando informações do colaborador...
       </div>
     );
   }
 
   return (
-    <div className="collaborator-space-container" style={{ padding: '1rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="collaborator-space-container">
       {/* ============================================================== */}
       {/* 1. HERO BANNER DO COLABORADOR                                  */}
       {/* ============================================================== */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '16px',
-          padding: '1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '1.25rem',
-          marginBottom: '1.5rem',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', minWidth: '260px' }}>
-          <div
-            style={{
-              width: '72px',
-              height: '72px',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              border: '3px solid #f59e0b',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#1e293b',
-              flexShrink: 0,
-            }}
-          >
+      <div className="cs-hero-card">
+        <div className="cs-hero-profile-wrap">
+          <div className="cs-hero-avatar">
             {myMember.photoUrl ? (
-              <img src={myMember.photoUrl} alt={myMember.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={myMember.photoUrl} alt={myMember.name} />
             ) : (
-              <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc' }}>
-                {myMember.name.slice(0, 2).toUpperCase()}
-              </span>
+              <span>{myMember.name.slice(0, 2).toUpperCase()}</span>
             )}
           </div>
 
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#f8fafc', fontWeight: 700 }}>{myMember.name}</h2>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  padding: '2px 8px',
-                  borderRadius: '999px',
-                  background: 'rgba(59, 130, 246, 0.2)',
-                  color: '#60a5fa',
-                  border: '1px solid rgba(59, 130, 246, 0.3)',
-                  fontWeight: 600,
-                }}
-              >
+          <div className="cs-hero-text">
+            <div className="cs-hero-name-row">
+              <h2 className="cs-hero-name">{myMember.name}</h2>
+              <span className="cs-company-pill">
                 {myMember.company || 'MegaFilmes'}
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-              <span style={{ color: '#f59e0b', fontSize: '0.9rem', fontWeight: 600 }}>
+            <div className="cs-hero-badges-row">
+              <span className="cs-hero-role">
                 💼 {myMember.role || 'Colaborador'}
               </span>
               {myMember.canDrive && (
-                <span style={{ fontSize: '0.78rem', color: '#38bdf8' }}>
+                <span className="cs-hero-cnh">
                   🚗 CNH {myMember.cnhCategory || 'AB'}
                 </span>
               )}
@@ -307,22 +268,10 @@ export default function CollaboratorSpace({
         </div>
 
         {/* Chave PIX rápida com cópia */}
-        <div
-          style={{
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '10px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div>
-            <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Chave PIX Cadastrada
-            </span>
-            <strong style={{ fontSize: '0.92rem', color: '#f8fafc' }}>
+        <div className="cs-pix-box">
+          <div className="cs-pix-info">
+            <span className="cs-pix-label">Chave PIX Cadastrada</span>
+            <strong className="cs-pix-value">
               {myMember.pixKey || 'Não cadastrada'}
             </strong>
           </div>
@@ -330,20 +279,7 @@ export default function CollaboratorSpace({
             <button
               type="button"
               onClick={handleCopyPix}
-              style={{
-                background: copiedPix ? '#10b981' : 'rgba(245, 158, 11, 0.2)',
-                border: copiedPix ? '1px solid #10b981' : '1px solid rgba(245, 158, 11, 0.4)',
-                color: copiedPix ? '#ffffff' : '#fbbf24',
-                padding: '6px 10px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                transition: 'all 0.2s',
-              }}
+              className={`cs-btn-copy-pix ${copiedPix ? 'copied' : ''}`}
             >
               {copiedPix ? <Check size={14} /> : <Copy size={14} />}
               <span>{copiedPix ? 'Copiado!' : 'Copiar'}</span>
@@ -355,80 +291,53 @@ export default function CollaboratorSpace({
       {/* ============================================================== */}
       {/* 2. RESUMO FINANCEIRO DO MÊS (EXTRATO PESSOAL)                   */}
       {/* ============================================================== */}
-      <div style={{ marginBottom: '1.75rem' }}>
-        <h3 style={{ fontSize: '1.05rem', color: '#f8fafc', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div className="cs-section-block">
+        <h3 className="cs-section-heading">
           <DollarSign size={18} className="text-amber" />
           Meu Fechamento &amp; Saldo do Mês
         </h3>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '1rem',
-          }}
-        >
+        <div className="cs-summary-grid">
           {/* Card Horas Extras */}
-          <div
-            style={{
-              background: 'rgba(30, 41, 59, 0.7)',
-              border: '1px solid rgba(245, 158, 11, 0.25)',
-              borderRadius: '12px',
-              padding: '1.25rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Horas Extras ({financialSummary.totalHours}h)</span>
+          <div className="cs-summary-card cs-card-hours">
+            <div className="cs-card-header">
+              <span className="cs-card-lbl">Horas Extras ({financialSummary.totalHours}h)</span>
               <Clock size={18} className="text-amber" />
             </div>
-            <strong style={{ fontSize: '1.5rem', color: '#fbbf24', display: 'block' }}>
+            <strong className="cs-card-val text-amber">
               {formatBRL(financialSummary.totalHoursVal)}
             </strong>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
+            <span className="cs-card-sub">
               Taxa base: {formatBRL(myMember.hourlyRate || 50)}/h
             </span>
           </div>
 
           {/* Card Diárias */}
-          <div
-            style={{
-              background: 'rgba(30, 41, 59, 0.7)',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
-              borderRadius: '12px',
-              padding: '1.25rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Diárias ({financialSummary.totalDays} dias)</span>
+          <div className="cs-summary-card cs-card-travel">
+            <div className="cs-card-header">
+              <span className="cs-card-lbl">Diárias ({financialSummary.totalDays} dias)</span>
               <Compass size={18} className="text-cyan" />
             </div>
-            <strong style={{ fontSize: '1.5rem', color: '#38bdf8', display: 'block' }}>
+            <strong className="cs-card-val text-cyan">
               {formatBRL(financialSummary.totalDaysVal)}
             </strong>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
+            <span className="cs-card-sub">
               Taxa diária: {formatBRL(myMember.dailyRate || 200)}/dia
             </span>
           </div>
 
           {/* Card Total a Receber / Quitado */}
-          <div
-            style={{
-              background: 'rgba(30, 41, 59, 0.7)',
-              border: financialSummary.isPaid ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(234, 179, 8, 0.3)',
-              borderRadius: '12px',
-              padding: '1.25rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+          <div className={`cs-summary-card cs-card-total ${financialSummary.isPaid ? 'is-paid' : 'is-pending'}`}>
+            <div className="cs-card-header">
+              <span className="cs-card-lbl">
                 {financialSummary.isPaid ? 'Total Quitado' : 'Total Apurado (Pendente)'}
               </span>
               {financialSummary.isPaid ? <CheckCircle2 size={18} className="text-green" /> : <DollarSign size={18} className="text-gold" />}
             </div>
-            <strong style={{ fontSize: '1.5rem', color: financialSummary.isPaid ? '#34d399' : '#f59e0b', display: 'block' }}>
+            <strong className={`cs-card-val ${financialSummary.isPaid ? 'text-green' : 'text-gold'}`}>
               {formatBRL(financialSummary.total)}
             </strong>
-            <span style={{ fontSize: '0.75rem', color: financialSummary.isPaid ? '#34d399' : '#fbbf24', marginTop: '4px', display: 'block' }}>
+            <span className="cs-card-sub">
               {financialSummary.isPaid ? '✅ Saldo já quitado e zerado' : '⏳ Previsão de quitação até dia 05'}
             </span>
           </div>
@@ -438,24 +347,18 @@ export default function CollaboratorSpace({
       {/* ============================================================== */}
       {/* 3. ATUAÇÃO FIEL PELAS 11 FUNÇÕES DA EMPRESA                    */}
       {/* ============================================================== */}
-      <div style={{ marginBottom: '1.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '8px' }}>
-          <h3 style={{ fontSize: '1.05rem', color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div className="cs-section-block">
+        <div className="cs-section-header-row">
+          <h3 className="cs-section-heading">
             <Briefcase size={18} className="text-amber" />
             Minhas Atuações por Função na Empresa (11 Funções Oficiais)
           </h3>
-          <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+          <span className="cs-section-header-sub">
             Rastreamento fiel e pontuação das funções cumpridas
           </span>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-            gap: '0.75rem',
-          }}
-        >
+        <div className="cs-roles-grid">
           {OFFICIAL_COMPANY_ROLES.map((roleName) => {
             const count = roleCounts[roleName] || 0;
             const isMainRole = normalizeToOfficialRole(myMember.role) === roleName;
@@ -466,50 +369,21 @@ export default function CollaboratorSpace({
             return (
               <div
                 key={roleName}
-                style={{
-                  background: count > 0 ? 'rgba(30, 41, 59, 0.85)' : 'rgba(30, 41, 59, 0.4)',
-                  border: count > 0 ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(255, 255, 255, 0.05)',
-                  borderRadius: '12px',
-                  padding: '12px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px',
-                }}
+                className={`cs-role-item ${count > 0 ? 'has-count' : 'no-count'}`}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                  <span style={{ fontSize: '1.4rem' }}>{icon}</span>
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        color: count > 0 ? '#f8fafc' : '#64748b',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                      title={roleName}
-                    >
+                <div className="cs-role-item-left">
+                  <span className="cs-role-icon">{icon}</span>
+                  <div className="cs-role-info">
+                    <div className="cs-role-name" title={roleName}>
                       {roleName}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: isMainRole ? '#fbbf24' : isSecRole ? '#38bdf8' : '#64748b' }}>
+                    <div className={`cs-role-status ${isMainRole ? 'is-main' : isSecRole ? 'is-sec' : count > 0 ? 'is-done' : ''}`}>
                       {isMainRole ? 'Minha Função Principal' : isSecRole ? 'Função Secundária' : count > 0 ? 'Cumprida em Missões' : 'Ainda não exercida'}
                     </div>
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '999px',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    background: count > 0 ? '#f59e0b' : 'rgba(255, 255, 255, 0.05)',
-                    color: count > 0 ? '#0f172a' : '#64748b',
-                    flexShrink: 0,
-                  }}
-                >
+                <div className={`cs-role-count-badge ${count > 0 ? 'active' : ''}`}>
                   {count}x
                 </div>
               </div>
@@ -521,27 +395,18 @@ export default function CollaboratorSpace({
       {/* ============================================================== */}
       {/* 4. MISSÕES ATIVAS COM SOLICITAÇÃO DE HORAS EXTRAS              */}
       {/* ============================================================== */}
-      <div style={{ marginBottom: '1.75rem' }}>
-        <h3 style={{ fontSize: '1.05rem', color: '#f8fafc', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div className="cs-section-block">
+        <h3 className="cs-section-heading">
           <Sparkles size={18} className="text-amber" />
           Minhas Missões &amp; Solicitação de Horas Extras
         </h3>
 
         {myMissions.length === 0 ? (
-          <div
-            style={{
-              padding: '2rem',
-              textAlign: 'center',
-              background: 'rgba(30, 41, 59, 0.4)',
-              borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              color: '#94a3b8',
-            }}
-          >
+          <div className="cs-empty-notice">
             Você ainda não possui missões registradas nesta base.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="cs-missions-list">
             {myMissions.slice(0, 10).map((m) => {
               const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
               const requests = Array.isArray(m.extraHoursRequests) ? m.extraHoursRequests : [];
@@ -549,73 +414,42 @@ export default function CollaboratorSpace({
               const isClosed = m.missionStatus === 'Finalizada';
 
               return (
-                <div
-                  key={m.id}
-                  style={{
-                    background: 'rgba(30, 41, 59, 0.7)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '12px',
-                    padding: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '1rem',
-                  }}
-                >
-                  <div style={{ flex: '1 1 300px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>{m.code || `#${m.id}`}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>
+                <div key={m.id} className="cs-mission-card">
+                  <div className="cs-mission-card-left">
+                    <div className="cs-mission-meta-row">
+                      <span className="cs-mission-code">{m.code || `#${m.id}`}</span>
+                      <span className="cs-mission-date">
                         📅 {formatDateBR(m.date)} {isMDay && m.endDate ? ` a ${formatDateBR(m.endDate)}` : ''}
                       </span>
                       {isMDay ? (
-                        <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}>
+                        <span className="cs-badge-mday">
                           🏕️ Viagem (+1d)
                         </span>
                       ) : (
-                        <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24' }}>
+                        <span className="cs-badge-hours">
                           🕒 {m.departureTime || '--:--'} às {m.returnTimeEstimated || '--:--'}
                         </span>
                       )}
-                      <span
-                        style={{
-                          fontSize: '0.7rem',
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          background: isClosed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)',
-                          color: isClosed ? '#34d399' : '#60a5fa',
-                        }}
-                      >
+                      <span className={`cs-badge-status ${isClosed ? 'closed' : 'open'}`}>
                         {m.missionStatus || 'Agendada'}
                       </span>
                     </div>
 
-                    <strong style={{ fontSize: '0.98rem', color: '#f8fafc', display: 'block', marginBottom: '2px' }}>
+                    <strong className="cs-mission-title">
                       {m.description}
                     </strong>
-                    <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>📍 {m.locationName}</span>
+                    <span className="cs-mission-loc">📍 {m.locationName}</span>
 
                     {/* Histórico de solicitações de horas extras nesta missão */}
                     {myRequests.length > 0 && (
-                      <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <div className="cs-requests-chips">
                         {myRequests.map((req, rIdx) => {
                           const isPending = req.status === 'PENDING';
                           const isApproved = req.status === 'APPROVED';
                           return (
                             <span
                               key={rIdx}
-                              style={{
-                                fontSize: '0.72rem',
-                                padding: '2px 8px',
-                                borderRadius: '6px',
-                                background: isPending ? 'rgba(234, 179, 8, 0.15)' : isApproved ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                color: isPending ? '#fbbf24' : isApproved ? '#34d399' : '#f87171',
-                                border: isPending ? '1px solid rgba(234, 179, 8, 0.3)' : isApproved ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                              }}
+                              className={`cs-req-chip ${isPending ? 'pending' : isApproved ? 'approved' : 'rejected'}`}
                             >
                               {isPending ? <Clock size={11} /> : isApproved ? <Check size={11} /> : <XCircle size={11} />}
                               +{req.hoursRequested}h {isPending ? 'Aguardando Aprovação' : isApproved ? 'Aprovada' : 'Recusada'}
@@ -631,20 +465,7 @@ export default function CollaboratorSpace({
                     <button
                       type="button"
                       onClick={() => setRequestModalMission(m)}
-                      style={{
-                        background: 'rgba(245, 158, 11, 0.15)',
-                        border: '1px solid #f59e0b',
-                        color: '#fbbf24',
-                        padding: '8px 14px',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '0.82rem',
-                        fontWeight: 600,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        whiteSpace: 'nowrap',
-                      }}
+                      className="cs-btn-request-extra"
                     >
                       <Plus size={14} /> Solicitar Hora Extra (+1h, +2h)
                     </button>
@@ -665,7 +486,7 @@ export default function CollaboratorSpace({
             <div className="modal-header">
               <div>
                 <h2>⏱️ Solicitar Hora Extra</h2>
-                <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                <span className="modal-sub">
                   {requestModalMission.code} • {requestModalMission.description}
                 </span>
               </div>
@@ -673,31 +494,21 @@ export default function CollaboratorSpace({
             </div>
 
             <form onSubmit={handleSubmitExtraHoursRequest} className="modal-form">
-              <p style={{ fontSize: '0.85rem', color: '#cbd5e1', lineHeight: '1.4' }}>
+              <p className="cs-modal-desc">
                 Informe a quantidade de horas adicionais necessárias em campo e a justificativa para que a administração possa analisar e aprovar.
               </p>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+              <div className="cs-modal-group">
+                <label className="cs-modal-label">
                   Quantidade de Horas Extras Adicionais:
                 </label>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="cs-hours-btn-grid">
                   {[0.5, 1.0, 1.5, 2.0, 3.0, 4.0].map((h) => (
                     <button
                       key={h}
                       type="button"
                       onClick={() => setRequestedHours(h)}
-                      style={{
-                        flex: 1,
-                        padding: '8px 0',
-                        borderRadius: '8px',
-                        background: requestedHours === h ? '#f59e0b' : 'rgba(255, 255, 255, 0.05)',
-                        color: requestedHours === h ? '#0f172a' : '#f8fafc',
-                        border: requestedHours === h ? '1px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.1)',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                      }}
+                      className={`cs-hour-choice-btn ${requestedHours === h ? 'active' : ''}`}
                     >
                       +{h}h
                     </button>
@@ -705,8 +516,8 @@ export default function CollaboratorSpace({
                 </div>
               </div>
 
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+              <div className="cs-modal-group">
+                <label className="cs-modal-label">
                   Motivo / Justificativa da Prorrogação:
                 </label>
                 <textarea
@@ -715,19 +526,11 @@ export default function CollaboratorSpace({
                   placeholder="Ex: Pauta atrasou devido ao cliente; necessário captar mais cenas ao pôr do sol..."
                   value={requestReason}
                   onChange={(e) => setRequestReason(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '8px',
-                    background: '#0f172a',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#f8fafc',
-                    fontSize: '0.85rem',
-                  }}
+                  className="cs-modal-textarea"
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <div className="modal-actions-end">
                 <button
                   type="button"
                   className="btn-secondary"
@@ -740,7 +543,6 @@ export default function CollaboratorSpace({
                   type="submit"
                   className="btn-primary"
                   disabled={isSubmittingRequest || !requestReason.trim()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Send size={14} />
                   <span>{isSubmittingRequest ? 'Enviando...' : `Confirmar Solicitação (+${requestedHours}h)`}</span>
@@ -753,4 +555,3 @@ export default function CollaboratorSpace({
     </div>
   );
 }
-
