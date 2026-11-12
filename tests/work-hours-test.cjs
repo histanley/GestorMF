@@ -115,3 +115,4 @@ assert.strictEqual(t6.offHours, 4);
 console.log('  ✅ Cenário 6: Noite 22h às 02h = 4h banco de horas (atravessando meia-noite)');
 
 console.log('\n🎉 TODOS OS TESTES DE REGRAS DE HORÁRIO COMERCIAL E BANCO DE HORAS PASSARAM COM SUCESSO!');
+

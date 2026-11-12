@@ -148,3 +148,4 @@ export function getOffHoursWarningText(offHoursResult) {
   const { offHours, inHours, totalHours } = offHoursResult;
   return `Atenção: Esta missão possui ${offHours}h fora do horário de expediente comercial (Seg a Sex após 18h, Sáb após 12h ou Dom o dia todo). As ${offHours} horas excedentes serão acrescidas automaticamente no banco de horas do colaborador com seus respectivos valores.`;
 }
+

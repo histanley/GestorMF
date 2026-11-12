@@ -920,67 +920,69 @@ export default function MapView({
             </button>
           </div>
 
-          <h3 className="card-mission-title">{activeMission.description}</h3>
-          <div className="card-mission-location">
-            <MapPin size={15} className="icon-accent" />
-            <span>{activeMission.locationName || activeMission.address}</span>
-          </div>
-
-          <div className="card-metrics-grid">
-            <div className="metric-item">
-              <div className="metric-label">
-                <Navigation size={13} /> Distância (Ida e Volta)
-              </div>
-              <div className="metric-value">
-                {getMissionTotalKm(activeMission)} km
-                <span className="metric-sub">
-                  ({activeMission.distanceKm || 0} km ida + {activeMission.returnDistanceKm || activeMission.distanceKm || 0} km volta)
-                </span>
-              </div>
+          <div className="card-body-scrollable">
+            <h3 className="card-mission-title">{activeMission.description}</h3>
+            <div className="card-mission-location">
+              <MapPin size={14} className="icon-accent" />
+              <span>{activeMission.locationName || activeMission.address}</span>
             </div>
 
-            <div className="metric-item">
-              <div className="metric-label">
-                <Clock size={13} /> Tempo (Ida e Volta)
-              </div>
-              <div className="metric-value">
-                ~{activeMission.roundTripDurationMinutes || (activeMission.drivingDurationMinutes || 0) * 2} min
-                <span className="metric-sub">
-                  (~{activeMission.drivingDurationMinutes || 0} min/trecho • Saída: {activeMission.departureTime})
-                </span>
-              </div>
-            </div>
-
-            <div className="metric-item">
-              <div className="metric-label">
-                <Car size={13} /> Viatura & Motorista
-              </div>
-              <div className="metric-value">
-                {activeMission.vehicleNameDisplay || 'Não alocada'}
-                {activeMission.driverName && (
-                  <span className="metric-sub" style={{ color: 'var(--accent-cyan)' }}>
-                    🛞 Motorista: {activeMission.driverName}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {canViewFinancials && (
+            <div className="card-metrics-grid">
               <div className="metric-item">
                 <div className="metric-label">
-                  <Fuel size={13} /> Combustível
+                  <Navigation size={13} /> Distância (Ida e Volta)
                 </div>
-                <div className="metric-value highlight-fuel">
-                  {activeMission.estimatedFuelLiters || 0} L
-                  <span className="metric-sub">R$ {activeMission.estimatedFuelCost || '0.00'}</span>
+                <div className="metric-value">
+                  {getMissionTotalKm(activeMission)} km
+                  <span className="metric-sub">
+                    ({activeMission.distanceKm || 0} km ida + {activeMission.returnDistanceKm || activeMission.distanceKm || 0} km volta)
+                  </span>
                 </div>
               </div>
-            )}
-          </div>
 
-          <div className="card-team-info">
-            <span className="team-label">Equipe Escalada:</span>
-            <span className="team-names">{activeMission.teamNamesDisplay || 'Nenhum membro atribuído'}</span>
+              <div className="metric-item">
+                <div className="metric-label">
+                  <Clock size={13} /> Tempo (Ida e Volta)
+                </div>
+                <div className="metric-value">
+                  ~{activeMission.roundTripDurationMinutes || (activeMission.drivingDurationMinutes || 0) * 2} min
+                  <span className="metric-sub">
+                    (~{activeMission.drivingDurationMinutes || 0} min/trecho • Saída: {activeMission.departureTime})
+                  </span>
+                </div>
+              </div>
+
+              <div className="metric-item">
+                <div className="metric-label">
+                  <Car size={13} /> Viatura & Motorista
+                </div>
+                <div className="metric-value">
+                  {activeMission.vehicleNameDisplay || 'Não alocada'}
+                  {activeMission.driverName && (
+                    <span className="metric-sub" style={{ color: 'var(--accent-cyan)' }}>
+                      🛞 Motorista: {activeMission.driverName}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {canViewFinancials && (
+                <div className="metric-item">
+                  <div className="metric-label">
+                    <Fuel size={13} /> Combustível
+                  </div>
+                  <div className="metric-value highlight-fuel">
+                    {activeMission.estimatedFuelLiters || 0} L
+                    <span className="metric-sub">R$ {activeMission.estimatedFuelCost || '0.00'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="card-team-info">
+              <span className="team-label">Equipe Escalada:</span>
+              <span className="team-names">{activeMission.teamNamesDisplay || 'Nenhum membro atribuído'}</span>
+            </div>
           </div>
 
           {navLinks && (
