@@ -60,6 +60,7 @@ import {
   getFuelActionNoun,
   getFuelTypeIcon,
   getFuelTypeBadgeClass,
+  hasMissionPostProduction,
 } from '../utils/geo';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 
@@ -1000,7 +1001,7 @@ export default function MissionModal({
     const assignedMembers = members.filter((m) => formData.teamIds.includes(m.id));
     const teamNamesDisplay = assignedMembers.map((m) => m.name).join(', ');
 
-    const isNotApp = formData.editionStatus === 'Não se aplica';
+    const isNotApp = !hasMissionPostProduction(formData);
     const finalEditorIds = isNotApp ? [] : (formData.editorIds || []);
     const assignedEditors = members.filter((m) => finalEditorIds.includes(m.id));
     const editorNamesDisplay = isNotApp ? '' : (assignedEditors.map((m) => m.name).join(', ') || (formData.editorName || ''));
@@ -1017,8 +1018,10 @@ export default function MissionModal({
         user: 'Administrador / Gestor',
         timestamp: new Date().toISOString(),
         title: 'Missão Criada e Publicada',
-        description: `Missão "${formData.description}" cadastrada com prazo de edição para ${formatDateBR(formData.deliveryDeadlineDate || formData.date)} às ${formData.deliveryDeadlineTime || '18:00'}.`,
-        deadline: `${formatDateBR(formData.deliveryDeadlineDate || formData.date)} às ${formData.deliveryDeadlineTime || '18:00'}`,
+        description: isNotApp
+          ? `Missão "${formData.description}" cadastrada sem pós-produção necessária.`
+          : `Missão "${formData.description}" cadastrada com prazo de edição para ${formatDateBR(formData.deliveryDeadlineDate || formData.date)} às ${formData.deliveryDeadlineTime || '18:00'}.`,
+        deadline: isNotApp ? null : `${formatDateBR(formData.deliveryDeadlineDate || formData.date)} às ${formData.deliveryDeadlineTime || '18:00'}`,
       });
       if (editorNamesDisplay) {
         currentHistory.push({
@@ -1105,12 +1108,12 @@ export default function MissionModal({
       editorName: primaryEditorName,
       editorIds: finalEditorIds,
       editorNamesDisplay: editorNamesDisplay,
-      deliveryDeadlineDate: formData.deliveryDeadlineDate || formData.date,
-      deliveryDeadlineTime: formData.deliveryDeadlineTime || '18:00',
+      deliveryDeadlineDate: isNotApp ? null : (formData.deliveryDeadlineDate || formData.date),
+      deliveryDeadlineTime: isNotApp ? null : (formData.deliveryDeadlineTime || '18:00'),
       editionHistory: currentHistory,
-      editionDeliveryStatus: formData.editionDeliveryStatus || editingMission?.editionDeliveryStatus || '',
-      isOverdue: formData.isOverdue ?? editingMission?.isOverdue ?? 0,
-      reopenReason: formData.reopenReason ?? editingMission?.reopenReason ?? '',
+      editionDeliveryStatus: isNotApp ? '' : (formData.editionDeliveryStatus || editingMission?.editionDeliveryStatus || ''),
+      isOverdue: isNotApp ? 0 : (formData.isOverdue ?? editingMission?.isOverdue ?? 0),
+      reopenReason: isNotApp ? '' : (formData.reopenReason ?? editingMission?.reopenReason ?? ''),
       // Campos legados para compatibilidade total
       vehicleId: primaryAlloc ? primaryAlloc.vehicleId : '',
       driverId: primaryAlloc ? primaryAlloc.driverId : '',
@@ -1269,7 +1272,17 @@ export default function MissionModal({
                   type="date"
                   required
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  onChange={(e) => {
+                    const newDate = e.target.value;
+                    setFormData((prev) => {
+                      const shouldSyncDeadline = !prev.deliveryDeadlineDate || prev.deliveryDeadlineDate === prev.date;
+                      return {
+                        ...prev,
+                        date: newDate,
+                        ...(shouldSyncDeadline && hasMissionPostProduction(prev) ? { deliveryDeadlineDate: newDate } : {}),
+                      };
+                    });
+                  }}
                 />
               </div>
               <div className="form-group flex-1">
@@ -2229,7 +2242,7 @@ export default function MissionModal({
           {/* PASSO 4: PÓS-PRODUÇÃO                                          */}
           {/* ============================================================== */}
           {(() => {
-            const isEditionNotApplicable = formData.editionStatus === 'Não se aplica';
+            const isEditionNotApplicable = !hasMissionPostProduction(formData);
             return (
               <div
                 className={`mm-card-panel ${isEditionNotApplicable ? 'step-not-applicable' : ''}`}
@@ -2301,10 +2314,22 @@ export default function MissionModal({
                         value={formData.editionStatus}
                         onChange={(e) => {
                           const val = e.target.value;
+                          const isValNotApp = !hasMissionPostProduction({ editionStatus: val });
                           setFormData((prev) => ({
                             ...prev,
                             editionStatus: val,
-                            ...(val === 'Não se aplica' ? { editorIds: [] } : {}),
+                            ...(isValNotApp
+                              ? {
+                                  editorIds: [],
+                                  deliveryDeadlineDate: '',
+                                  deliveryDeadlineTime: '',
+                                  isOverdue: 0,
+                                  editionDeliveryStatus: '',
+                                }
+                              : {
+                                  deliveryDeadlineDate: prev.deliveryDeadlineDate || prev.date || getLocalTodayStr(),
+                                  deliveryDeadlineTime: prev.deliveryDeadlineTime || '18:00',
+                                }),
                           }));
                         }}
                         style={{
@@ -2352,7 +2377,7 @@ export default function MissionModal({
                       <input
                         type="date"
                         disabled={isEditionNotApplicable}
-                        value={formData.deliveryDeadlineDate || formData.date}
+                        value={isEditionNotApplicable ? '' : (formData.deliveryDeadlineDate || formData.date)}
                         onChange={(e) =>
                           setFormData({ ...formData, deliveryDeadlineDate: e.target.value })
                         }
@@ -2373,7 +2398,7 @@ export default function MissionModal({
                       <input
                         type="time"
                         disabled={isEditionNotApplicable}
-                        value={formData.deliveryDeadlineTime || '18:00'}
+                        value={isEditionNotApplicable ? '' : (formData.deliveryDeadlineTime || '18:00')}
                         onChange={(e) =>
                           setFormData({ ...formData, deliveryDeadlineTime: e.target.value })
                         }

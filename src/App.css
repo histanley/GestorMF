@@ -20010,6 +20010,21 @@ body.light-theme .pp-badge-editor {
   border: 1px dashed rgba(148, 163, 184, 0.25);
 }
 
+.pp-badge-not-applicable {
+  background: rgba(148, 163, 184, 0.08);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  font-weight: 500;
+  font-size: 0.72rem;
+  letter-spacing: -0.01em;
+}
+
+body.light-theme .pp-badge-not-applicable {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+
 .pp-badge-deadline {
   background: rgba(245, 158, 11, 0.1);
   color: #fbbf24;

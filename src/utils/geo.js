@@ -294,11 +294,7 @@ export function computeMissionAutoStatus(mission, now = new Date(), forceRecompu
   if (currentStatus === 'Cancelada') return 'Cancelada';
 
   // Verifica se a missão possui pós-produção (vídeo/edição que exige aprovação da gestão)
-  const edition = mission.editionStatus || '';
-  const hasPostProd =
-    edition !== '' &&
-    edition !== 'Não se aplica' &&
-    edition !== 'Não se aplica (Mega Print / Instalação)';
+  const hasPostProd = hasMissionPostProduction(mission);
 
   const history = Array.isArray(mission.editionHistory) ? mission.editionHistory : [];
   const isApprovedByAdmin = history.some((h) => h.type === 'APPROVED');
@@ -1000,4 +996,100 @@ export function computeMissionVehicleFuelBreakdown({
     deficitFromCurrentCost,
     triggersReserveAlert,
   };
+}
+
+/**
+ * Determina se uma missão possui pós-produção ativa que demanda edição/aprovação.
+ * Retorna false se o status for "Não se aplica", sem pós-produção ou desativada.
+ */
+export function hasMissionPostProduction(mission) {
+  if (!mission) return false;
+  if (mission.hasPostProduction === false) return false;
+  const edition = String(mission.editionStatus || '').trim().toLowerCase();
+  if (!edition) return false;
+  if (
+    edition === 'não se aplica' ||
+    edition === 'nao se aplica' ||
+    edition.startsWith('não se aplica') ||
+    edition.startsWith('nao se aplica') ||
+    edition === 'sem pós-produção' ||
+    edition === 'sem pos-producao' ||
+    edition === 'desativado'
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Determina com precisão e segurança se uma missão está com a pós-produção atrasada.
+ * Regras estritas:
+ * 1. Se NÃO tem pós-produção (ex: "Não se aplica"): NUNCA está atrasada (retorna false).
+ * 2. Se a missão está Finalizada, Concluída ou Cancelada: NUNCA está atrasada (retorna false).
+ * 3. Se a edição já foi concluída, entregue ou aprovada: NUNCA está atrasada (retorna false).
+ * 4. Se a missão é futura e ainda está Agendada (o evento/gravação ainda não aconteceu): NUNCA está atrasada (retorna false).
+ * 5. Se não há prazo limite de entrega configurado: NUNCA está atrasada (retorna false).
+ * 6. Só é considerada atrasada se a missão já ocorreu ou está em andamento/pendente e a data/hora limite foi ultrapassada.
+ */
+export function checkIsMissionOverdue(mission) {
+  if (!mission) return false;
+
+  // 1. Sem pós-produção -> Nunca atrasada
+  if (!hasMissionPostProduction(mission)) {
+    return false;
+  }
+
+  // 2. Missão finalizada ou cancelada
+  const mStatus = mission.missionStatus || 'Agendada';
+  if (
+    mStatus === 'Finalizada' ||
+    mStatus === 'Finalizado' ||
+    mStatus === 'Concluída' ||
+    mStatus === 'Cancelada'
+  ) {
+    return false;
+  }
+
+  // 3. Edição já concluída ou entregue
+  const edStatus = String(mission.editionStatus || '').trim();
+  if (
+    edStatus === 'Edição Concluída' ||
+    edStatus === 'Entregue' ||
+    edStatus === 'Aprovado' ||
+    mission.editionDeliveryStatus === 'Dentro do Prazo'
+  ) {
+    return false;
+  }
+
+  // 4. Se a missão ainda é futura e está Agendada (o evento ainda não ocorreu)
+  if (mStatus === 'Agendada' && mission.date) {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (mission.date > todayStr) {
+      return false;
+    }
+    if (mission.date === todayStr && mission.departureTime) {
+      const [depH, depM] = String(mission.departureTime).split(':').map(Number);
+      if (!isNaN(depH) && !isNaN(depM)) {
+        const missionStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), depH, depM, 0, 0);
+        if (now.getTime() < missionStart.getTime()) {
+          return false;
+        }
+      }
+    }
+  }
+
+  // 5. Validação da data e horário limite de entrega
+  if (!mission.deliveryDeadlineDate) {
+    return false;
+  }
+
+  const dateParts = String(mission.deliveryDeadlineDate).split('-').map(Number);
+  if (dateParts.length < 3) return false;
+  const timeParts = String(mission.deliveryDeadlineTime || '18:00').split(':').map(Number);
+  const [y, m, d] = dateParts;
+  const [h, min] = timeParts;
+  const deadlineDate = new Date(y, m - 1, d, isNaN(h) ? 18 : h, isNaN(min) ? 0 : min, 0, 0);
+
+  return Date.now() > deadlineDate.getTime();
 }

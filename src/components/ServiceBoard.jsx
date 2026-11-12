@@ -61,6 +61,8 @@ import {
   getFuelTypeBadgeClass,
   calculateSuggestedDepartureTime,
   sortMissionsByStatusPriority,
+  hasMissionPostProduction,
+  checkIsMissionOverdue,
 } from '../utils/geo';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { normalizeRole } from '../utils/auth';
@@ -192,29 +194,6 @@ export default function ServiceBoard({
     if (mFirst && mFirst.length >= 3 && names.includes(mFirst)) return true;
 
     return false;
-  };
-
-  // Verifica dinamicamente se a missão possui pós-produção estipulada e se já está em atraso
-  const checkIsMissionOverdue = (mission) => {
-    if (!mission) return false;
-    if (
-      mission.missionStatus === 'Finalizada' ||
-      mission.missionStatus === 'Finalizado' ||
-      mission.missionStatus === 'Concluída'
-    ) {
-      return false;
-    }
-    if (mission.reopenReason || mission.isOverdue) return true;
-    if (!mission.deliveryDeadlineDate) return false;
-
-    const dateParts = String(mission.deliveryDeadlineDate).split('-').map(Number);
-    if (dateParts.length < 3) return false;
-    const timeParts = String(mission.deliveryDeadlineTime || '18:00').split(':').map(Number);
-    const [y, m, d] = dateParts;
-    const [h, min] = timeParts;
-    const deadlineDate = new Date(y, m - 1, d, isNaN(h) ? 18 : h, isNaN(min) ? 0 : min, 0, 0);
-
-    return Date.now() > deadlineDate.getTime();
   };
 
   // Ação: Concluir Pós-Produção (Validando pontualidade em relação ao prazo estipulado)
@@ -1517,94 +1496,103 @@ export default function ServiceBoard({
                         </div>
 
                         {/* Bloco de Informações de Pós-Produção */}
-                        <div className="postprod-compact-strip">
-                          {/* Editor Designado */}
-                          {mission.editorNamesDisplay || mission.editorName ? (
-                            <div className="pp-badge pp-badge-editor" title={`Editor responsável: ${mission.editorNamesDisplay || mission.editorName}`}>
-                              <Film size={11} />
-                              <span>{mission.editorNamesDisplay || mission.editorName}</span>
+                        {!hasMissionPostProduction(mission) ? (
+                          <div className="postprod-compact-strip">
+                            <div className="pp-badge pp-badge-not-applicable" title="Pós-produção não necessária para esta missão (Não se aplica / Mega Print / Instalação)">
+                              <span>Pós-Produção: Não se aplica</span>
                             </div>
-                          ) : (
-                            <div className="pp-badge pp-badge-unassigned" title="Sem editor designado">
-                              <Film size={11} />
-                              <em>Sem Editor</em>
-                            </div>
-                          )}
+                          </div>
+                        ) : (
+                          <div className="postprod-compact-strip">
+                            {/* Editor Designado */}
+                            {mission.editorNamesDisplay || mission.editorName ? (
+                              <div className="pp-badge pp-badge-editor" title={`Editor responsável: ${mission.editorNamesDisplay || mission.editorName}`}>
+                                <Film size={11} />
+                                <span>{mission.editorNamesDisplay || mission.editorName}</span>
+                              </div>
+                            ) : (
+                              <div className="pp-badge pp-badge-unassigned" title="Sem editor designado">
+                                <Film size={11} />
+                                <em>Sem Editor</em>
+                              </div>
+                            )}
 
-                          {/* Prazo de Entrega */}
-                          {mission.deliveryDeadlineDate && (
-                            <div className="pp-badge pp-badge-deadline" title={`Prazo estipulado: ${formatDateBR(mission.deliveryDeadlineDate)} às ${mission.deliveryDeadlineTime || '18:00'}`}>
-                              <Clock size={11} />
-                              <span>{formatDateBR(mission.deliveryDeadlineDate).slice(0, 5)} {mission.deliveryDeadlineTime || '18:00'}</span>
-                            </div>
-                          )}
+                            {/* Prazo de Entrega */}
+                            {mission.deliveryDeadlineDate && (
+                              <div className="pp-badge pp-badge-deadline" title={`Prazo estipulado: ${formatDateBR(mission.deliveryDeadlineDate)} às ${mission.deliveryDeadlineTime || '18:00'}`}>
+                                <Clock size={11} />
+                                <span>{formatDateBR(mission.deliveryDeadlineDate).slice(0, 5)} {mission.deliveryDeadlineTime || '18:00'}</span>
+                              </div>
+                            )}
 
-                          {/* Alerta de Missão Reaberta / Em Atraso */}
-                          {isOverdueMission && (
-                            <div
-                              className="pp-badge pp-badge-overdue"
-                              title={mission.reopenReason ? `Retrabalho solicitado: ${mission.reopenReason}` : 'Prazo estipulado de entrega expirado'}
-                            >
-                              <AlertTriangle size={11} />
-                              <span>{mission.reopenReason ? 'Ajustes Solicitados' : 'Atrasado'}</span>
-                            </div>
-                          )}
+                            {/* Alerta de Missão Reaberta / Em Atraso */}
+                            {isOverdueMission && (
+                              <div
+                                className="pp-badge pp-badge-overdue"
+                                title={mission.reopenReason ? `Retrabalho solicitado: ${mission.reopenReason}` : 'Prazo estipulado de entrega expirado'}
+                              >
+                                <AlertTriangle size={11} />
+                                <span>{mission.reopenReason ? 'Ajustes Solicitados' : 'Atrasado'}</span>
+                              </div>
+                            )}
 
-                          {/* Tag de Pontualidade se Concluída */}
-                          {mission.editionDeliveryStatus && (
-                            <div className={`pp-badge pp-badge-delivery ${mission.editionDeliveryStatus === 'Dentro do Prazo' ? 'ontime' : 'late'}`}>
-                              {mission.editionDeliveryStatus === 'Dentro do Prazo' ? '✅ No Prazo' : '⚠️ Fora do Prazo'}
-                            </div>
-                          )}
+                            {/* Tag de Pontualidade se Concluída */}
+                            {mission.editionDeliveryStatus && (
+                              <div className={`pp-badge pp-badge-delivery ${mission.editionDeliveryStatus === 'Dentro do Prazo' ? 'ontime' : 'late'}`}>
+                                {mission.editionDeliveryStatus === 'Dentro do Prazo' ? '✅ No Prazo' : '⚠️ Fora do Prazo'}
+                              </div>
+                            )}
 
-                          {/* Caminho dos Arquivos no Servidor */}
-                          {mission.serverFilePath && (
-                            <div
-                              className="pp-badge pp-badge-server-path"
-                              title={`Local no Servidor: ${mission.serverFilePath} (Clique para copiar)`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (navigator.clipboard) {
-                                  navigator.clipboard.writeText(mission.serverFilePath);
-                                  alertDialog({
-                                    title: 'Caminho Copiado!',
-                                    message: `Caminho copiado para a área de transferência:\n\n${mission.serverFilePath}`,
-                                    variant: 'info'
-                                  });
-                                }
-                              }}
-                              style={{ cursor: 'pointer', background: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.35)', color: '#38bdf8' }}
-                            >
-                              <Folder size={11} />
-                              <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {mission.serverFilePath}
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                            {/* Caminho dos Arquivos no Servidor */}
+                            {mission.serverFilePath && (
+                              <div
+                                className="pp-badge pp-badge-server-path"
+                                title={`Local no Servidor: ${mission.serverFilePath} (Clique para copiar)`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (navigator.clipboard) {
+                                    navigator.clipboard.writeText(mission.serverFilePath);
+                                    alertDialog({
+                                      title: 'Caminho Copiado!',
+                                      message: `Caminho copiado para a área de transferência:\n\n${mission.serverFilePath}`,
+                                      variant: 'info'
+                                    });
+                                  }
+                                }}
+                                style={{ cursor: 'pointer', background: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.35)', color: '#38bdf8' }}
+                              >
+                                <Folder size={11} />
+                                <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {mission.serverFilePath}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {/* Botões Operacionais de Conclusão / Aprovação / Recusa */}
-                        <div className="postprod-actions-row">
-                          {/* 1. Tarefa de pós-produção pendente / em andamento */}
-                          {mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && mission.editionStatus !== 'Não se aplica' && (
-                            <>
-                              {canConcludeThis ? (
-                                <button
-                                  type="button"
-                                  className="btn-pp-conclude"
-                                  onClick={() => handleConcludeEdition(mission)}
-                                  title="Marcar tarefa de pós-produção como concluída e enviar para confirmação da gestão"
-                                >
-                                  <CheckCircle2 size={12} />
-                                  <span>Concluir Tarefa</span>
-                                </button>
-                              ) : (
-                                <span className={`status-static-tag ${isOverdueMission ? 'status-atrasado' : 'status-pendente'}`}>
-                                  {isOverdueMission ? '⚠️ Atrasado' : `Edição: ${mission.editionStatus || 'Pendente'}`}
-                                </span>
-                              )}
-                            </>
-                          )}
+                        {hasMissionPostProduction(mission) && (
+                          <div className="postprod-actions-row">
+                            {/* 1. Tarefa de pós-produção pendente / em andamento */}
+                            {mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && (
+                              <>
+                                {canConcludeThis ? (
+                                  <button
+                                    type="button"
+                                    className="btn-pp-conclude"
+                                    onClick={() => handleConcludeEdition(mission)}
+                                    title="Marcar tarefa de pós-produção como concluída e enviar para confirmação da gestão"
+                                  >
+                                    <CheckCircle2 size={12} />
+                                    <span>Concluir Tarefa</span>
+                                  </button>
+                                ) : (
+                                  <span className={`status-static-tag ${isOverdueMission ? 'status-atrasado' : 'status-pendente'}`}>
+                                    {isOverdueMission ? '⚠️ Atrasado' : `Edição: ${mission.editionStatus || 'Pendente'}`}
+                                  </span>
+                                )}
+                              </>
+                            )}
 
                           {/* 2. Edição CONCLUÍDA pelo editor: Apenas Administradores podem aceitar ou rejeitar */}
                           {mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada' && (
@@ -1649,8 +1637,9 @@ export default function ServiceBoard({
                             </span>
                           )}
                         </div>
-                      </div>
-                    </td>
+                      )}
+                    </div>
+                  </td>
 
                     {/* 6. VIATURA, MOTORISTA & TANQUE (MODELO E DADOS 100% APARENTES) */}
                     <td className="col-viatura">
@@ -2020,7 +2009,7 @@ export default function ServiceBoard({
                 )}
 
                 {/* 7. PÓS-PRODUÇÃO / EDIÇÃO */}
-                {mission.editionStatus !== 'Não se aplica' && (
+                {hasMissionPostProduction(mission) && (
                   <div className="mmc-postprod-box" onClick={(e) => e.stopPropagation()}>
                     <div className="mmc-pp-header">
                       <div className="mmc-pp-editor">
@@ -2712,7 +2701,32 @@ export default function ServiceBoard({
                   </div>
 
                   <div className="mdm-postprod-card">
-                    <div className="mdm-pp-grid">
+                    {!hasMissionPostProduction(detailMission) ? (
+                      <div
+                        style={{
+                          padding: '16px',
+                          background: 'rgba(148, 163, 184, 0.08)',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(148, 163, 184, 0.2)',
+                          color: '#94a3b8',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                        }}
+                      >
+                        <CheckCircle2 size={20} style={{ color: '#10b981', flexShrink: 0 }} />
+                        <div>
+                          <strong style={{ display: 'block', color: 'var(--text-primary, #f8fafc)', fontSize: '0.92rem', marginBottom: '2px' }}>
+                            Pós-Produção Desativada
+                          </strong>
+                          <span style={{ fontSize: '0.82rem' }}>
+                            Esta missão não demanda edição ou pós-produção ({detailMission.editionStatus || 'Não se aplica'}). Prazos e cobrança de entrega não se aplicam.
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mdm-pp-grid">
                       {/* Editores Responsáveis */}
                       <div className="mdm-pp-block">
                         <label className="mdm-pp-label">
@@ -2902,8 +2916,10 @@ export default function ServiceBoard({
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </>
+                )}
+              </div>
+            </div>
               </div>
 
               {/* Rodapé de Ações do Card */}
