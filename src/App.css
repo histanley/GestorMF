@@ -27964,5 +27964,199 @@ body.light-theme .ehr-alert-msg {
   border-color: rgba(245, 158, 11, 0.4) !important;
 }
 
+/* Card de Pós-Produção no Admin Center */
+.ac-request-card.card-pending-pp {
+  border-left: 4px solid #f59e0b;
+  background: rgba(30, 41, 59, 0.65);
+}
+
+body.light-theme .ac-request-card.card-pending-pp {
+  background: #ffffff !important;
+  border-left: 4px solid #f59e0b !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.08) !important;
+}
+
+.ac-rc-status-pill.status-pending-gold {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.ac-btn-history {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ac-btn-history:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+body.light-theme .ac-btn-history {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+body.light-theme .ac-btn-history:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.ac-pp-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 8px;
+}
+
+body.light-theme .ac-pp-details-grid {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.ac-pp-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ac-pp-detail-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.ac-pp-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #94a3b8;
+}
+
+body.light-theme .ac-pp-label {
+  color: #64748b !important;
+}
+
+.ac-pp-val-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #f1f5f9;
+  flex-wrap: wrap;
+}
+
+body.light-theme .ac-pp-val-row {
+  color: #0f172a !important;
+}
+
+.ac-pp-status-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.ac-pp-status-badge.ontime {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.ac-pp-status-badge.overdue {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.ac-pp-server-path-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-top: 2px;
+}
+
+body.light-theme .ac-pp-server-path-box {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.ac-pp-path-text {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.76rem;
+  color: #38bdf8;
+  flex: 1;
+  word-break: break-all;
+}
+
+body.light-theme .ac-pp-path-text {
+  color: #0284c7 !important;
+}
+
+.ac-btn-copy-path {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.ac-btn-copy-path:hover {
+  background: #f59e0b;
+  color: #0f172a;
+}
+
+.ac-pp-message-box {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #38bdf8;
+  padding: 6px 10px;
+  border-radius: 0 6px 6px 0;
+}
+
+body.light-theme .ac-pp-message-box {
+  background: #f8fafc !important;
+  color: #334155 !important;
+  border-left-color: #0284c7 !important;
+}
+
+.badge-pending-pulse {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6) !important;
+  animation: badgePulse 1.8s infinite ease-in-out !important;
+}
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
 
 

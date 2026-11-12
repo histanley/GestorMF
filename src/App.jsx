@@ -3256,6 +3256,7 @@ export default function App() {
             missions={missions}
             onUpdateMember={handleUpdateMember}
             onRespondExtraHours={handleRespondExtraHours}
+            onSaveMission={handleSaveMission}
             reloadServerMissions={reloadServerMissions}
           />
         )}
