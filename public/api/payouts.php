@@ -124,7 +124,6 @@ if ($method === 'POST') {
             'notes'        => $notes
         ]
     ]);
-    ]);
 }
 
 jsonResponse(['error' => 'Método não suportado.'], 405);

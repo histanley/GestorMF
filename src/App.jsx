@@ -2262,7 +2262,7 @@ export default function App() {
           message: res.message || 'Status atualizado com sucesso.',
           variant: decision === 'APPROVE' ? 'success' : 'info',
         });
-        refreshRemoteData();
+        reloadServerMissions();
       } else {
         await alertDialog({
           title: 'Erro',
@@ -3168,7 +3168,7 @@ export default function App() {
             currentUser={currentUser}
             members={members}
             missions={missions}
-            onReloadMissions={refreshRemoteData}
+            onReloadMissions={reloadServerMissions}
           />
         )}
       </main>
