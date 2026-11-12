@@ -15,11 +15,11 @@ const settingsPhp = fs.readFileSync(path.join(__dirname, '..', 'public', 'api', 
 assert(settingsPhp.includes('$rolesJson = json_encode($cleanRoles, JSON_UNESCAPED_UNICODE)'), 
   'Falha: settings.php deve sanitizar e converter $cleanRoles em JSON');
 
-assert(settingsPhp.includes(':has_roles') && settingsPhp.includes(':roles_val'),
-  'Falha: settings.php deve enviar parâmetros :has_roles e :roles_val');
+assert(settingsPhp.includes("':roles'     => $effectiveRoles"),
+  'Falha: settings.php deve enviar o parâmetro :roles efetivo com as novas funções ou preservando as existentes');
 
-assert(settingsPhp.includes('roles = CASE WHEN :has_roles = 1 THEN :roles_val ELSE roles END'),
-  'Falha: settings.php deve atualizar a coluna roles condicionalmente sem perder dados');
+assert(settingsPhp.includes('roles = VALUES(roles)'),
+  'Falha: settings.php deve atualizar a coluna roles atomicamente com VALUES(roles)');
 
 assert(settingsPhp.includes("SHOW COLUMNS FROM settings LIKE 'roles'"),
   'Falha: settings.php deve ter auto-recuperação da coluna roles na tabela settings');

@@ -7613,10 +7613,10 @@ body.light-theme .vmh-km-tag {
 .roles-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 320px;
+  gap: 8px;
+  max-height: 340px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 6px 6px 6px 2px;
   scrollbar-width: thin;
 }
 
@@ -7627,8 +7627,9 @@ body.light-theme .vmh-km-tag {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  transition: border-color 0.2s;
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+  min-height: 48px;
 }
 
 .role-list-item:hover {
@@ -26679,4 +26680,213 @@ body.light-theme .cs-btn-request-extra {
   border-color: #f59e0b !important;
   color: #b45309 !important;
 }
+
+/* ============================================================================== */
+/* CAMPO PREMIUM DE VALOR DA DIÁRIA / HORA EXTRA                                  */
+/* ============================================================================== */
+.rate-currency-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rcf-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rcf-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+[data-theme="light"] .rcf-label,
+body.light-theme .rcf-label {
+  color: #475569 !important;
+}
+
+.rcf-input-group {
+  display: flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  overflow: hidden;
+  height: 40px;
+  width: 200px;
+  max-width: 100%;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .rcf-input-group,
+body.light-theme .rcf-input-group {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+.rcf-input-group:focus-within {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25) !important;
+}
+
+.rcf-prefix {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fbbf24;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .rcf-prefix,
+body.light-theme .rcf-prefix {
+  background: #f1f5f9 !important;
+  border-right-color: #e2e8f0 !important;
+  color: #b45309 !important;
+}
+
+.rcf-input {
+  flex: 1 1 auto;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: unset !important;
+  border: none !important;
+  background: transparent !important;
+  color: #ffffff !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  padding: 0 10px !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  -moz-appearance: textfield !important;
+}
+
+.rcf-input::-webkit-outer-spin-button,
+.rcf-input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+[data-theme="light"] .rcf-input,
+body.light-theme .rcf-input {
+  color: #0f172a !important;
+}
+
+.rcf-btn-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: all 0.15s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.rcf-btn-step:hover {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+[data-theme="light"] .rcf-btn-step,
+body.light-theme .rcf-btn-step {
+  background: #f8fafc !important;
+  border-left-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+[data-theme="light"] .rcf-btn-step:hover,
+body.light-theme .rcf-btn-step:hover {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+}
+
+.rcf-btn-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rcf-btn-reset:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ffffff;
+}
+
+/* Subtotal Elegante */
+.rcf-subtotal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 10px;
+  padding: 8px 14px;
+  min-width: 140px;
+  text-align: right;
+}
+
+[data-theme="light"] .rcf-subtotal-card,
+body.light-theme .rcf-subtotal-card {
+  background: #f0fdf4 !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+.rcf-subtotal-lbl {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+[data-theme="light"] .rcf-subtotal-lbl,
+body.light-theme .rcf-subtotal-lbl {
+  color: #64748b !important;
+}
+
+.rcf-subtotal-val {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #34d399;
+  letter-spacing: -0.2px;
+}
+
+[data-theme="light"] .rcf-subtotal-val,
+body.light-theme .rcf-subtotal-val {
+  color: #059669 !important;
+}
+
 

@@ -2969,46 +2969,71 @@ export default function MissionModal({
                               </div>
 
                               {/* PARTE FINANCEIRA: VALOR DA DIÁRIA OU DA HORA EXTRA */}
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.6rem', gap: '1rem', flexWrap: 'wrap' }}>
-                                <div className="mori-right" style={{ flex: '1 1 auto' }}>
-                                  <div className="mori-input-wrap">
-                                    <label style={{ fontSize: '0.75rem' }}>
-                                      {isDailyMode ? 'Valor da Diária (R$/dia):' : 'Valor da Hora Extra (R$/h):'}
-                                    </label>
-                                    <div className="mori-input-box">
-                                      <span className="mori-currency">R$</span>
-                                      <input
-                                        type="number"
-                                        step={isDailyMode ? '10' : '5'}
-                                        min="0"
-                                        placeholder={(isDailyMode ? defaultDailyRate : defaultHourlyRate).toFixed(2)}
-                                        value={currentVal}
-                                        onChange={(e) => handleCustomRateChange(mId, e.target.value)}
-                                        className="mori-input"
-                                      />
-                                      {currentVal !== '' && (
-                                        <button
-                                          type="button"
-                                          className="mori-btn-reset"
-                                          onClick={() => handleCustomRateChange(mId, '')}
-                                          title="Restaurar taxa padrão do colaborador"
-                                        >
-                                          <X size={12} />
-                                        </button>
-                                      )}
-                                    </div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.75rem', gap: '1rem', flexWrap: 'wrap' }}>
+                                <div className="rate-currency-field" style={{ flex: '1 1 240px' }}>
+                                  <div className="rcf-label-row">
+                                    <span className="rcf-label">
+                                      {isDailyMode ? '📅 Valor da Diária (por dia):' : '⏱️ Valor da Hora Extra (por hora):'}
+                                    </span>
+                                    {currentVal !== '' && (
+                                      <button
+                                        type="button"
+                                        className="rcf-btn-reset"
+                                        onClick={() => handleCustomRateChange(mId, '')}
+                                        title="Restaurar valor padrão do perfil"
+                                      >
+                                        <X size={11} /> Restaurar Padrão
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div className="rcf-input-group">
+                                    <span className="rcf-prefix">R$</span>
+                                    <input
+                                      type="number"
+                                      step={isDailyMode ? '10' : '5'}
+                                      min="0"
+                                      placeholder={(isDailyMode ? defaultDailyRate : defaultHourlyRate).toFixed(2)}
+                                      value={currentVal}
+                                      onChange={(e) => handleCustomRateChange(mId, e.target.value)}
+                                      className="rcf-input"
+                                    />
+                                    <button
+                                      type="button"
+                                      className="rcf-btn-step"
+                                      onClick={() => {
+                                        const cur = currentVal !== '' ? Number(currentVal) : (isDailyMode ? defaultDailyRate : defaultHourlyRate);
+                                        const step = isDailyMode ? 10 : 5;
+                                        handleCustomRateChange(mId, Math.max(0, cur - step));
+                                      }}
+                                      title="Diminuir"
+                                    >
+                                      -
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="rcf-btn-step"
+                                      onClick={() => {
+                                        const cur = currentVal !== '' ? Number(currentVal) : (isDailyMode ? defaultDailyRate : defaultHourlyRate);
+                                        const step = isDailyMode ? 10 : 5;
+                                        handleCustomRateChange(mId, cur + step);
+                                      }}
+                                      title="Aumentar"
+                                    >
+                                      +
+                                    </button>
                                   </div>
                                 </div>
 
-                                <div className="mori-subtotal-badge" style={{ minWidth: '150px' }}>
-                                  <span>
+                                <div className="rcf-subtotal-card">
+                                  <span className="rcf-subtotal-lbl">
                                     {isDailyMode
                                       ? `Total (${travelDays} diária${travelDays !== 1 ? 's' : ''}):`
                                       : missionOffHours.isOffHours
                                       ? `Total (${missionOffHours.offHours}h):`
                                       : 'Expediente Normal:'}
                                   </span>
-                                  <strong>R$ {estimatedSubtotal}</strong>
+                                  <strong className="rcf-subtotal-val">R$ {estimatedSubtotal}</strong>
                                 </div>
                               </div>
                             </div>

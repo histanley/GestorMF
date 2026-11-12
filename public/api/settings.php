@@ -97,15 +97,14 @@ if ($method === 'POST' || $method === 'PUT') {
         : (!empty($currentSettings['base_location']) ? $currentSettings['base_location'] : null);
 
     // Processamento e sanitização segura da lista de funções (roles)
-    $hasRoles = 0;
     $rolesJson = null;
     if ($rolesData !== null && is_array($rolesData)) {
-        $hasRoles = 1;
         $cleanRoles = array_values(array_filter(array_map('trim', $rolesData), function($r) {
             return $r !== '';
         }));
         $rolesJson = json_encode($cleanRoles, JSON_UNESCAPED_UNICODE);
     }
+    $effectiveRoles = $rolesJson !== null ? $rolesJson : (!empty($currentSettings['roles']) ? $currentSettings['roles'] : '[]');
 
     $hasElecCol = false;
     try {
@@ -125,7 +124,7 @@ if ($method === 'POST' || $method === 'PUT') {
                 electric_price_per_kwh = VALUES(electric_price_per_kwh),
                 default_autonomy = VALUES(default_autonomy),
                 base_location = COALESCE(VALUES(base_location), base_location),
-                roles = CASE WHEN :has_roles = 1 THEN :roles_val ELSE roles END
+                roles = VALUES(roles)
         ");
         $stmt->execute([
             ':comp'      => $companyName,
@@ -135,9 +134,7 @@ if ($method === 'POST' || $method === 'PUT') {
             ':elec'      => $electricPrice,
             ':auto'      => $defaultAutonomy,
             ':base'      => $baseLocationJson,
-            ':roles'     => $rolesJson !== null ? $rolesJson : ($currentSettings['roles'] ?? '[]'),
-            ':has_roles' => $hasRoles,
-            ':roles_val' => $rolesJson
+            ':roles'     => $effectiveRoles
         ]);
     } else {
         $stmt = $db->prepare("
@@ -150,7 +147,7 @@ if ($method === 'POST' || $method === 'PUT') {
                 diesel_price_per_liter = VALUES(diesel_price_per_liter),
                 default_autonomy = VALUES(default_autonomy),
                 base_location = COALESCE(VALUES(base_location), base_location),
-                roles = CASE WHEN :has_roles = 1 THEN :roles_val ELSE roles END
+                roles = VALUES(roles)
         ");
         $stmt->execute([
             ':comp'      => $companyName,
@@ -159,9 +156,7 @@ if ($method === 'POST' || $method === 'PUT') {
             ':die'       => $dieselPrice,
             ':auto'      => $defaultAutonomy,
             ':base'      => $baseLocationJson,
-            ':roles'     => $rolesJson !== null ? $rolesJson : ($currentSettings['roles'] ?? '[]'),
-            ':has_roles' => $hasRoles,
-            ':roles_val' => $rolesJson
+            ':roles'     => $effectiveRoles
         ]);
     }
 

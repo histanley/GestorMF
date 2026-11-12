@@ -105,17 +105,17 @@ if ($method === 'POST' && $action === 'update_profile') {
         if (!empty($avatar)) {
             $stmtMem = $db->prepare("
                 UPDATE members
-                SET photo_url = ?, phone = COALESCE(NULLIF(?, ''), phone)
+                SET photo_url = ?, phone = COALESCE(NULLIF(?, ''), phone), user_id = COALESCE(user_id, ?)
                 WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))
             ");
-            $stmtMem->execute([$avatar, $phone, $auth['id'], $name]);
+            $stmtMem->execute([$avatar, $phone, $auth['id'], $auth['id'], $name]);
         } elseif (!empty($phone)) {
             $stmtMem = $db->prepare("
                 UPDATE members
-                SET phone = ?
+                SET phone = ?, user_id = COALESCE(user_id, ?)
                 WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))
             ");
-            $stmtMem->execute([$phone, $auth['id'], $name]);
+            $stmtMem->execute([$phone, $auth['id'], $auth['id'], $name]);
         }
         bumpSyncVersion("members");
     } catch (Exception $e) {
@@ -137,6 +137,26 @@ if ($method === 'POST' && $action === 'update_profile') {
         'message' => 'Perfil atualizado com sucesso.',
         'user'    => $updatedUser
     ]);
+}
+
+// ------------------------------------------------------------------------------
+// ATUALIZAR AVATAR/FOTO DIRETAMENTE (ADMIN OU PRÓPRIO USUÁRIO)
+// ------------------------------------------------------------------------------
+if ($method === 'POST' && $action === 'update_avatar') {
+    $auth = requireAuth();
+    $input = getJsonInput();
+    $targetUserId = trim($input['user_id'] ?? $auth['id']);
+    $avatar = $input['avatar'] ?? null;
+
+    if ($targetUserId !== $auth['id'] && $auth['role'] !== 'ADMIN') {
+        jsonResponse(['success' => false, 'error' => 'Apenas Administradores podem alterar a foto de outros usuários.'], 403);
+    }
+
+    $db->prepare("UPDATE users SET avatar = ? WHERE id = ?")->execute([$avatar, $targetUserId]);
+    $db->prepare("UPDATE members SET photo_url = ? WHERE user_id = ?")->execute([$avatar, $targetUserId]);
+    bumpSyncVersion("members");
+
+    jsonResponse(['success' => true, 'avatar' => $avatar]);
 }
 
 // ------------------------------------------------------------------------------

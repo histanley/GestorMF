@@ -26,13 +26,14 @@ function ensureMembersColumns($db) {
         }
     } catch (Exception $e) {}
 
-    // Sincronização automática de fotos de perfil de usuários para colaboradores
+    // Sincronização automática e contínua de fotos de perfil de usuários para colaboradores
     try {
         $db->exec("
             UPDATE members m
             INNER JOIN users u ON (u.id = m.user_id OR LOWER(TRIM(u.name)) = LOWER(TRIM(m.name)))
-            SET m.photo_url = u.avatar
-            WHERE (m.photo_url IS NULL OR m.photo_url = '') AND u.avatar IS NOT NULL AND u.avatar != ''
+            SET m.photo_url = u.avatar,
+                m.user_id = COALESCE(m.user_id, u.id)
+            WHERE u.avatar IS NOT NULL AND u.avatar != ''
         ");
     } catch (Exception $e) {}
 }
@@ -55,7 +56,8 @@ if ($method === 'GET') {
             $decoded = is_array($m['secondary_roles']) ? $m['secondary_roles'] : json_decode($m['secondary_roles'], true);
             if (is_array($decoded)) $secRoles = $decoded;
         }
-        $resolvedPhoto = !empty($m['photo_url']) ? $m['photo_url'] : (!empty($m['user_avatar']) ? $m['user_avatar'] : null);
+        // Prioriza a foto atualizada do usuário (app móvel/perfil); fallback para photo_url do membro
+        $resolvedPhoto = !empty($m['user_avatar']) ? $m['user_avatar'] : (!empty($m['photo_url']) ? $m['photo_url'] : null);
         return [
             'id'             => $m['id'],
             'name'           => $m['name'],
