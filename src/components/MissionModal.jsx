@@ -22,7 +22,9 @@ import {
   UserPlus,
   X,
   Repeat,
+  DollarSign,
 } from 'lucide-react';
+import { calculateMissionOffHours } from '../utils/workHours';
 import {
   RECURRENCE_DAYS,
   getDayOfWeekFromDate,
@@ -240,6 +242,7 @@ export default function MissionModal({
     notes: '',
     isMultiDay: false,
     endDate: '',
+    customRates: {},
   });
 
   const [searchResults, setSearchResults] = useState([]);
@@ -333,6 +336,7 @@ export default function MissionModal({
         isRoundTrip: true,
         isMultiDay: Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date)),
         endDate: editingMission.endDate || '',
+        customRates: editingMission.customRates || {},
         isRecurring: Boolean(editingMission.isRecurring || editingMission.recurrenceId),
         recurrenceId: editingMission.recurrenceId || null,
         recurrenceRule: editingMission.recurrenceRule || 'weekly',
@@ -864,6 +868,30 @@ export default function MissionModal({
       .filter(Boolean);
   }, [formData.teamIds, scheduleConflicts, members]);
 
+  // Cálculo inteligente em tempo real de horas fora do expediente comercial (Banco de Horas)
+  // Regras: Seg-Sex 08h às 18h e Sáb 08h às 12h = Comercial normal; resto = Banco de Horas
+  const missionOffHours = useMemo(() => {
+    return calculateMissionOffHours(
+      formData.date,
+      formData.departureTime,
+      formData.endDate,
+      formData.returnTimeEstimated,
+      isMultiDay
+    );
+  }, [formData.date, formData.departureTime, formData.endDate, formData.returnTimeEstimated, isMultiDay]);
+
+  const handleCustomRateChange = (memberId, value) => {
+    setFormData((prev) => {
+      const prevRates = { ...(prev.customRates || {}) };
+      if (value === '' || value === null || isNaN(value)) {
+        delete prevRates[memberId];
+      } else {
+        prevRates[memberId] = Number(value);
+      }
+      return { ...prev, customRates: prevRates };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.description) {
@@ -1074,6 +1102,9 @@ export default function MissionModal({
       recurrenceDays: isRecurring ? formatDaysDisplay(selectedDows) : null,
       recurringDates: isRecurring && !editingMission ? futureOccurrenceDates : [],
       updateSeries: Boolean(editingMission && isRecurring && updateSeries),
+      // Banco de Horas e Taxas Personalizadas da Missão
+      offHours: missionOffHours.offHours || 0,
+      customRates: formData.customRates || {},
     };
 
     const res = await onSaveMission(missionPayload);
@@ -1280,6 +1311,35 @@ export default function MissionModal({
                     <div className="sdsb-applied-pill">
                       <Check size={14} />
                       <span>Saída aplicada ({dynamicSuggestedDeparture})</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ALERTA EM TEMPO REAL: FORA DO EXPEDIENTE COMERCIAL */}
+            {missionOffHours.isOffHours && (
+              <div className="mm-offhours-warning-banner">
+                <div className="mm-offhours-banner-icon">
+                  <Clock size={20} />
+                </div>
+                <div className="mm-offhours-banner-body">
+                  <div className="mm-offhours-banner-title">
+                    <strong className="text-amber">⚠️ Missão Fora do Horário de Expediente</strong>
+                    <span className="mm-offhours-badge">
+                      +{missionOffHours.offHours}h no Banco de Horas
+                    </span>
+                  </div>
+                  <p className="mm-offhours-banner-desc">
+                    Esta missão se inicia ou ultrapassa o horário comercial da empresa (Seg a Sex das 08h às 18h, Sáb até 12h e Domingos). Os colaboradores escalados estarão fora do expediente e as <strong>{missionOffHours.offHours}h excedentes</strong> serão acrescidas ao Banco de Horas / Folha com seus respectivos valores.
+                  </p>
+                  {missionOffHours.offHoursSegments && missionOffHours.offHoursSegments.length > 0 && (
+                    <div className="mm-offhours-segments-chips">
+                      {missionOffHours.offHoursSegments.map((seg, idx) => (
+                        <span key={idx} className="mm-offhours-seg-chip">
+                          🕒 {seg.date ? `${seg.date.slice(8, 10)}/${seg.date.slice(5, 7)}: ` : ''}{seg.label} ({seg.hours}h)
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -2717,6 +2777,90 @@ export default function MissionModal({
                       })
                     )}
                   </div>
+
+                  {/* CONFIGURAÇÃO DE TAXAS DA MISSÃO FORA DO EXPEDIENTE */}
+                  {missionOffHours.isOffHours && formData.teamIds.length > 0 && (
+                    <div className="mm-offhours-rates-section">
+                      <div className="mm-offhours-rates-header">
+                        <div className="mm-offhours-rates-title-wrap">
+                          <DollarSign size={16} className="text-amber" />
+                          <strong>Taxa Individual da Missão (Fora do Expediente Comercial)</strong>
+                          <span className="mm-offhours-rates-badge">
+                            +{missionOffHours.offHours}h nesta missão
+                          </span>
+                        </div>
+                        <p className="mm-offhours-rates-subtitle">
+                          Como esta missão possui <strong>{missionOffHours.offHours}h fora do expediente comercial</strong>, você pode personalizar a taxa horária de cada colaborador para esta missão, ou manter o valor padrão de cada perfil.
+                        </p>
+                      </div>
+
+                      <div className="mm-offhours-rates-grid">
+                        {formData.teamIds.map((mId) => {
+                          const mem = members.find((x) => x.id === mId);
+                          if (!mem) return null;
+                          const defaultRate = Number(mem.hourlyRate ?? mem.hourly_rate ?? 50);
+                          const currentVal = formData.customRates && formData.customRates[mId] !== undefined
+                            ? formData.customRates[mId]
+                            : '';
+                          const effectiveRate = currentVal !== '' ? Number(currentVal) : defaultRate;
+                          const estimatedSubtotal = (effectiveRate * missionOffHours.offHours).toFixed(2);
+
+                          return (
+                            <div key={mId} className="mm-offhours-rate-item">
+                              <div className="mori-left">
+                                <div className="mori-avatar">
+                                  {mem.photoUrl ? (
+                                    <img src={mem.photoUrl} alt={mem.name} />
+                                  ) : (
+                                    <span>{mem.name.slice(0, 2).toUpperCase()}</span>
+                                  )}
+                                </div>
+                                <div className="mori-info">
+                                  <strong className="mori-name">{mem.name}</strong>
+                                  <span className="mori-role">{mem.role || 'Colaborador'} • {mem.company || 'MegaFilmes'}</span>
+                                  <span className="mori-default-rate">
+                                    Padrão: R$ {defaultRate.toFixed(2)}/h
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mori-right">
+                                <div className="mori-input-wrap">
+                                  <label>Valor da Hora (R$):</label>
+                                  <div className="mori-input-box">
+                                    <span className="mori-currency">R$</span>
+                                    <input
+                                      type="number"
+                                      step="5"
+                                      min="0"
+                                      placeholder={defaultRate.toFixed(2)}
+                                      value={currentVal}
+                                      onChange={(e) => handleCustomRateChange(mId, e.target.value)}
+                                      className="mori-input"
+                                    />
+                                    {currentVal !== '' && (
+                                      <button
+                                        type="button"
+                                        className="mori-btn-reset"
+                                        onClick={() => handleCustomRateChange(mId, '')}
+                                        title="Restaurar taxa padrão do colaborador"
+                                      >
+                                        <X size={12} />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="mori-subtotal-badge">
+                                  <span>Total ({missionOffHours.offHours}h):</span>
+                                  <strong>R$ {estimatedSubtotal}</strong>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* SUBSEÇÃO: CONVIDADOS EXTERNOS & FREELANCERS */}
                   <div className="mm-guests-section">

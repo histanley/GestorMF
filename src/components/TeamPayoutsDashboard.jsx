@@ -6,6 +6,7 @@ import {
   Compass,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   FileText,
   Printer,
   Share2,
@@ -23,9 +24,11 @@ import {
   Sparkles,
   HelpCircle,
   TrendingUp,
+  RotateCcw,
 } from 'lucide-react';
 import { apiGetPayouts, apiSavePayout } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
+import { calculateMissionOffHours } from '../utils/workHours';
 
 // Formata data ISO para PT-BR (dd/mm/aaaa)
 function formatDateBR(dateStr) {
@@ -205,6 +208,25 @@ export default function TeamPayoutsDashboard({
           const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
           const missionHours = calculateMissionHours(m.departureTime, m.returnTimeEstimated);
 
+          // Apuração de horas comerciais vs. fora do expediente (Banco de Horas)
+          // Regra: Seg-Sex 08-18h e Sáb 08-12h = Comercial (R$ 0 no banco de horas)
+          // Fora desse horário = Horas Extras / Banco de Horas
+          const offHoursInfo = calculateMissionOffHours(
+            m.date,
+            m.departureTime,
+            m.endDate,
+            m.returnTimeEstimated,
+            isMDay
+          );
+          const offHoursWorked = offHoursInfo.offHours;
+          const inHoursWorked = offHoursInfo.inHours;
+
+          // Taxa horária da missão (prioriza valor personalizado na missão ou usa taxa padrão do membro)
+          const customRate = (m.customRates && m.customRates[member.id] !== undefined && m.customRates[member.id] !== null && m.customRates[member.id] !== '')
+            ? Number(m.customRates[member.id])
+            : null;
+          const effectiveHourlyRate = customRate !== null ? customRate : hourlyRate;
+
           let itemAmount = 0;
           let daysCount = 1;
 
@@ -214,14 +236,18 @@ export default function TeamPayoutsDashboard({
             // Diária de viagem fechada por dia
             itemAmount = daysCount * (dailyRate > 0 ? dailyRate : 200);
           } else {
-            totalHours += missionHours;
-            // Cálculo por hora ou por bloco de 4 horas
-            if (rateModel === 'block_4h') {
-              // Exemplo R$ 200 a cada 4h (R$ 50/h proporcional)
-              const ratePerHour = (blockRate > 0 ? blockRate : 200) / 4;
-              itemAmount = missionHours * ratePerHour;
+            // Banco de Horas: SÓ contabiliza horas ocorridas FORA do expediente comercial!
+            totalHours += offHoursWorked;
+            if (offHoursWorked > 0) {
+              if (rateModel === 'block_4h') {
+                const ratePerHour = customRate !== null ? customRate : ((blockRate > 0 ? blockRate : 200) / 4);
+                itemAmount = offHoursWorked * ratePerHour;
+              } else {
+                itemAmount = offHoursWorked * effectiveHourlyRate;
+              }
             } else {
-              itemAmount = missionHours * (hourlyRate > 0 ? hourlyRate : 50);
+              // Missão realizada 100% no horário comercial normal (sem adicional no banco de horas)
+              itemAmount = 0;
             }
           }
 
@@ -239,6 +265,12 @@ export default function TeamPayoutsDashboard({
             departureTime: m.departureTime || '--:--',
             returnTimeEstimated: m.returnTimeEstimated || '--:--',
             hoursWorked: missionHours,
+            offHoursWorked,
+            inHoursWorked,
+            isOffHours: offHoursInfo.isOffHours,
+            offHoursSegments: offHoursInfo.offHoursSegments || [],
+            effectiveHourlyRate,
+            isCustomRate: customRate !== null,
             itemAmount,
             roleInMission: isDriver ? 'Motorista / Condutor' : (inEditorIds || inEditorDisplay) ? 'Editor / Pós-Produção' : 'Equipe de Campo',
           });
@@ -249,6 +281,8 @@ export default function TeamPayoutsDashboard({
       const closure = closures[member.id] || null;
       const status = closure?.status || 'Pendente';
       const paidAt = closure?.paidAt || null;
+      const hoursCleared = closure?.hoursCleared ?? (status === 'Pago' ? Number(totalHours.toFixed(1)) : 0);
+      const clearedAt = closure?.clearedAt || (status === 'Pago' ? paidAt : null);
 
       return {
         ...member,
@@ -263,6 +297,8 @@ export default function TeamPayoutsDashboard({
         totalAmount: Number(totalAmount.toFixed(2)),
         status,
         paidAt,
+        hoursCleared,
+        clearedAt,
         statementMissions: statementMissions.sort((a, b) => String(a.date).localeCompare(String(b.date))),
       };
     });
@@ -338,30 +374,64 @@ export default function TeamPayoutsDashboard({
     setEditingRatesMember(null);
   };
 
-  const handleTogglePaidStatus = async (member) => {
-    const newStatus = member.status === 'Pago' ? 'Pendente' : 'Pago';
-    const confirmMsg = newStatus === 'Pago'
-      ? `Confirmar pagamento de ${formatBRL(member.totalAmount)} para ${member.name}?`
-      : `Reverter status de pagamento de ${member.name} para Pendente?`;
+  // Quitar e Zerar Horas do Colaborador (ou reabrir saldo)
+  const handleClearMemberHours = async (member) => {
+    const isAlreadyPaid = member.status === 'Pago';
 
-    const confirmed = await confirmDialog({
-      title: newStatus === 'Pago' ? 'Confirmar Pagamento' : 'Reverter Pagamento',
-      message: confirmMsg,
-      confirmText: newStatus === 'Pago' ? 'Marcar como Pago' : 'Reverter para Pendente',
+    if (isAlreadyPaid) {
+      const reopen = await confirmDialog({
+        title: 'Reabrir Banco de Horas',
+        message: `O saldo de ${member.name} já consta como quitado (${formatBRL(member.totalAmount)}). Deseja reabrir este saldo para Pendente?`,
+        confirmText: 'Reabrir Saldo',
+        cancelText: 'Manter Quitado',
+        variant: 'warning',
+      });
+      if (!reopen) return;
+
+      try {
+        const res = await apiSavePayout({
+          monthKey: selectedMonth,
+          memberId: member.id,
+          status: 'Pendente',
+          paidAmount: 0,
+          hoursCleared: 0,
+          clearedAt: null,
+        });
+        if (res.success && res.closure) {
+          setClosures((prev) => ({
+            ...prev,
+            [member.id]: res.closure,
+          }));
+        }
+      } catch (err) {
+        await alertDialog({
+          title: 'Erro',
+          message: 'Não foi possível reabrir o saldo de horas.',
+          variant: 'danger',
+        });
+      }
+      return;
+    }
+
+    const confirmClear = await confirmDialog({
+      title: 'Zerar Horas & Confirmar Pagamento',
+      message: `Confirmar quitação e zerar saldo de horas de ${member.name}?`,
+      description: `Valor apurado: ${formatBRL(member.totalAmount)} referente a ${member.totalHours}h no banco de horas (fora do expediente) e ${member.totalTravelDays} diárias de viagem. Ao confirmar, o saldo deste mês será marcado como Pago e zerado.`,
+      confirmText: 'Zerar Horas (Quitar)',
       cancelText: 'Cancelar',
-      variant: newStatus === 'Pago' ? 'success' : 'warning',
+      variant: 'success',
     });
-
-    if (!confirmed) return;
+    if (!confirmClear) return;
 
     try {
       const res = await apiSavePayout({
         monthKey: selectedMonth,
         memberId: member.id,
-        status: newStatus,
+        status: 'Pago',
         paidAmount: member.totalAmount,
+        hoursCleared: member.totalHours,
+        clearedAt: new Date().toISOString(),
       });
-
       if (res.success && res.closure) {
         setClosures((prev) => ({
           ...prev,
@@ -371,27 +441,34 @@ export default function TeamPayoutsDashboard({
     } catch (err) {
       await alertDialog({
         title: 'Erro',
-        message: 'Não foi possível atualizar o status de pagamento.',
+        message: 'Não foi possível zerar o saldo de horas no servidor.',
         variant: 'danger',
       });
     }
   };
 
+  const handleTogglePaidStatus = async (member) => {
+    return handleClearMemberHours(member);
+  };
+
   // Compartilhar demonstrativo no WhatsApp do colaborador
   const handleShareWhatsApp = (member) => {
     const digitsPhone = member.phone ? member.phone.replace(/\D/g, '') : '';
+    const isPaid = member.status === 'Pago';
     const lines = [
       `📋 *MegaGestão - Extrato de Diárias & Horas*`,
       `👤 *Colaborador:* ${member.name}`,
       `📅 *Mês de Referência:* ${monthLabel}`,
       `---------------------------------------`,
       `🎯 *Missões Participadas:* ${member.missionCount}`,
-      `⏱️ *Total de Horas em Eventos:* ${member.totalHours}h`,
+      `🌙 *Banco de Horas (Fora do Expediente):* ${member.totalHours}h`,
       `🏕️ *Diárias de Viagem (+1d):* ${member.totalTravelDays} dias`,
       `💰 *Total Líquido Apurado:* ${formatBRL(member.totalAmount)}`,
       member.pixKey ? `💳 *Chave PIX:* ${member.pixKey}` : null,
       `---------------------------------------`,
-      `Status: *${member.status === 'Pago' ? '✅ PAGO' : '⏳ PENDENTE (Fechamento dia 05)'}*`,
+      isPaid
+        ? `Status: *✅ HORAS ZERADAS & PAGAS* (Quitado)`
+        : `Status: *⏳ SALDO PENDENTE* (Fechamento dia 05)`,
       `MegaFilmes & Mega Print • Sistema Operacional`,
     ].filter(Boolean).join('\n');
 
@@ -474,9 +551,9 @@ export default function TeamPayoutsDashboard({
             <Clock size={24} />
           </div>
           <div className="psc-info">
-            <span className="psc-label">Horas em Eventos</span>
+            <span className="psc-label">Banco de Horas (Extra)</span>
             <strong className="psc-value">{summaryTotals.totalHoras} h</strong>
-            <span className="psc-sub">Horas de campo registradas</span>
+            <span className="psc-sub">Fora do expediente comercial</span>
           </div>
         </div>
 
@@ -624,38 +701,44 @@ export default function TeamPayoutsDashboard({
                       <span className="pmc-prod-lbl">Missões</span>
                     </div>
                     <div className="pmc-prod-metric">
-                      <span className="pmc-prod-val text-cyan">{member.totalHours} h</span>
-                      <span className="pmc-prod-lbl">Horas Evento</span>
+                      <span className="pmc-prod-val text-amber">{member.totalHours} h</span>
+                      <span className="pmc-prod-lbl">Banco Horas (Extra)</span>
                     </div>
                     {member.totalTravelDays > 0 ? (
                       <div className="pmc-prod-metric">
-                        <span className="pmc-prod-val text-amber">{member.totalTravelDays} d</span>
+                        <span className="pmc-prod-val text-cyan">{member.totalTravelDays} d</span>
                         <span className="pmc-prod-lbl">Viagens (+1d)</span>
                       </div>
                     ) : null}
                   </div>
 
-                  {/* Valor Total a Pagar */}
+                  {/* Valor Total a Pagar / Quitado */}
                   <div className="pmc-col-total">
-                    <span className="pmc-total-lbl">Total Apurado:</span>
-                    <strong className="pmc-total-val">{formatBRL(member.totalAmount)}</strong>
-                    {member.pixKey && (
+                    <span className="pmc-total-lbl">{isPaid ? 'Total Quitado:' : 'Total Apurado:'}</span>
+                    <strong className={`pmc-total-val ${isPaid ? 'text-green' : 'text-gold'}`}>
+                      {formatBRL(member.totalAmount)}
+                    </strong>
+                    {isPaid ? (
+                      <span className="cleared-hours-badge" title={`Horas quitadas em ${formatDateBR(member.clearedAt)}`}>
+                        <Check size={11} /> {member.hoursCleared || member.totalHours}h quitadas
+                      </span>
+                    ) : member.pixKey ? (
                       <span className="pmc-pix-pill" title={`PIX: ${member.pixKey}`}>
                         💳 {member.pixKey}
                       </span>
-                    )}
+                    ) : null}
                   </div>
 
-                  {/* Status de Pagamento & Ações */}
+                  {/* Status de Pagamento & Ações com Botão Zerar Horas */}
                   <div className="pmc-col-actions">
                     <button
                       type="button"
-                      className={`btn-payout-status ${isPaid ? 'status-paid' : 'status-pending'}`}
-                      onClick={() => handleTogglePaidStatus(member)}
-                      title="Clique para alternar status entre Pago e Pendente"
+                      className={`btn-clear-hours ${isPaid ? 'is-cleared' : ''}`}
+                      onClick={() => handleClearMemberHours(member)}
+                      title={isPaid ? 'Horas quitadas e zeradas. Clique para reabrir saldo se necessário.' : 'Pagar e zerar o saldo de horas deste colaborador'}
                     >
-                      {isPaid ? <Check size={14} /> : <Clock size={14} />}
-                      <span>{isPaid ? 'Pago' : 'Pendente'}</span>
+                      {isPaid ? <CheckCircle2 size={14} /> : <RotateCcw size={14} />}
+                      <span>{isPaid ? 'Horas Zeradas' : 'Zerar Horas'}</span>
                     </button>
 
                     <div className="pmc-quick-action-buttons">
@@ -836,18 +919,29 @@ export default function TeamPayoutsDashboard({
                   <strong className="ssb-val">{viewingStatementMember.missionCount}</strong>
                 </div>
                 <div className="ssb-item">
-                  <span className="ssb-lbl">Horas em Eventos</span>
-                  <strong className="ssb-val text-cyan">{viewingStatementMember.totalHours} h</strong>
+                  <span className="ssb-lbl">Banco Horas (Extra)</span>
+                  <strong className="ssb-val text-amber">{viewingStatementMember.totalHours} h</strong>
                 </div>
                 <div className="ssb-item">
                   <span className="ssb-lbl">Diárias de Viagem</span>
-                  <strong className="ssb-val text-amber">{viewingStatementMember.totalTravelDays} dias</strong>
+                  <strong className="ssb-val text-cyan">{viewingStatementMember.totalTravelDays} dias</strong>
                 </div>
                 <div className="ssb-item ssb-total">
-                  <span className="ssb-lbl">Total do Mês</span>
-                  <strong className="ssb-val text-gold">{formatBRL(viewingStatementMember.totalAmount)}</strong>
+                  <span className="ssb-lbl">{viewingStatementMember.status === 'Pago' ? 'Total Quitado' : 'Total do Mês'}</span>
+                  <strong className={`ssb-val ${viewingStatementMember.status === 'Pago' ? 'text-green' : 'text-gold'}`}>
+                    {formatBRL(viewingStatementMember.totalAmount)}
+                  </strong>
                 </div>
               </div>
+
+              {viewingStatementMember.status === 'Pago' && (
+                <div className="statement-cleared-banner">
+                  <CheckCircle2 size={16} className="text-green" />
+                  <span>
+                    <strong>Horas Zeradas &amp; Saldo Quitado:</strong> Este fechamento foi marcado como pago e o banco de horas foi quitado {viewingStatementMember.clearedAt ? `em ${formatDateBR(viewingStatementMember.clearedAt)}` : ''}.
+                  </span>
+                </div>
+              )}
 
               {/* Lista Detalhada de Missões */}
               <div className="statement-missions-list">
@@ -865,22 +959,41 @@ export default function TeamPayoutsDashboard({
                           </span>
                           {item.isMultiDay ? (
                             <span className="sir-badge-multiday">🏕️ Viagem ({item.daysCount}d)</span>
+                          ) : item.offHoursWorked > 0 ? (
+                            <span className="sir-badge-hours sir-badge-offhours" title="Horas fora do expediente comercial computadas no banco de horas">
+                              🌙 +{item.offHoursWorked}h Banco de Horas
+                            </span>
                           ) : (
-                            <span className="sir-badge-hours">⏱️ {item.hoursWorked}h</span>
+                            <span className="sir-badge-hours sir-badge-inhours" title="Missão realizada 100% dentro do expediente comercial normal">
+                              🟢 Expediente Comercial (0h extra)
+                            </span>
                           )}
                         </div>
                         <strong className="sir-desc">{item.description}</strong>
                         <span className="sir-loc">{item.locationName}</span>
                         {!item.isMultiDay && (
-                          <span className="sir-times">
-                            Saída: {item.departureTime} • Retorno: {item.returnTimeEstimated}
-                          </span>
+                          <div className="sir-times-breakdown">
+                            <span className="sir-times">
+                              <Clock size={11} /> Saída: {item.departureTime} • Retorno: {item.returnTimeEstimated} ({item.hoursWorked}h de missão)
+                            </span>
+                            {item.offHoursWorked > 0 ? (
+                              <span className="sir-rate-applied">
+                                • Taxa: {formatBRL(item.effectiveHourlyRate)}/h {item.isCustomRate ? '(Definida na Missão)' : '(Padrão)'}
+                              </span>
+                            ) : (
+                              <span className="sir-rate-commercial">
+                                • Horário comercial (08h às 18h)
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
 
                       <div className="sir-right">
                         <span className="sir-role">{item.roleInMission}</span>
-                        <strong className="sir-amount">{formatBRL(item.itemAmount)}</strong>
+                        <strong className={`sir-amount ${item.itemAmount > 0 ? 'text-gold' : 'text-muted'}`}>
+                          {formatBRL(item.itemAmount)}
+                        </strong>
                       </div>
                     </div>
                   ))
@@ -889,6 +1002,29 @@ export default function TeamPayoutsDashboard({
 
               {/* Rodapé do Modal */}
               <div className="modal-footer" style={{ marginTop: 16 }}>
+                <button
+                  type="button"
+                  className={`btn-clear-hours-modal ${viewingStatementMember.status === 'Pago' ? 'is-cleared' : ''}`}
+                  onClick={async () => {
+                    await handleClearMemberHours(viewingStatementMember);
+                    setViewingStatementMember((prev) => prev ? {
+                      ...prev,
+                      status: prev.status === 'Pago' ? 'Pendente' : 'Pago'
+                    } : null);
+                  }}
+                >
+                  {viewingStatementMember.status === 'Pago' ? (
+                    <>
+                      <CheckCircle2 size={15} />
+                      <span>Horas Quitadas (Reabrir)</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw size={15} />
+                      <span>Zerar Horas &amp; Quitar Saldo</span>
+                    </>
+                  )}
+                </button>
                 <button
                   type="button"
                   className="btn-secondary"

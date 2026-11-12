@@ -24460,3 +24460,476 @@ body.light-theme .sir-desc {
     align-items: stretch;
   }
 }
+
+/* ============================================================== */
+/* 8. ALERTA DE HORÁRIO FORA DE EXPEDIENTE & BANCO DE HORAS       */
+/* ============================================================== */
+.mm-offhours-warning-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-left: 4px solid #f59e0b;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 14px 0 6px 0;
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+body.light-theme .mm-offhours-warning-banner {
+  background: #fffbeb;
+  border-color: #fde68a;
+  border-left-color: #d97706;
+}
+
+.mm-offhours-banner-icon {
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.mm-offhours-banner-body {
+  flex: 1;
+}
+
+.mm-offhours-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.mm-offhours-banner-title strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+body.light-theme .mm-offhours-banner-title strong {
+  color: #92400e;
+}
+
+.mm-offhours-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+body.light-theme .mm-offhours-badge {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fcd34d;
+}
+
+.mm-offhours-banner-desc {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  margin: 0 0 6px 0;
+}
+
+body.light-theme .mm-offhours-banner-desc {
+  color: #475569;
+}
+
+.mm-offhours-banner-desc strong {
+  color: #fbbf24;
+}
+
+body.light-theme .mm-offhours-banner-desc strong {
+  color: #b45309;
+}
+
+.mm-offhours-segments-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.mm-offhours-seg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+body.light-theme .mm-offhours-seg-chip {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+/* ============================================================== */
+/* 9. SEÇÃO DE TAXAS DA MISSÃO FORA DO EXPEDIENTE (PASSO 5)       */
+/* ============================================================== */
+.mm-offhours-rates-section {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin: 18px 0;
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+body.light-theme .mm-offhours-rates-section {
+  background: #f8fafc;
+  border-color: #fed7aa;
+}
+
+.mm-offhours-rates-header {
+  margin-bottom: 14px;
+}
+
+.mm-offhours-rates-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.mm-offhours-rates-title-wrap strong {
+  font-size: 0.92rem;
+  color: #f1f5f9;
+}
+
+body.light-theme .mm-offhours-rates-title-wrap strong {
+  color: #0f172a;
+}
+
+.mm-offhours-rates-badge {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.mm-offhours-rates-subtitle {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  line-height: 1.4;
+  margin: 0;
+}
+
+body.light-theme .mm-offhours-rates-subtitle {
+  color: #64748b;
+}
+
+.mm-offhours-rates-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mm-offhours-rate-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 14px;
+  transition: border-color 0.2s;
+}
+
+body.light-theme .mm-offhours-rate-item {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.mm-offhours-rate-item:hover {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.mori-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.mori-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mori-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mori-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mori-name {
+  font-size: 0.85rem;
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+body.light-theme .mori-name {
+  color: #0f172a;
+}
+
+.mori-role {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.mori-default-rate {
+  font-size: 0.7rem;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.mori-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mori-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mori-input-wrap label {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.mori-input-box {
+  display: flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 0 8px;
+  height: 34px;
+  width: 130px;
+  transition: border-color 0.2s;
+}
+
+body.light-theme .mori-input-box {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.mori-input-box:focus-within {
+  border-color: #fbbf24;
+}
+
+.mori-currency {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-right: 4px;
+}
+
+.mori-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  outline: none;
+}
+
+body.light-theme .mori-input {
+  color: #0f172a;
+}
+
+.mori-btn-reset {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.mori-btn-reset:hover {
+  color: #ef4444;
+}
+
+.mori-subtotal-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 100px;
+}
+
+.mori-subtotal-badge span {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.mori-subtotal-badge strong {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #34d399;
+}
+
+/* ============================================================== */
+/* 10. BOTÃO ZERAR HORAS & BADGES DE QUITAÇÃO                     */
+/* ============================================================== */
+.btn-clear-hours {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(245, 158, 11, 0.18));
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.btn-clear-hours:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(239, 68, 68, 0.25));
+  color: #ffffff;
+  border-color: #fbbf24;
+  transform: translateY(-1px);
+}
+
+.btn-clear-hours.is-cleared {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  color: #34d399;
+}
+
+.btn-clear-hours.is-cleared:hover {
+  background: rgba(16, 185, 129, 0.25);
+  color: #a7f3d0;
+  border-color: #34d399;
+}
+
+.cleared-hours-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  margin-top: 3px;
+}
+
+.sir-badge-offhours {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.sir-badge-inhours {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.sir-times-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 3px;
+}
+
+.sir-rate-applied {
+  font-size: 0.7rem;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.sir-rate-commercial {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.statement-cleared-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 12px 0 16px 0;
+  color: #34d399;
+  font-size: 0.82rem;
+}
+
+.statement-cleared-banner strong {
+  color: #6ee7b7;
+}
+
+.btn-clear-hours-modal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(245, 158, 11, 0.2));
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fbbf24;
+  transition: all 0.2s ease;
+  margin-right: auto;
+}
+
+.btn-clear-hours-modal:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(239, 68, 68, 0.25));
+  color: #ffffff;
+}
+
+.btn-clear-hours-modal.is-cleared {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #34d399;
+}

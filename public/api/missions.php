@@ -40,6 +40,8 @@ function ensureMissionColumnsExist($db) {
         'recurrence_days'         => 'VARCHAR(100) NULL',
         'is_multi_day'            => 'TINYINT(1) DEFAULT 0',
         'end_date'                => 'VARCHAR(20) NULL',
+        'custom_rates'            => 'LONGTEXT NULL',
+        'off_hours'               => 'DECIMAL(5,1) DEFAULT 0.0',
         'version'                 => 'INT NOT NULL DEFAULT 1'
     ];
 
@@ -227,6 +229,8 @@ if ($method === 'GET') {
             'recurrenceDays'           => $m['recurrence_days'] ?? null,
             'isMultiDay'               => !empty($m['is_multi_day']),
             'endDate'                  => $m['end_date'] ?? null,
+            'customRates'              => !empty($m['custom_rates']) ? json_decode($m['custom_rates'], true) : null,
+            'offHours'                 => isset($m['off_hours']) ? (float)$m['off_hours'] : 0.0,
             'version'                  => (int)($m['version'] ?? 1),
             'createdAt'                => $m['created_at'],
             'updatedAt'                => $m['updated_at']
@@ -726,6 +730,7 @@ if ($method === 'POST' || $method === 'PUT') {
             route_coordinates, return_coordinates, notes,
             is_recurring, recurrence_id, recurrence_rule, recurrence_days,
             is_multi_day, end_date,
+            custom_rates, off_hours,
             created_by
         ) VALUES (
             :id, :code, :description, :location_name, :address, :lat, :lon, :date,
@@ -742,6 +747,7 @@ if ($method === 'POST' || $method === 'PUT') {
             :route_coordinates, :return_coordinates, :notes,
             :is_recurring, :recurrence_id, :recurrence_rule, :recurrence_days,
             :is_multi_day, :end_date,
+            :custom_rates, :off_hours,
             :created_by
         )
         ON DUPLICATE KEY UPDATE
@@ -797,7 +803,9 @@ if ($method === 'POST' || $method === 'PUT') {
             recurrence_rule = VALUES(recurrence_rule),
             recurrence_days = VALUES(recurrence_days),
             is_multi_day = VALUES(is_multi_day),
-            end_date = VALUES(end_date)
+            end_date = VALUES(end_date),
+            custom_rates = VALUES(custom_rates),
+            off_hours = VALUES(off_hours)
     ";
 
     $saveParams = [
@@ -854,6 +862,8 @@ if ($method === 'POST' || $method === 'PUT') {
         ':recurrence_days'             => $recurrenceDays,
         ':is_multi_day'                => $isMultiDay,
         ':end_date'                    => $endDate,
+        ':custom_rates'                => !empty($data['customRates']) ? json_encode($data['customRates'], JSON_UNESCAPED_UNICODE) : null,
+        ':off_hours'                   => isset($data['offHours']) ? (float)$data['offHours'] : 0.0,
         ':created_by'                  => $user['id']
     ];
 

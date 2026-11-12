@@ -18,11 +18,16 @@ function ensurePayoutsTable($db) {
                 status VARCHAR(20) DEFAULT 'Pendente',
                 paid_at DATETIME NULL,
                 paid_amount DECIMAL(10,2) DEFAULT 0.00,
+                hours_cleared DECIMAL(6,1) DEFAULT 0.0,
+                cleared_at DATETIME NULL,
                 notes TEXT NULL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 UNIQUE KEY uq_month_member (month_key, member_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
+        // Colunas adicionadas sob demanda
+        try { $db->exec("ALTER TABLE payout_closures ADD COLUMN hours_cleared DECIMAL(6,1) DEFAULT 0.0"); } catch (Exception $e) {}
+        try { $db->exec("ALTER TABLE payout_closures ADD COLUMN cleared_at DATETIME NULL"); } catch (Exception $e) {}
     } catch (Exception $e) {}
 }
 ensurePayoutsTable($db);
@@ -39,14 +44,16 @@ if ($method === 'GET') {
     $closures = [];
     foreach ($rows as $r) {
         $closures[$r['member_id']] = [
-            'id'         => $r['id'],
-            'monthKey'   => $r['month_key'],
-            'memberId'   => $r['member_id'],
-            'status'     => $r['status'] ?? 'Pendente',
-            'paidAt'     => $r['paid_at'],
-            'paidAmount' => (float)($r['paid_amount'] ?? 0),
-            'notes'      => $r['notes'] ?? '',
-            'updatedAt'  => $r['updated_at']
+            'id'           => $r['id'],
+            'monthKey'     => $r['month_key'],
+            'memberId'     => $r['member_id'],
+            'status'       => $r['status'] ?? 'Pendente',
+            'paidAt'       => $r['paid_at'],
+            'paidAmount'   => (float)($r['paid_amount'] ?? 0),
+            'hoursCleared' => (float)($r['hours_cleared'] ?? 0),
+            'clearedAt'    => $r['cleared_at'],
+            'notes'        => $r['notes'] ?? '',
+            'updatedAt'    => $r['updated_at']
         ];
     }
 
@@ -66,6 +73,8 @@ if ($method === 'POST') {
     $memberId = trim($data['memberId'] ?? '');
     $status = trim($data['status'] ?? 'Pendente');
     $paidAmount = isset($data['paidAmount']) ? (float)$data['paidAmount'] : 0.00;
+    $hoursCleared = isset($data['hoursCleared']) ? (float)$data['hoursCleared'] : 0.0;
+    $clearedAt = !empty($data['clearedAt']) ? $data['clearedAt'] : ($status === 'Pago' ? date('Y-m-d H:i:s') : null);
     $notes = trim($data['notes'] ?? '');
 
     if (empty($memberId)) {
@@ -76,38 +85,45 @@ if ($method === 'POST') {
     $paidAt = $status === 'Pago' ? ($data['paidAt'] ?? date('Y-m-d H:i:s')) : null;
 
     $stmt = $db->prepare("
-        INSERT INTO payout_closures (id, month_key, member_id, status, paid_at, paid_amount, notes)
-        VALUES (:id, :month_key, :member_id, :status, :paid_at, :paid_amount, :notes)
+        INSERT INTO payout_closures (id, month_key, member_id, status, paid_at, paid_amount, hours_cleared, cleared_at, notes)
+        VALUES (:id, :month_key, :member_id, :status, :paid_at, :paid_amount, :hours_cleared, :cleared_at, :notes)
         ON DUPLICATE KEY UPDATE
             status = VALUES(status),
             paid_at = VALUES(paid_at),
             paid_amount = VALUES(paid_amount),
+            hours_cleared = VALUES(hours_cleared),
+            cleared_at = VALUES(cleared_at),
             notes = VALUES(notes)
     ");
 
     $stmt->execute([
-        ':id'          => $closureId,
-        ':month_key'   => $monthKey,
-        ':member_id'   => $memberId,
-        ':status'      => $status,
-        ':paid_at'     => $paidAt,
-        ':paid_amount' => $paidAmount,
-        ':notes'       => $notes
+        ':id'            => $closureId,
+        ':month_key'     => $monthKey,
+        ':member_id'     => $memberId,
+        ':status'        => $status,
+        ':paid_at'       => $paidAt,
+        ':paid_amount'   => $paidAmount,
+        ':hours_cleared' => $hoursCleared,
+        ':cleared_at'    => $clearedAt,
+        ':notes'         => $notes
     ]);
 
-    logAudit('PAYOUT_CLOSURE', 'FINANCE', $closureId, "Fechamento de diárias de {$memberId} para {$monthKey}: status alterado para {$status}.", $user['id'], $user['name']);
+    logAudit('PAYOUT_CLOSURE', 'FINANCE', $closureId, "Fechamento de diárias de {$memberId} para {$monthKey}: status={$status}, horas_zeradas={$hoursCleared}.", $user['id'], $user['name']);
 
     jsonResponse([
         'success' => true,
         'closure' => [
-            'id'         => $closureId,
-            'monthKey'   => $monthKey,
-            'memberId'   => $memberId,
-            'status'     => $status,
-            'paidAt'     => $paidAt,
-            'paidAmount' => $paidAmount,
-            'notes'      => $notes
+            'id'           => $closureId,
+            'monthKey'     => $monthKey,
+            'memberId'     => $memberId,
+            'status'       => $status,
+            'paidAt'       => $paidAt,
+            'paidAmount'   => $paidAmount,
+            'hoursCleared' => $hoursCleared,
+            'clearedAt'    => $clearedAt,
+            'notes'        => $notes
         ]
+    ]);
     ]);
 }
 
