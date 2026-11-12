@@ -422,6 +422,17 @@ export function getMissionStatusPriority(mission) {
   return 6;
 }
 
+export function isMissionFinalizada(m) {
+  if (!m) return false;
+  const s = (m.missionStatus || '').toLowerCase();
+  return (
+    s === 'finalizada' ||
+    s === 'finalizado' ||
+    s === 'concluída' ||
+    s === 'concluida'
+  );
+}
+
 /**
  * Ordena a lista de missões priorizando rigorosamente:
  * 1. Missões Em Execução / Em Andamento (acontecendo no momento imediato na rua)
