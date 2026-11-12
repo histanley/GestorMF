@@ -25,13 +25,28 @@ function ensureMembersColumns($db) {
             $db->exec("ALTER TABLE members ADD COLUMN pix_key VARCHAR(100) NULL AFTER block_rate");
         }
     } catch (Exception $e) {}
+
+    // Sincronização automática de fotos de perfil de usuários para colaboradores
+    try {
+        $db->exec("
+            UPDATE members m
+            INNER JOIN users u ON (u.id = m.user_id OR LOWER(TRIM(u.name)) = LOWER(TRIM(m.name)))
+            SET m.photo_url = u.avatar
+            WHERE (m.photo_url IS NULL OR m.photo_url = '') AND u.avatar IS NOT NULL AND u.avatar != ''
+        ");
+    } catch (Exception $e) {}
 }
 ensureMembersColumns($db);
 
 // LISTAR COLABORADORES (GET)
 if ($method === 'GET') {
     $user = requireAuth();
-    $stmt = $db->query("SELECT * FROM members ORDER BY name ASC");
+    $stmt = $db->query("
+        SELECT m.*, u.avatar AS user_avatar
+        FROM members m
+        LEFT JOIN users u ON (u.id = m.user_id OR LOWER(TRIM(u.name)) = LOWER(TRIM(m.name)))
+        ORDER BY m.name ASC
+    ");
     $raw = $stmt->fetchAll();
 
     $members = array_map(function($m) {
@@ -40,6 +55,7 @@ if ($method === 'GET') {
             $decoded = is_array($m['secondary_roles']) ? $m['secondary_roles'] : json_decode($m['secondary_roles'], true);
             if (is_array($decoded)) $secRoles = $decoded;
         }
+        $resolvedPhoto = !empty($m['photo_url']) ? $m['photo_url'] : (!empty($m['user_avatar']) ? $m['user_avatar'] : null);
         return [
             'id'             => $m['id'],
             'name'           => $m['name'],
@@ -47,7 +63,7 @@ if ($method === 'GET') {
             'secondaryRoles' => $secRoles,
             'company'        => $m['company'],
             'phone'          => $m['phone'],
-            'photoUrl'       => $m['photo_url'],
+            'photoUrl'       => $resolvedPhoto,
             'canDrive'       => (bool)($m['can_drive'] ?? false),
             'cnhCategory'    => $m['cnh_category'] ?? 'B',
             'hourlyRate'     => isset($m['hourly_rate']) ? (float)$m['hourly_rate'] : 0.0,
@@ -247,6 +263,13 @@ if ($method === 'POST' || $method === 'PUT') {
             ':pix_key'         => $pixKey,
             ':active'          => isset($data['active']) && !$data['active'] ? 0 : 1
         ]);
+
+        // Sincroniza foto no usuário vinculado caso definida
+        if (!empty($data['photoUrl']) && !empty($assignedUserId)) {
+            try {
+                $db->prepare("UPDATE users SET avatar = ? WHERE id = ?")->execute([$data['photoUrl'], $assignedUserId]);
+            } catch (Exception $e) {}
+        }
 
         $db->commit();
     } catch (Exception $e) {

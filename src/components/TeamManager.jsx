@@ -2153,6 +2153,10 @@ export default function TeamManager({
                 <button
                   className="btn-primary"
                   onClick={async () => {
+                    if (newRoleName.trim()) {
+                      await onAddRole(newRoleName.trim());
+                      setNewRoleName('');
+                    }
                     if (editingRole) {
                       await handleSaveEditRole();
                     }

@@ -100,6 +100,28 @@ if ($method === 'POST' && $action === 'update_profile') {
     ");
     $stmt->execute([$name, $phone, $department, $avatar, $auth['id']]);
 
+    // Sincroniza foto e telefone na tabela members (reflete imediatamente na gestão de equipes e missões na Web)
+    try {
+        if (!empty($avatar)) {
+            $stmtMem = $db->prepare("
+                UPDATE members
+                SET photo_url = ?, phone = COALESCE(NULLIF(?, ''), phone)
+                WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))
+            ");
+            $stmtMem->execute([$avatar, $phone, $auth['id'], $name]);
+        } elseif (!empty($phone)) {
+            $stmtMem = $db->prepare("
+                UPDATE members
+                SET phone = ?
+                WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))
+            ");
+            $stmtMem->execute([$phone, $auth['id'], $name]);
+        }
+        bumpSyncVersion("members");
+    } catch (Exception $e) {
+        error_log("[GestorMF Profile Sync Error] " . $e->getMessage());
+    }
+
     logAudit('UPDATE_PROFILE', 'USERS', $auth['id'], [
         'name' => $name,
         'phone' => $phone,

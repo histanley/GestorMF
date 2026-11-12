@@ -67,9 +67,9 @@ if ($method === 'GET') {
     ]);
 }
 
-// ATUALIZAR CONFIGURAÇÕES (POST / PUT - APENAS ADMIN)
+// ATUALIZAR CONFIGURAÇÕES (POST / PUT - ADMIN & MANAGER)
 if ($method === 'POST' || $method === 'PUT') {
-    $user = requireAuth(['ADMIN']);
+    $user = requireAuth(['ADMIN', 'MANAGER']);
     $data = getJsonInput();
 
     // Auto-recuperação: garante que a coluna 'roles' exista na tabela settings
@@ -116,7 +116,7 @@ if ($method === 'POST' || $method === 'PUT') {
     if ($hasElecCol) {
         $stmt = $db->prepare("
             INSERT INTO settings (id, company_name, fuel_price_per_liter, gasoline_price_per_liter, diesel_price_per_liter, electric_price_per_kwh, default_autonomy, base_location, roles)
-            VALUES (1, :comp, :gas, :gas, :die, :elec, :auto, :base, :roles)
+            VALUES (1, :comp, :fuel, :gas, :die, :elec, :auto, :base, :roles)
             ON DUPLICATE KEY UPDATE
                 company_name = VALUES(company_name),
                 fuel_price_per_liter = VALUES(fuel_price_per_liter),
@@ -129,6 +129,7 @@ if ($method === 'POST' || $method === 'PUT') {
         ");
         $stmt->execute([
             ':comp'      => $companyName,
+            ':fuel'      => $gasolinePrice,
             ':gas'       => $gasolinePrice,
             ':die'       => $dieselPrice,
             ':elec'      => $electricPrice,
@@ -141,7 +142,7 @@ if ($method === 'POST' || $method === 'PUT') {
     } else {
         $stmt = $db->prepare("
             INSERT INTO settings (id, company_name, fuel_price_per_liter, gasoline_price_per_liter, diesel_price_per_liter, default_autonomy, base_location, roles)
-            VALUES (1, :comp, :gas, :gas, :die, :auto, :base, :roles)
+            VALUES (1, :comp, :fuel, :gas, :die, :auto, :base, :roles)
             ON DUPLICATE KEY UPDATE
                 company_name = VALUES(company_name),
                 fuel_price_per_liter = VALUES(fuel_price_per_liter),
@@ -153,6 +154,7 @@ if ($method === 'POST' || $method === 'PUT') {
         ");
         $stmt->execute([
             ':comp'      => $companyName,
+            ':fuel'      => $gasolinePrice,
             ':gas'       => $gasolinePrice,
             ':die'       => $dieselPrice,
             ':auto'      => $defaultAutonomy,
