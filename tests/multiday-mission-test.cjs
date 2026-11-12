@@ -18,22 +18,22 @@ function calculateDaysBetween(startDateStr, endDateStr) {
     if (!y1 || !y2) return 1;
     const utc1 = Date.UTC(y1, m1 - 1, d1);
     const utc2 = Date.UTC(y2, m2 - 1, d2);
-    const diff = Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24));
+    const diff = Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24)) + 1;
     return diff > 0 ? diff : 1;
   } catch (e) {
     return 1;
   }
 }
 
-// Caso 1: 25/11/2026 até 27/11/2026 = 2 dias de operação
+// Caso 1: 25/11/2026 até 27/11/2026 = 3 diárias de operação (dias 25, 26 e 27)
 const days1 = calculateDaysBetween('2026-11-25', '2026-11-27');
-assert.strictEqual(days1, 2, `Esperado 2 dias para 25/11 a 27/11, obtido: ${days1}`);
-console.log('[PASS] 01. Cálculo de dias exato para missão 25/11 a 27/11 = 2 dias de operação.');
+assert.strictEqual(days1, 3, `Esperado 3 dias para 25/11 a 27/11, obtido: ${days1}`);
+console.log('[PASS] 01. Cálculo de dias exato para missão 25/11 a 27/11 = 3 diárias de operação.');
 
-// Caso 2: 25/11/2026 até 28/11/2026 = 3 dias de operação
+// Caso 2: 25/11/2026 até 28/11/2026 = 4 diárias de operação (dias 25, 26, 27 e 28)
 const days2 = calculateDaysBetween('2026-11-25', '2026-11-28');
-assert.strictEqual(days2, 3, `Esperado 3 dias para 25/11 a 28/11, obtido: ${days2}`);
-console.log('[PASS] 02. Cálculo de dias exato para missão 25/11 a 28/11 = 3 dias de operação.');
+assert.strictEqual(days2, 4, `Esperado 4 dias para 25/11 a 28/11, obtido: ${days2}`);
+console.log('[PASS] 02. Cálculo de dias exato para missão 25/11 a 28/11 = 4 diárias de operação.');
 
 // Caso 3: Mesmo dia = 1 dia
 const days3 = calculateDaysBetween('2026-11-25', '2026-11-25');

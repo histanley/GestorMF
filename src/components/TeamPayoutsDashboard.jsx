@@ -60,7 +60,7 @@ function calculateMissionHours(depTime, retTime) {
   }
 }
 
-// Calcula dias entre datas para missões de longa duração
+// Calcula dias entre datas para missões de longa duração (diárias operacionais inclusivas)
 function calculateDaysBetween(startDateStr, endDateStr) {
   if (!startDateStr || !endDateStr) return 1;
   try {
@@ -69,7 +69,8 @@ function calculateDaysBetween(startDateStr, endDateStr) {
     if (!y1 || !y2) return 1;
     const utc1 = Date.UTC(y1, m1 - 1, d1);
     const utc2 = Date.UTC(y2, m2 - 1, d2);
-    const diff = Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24));
+    // Dias inclusivos: 25/11 a 27/11 = 3 diárias (dias 25, 26 e 27)
+    const diff = Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24)) + 1;
     return diff > 0 ? diff : 1;
   } catch (e) {
     return 1;
