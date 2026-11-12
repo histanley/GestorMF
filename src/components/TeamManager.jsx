@@ -33,7 +33,10 @@ import {
   MessageCircle,
   AlertTriangle,
   Car,
+  Trophy,
+  Sparkles,
 } from 'lucide-react';
+import TeamPerformanceRanking from './TeamPerformanceRanking';
 import { getActiveMissionForMember as findActiveMissionForMember } from '../utils/geo';
 import {
   ROLES,
@@ -808,15 +811,25 @@ export default function TeamManager({
       <div className="board-header">
         <div>
           <div className="board-badge">
-            {teamSubView === 'field' ? 'EQUIPES & PROFISSIONAIS' : 'DIRETORIA & TI'}
+            {teamSubView === 'field'
+              ? 'EQUIPES & PROFISSIONAIS'
+              : teamSubView === 'admins'
+              ? 'DIRETORIA & TI'
+              : '📊 INTELIGÊNCIA & PERFORMANCE (ADMIN)'}
           </div>
           <h1 className="board-main-title">
-            {teamSubView === 'field' ? 'Membros e Equipes de Campo' : 'Administradores do Sistema'}
+            {teamSubView === 'field'
+              ? 'Membros e Equipes de Campo'
+              : teamSubView === 'admins'
+              ? 'Administradores do Sistema'
+              : 'Ranking & Raio-X dos Colaboradores'}
           </h1>
           <p className="board-subtitle">
             {teamSubView === 'field'
               ? 'Organização de diretores, cinegrafistas, pilotos de drone, editores e técnicos de campo'
-              : 'Usuários com acesso total às configurações, gestão de frotas e controle geral da plataforma'}
+              : teamSubView === 'admins'
+              ? 'Usuários com acesso total às configurações, gestão de frotas e controle geral da plataforma'
+              : 'Métricas executivas de assiduidade, condução de viaturas, missões audiovisuais e ranking corporativo de pontuação'}
           </p>
         </div>
 
@@ -832,7 +845,7 @@ export default function TeamManager({
                 </button>
               )}
             </>
-          ) : (
+          ) : teamSubView === 'admins' ? (
             canAddMember && (
               <button
                 className="btn-primary"
@@ -844,11 +857,11 @@ export default function TeamManager({
                 <Shield size={16} /> Novo Administrador
               </button>
             )
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* ---- Seletor de Subvisão: Equipes vs Administradores ---- */}
+      {/* ---- Seletor de Subvisão: Equipes vs Administradores vs Ranking ---- */}
       <div className="team-segmented-wrap">
         <div className="team-segmented-pill">
           <button
@@ -870,11 +883,29 @@ export default function TeamManager({
             <span className="seg-label">Administradores do Sistema</span>
             <span className="seg-counter admin-count">{adminUsers.length}</span>
           </button>
+
+          {userRole === 'admin' && (
+            <button
+              type="button"
+              className={`team-seg-btn team-seg-ranking-btn ${teamSubView === 'ranking' ? 'is-active is-ranking-active' : ''}`}
+              onClick={() => setTeamSubView('ranking')}
+            >
+              <Trophy size={16} />
+              <span className="seg-label">Inteligência &amp; Ranking</span>
+              <span className="seg-counter ranking-count">EXCLUSIVO</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ---- KPIs Condicionais ---- */}
-      {teamSubView === 'field' ? (
+      {/* ---- Conteúdo da Subvisão ---- */}
+      {teamSubView === 'ranking' && userRole === 'admin' ? (
+        <TeamPerformanceRanking
+          members={members}
+          missions={missions}
+          onOpenEditMember={handleOpenEdit}
+        />
+      ) : teamSubView === 'field' ? (
         <div className="fleet-kpi-grid team-kpi-grid">
           <div className="kpi-card kpi-gold">
             <div className="kpi-icon-box bg-gold">
