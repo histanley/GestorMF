@@ -180,6 +180,8 @@ export default function App() {
 
   // Permissões por Nível de Acesso
   const userRole = normalizeRole(currentUser?.role);
+  const isAdmin = userRole === ROLES.ADMIN;
+  const isAdminUser = isAdmin;
   const canCreateMission = userRole === ROLES.ADMIN || userRole === ROLES.MANAGER;
   const canManageSettings = userRole === ROLES.ADMIN;
   // Apenas Gestores e Administradores visualizam e acessam Viaturas e Equipes
