@@ -23111,6 +23111,25 @@ body.light-theme .ranking-scope-badge {
   color: #7c3aed;
 }
 
+.ranking-completed-only-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #34d399;
+}
+
+body.light-theme .ranking-completed-only-badge {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #059669;
+}
+
 .ranking-filter-pill-group {
   display: inline-flex;
   align-items: center;

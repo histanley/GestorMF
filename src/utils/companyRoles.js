@@ -203,7 +203,21 @@ export function getRolesExercisedInMission(member, mission) {
 }
 
 /**
- * Computa contagem fiel das 11 funções exercidas por um colaborador em um conjunto de missões
+ * Verifica se a missão está formalmente finalizada / concluída
+ */
+export function isMissionCompleted(m) {
+  if (!m) return false;
+  const s = String(m.missionStatus || m.status || '').toLowerCase().trim();
+  return (
+    s === 'finalizada' ||
+    s === 'finalizado' ||
+    s === 'concluída' ||
+    s === 'concluida'
+  );
+}
+
+/**
+ * Computa contagem fiel das 11 funções exercidas por um colaborador em missões concluídas
  */
 export function computeMemberRoleCounts(member, missions = []) {
   const counts = {};
@@ -211,7 +225,10 @@ export function computeMemberRoleCounts(member, missions = []) {
 
   if (!member || !Array.isArray(missions)) return counts;
 
-  missions.forEach((mission) => {
+  // Computa apenas missões finalizadas/concluídas para refletir dados 100% reais executados
+  const completedMissions = missions.filter(isMissionCompleted);
+
+  completedMissions.forEach((mission) => {
     const rolesInMission = getRolesExercisedInMission(member, mission);
     rolesInMission.forEach((role) => {
       counts[role] = (counts[role] || 0) + 1;
@@ -223,7 +240,8 @@ export function computeMemberRoleCounts(member, missions = []) {
 
 /**
  * CÁLCULO COMPLETO E FIEL DO SCORE XP OPERACIONAL DO COLABORADOR
- * Pontua todas e quaisquer atividades exercidas na empresa com máxima precisão.
+ * Computa ESTRITAMENTE missões CONCLUÍDAS / FINALIZADAS.
+ * Missões agendadas, em andamento ou canceladas NÃO pontuam para garantir valores reais.
  */
 export function calculateMemberPerformanceProfile(member, missions = []) {
   const memIdStr = String(member.id);
@@ -245,13 +263,17 @@ export function calculateMemberPerformanceProfile(member, missions = []) {
   let completedCount = 0;
   const missionHistory = [];
 
-  missions.forEach((m) => {
+  // FILTRO ESTRITO: Apenas missões que foram realmente concluídas/finalizadas
+  const completedMissions = missions.filter(isMissionCompleted);
+
+  completedMissions.forEach((m) => {
     const rolesExercised = getRolesExercisedInMission(member, m);
 
     if (rolesExercised.length > 0) {
       totalMissions++;
+      completedCount++;
 
-      // Atualiza contagem e pontos das funções exercidas nesta missão
+      // Atualiza contagem e pontos das funções exercidas nesta missão concluída
       rolesExercised.forEach((r) => {
         roleCounts[r] = (roleCounts[r] || 0) + 1;
         rolePoints[r] = (rolePoints[r] || 0) + (ROLE_XP_POINTS[r] || 15);
@@ -277,12 +299,6 @@ export function calculateMemberPerformanceProfile(member, missions = []) {
         totalApprovedExtraHours += extraH;
       }
 
-      // Missão concluída com sucesso
-      const isCompleted = m.missionStatus === 'Finalizada';
-      if (isCompleted) {
-        completedCount++;
-      }
-
       // Registra histórico detalhado da missão
       missionHistory.push({
         id: m.id,
@@ -295,68 +311,68 @@ export function calculateMemberPerformanceProfile(member, missions = []) {
         rolesExercised,
         isDriver,
         distanceKm: Number(m.routeInfo?.distanceKm || m.distanceKm || 0),
-        status: m.missionStatus || 'Agendada',
+        status: m.missionStatus || 'Finalizada',
         extraHours: extraH,
       });
     }
   });
 
   // Cálculo Discriminado do Score XP:
-  // 1. Pontos diretos das 11 funções oficiais exercidas
+  // 1. Pontos diretos das 11 funções oficiais exercidas em missões concluídas
   const rolesTotalXP = Object.values(rolePoints).reduce((acc, pts) => acc + pts, 0);
 
-  // 2. Pontos base por participação operacional
+  // 2. Pontos base por participação operacional em missão concluída
   const missionBaseXP = totalMissions * ACTIVITY_XP_POINTS.missionBase;
 
-  // 3. Pontos por expedições de longa duração (+1 dia)
+  // 3. Pontos por expedições de longa duração (+1 dia) realizadas
   const multiDayXP = multiDayCount * ACTIVITY_XP_POINTS.multiDayExpedition;
 
   // 4. Bônus por quilometragem rodada ao volante (+1 XP a cada 10 km)
   const drivingKmXP = Math.round(estimatedDistanceKm * 0.1);
 
-  // 5. Pontos por horas extras aprovadas de dedicação
+  // 5. Pontos por horas extras aprovadas e cumpridas em campo
   const extraHoursXP = Math.round(totalApprovedExtraHours * ACTIVITY_XP_POINTS.extraHourApproved);
 
   // 6. Bônus de entrega por missões concluídas com sucesso
   const completedBonusXP = completedCount * ACTIVITY_XP_POINTS.missionCompleted;
 
-  // SCORE FINAL TOTAL
+  // SCORE FINAL TOTAL REAL
   const score = rolesTotalXP + missionBaseXP + multiDayXP + drivingKmXP + extraHoursXP + completedBonusXP;
 
   // Badges e Reconhecimentos Oficiais
   const badges = [];
   if (roleCounts['Cinegrafista'] >= 3) {
-    badges.push({ id: 'cine-gold', icon: '🎥', name: 'Lente de Ouro', desc: `${roleCounts['Cinegrafista']}x atuações como Cinegrafista` });
+    badges.push({ id: 'cine-gold', icon: '🎥', name: 'Lente de Ouro', desc: `${roleCounts['Cinegrafista']}x atuações como Cinegrafista em missões concluídas` });
   }
   if (roleCounts['Motorista / Produção'] >= 3) {
-    badges.push({ id: 'driver-gold', icon: '🚗', name: 'Ás da Frota', desc: `${roleCounts['Motorista / Produção']}x ao volante (${Math.round(estimatedDistanceKm)} km guiados)` });
+    badges.push({ id: 'driver-gold', icon: '🚗', name: 'Ás da Frota', desc: `${roleCounts['Motorista / Produção']}x ao volante (${Math.round(estimatedDistanceKm)} km guiados em missões concluídas)` });
   }
   if (roleCounts['Editor de Vídeo'] >= 2) {
-    badges.push({ id: 'editor-gold', icon: '✂️', name: 'Mestre da Ilha', desc: `${roleCounts['Editor de Vídeo']}x pautas de pós-produção e edição` });
+    badges.push({ id: 'editor-gold', icon: '✂️', name: 'Mestre da Ilha', desc: `${roleCounts['Editor de Vídeo']}x pautas de pós-produção finalizadas` });
   }
   if (roleCounts['Transmissão (Streamer)'] >= 1) {
-    badges.push({ id: 'stream-gold', icon: '📡', name: 'Voz & Sinal', desc: `${roleCounts['Transmissão (Streamer)']}x coberturas ao vivo transmitidas` });
+    badges.push({ id: 'stream-gold', icon: '📡', name: 'Voz & Sinal', desc: `${roleCounts['Transmissão (Streamer)']}x coberturas ao vivo transmitidas e concluídas` });
   }
   if (roleCounts['Piloto de Drone'] >= 1) {
-    badges.push({ id: 'drone-gold', icon: '🚁', name: 'Ás dos Ares', desc: `${roleCounts['Piloto de Drone']}x captações aéreas com drone` });
+    badges.push({ id: 'drone-gold', icon: '🚁', name: 'Ás dos Ares', desc: `${roleCounts['Piloto de Drone']}x voos aéreos concluídos` });
   }
   if (roleCounts['Fotógrafo(a)'] >= 2) {
-    badges.push({ id: 'photo-gold', icon: '📸', name: 'Foco Perfeito', desc: `${roleCounts['Fotógrafo(a)']}x coberturas e ensaios fotográficos` });
+    badges.push({ id: 'photo-gold', icon: '📸', name: 'Foco Perfeito', desc: `${roleCounts['Fotógrafo(a)']}x ensaios e coberturas concluídas` });
   }
   if (roleCounts['Diretor(a) de Cena'] >= 1) {
-    badges.push({ id: 'dir-gold', icon: '🎬', name: 'Direção Geral', desc: `${roleCounts['Diretor(a) de Cena']}x liderança e direção de set` });
+    badges.push({ id: 'dir-gold', icon: '🎬', name: 'Direção Geral', desc: `${roleCounts['Diretor(a) de Cena']}x sets dirigidos com êxito` });
   }
   if (multiDayCount >= 1) {
-    badges.push({ id: 'explorer-gold', icon: '🧭', name: 'Desbravador', desc: `${multiDayCount}x viagens de campo (+1 dia / diárias)` });
+    badges.push({ id: 'explorer-gold', icon: '🧭', name: 'Desbravador', desc: `${multiDayCount}x viagens de campo realizadas (+1 dia / diárias)` });
   }
   if (totalApprovedExtraHours >= 2) {
-    badges.push({ id: 'extra-gold', icon: '⚡', name: 'Guardião da Pauta', desc: `${totalApprovedExtraHours}h extras de dedicação em campo` });
+    badges.push({ id: 'extra-gold', icon: '⚡', name: 'Guardião da Pauta', desc: `${totalApprovedExtraHours}h extras cumpridas em missões concluídas` });
   }
   if (totalMissions >= 5) {
-    badges.push({ id: 'vet-gold', icon: '⭐', name: 'Veterano de Campo', desc: `${totalMissions} missões operacionais realizadas` });
+    badges.push({ id: 'vet-gold', icon: '⭐', name: 'Veterano de Campo', desc: `${totalMissions} missões operacionais concluídas com sucesso` });
   }
 
-  // Lista de funções oficiais que o colaborador realmente exerceu (em ordem decrescente)
+  // Lista de funções oficiais que o colaborador realmente exerceu em missões concluídas
   const activeRolesSummary = OFFICIAL_COMPANY_ROLES
     .filter((r) => roleCounts[r] > 0)
     .map((r) => ({

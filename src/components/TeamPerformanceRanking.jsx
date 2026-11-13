@@ -44,6 +44,7 @@ import {
   normalizeToOfficialRole,
   computeMemberRoleCounts,
   calculateMemberPerformanceProfile,
+  isMissionCompleted,
 } from '../utils/companyRoles';
 
 // Formata data ISO para PT-BR (dd/mm/aaaa)
@@ -74,7 +75,7 @@ export default function TeamPerformanceRanking({
       .replace(/[\u0300-\u036f]/g, '');
 
   // --------------------------------------------------------------------------
-  // 1. FILTRAGEM TEMPORAL DAS MISSÕES
+  // 1. FILTRAGEM TEMPORAL E ESTRITA DAS MISSÕES (SOMENTE CONCLUÍDAS/FINALIZADAS)
   // --------------------------------------------------------------------------
   const filteredMissions = useMemo(() => {
     const now = new Date();
@@ -89,6 +90,11 @@ export default function TeamPerformanceRanking({
     };
 
     return missions.filter((m) => {
+      // REGRA FUNDAMENTAL: Somente missões que foram realmente concluídas/finalizadas
+      // são computadas no ranking para garantir pontuação 100% fiel e real.
+      // Missões agendadas, futuras ou canceladas não são contabilizadas.
+      if (!isMissionCompleted(m)) return false;
+
       const mDate = m.date || '';
       if (!mDate) return true;
 
@@ -225,6 +231,14 @@ export default function TeamPerformanceRanking({
           <div className="ranking-scope-badge">
             <Shield size={14} className="text-purple" />
             <span>Exclusivo para Administradores</span>
+          </div>
+
+          <div
+            className="ranking-completed-only-badge"
+            title="Apenas missões formalmente finalizadas e entregues geram pontos no ranking. Missões agendadas ou em andamento não computam."
+          >
+            <CheckCircle size={13} className="text-emerald" />
+            <span>Apenas Missões Concluídas</span>
           </div>
 
           <div className="ranking-filter-pill-group">
