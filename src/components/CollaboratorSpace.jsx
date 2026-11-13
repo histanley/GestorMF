@@ -655,26 +655,48 @@ export default function CollaboratorSpace({
       {/* 5. MODAL DE SOLICITAÇÃO DE HORA EXTRA                          */}
       {/* ============================================================== */}
       {requestModalMission && (
-        <div className="modal-overlay" onClick={() => setRequestModalMission(null)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div className="modal-header">
-              <div>
-                <h2>⏱️ Solicitar Hora Extra</h2>
-                <span className="modal-sub">
-                  {requestModalMission.code} • {requestModalMission.description}
-                </span>
+        <div className="modal-overlay cs-modal-overlay" onClick={() => setRequestModalMission(null)}>
+          <div className="modal-box cs-extra-hours-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Header Moderno com Badge e Fechar */}
+            <div className="cs-modal-header">
+              <div className="cs-modal-header-info">
+                <div className="cs-modal-icon-badge">
+                  <Clock size={20} className="text-amber" />
+                </div>
+                <div>
+                  <h3 className="cs-modal-title">Solicitar Hora Extra</h3>
+                  <div className="cs-modal-sub-row">
+                    <span className="cs-modal-sub-code">#{requestModalMission.code}</span>
+                    <span className="cs-modal-sub-desc" title={requestModalMission.description}>
+                      {requestModalMission.description}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <button className="modal-close" onClick={() => setRequestModalMission(null)}>✕</button>
+              <button
+                type="button"
+                className="cs-modal-close-btn"
+                onClick={() => setRequestModalMission(null)}
+                title="Fechar janela"
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <form onSubmit={handleSubmitExtraHoursRequest} className="modal-form">
-              <p className="cs-modal-desc">
-                Informe a quantidade de horas adicionais necessárias em campo e a justificativa para que a administração possa analisar e aprovar.
-              </p>
+            <form onSubmit={handleSubmitExtraHoursRequest} className="cs-modal-form">
+              {/* Box Informativo */}
+              <div className="cs-modal-hint-box">
+                <Sparkles size={16} className="text-amber icon-shrink" />
+                <p>
+                  Informe a quantidade de horas adicionais necessárias em campo e a justificativa para que a gestão possa avaliar e autorizar.
+                </p>
+              </div>
 
+              {/* Seletor de Horas Extras em Grade Moderna */}
               <div className="cs-modal-group">
                 <label className="cs-modal-label">
-                  Quantidade de Horas Extras Adicionais:
+                  <Clock size={13} className="text-amber" />
+                  <span>Quantidade de Horas Extras Adicionais:</span>
                 </label>
                 <div className="cs-hours-btn-grid">
                   {[0.5, 1.0, 1.5, 2.0, 3.0, 4.0].map((h) => (
@@ -684,30 +706,35 @@ export default function CollaboratorSpace({
                       onClick={() => setRequestedHours(h)}
                       className={`cs-hour-choice-btn ${requestedHours === h ? 'active' : ''}`}
                     >
-                      +{h}h
+                      <span className="cs-h-plus">+</span>
+                      <span className="cs-h-val">{h}</span>
+                      <span className="cs-h-unit">h</span>
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Justificativa / Motivo */}
               <div className="cs-modal-group">
                 <label className="cs-modal-label">
-                  Motivo / Justificativa da Prorrogação:
+                  <span>Motivo / Justificativa da Prorrogação:</span>
+                  <span className="cs-modal-req">*</span>
                 </label>
                 <textarea
                   rows={3}
                   required
-                  placeholder="Ex: Pauta atrasou devido ao cliente; necessário captar mais cenas ao pôr do sol..."
+                  placeholder="Ex: Pauta atrasou devido ao cliente; necessário captar cenas adicionais ao pôr do sol..."
                   value={requestReason}
                   onChange={(e) => setRequestReason(e.target.value)}
                   className="cs-modal-textarea"
                 />
               </div>
 
-              <div className="modal-actions-end">
+              {/* Botões de Ação Simétricos e Elegantes */}
+              <div className="cs-modal-actions-row">
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="cs-modal-btn cs-modal-btn-cancel"
                   onClick={() => setRequestModalMission(null)}
                   disabled={isSubmittingRequest}
                 >
@@ -715,10 +742,10 @@ export default function CollaboratorSpace({
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary"
+                  className="cs-modal-btn cs-modal-btn-submit"
                   disabled={isSubmittingRequest || !requestReason.trim()}
                 >
-                  <Send size={14} />
+                  <Send size={15} />
                   <span>{isSubmittingRequest ? 'Enviando...' : `Confirmar Solicitação (+${requestedHours}h)`}</span>
                 </button>
               </div>
