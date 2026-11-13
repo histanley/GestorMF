@@ -3146,24 +3146,27 @@ export default function App() {
                         </div>
 
                         <div className="item-footer">
-                          <div className="item-veh">
-                            <Car size={13} />
-                            <span>
-                              {m.vehicleNameDisplay ? m.vehicleNameDisplay.split('(')[0].trim() : 'Sem carro'}
-                              {m.driverName ? ` • 🛞 ${m.driverName.split(' ')[0]}` : ''}
-                            </span>
+                          <div className="item-veh-row">
+                            <div className="item-veh" title={m.vehicleNameDisplay || 'Sem viatura'}>
+                              <Car size={12} className="item-veh-icon" />
+                              <span>
+                                {m.vehicleNameDisplay ? m.vehicleNameDisplay.split('(')[0].trim() : 'Sem carro'}
+                                {m.driverName ? ` • 🛞 ${m.driverName.split(' ')[0]}` : ''}
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="item-right-actions">
-                            <div className="item-fuel" title={`Ida: ${m.distanceKm} km | Total Ida e Volta: ${getMissionTotalKm(m)} km`}>
-                              <Navigation size={12} />
-                              <span>{getMissionTotalKm(m)} km</span>
+                          <div className="item-bottom-row">
+                            <div className="item-metrics-group">
+                              <span className="item-metric-chip km-chip" title={`Ida: ${m.distanceKm || 0} km | Total Ida e Volta: ${getMissionTotalKm(m)} km`}>
+                                <Navigation size={11} />
+                                <span>{getMissionTotalKm(m)} km</span>
+                              </span>
                               {canManageFleetAndTeams && (
-                                <>
-                                  <span style={{ opacity: 0.45 }}>•</span>
-                                  <Fuel size={13} />
+                                <span className="item-metric-chip fuel-chip" title="Custo estimado de combustível">
+                                  <Fuel size={11} />
                                   <span>R$ {Number(m.estimatedFuelCost || 0).toFixed(2)}</span>
-                                </>
+                                </span>
                               )}
                             </div>
 
@@ -3176,7 +3179,8 @@ export default function App() {
                               }}
                               title="Abrir Detalhes Completos da Missão"
                             >
-                              <FileText size={11} /> Detalhes
+                              <FileText size={11} />
+                              <span>Detalhes</span>
                             </button>
                           </div>
                         </div>

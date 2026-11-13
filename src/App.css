@@ -3119,24 +3119,108 @@ body.light-theme .item-date {
 
 .item-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 7px;
   padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.item-veh,
-.item-fuel {
+.item-veh-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
 }
 
-.item-fuel {
-  color: var(--accent-gold);
+.item-veh {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
   font-weight: 600;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.item-veh-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.item-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.item-metrics-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.item-metric-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap !important;
+  flex-shrink: 0;
+  letter-spacing: 0.2px;
+}
+
+.item-metric-chip span {
+  white-space: nowrap !important;
+}
+
+.item-metric-chip.km-chip {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.item-metric-chip.fuel-chip {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.item-btn-details {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 6px;
+  color: #38bdf8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap !important;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.item-btn-details:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 /* --------------------------------------------------------------------------
@@ -34094,12 +34178,21 @@ body.light-theme .mission-list-item .item-footer {
 
 [data-theme="light"] .mission-list-item .item-veh,
 body.light-theme .mission-list-item .item-veh {
-  color: #475569 !important;
+  color: #334155 !important;
 }
 
-[data-theme="light"] .mission-list-item .item-fuel,
-body.light-theme .mission-list-item .item-fuel {
-  color: #64748b !important;
+[data-theme="light"] .item-metric-chip.km-chip,
+body.light-theme .item-metric-chip.km-chip {
+  background: #fef3c7 !important;
+  border-color: #fde68a !important;
+  color: #b45309 !important;
+}
+
+[data-theme="light"] .item-metric-chip.fuel-chip,
+body.light-theme .item-metric-chip.fuel-chip {
+  background: #dcfce7 !important;
+  border-color: #86efac !important;
+  color: #15803d !important;
 }
 
 [data-theme="light"] .mission-code-mini,
@@ -34112,16 +34205,16 @@ body.light-theme .mission-code-mini {
 
 [data-theme="light"] .item-btn-details,
 body.light-theme .item-btn-details {
-  background: #fef3c7 !important;
-  border: 1px solid #f59e0b !important;
-  color: #b45309 !important;
+  background: #e0f2fe !important;
+  border: 1px solid #bae6fd !important;
+  color: #0369a1 !important;
   font-weight: 700 !important;
 }
 
 [data-theme="light"] .item-btn-details:hover,
 body.light-theme .item-btn-details:hover {
-  background: #fde68a !important;
-  color: #78350f !important;
+  background: #0284c7 !important;
+  color: #ffffff !important;
 }
 
 /* 4. Popups do Leaflet e Detalhes dos Colaboradores no Mapa */
