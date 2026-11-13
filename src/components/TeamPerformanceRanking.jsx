@@ -32,13 +32,18 @@ import {
   Activity,
   Zap,
   Briefcase,
+  Radio,
+  Sliders,
 } from 'lucide-react';
 import {
   OFFICIAL_COMPANY_ROLES,
   ROLE_ICONS_MAP,
   ROLE_COLORS_MAP,
+  ROLE_XP_POINTS,
+  ACTIVITY_XP_POINTS,
   normalizeToOfficialRole,
   computeMemberRoleCounts,
+  calculateMemberPerformanceProfile,
 } from '../utils/companyRoles';
 
 // Formata data ISO para PT-BR (dd/mm/aaaa)
@@ -56,7 +61,8 @@ export default function TeamPerformanceRanking({
 }) {
   const [periodFilter, setPeriodFilter] = useState('all'); // all, month, 30days, 90days, year
   const [companyFilter, setCompanyFilter] = useState('all'); // all, MegaFilmes, Mega Print
-  const [sortCriteria, setSortCriteria] = useState('score'); // score, missions, driving, multiday, capture, editing
+  const [roleFilter, setRoleFilter] = useState('all'); // all ou uma das 11 funções oficiais
+  const [sortCriteria, setSortCriteria] = useState('score'); // score, missions, driving, distance, multiday, extrahours, completed, role_...
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMemberDetail, setSelectedMemberDetail] = useState(null);
 
@@ -103,177 +109,16 @@ export default function TeamPerformanceRanking({
   }, [missions, periodFilter]);
 
   // --------------------------------------------------------------------------
-  // 2. CÁLCULO DAS MÉTRICAS E SCORE GAMIFICADO POR COLABORADOR
+  // 2. CÁLCULO DAS MÉTRICAS E SCORE GAMIFICADO FIEL POR COLABORADOR
   // --------------------------------------------------------------------------
   const membersStats = useMemo(() => {
     return members.map((member) => {
-      const memIdStr = String(member.id);
-      const memNameNorm = normalize(member.name);
-
-      // Funções do colaborador (principal + secundárias)
-      const allRoles = [
-        member.role,
-        ...(Array.isArray(member.secondaryRoles) ? member.secondaryRoles : []),
-      ].filter(Boolean);
-
-      const rolesLower = allRoles.map((r) => normalize(r));
-      const isPhotographer = rolesLower.some((r) => r.includes('foto'));
-      const isVideographer = rolesLower.some((r) => r.includes('cinegraf') || r.includes('camera') || r.includes('video'));
-      const isDronePilot = rolesLower.some((r) => r.includes('drone'));
-      const isEditor = rolesLower.some((r) => r.includes('editor') || r.includes('pos-producao'));
-
-      let totalMissions = 0;
-      let drivingCount = 0;
-      let multiDayCount = 0;
-      let photoCount = 0;
-      let videoCount = 0;
-      let droneCount = 0;
-      let editorCount = 0;
-      let completedCount = 0;
-      let estimatedDistanceKm = 0;
-      const missionHistory = [];
-
-      filteredMissions.forEach((m) => {
-        const descNorm = normalize(m.description || '');
-        const locNorm = normalize(m.locationName || '');
-
-        // 1. Checa se era motorista
-        const allocations = Array.isArray(m.vehicleAllocations) ? m.vehicleAllocations : [];
-        const isDriver =
-          allocations.some(
-            (a) =>
-              (a.driverId && String(a.driverId) === memIdStr) ||
-              (a.driverName && normalize(a.driverName) === memNameNorm)
-          ) ||
-          (m.driverId && String(m.driverId) === memIdStr) ||
-          (m.driverName && normalize(m.driverName) === memNameNorm);
-
-        // 2. Checa se estava na equipe de campo
-        const teamIds = Array.isArray(m.teamIds) ? m.teamIds.map(String) : [];
-        const inTeamIds = teamIds.includes(memIdStr);
-        const inTeamMembers = Array.isArray(m.teamMembers) &&
-          m.teamMembers.some((tm) => String(tm.id) === memIdStr || normalize(tm.name) === memNameNorm);
-        const inTeamField = Array.isArray(m.team) &&
-          m.team.some((t) => String(t) === memIdStr || normalize(t) === memNameNorm);
-
-        // 3. Checa se estava na pós-produção / edição
-        const editorIds = Array.isArray(m.editorIds) ? m.editorIds.map(String) : [];
-        const inEditorIds = editorIds.includes(memIdStr);
-        const inEditorDisplay = m.editorNamesDisplay && normalize(m.editorNamesDisplay).includes(memNameNorm);
-        const isAssignedEditor = inEditorIds || inEditorDisplay;
-
-        // Se o colaborador participou de qualquer forma
-        if (isDriver || inTeamIds || inTeamMembers || inTeamField || isAssignedEditor) {
-          totalMissions++;
-
-          const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
-          if (isMDay) multiDayCount++;
-
-          if (isDriver) {
-            drivingCount++;
-            const dist = Number(m.routeInfo?.distanceKm || m.distanceKm || 0);
-            if (dist > 0) estimatedDistanceKm += dist;
-          }
-
-          if (isAssignedEditor) {
-            editorCount++;
-          }
-
-          // Atuação específica baseada no perfil e pauta da missão
-          if (isVideographer || descNorm.includes('video') || descNorm.includes('gravac') || descNorm.includes('comercial')) {
-            videoCount++;
-          }
-          if (isPhotographer || descNorm.includes('foto') || descNorm.includes('ensaio') || descNorm.includes('cobertura')) {
-            photoCount++;
-          }
-          if (isDronePilot || descNorm.includes('drone') || descNorm.includes('aerea')) {
-            droneCount++;
-          }
-
-          if (m.missionStatus === 'Finalizada') {
-            completedCount++;
-          }
-
-          missionHistory.push({
-            id: m.id,
-            code: m.code || `#${m.id}`,
-            date: m.date,
-            endDate: m.endDate,
-            isMultiDay: isMDay,
-            description: m.description || 'Missão sem título',
-            locationName: m.locationName || 'Local de gravação',
-            roleInMission: isDriver ? 'Motorista / Condutor' : isAssignedEditor ? 'Editor / Pós-Produção' : 'Equipe de Campo',
-            status: m.missionStatus || 'Agendada',
-            distanceKm: Number(m.routeInfo?.distanceKm || m.distanceKm || 0),
-          });
-        }
-      });
-
-      // Cálculo de Pontuação (Score XP Corporativo):
-      // - 15 pts por missão regular de campo
-      // - 25 pts bônus por missão de longa duração (+1 dia / viagem)
-      // - 10 pts adicionais quando assume o volante como condutor
-      // - 10 pts por missão de pós-produção/edição
-      // - 5 pts por missão concluída com sucesso
-      const score =
-        totalMissions * 15 +
-        multiDayCount * 25 +
-        drivingCount * 10 +
-        editorCount * 10 +
-        completedCount * 5;
-
-      // Badges / Selos de Conquista
-      const badges = [];
-      if (drivingCount >= 3) {
-        badges.push({ id: 'as-volante', icon: '🚗', name: 'Ás do Volante', desc: `${drivingCount} missões na condução de viaturas` });
-      }
-      if (multiDayCount >= 1) {
-        badges.push({ id: 'desbravador', icon: '🏕️', name: 'Desbravador', desc: `${multiDayCount} viagens de campo com +1 dia` });
-      }
-      if (totalMissions >= 5) {
-        badges.push({ id: 'veterano', icon: '⭐', name: 'Veterano de Campo', desc: `${totalMissions} missões operacionais` });
-      }
-      if (allRoles.length >= 2) {
-        badges.push({ id: 'multifuncao', icon: '⚡', name: 'Multi-Função', desc: `${allRoles.length} funções na empresa` });
-      }
-      if (videoCount >= 3 || isVideographer) {
-        badges.push({ id: 'lente-ouro', icon: '🎥', name: 'Lente de Ouro', desc: 'Especialista em captação de vídeo' });
-      }
-      if (photoCount >= 3 || isPhotographer) {
-        badges.push({ id: 'foco-preciso', icon: '📸', name: 'Foco Preciso', desc: 'Coberturas fotográficas de destaque' });
-      }
-      if (droneCount >= 1 || isDronePilot) {
-        badges.push({ id: 'asas-ouro', icon: '✈️', name: 'Piloto Ás', desc: 'Captação aérea com drone' });
-      }
-      if (editorCount >= 2 || isEditor) {
-        badges.push({ id: 'mestre-edicao', icon: '🎬', name: 'Mestre da Ilha', desc: 'Edição e finalização de pautas' });
-      }
-
-      // Contagem fiel de cada uma das 11 funções exercidas pelo colaborador
-      const roleCounts = computeMemberRoleCounts(member, filteredMissions);
-
-      return {
-        ...member,
-        allRoles,
-        roleCounts,
-        totalMissions,
-        drivingCount,
-        multiDayCount,
-        photoCount,
-        videoCount,
-        droneCount,
-        editorCount,
-        completedCount,
-        estimatedDistanceKm: Math.round(estimatedDistanceKm),
-        score,
-        badges,
-        missionHistory: missionHistory.sort((a, b) => String(b.date).localeCompare(String(a.date))),
-      };
+      return calculateMemberPerformanceProfile(member, filteredMissions);
     });
   }, [members, filteredMissions]);
 
   // --------------------------------------------------------------------------
-  // 3. FILTRAGEM POR EMPRESA, BUSCA E ORDENAÇÃO DO RANKING
+  // 3. FILTRAGEM POR EMPRESA, FUNÇÃO, BUSCA E ORDENAÇÃO DO RANKING
   // --------------------------------------------------------------------------
   const rankedMembers = useMemo(() => {
     let list = [...membersStats];
@@ -281,6 +126,17 @@ export default function TeamPerformanceRanking({
     // Filtro por empresa
     if (companyFilter !== 'all') {
       list = list.filter((m) => m.company === companyFilter);
+    }
+
+    // Filtro por Modalidade / Função Específica
+    if (roleFilter !== 'all') {
+      list = list.filter((m) => {
+        const isOfficialMain = normalizeToOfficialRole(m.role) === roleFilter;
+        const hasSecondary = Array.isArray(m.secondaryRoles) &&
+          m.secondaryRoles.map(normalizeToOfficialRole).includes(roleFilter);
+        const hasExercised = (m.roleCounts?.[roleFilter] || 0) > 0;
+        return isOfficialMain || hasSecondary || hasExercised;
+      });
     }
 
     // Busca textual por nome ou função
@@ -295,17 +151,36 @@ export default function TeamPerformanceRanking({
 
     // Ordenação dinâmica
     list.sort((a, b) => {
-      if (sortCriteria === 'missions') return b.totalMissions - a.totalMissions || b.score - a.score;
-      if (sortCriteria === 'driving') return b.drivingCount - a.drivingCount || b.score - a.score;
-      if (sortCriteria === 'multiday') return b.multiDayCount - a.multiDayCount || b.score - a.score;
-      if (sortCriteria === 'capture') return (b.videoCount + b.photoCount + b.droneCount) - (a.videoCount + a.photoCount + a.droneCount) || b.score - a.score;
-      if (sortCriteria === 'editing') return b.editorCount - a.editorCount || b.score - a.score;
-      // Default: score
+      if (sortCriteria === 'missions') {
+        return b.totalMissions - a.totalMissions || b.score - a.score;
+      }
+      if (sortCriteria === 'driving') {
+        return b.drivingCount - a.drivingCount || b.score - a.score;
+      }
+      if (sortCriteria === 'distance') {
+        return b.estimatedDistanceKm - a.estimatedDistanceKm || b.score - a.score;
+      }
+      if (sortCriteria === 'multiday') {
+        return b.multiDayCount - a.multiDayCount || b.score - a.score;
+      }
+      if (sortCriteria === 'extrahours') {
+        return b.totalApprovedExtraHours - a.totalApprovedExtraHours || b.score - a.score;
+      }
+      if (sortCriteria === 'completed') {
+        return b.completedCount - a.completedCount || b.score - a.score;
+      }
+      if (sortCriteria.startsWith('role_')) {
+        const targetRole = sortCriteria.replace('role_', '');
+        const countB = b.roleCounts?.[targetRole] || 0;
+        const countA = a.roleCounts?.[targetRole] || 0;
+        return countB - countA || b.score - a.score;
+      }
+      // Padrão: Maior pontuação (Score XP)
       return b.score - a.score || b.totalMissions - a.totalMissions;
     });
 
     return list;
-  }, [membersStats, companyFilter, searchTerm, sortCriteria]);
+  }, [membersStats, companyFilter, roleFilter, searchTerm, sortCriteria]);
 
   // Colaboradores no Top 3 do pódio
   const top1 = rankedMembers[0] || null;
@@ -315,21 +190,29 @@ export default function TeamPerformanceRanking({
   // Pontuação máxima para escala de barra percentual
   const maxScore = top1 ? Math.max(top1.score, 100) : 100;
 
-  // Destaques / Lideranças Globais
+  // Destaques / Lideranças Globais por Modalidade
   const bestDriver = useMemo(() => {
-    return [...membersStats].sort((a, b) => b.drivingCount - a.drivingCount)[0] || null;
+    return [...membersStats].sort((a, b) => b.drivingCount - a.drivingCount || b.estimatedDistanceKm - a.estimatedDistanceKm)[0] || null;
   }, [membersStats]);
 
   const bestTraveler = useMemo(() => {
     return [...membersStats].sort((a, b) => b.multiDayCount - a.multiDayCount)[0] || null;
   }, [membersStats]);
 
-  const bestCapture = useMemo(() => {
-    return [...membersStats].sort((a, b) => (b.videoCount + b.photoCount + b.droneCount) - (a.videoCount + a.photoCount + a.droneCount))[0] || null;
+  const bestCine = useMemo(() => {
+    return [...membersStats].sort((a, b) => (b.roleCounts['Cinegrafista'] || 0) - (a.roleCounts['Cinegrafista'] || 0))[0] || null;
+  }, [membersStats]);
+
+  const bestDrone = useMemo(() => {
+    return [...membersStats].sort((a, b) => (b.roleCounts['Piloto de Drone'] || 0) - (a.roleCounts['Piloto de Drone'] || 0))[0] || null;
   }, [membersStats]);
 
   const bestEditor = useMemo(() => {
-    return [...membersStats].sort((a, b) => b.editorCount - a.editorCount)[0] || null;
+    return [...membersStats].sort((a, b) => (b.roleCounts['Editor de Vídeo'] || 0) - (a.roleCounts['Editor de Vídeo'] || 0))[0] || null;
+  }, [membersStats]);
+
+  const bestStreamer = useMemo(() => {
+    return [...membersStats].sort((a, b) => (b.roleCounts['Transmissão (Streamer)'] || 0) - (a.roleCounts['Transmissão (Streamer)'] || 0))[0] || null;
   }, [membersStats]);
 
   return (
@@ -380,6 +263,23 @@ export default function TeamPerformanceRanking({
             </select>
           </div>
 
+          {/* Filtro por Modalidade / Função Oficial */}
+          <div className="ranking-select-wrap">
+            <Briefcase size={14} />
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="ranking-select"
+            >
+              <option value="all">Todas as Funções ({OFFICIAL_COMPANY_ROLES.length})</option>
+              {OFFICIAL_COMPANY_ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_ICONS_MAP[r] || '💼'} {r}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Critério de Ordenação */}
           <div className="ranking-select-wrap">
             <TrendingUp size={14} />
@@ -391,9 +291,17 @@ export default function TeamPerformanceRanking({
               <option value="score">🏆 Maior Pontuação (Score XP)</option>
               <option value="missions">🎯 Mais Missões de Campo</option>
               <option value="driving">🚗 Mais Vezes Dirigindo</option>
-              <option value="multiday">🏕️ Mais Viagens Longas (+1 dia)</option>
-              <option value="capture">🎥 Mais Captação (Vídeo/Foto)</option>
-              <option value="editing">🎬 Mais Pós-Produções / Edições</option>
+              <option value="distance">🛣️ Mais Km Conduzidos</option>
+              <option value="multiday">🧭 Mais Viagens Longas (+1 dia)</option>
+              <option value="extrahours">⚡ Mais Horas Extras Dedicadas</option>
+              <option value="completed">✅ Mais Missões Concluídas</option>
+              <optgroup label="Classificar por Atuação em Função:">
+                {OFFICIAL_COMPANY_ROLES.map((r) => (
+                  <option key={r} value={`role_${r}`}>
+                    {ROLE_ICONS_MAP[r] || '💼'} Mais Atuações: {r}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
 
@@ -417,10 +325,45 @@ export default function TeamPerformanceRanking({
       </div>
 
       {/* ============================================================== */}
+      {/* BARRA RÁPIDA DE FILTRO POR MODALIDADES / 11 FUNÇÕES OFICIAIS   */}
+      {/* ============================================================== */}
+      <div className="ranking-role-pills-bar">
+        <span className="ranking-role-pills-label">Modalidade:</span>
+        <button
+          type="button"
+          className={`ranking-role-quick-btn ${roleFilter === 'all' ? 'active' : ''}`}
+          onClick={() => setRoleFilter('all')}
+        >
+          <span>🌐 Todas as Funções</span>
+        </button>
+        {OFFICIAL_COMPANY_ROLES.map((roleName) => {
+          const isAct = roleFilter === roleName;
+          const icon = ROLE_ICONS_MAP[roleName] || '💼';
+          const color = ROLE_COLORS_MAP[roleName] || '#3b82f6';
+          return (
+            <button
+              key={roleName}
+              type="button"
+              className={`ranking-role-quick-btn ${isAct ? 'active' : ''}`}
+              style={{
+                borderColor: isAct ? color : 'rgba(255,255,255,0.08)',
+                background: isAct ? `${color}25` : 'rgba(255,255,255,0.03)',
+                color: isAct ? '#ffffff' : '#cbd5e1',
+              }}
+              onClick={() => setRoleFilter(roleName)}
+            >
+              <span>{icon}</span>
+              <span>{roleName}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ============================================================== */}
       {/* 2. DESTAQUES DE LIDERANÇA / CARDS EXECUTIVOS                   */}
       {/* ============================================================== */}
       <div className="ranking-leader-cards-grid">
-        {/* Mais Assíduo Geral */}
+        {/* Líder Geral XP */}
         <div className="leader-kpi-card leader-card-gold">
           <div className="leader-kpi-icon-wrap">
             <Crown size={22} />
@@ -450,32 +393,38 @@ export default function TeamPerformanceRanking({
           </div>
         </div>
 
-        {/* Desbravador de Longa Duração */}
-        <div className="leader-kpi-card leader-card-amber">
-          <div className="leader-kpi-icon-wrap">
-            <Compass size={22} />
-          </div>
-          <div className="leader-kpi-body">
-            <span className="leader-kpi-label">Desbravador (+1 Dia / Viagens)</span>
-            <strong className="leader-kpi-name">{bestTraveler && bestTraveler.multiDayCount > 0 ? bestTraveler.name : 'Sem registros'}</strong>
-            <div className="leader-kpi-metric">
-              <span className="kpi-bold-metric">{bestTraveler ? bestTraveler.multiDayCount : 0} expedições</span>
-              <span className="kpi-sub-metric">de longa duração</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Mestre Audiovisual */}
+        {/* Mestre da Câmera (Cinegrafista) */}
         <div className="leader-kpi-card leader-card-purple">
           <div className="leader-kpi-icon-wrap">
             <Video size={22} />
           </div>
           <div className="leader-kpi-body">
-            <span className="leader-kpi-label">Captação &amp; Finalização</span>
-            <strong className="leader-kpi-name">{bestCapture && (bestCapture.videoCount + bestCapture.photoCount) > 0 ? bestCapture.name : (bestEditor ? bestEditor.name : 'Sem registros')}</strong>
+            <span className="leader-kpi-label">Lente de Ouro (Cinegrafia)</span>
+            <strong className="leader-kpi-name">{bestCine && (bestCine.roleCounts['Cinegrafista'] || 0) > 0 ? bestCine.name : 'Sem registros'}</strong>
             <div className="leader-kpi-metric">
-              <span className="kpi-bold-metric">{bestCapture ? bestCapture.videoCount + bestCapture.photoCount : 0} coberturas</span>
-              <span className="kpi-sub-metric">em vídeo e foto</span>
+              <span className="kpi-bold-metric">{bestCine ? (bestCine.roleCounts['Cinegrafista'] || 0) : 0} pautas</span>
+              <span className="kpi-sub-metric">em captação de vídeo</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Transmissão & Streaming / Pós-Produção */}
+        <div className="leader-kpi-card leader-card-amber">
+          <div className="leader-kpi-icon-wrap">
+            <Radio size={22} />
+          </div>
+          <div className="leader-kpi-body">
+            <span className="leader-kpi-label">Voz &amp; Sinal (Transmissão Ao Vivo)</span>
+            <strong className="leader-kpi-name">{bestStreamer && (bestStreamer.roleCounts['Transmissão (Streamer)'] || 0) > 0 ? bestStreamer.name : (bestEditor && (bestEditor.roleCounts['Editor de Vídeo'] || 0) > 0 ? bestEditor.name : 'Sem registros')}</strong>
+            <div className="leader-kpi-metric">
+              <span className="kpi-bold-metric">
+                {bestStreamer && (bestStreamer.roleCounts['Transmissão (Streamer)'] || 0) > 0
+                  ? `${bestStreamer.roleCounts['Transmissão (Streamer)']} transmissões`
+                  : bestEditor
+                  ? `${bestEditor.roleCounts['Editor de Vídeo'] || 0} edições`
+                  : '0 registros'}
+              </span>
+              <span className="kpi-sub-metric">ao vivo &amp; switchers</span>
             </div>
           </div>
         </div>
@@ -527,7 +476,7 @@ export default function TeamPerformanceRanking({
                   <div className="podium-quick-stats">
                     <span>🎯 {top2.totalMissions} missões</span>
                     <span>🚗 {top2.drivingCount}x ao volante</span>
-                    {top2.multiDayCount > 0 && <span>🏕️ {top2.multiDayCount}x viagens</span>}
+                    {top2.multiDayCount > 0 && <span>🧭 {top2.multiDayCount}x viagens</span>}
                   </div>
                 </div>
                 <div className="podium-pedestal pedestal-silver">
@@ -573,7 +522,7 @@ export default function TeamPerformanceRanking({
                   <div className="podium-quick-stats">
                     <span>🎯 {top1.totalMissions} missões</span>
                     <span>🚗 {top1.drivingCount}x ao volante</span>
-                    {top1.multiDayCount > 0 && <span>🏕️ {top1.multiDayCount}x viagens</span>}
+                    {top1.multiDayCount > 0 && <span>🧭 {top1.multiDayCount}x viagens</span>}
                   </div>
                 </div>
                 <div className="podium-pedestal pedestal-gold">
@@ -616,7 +565,7 @@ export default function TeamPerformanceRanking({
                   <div className="podium-quick-stats">
                     <span>🎯 {top3.totalMissions} missões</span>
                     <span>🚗 {top3.drivingCount}x ao volante</span>
-                    {top3.multiDayCount > 0 && <span>🏕️ {top3.multiDayCount}x viagens</span>}
+                    {top3.multiDayCount > 0 && <span>🧭 {top3.multiDayCount}x viagens</span>}
                   </div>
                 </div>
                 <div className="podium-pedestal pedestal-bronze">
@@ -635,9 +584,14 @@ export default function TeamPerformanceRanking({
         <div className="rth-title">
           <Activity size={17} className="text-cyan" />
           <h3>Classificação Geral da Equipe ({rankedMembers.length} Colaboradores)</h3>
+          {roleFilter !== 'all' && (
+            <span className="rth-filter-tag">
+              Filtrado por: {ROLE_ICONS_MAP[roleFilter] || ''} {roleFilter}
+            </span>
+          )}
         </div>
         <div className="rth-meta">
-          <span>Critério: <strong>{sortCriteria === 'score' ? 'Pontuação Geral' : sortCriteria === 'missions' ? 'Missões Realizadas' : sortCriteria === 'driving' ? 'Condução' : 'Atividade'}</strong></span>
+          <span>Critério: <strong>{sortCriteria === 'score' ? 'Pontuação Geral (Score XP)' : sortCriteria === 'missions' ? 'Missões Realizadas' : sortCriteria === 'driving' ? 'Condução ao Volante' : sortCriteria.startsWith('role_') ? `Atuação: ${sortCriteria.replace('role_', '')}` : 'Atividade Operacional'}</strong></span>
         </div>
       </div>
 
@@ -645,7 +599,7 @@ export default function TeamPerformanceRanking({
         <div className="ranking-empty-state">
           <Users size={36} />
           <h4>Nenhum colaborador encontrado</h4>
-          <p>Tente ajustar os filtros de busca ou período temporal acima.</p>
+          <p>Tente ajustar os filtros de busca, modalidade ou período temporal acima.</p>
         </div>
       ) : (
         <div className="ranking-members-grid">
@@ -701,28 +655,29 @@ export default function TeamPerformanceRanking({
                     ))}
                   </div>
 
-                  {/* Chips rápidos das 11 funções cumpridas */}
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
-                    {OFFICIAL_COMPANY_ROLES.filter((r) => (member.roleCounts?.[r] || 0) > 0).map((r) => (
-                      <span
-                        key={r}
-                        style={{
-                          fontSize: '0.68rem',
-                          padding: '1px 6px',
-                          borderRadius: '6px',
-                          background: 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          color: '#cbd5e1',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px'
-                        }}
-                      >
-                        <span>{ROLE_ICONS_MAP[r] || '💼'}</span>
-                        <span>{r}:</span>
-                        <strong style={{ color: '#f59e0b' }}>{member.roleCounts[r]}x</strong>
-                      </span>
-                    ))}
+                  {/* Chips Fiéis das 11 Funções Oficiais Cumpridas */}
+                  <div className="rmc-roles-chips-strip">
+                    {OFFICIAL_COMPANY_ROLES.filter((r) => (member.roleCounts?.[r] || 0) > 0).map((r) => {
+                      const count = member.roleCounts[r];
+                      const pts = member.rolePoints?.[r] || (count * (ROLE_XP_POINTS[r] || 15));
+                      const icon = ROLE_ICONS_MAP[r] || '💼';
+                      const color = ROLE_COLORS_MAP[r] || '#3b82f6';
+                      return (
+                        <span
+                          key={r}
+                          className="rmc-role-chip-tag"
+                          style={{
+                            borderColor: `${color}40`,
+                            background: `${color}12`,
+                          }}
+                          title={`${count}x como ${r} (+${pts} XP)`}
+                        >
+                          <span className="rmc-role-chip-icon">{icon}</span>
+                          <span className="rmc-role-chip-name">{r}:</span>
+                          <strong className="rmc-role-chip-count" style={{ color }}>{count}x</strong>
+                        </span>
+                      );
+                    })}
                   </div>
 
                   {/* Barra de Engajamento */}
@@ -734,38 +689,52 @@ export default function TeamPerformanceRanking({
                   </div>
                 </div>
 
-                {/* Métricas e Estatísticas Rápidas */}
+                {/* Métricas e Estatísticas Fiéis e Detalhadas */}
                 <div className="rmc-metrics-col">
+                  {/* Total de Missões */}
                   <div className="rmc-metric-pill" title="Total de missões operacionais">
                     <span className="rmc-metric-num">{member.totalMissions}</span>
                     <span className="rmc-metric-txt">Missões</span>
                   </div>
 
-                  <div className="rmc-metric-pill rmc-pill-driving" title="Vezes que atuou como motorista/condutor">
-                    <span className="rmc-metric-num">{member.drivingCount}</span>
-                    <span className="rmc-metric-txt">Ao Volante</span>
-                  </div>
+                  {/* Pílulas Dinâmicas das Funções Reais Exercidas */}
+                  {Array.isArray(member.activeRolesSummary) && member.activeRolesSummary.slice(0, 3).map((ar) => (
+                    <div
+                      key={ar.role}
+                      className="rmc-metric-pill rmc-pill-role-dynamic"
+                      style={{ borderColor: `${ar.color}40`, background: `${ar.color}15` }}
+                      title={`${ar.count}x atuações como ${ar.role} (+${ar.points} XP)`}
+                    >
+                      <span className="rmc-metric-num" style={{ color: ar.color }}>
+                        {ar.icon} {ar.count}
+                      </span>
+                      <span className="rmc-metric-txt">{ar.role.split(' ')[0]}</span>
+                    </div>
+                  ))}
 
-                  {member.multiDayCount > 0 ? (
-                    <div className="rmc-metric-pill rmc-pill-multiday" title="Viagens de campo de mais de 1 dia">
-                      <span className="rmc-metric-num">{member.multiDayCount}</span>
+                  {/* Quilometragem ao Volante */}
+                  {member.drivingCount > 0 && (
+                    <div className="rmc-metric-pill rmc-pill-driving" title={`${member.drivingCount}x ao volante (${member.estimatedDistanceKm} km guiados)`}>
+                      <span className="rmc-metric-num text-cyan">🚗 {member.drivingCount}</span>
+                      <span className="rmc-metric-txt">Ao Volante</span>
+                    </div>
+                  )}
+
+                  {/* Viagens de Mais de 1 Dia */}
+                  {member.multiDayCount > 0 && (
+                    <div className="rmc-metric-pill rmc-pill-multiday" title={`${member.multiDayCount}x viagens de longa duração (+1 dia / diária fora)`}>
+                      <span className="rmc-metric-num text-amber">🧭 {member.multiDayCount}</span>
                       <span className="rmc-metric-txt">Viagens (+1d)</span>
                     </div>
-                  ) : null}
+                  )}
 
-                  {(member.videoCount > 0 || member.photoCount > 0 || member.droneCount > 0) ? (
-                    <div className="rmc-metric-pill rmc-pill-capture" title="Gravações, fotos e voos de drone">
-                      <span className="rmc-metric-num">{member.videoCount + member.photoCount + member.droneCount}</span>
-                      <span className="rmc-metric-txt">Audiovisual</span>
+                  {/* Horas Extras Aprovadas */}
+                  {member.totalApprovedExtraHours > 0 && (
+                    <div className="rmc-metric-pill rmc-pill-extrahours" title={`${member.totalApprovedExtraHours}h extras aprovadas de dedicação em campo`}>
+                      <span className="rmc-metric-num text-amber">⚡ +{member.totalApprovedExtraHours}h</span>
+                      <span className="rmc-metric-txt">Extras</span>
                     </div>
-                  ) : null}
-
-                  {member.editorCount > 0 ? (
-                    <div className="rmc-metric-pill rmc-pill-editor" title="Pautas de pós-produção e edição">
-                      <span className="rmc-metric-num">{member.editorCount}</span>
-                      <span className="rmc-metric-txt">Edições</span>
-                    </div>
-                  ) : null}
+                  )}
                 </div>
 
                 {/* Pontuação XP e Ação */}
@@ -794,14 +763,14 @@ export default function TeamPerformanceRanking({
       )}
 
       {/* ============================================================== */}
-      {/* 5. MODAL DE RAIO-X COMPLETO DO COLABORADOR                     */}
+      {/* 5. MODAL DE RAIO-X COMPLETO DO COLABORADOR COM EXTRATO FIEL     */}
       {/* ============================================================== */}
       {selectedMemberDetail && (
         <div className="modal-overlay" onClick={() => setSelectedMemberDetail(null)}>
           <div
             className="modal-box ranking-ray-modal"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '780px' }}
+            style={{ maxWidth: '820px' }}
           >
             <div className="modal-header">
               <div className="ray-header-info">
@@ -841,13 +810,13 @@ export default function TeamPerformanceRanking({
               {/* Placar de Pontuação e Assiduidade */}
               <div className="ray-score-banner">
                 <div className="rsb-score-col">
-                  <span className="rsb-score-title">Pontuação Operacional</span>
+                  <span className="rsb-score-title">Pontuação Operacional Total</span>
                   <div className="rsb-score-number">
                     <Trophy size={26} className="text-gold" />
                     <strong>{selectedMemberDetail.score}</strong>
                     <span>XP</span>
                   </div>
-                  <span className="rsb-score-hint">Calculado com base em missões, conduções e viagens</span>
+                  <span className="rsb-score-hint">Pontuação fiel de todas as 11 funções oficiais e atividades de campo</span>
                 </div>
 
                 <div className="rsb-kpi-grid">
@@ -864,12 +833,49 @@ export default function TeamPerformanceRanking({
                     <span className="rsb-kpi-lbl">Viagens (+1d)</span>
                   </div>
                   <div className="rsb-kpi-item">
-                    <span className="rsb-kpi-num text-purple">{selectedMemberDetail.editorCount}</span>
-                    <span className="rsb-kpi-lbl">Edições</span>
-                  </div>
-                  <div className="rsb-kpi-item">
                     <span className="rsb-kpi-num text-green">{selectedMemberDetail.estimatedDistanceKm}</span>
                     <span className="rsb-kpi-lbl">Km Guiados</span>
+                  </div>
+                  <div className="rsb-kpi-item">
+                    <span className="rsb-kpi-num text-amber">+{selectedMemberDetail.totalApprovedExtraHours}h</span>
+                    <span className="rsb-kpi-lbl">Horas Extras</span>
+                  </div>
+                  <div className="rsb-kpi-item">
+                    <span className="rsb-kpi-num text-purple">{selectedMemberDetail.completedCount}</span>
+                    <span className="rsb-kpi-lbl">Concluídas</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* EXTRATO DISCRIMINADO DE PONTUAÇÃO XP */}
+              <div className="ray-breakdown-card">
+                <h4 className="ray-sub-heading" style={{ marginBottom: '8px' }}>
+                  <Sparkles size={15} className="text-gold" /> Extrato Transparente de Pontuação (Score XP)
+                </h4>
+                <div className="ray-breakdown-grid">
+                  <div className="ray-breakdown-item">
+                    <span className="rbi-label">Atuações Técnicas nas 11 Funções:</span>
+                    <strong className="rbi-value text-blue">+{selectedMemberDetail.breakdown?.rolesTotalXP || 0} XP</strong>
+                  </div>
+                  <div className="ray-breakdown-item">
+                    <span className="rbi-label">Presença Base em Escalas ({selectedMemberDetail.totalMissions}x):</span>
+                    <strong className="rbi-value">+{selectedMemberDetail.breakdown?.missionBaseXP || 0} XP</strong>
+                  </div>
+                  <div className="ray-breakdown-item">
+                    <span className="rbi-label">Expedições de Longa Duração (+1 dia / {selectedMemberDetail.multiDayCount}x):</span>
+                    <strong className="rbi-value text-amber">+{selectedMemberDetail.breakdown?.multiDayXP || 0} XP</strong>
+                  </div>
+                  <div className="ray-breakdown-item">
+                    <span className="rbi-label">Quilometragem Conduzida ({selectedMemberDetail.estimatedDistanceKm} km):</span>
+                    <strong className="rbi-value text-cyan">+{selectedMemberDetail.breakdown?.drivingKmXP || 0} XP</strong>
+                  </div>
+                  <div className="ray-breakdown-item">
+                    <span className="rbi-label">Horas Extras em Campo ({selectedMemberDetail.totalApprovedExtraHours}h):</span>
+                    <strong className="rbi-value text-amber">+{selectedMemberDetail.breakdown?.extraHoursXP || 0} XP</strong>
+                  </div>
+                  <div className="ray-breakdown-item">
+                    <span className="rbi-label">Missões Concluídas com Sucesso ({selectedMemberDetail.completedCount}x):</span>
+                    <strong className="rbi-value text-green">+{selectedMemberDetail.breakdown?.completedBonusXP || 0} XP</strong>
                   </div>
                 </div>
               </div>
@@ -881,43 +887,45 @@ export default function TeamPerformanceRanking({
                     <Briefcase size={15} /> Atuação por Função na Empresa (11 Funções Oficiais)
                   </h4>
                   <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                    Contagem fiel de missões exercidas em cada função
+                    Rastreamento fiel e pontuação individual de cada cargo
                   </span>
                 </div>
 
                 <div className="ray-roles-matrix-grid" style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
-                  gap: '0.6rem',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: '0.65rem',
                   marginBottom: '1.25rem'
                 }}>
                   {OFFICIAL_COMPANY_ROLES.map((roleName) => {
                     const count = selectedMemberDetail.roleCounts?.[roleName] || 0;
+                    const pts = selectedMemberDetail.rolePoints?.[roleName] || (count * (ROLE_XP_POINTS[roleName] || 15));
                     const isMainRole = normalizeToOfficialRole(selectedMemberDetail.role) === roleName;
                     const isSecRole = Array.isArray(selectedMemberDetail.secondaryRoles) &&
                       selectedMemberDetail.secondaryRoles.map(normalizeToOfficialRole).includes(roleName);
                     const icon = ROLE_ICONS_MAP[roleName] || '💼';
+                    const color = ROLE_COLORS_MAP[roleName] || '#3b82f6';
 
                     return (
                       <div
                         key={roleName}
                         style={{
-                          background: count > 0 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
-                          border: count > 0 ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(255,255,255,0.05)',
+                          background: count > 0 ? `${color}10` : 'rgba(255,255,255,0.02)',
+                          border: count > 0 ? `1.5px solid ${color}55` : '1px solid rgba(255,255,255,0.05)',
                           borderRadius: '10px',
-                          padding: '8px 10px',
+                          padding: '10px 12px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          gap: '6px'
+                          gap: '8px'
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                          <span style={{ fontSize: '1.15rem' }}>{icon}</span>
+                          <span style={{ fontSize: '1.25rem' }}>{icon}</span>
                           <div style={{ minWidth: 0 }}>
                             <div style={{
-                              fontSize: '0.78rem',
-                              fontWeight: 600,
+                              fontSize: '0.82rem',
+                              fontWeight: 700,
                               color: count > 0 ? '#f8fafc' : '#64748b',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
@@ -925,21 +933,28 @@ export default function TeamPerformanceRanking({
                             }} title={roleName}>
                               {roleName}
                             </div>
-                            <div style={{ fontSize: '0.68rem', color: isMainRole ? '#fbbf24' : isSecRole ? '#38bdf8' : '#64748b' }}>
+                            <div style={{ fontSize: '0.7rem', color: isMainRole ? '#fbbf24' : isSecRole ? '#38bdf8' : count > 0 ? color : '#64748b' }}>
                               {isMainRole ? 'Principal' : isSecRole ? 'Secundária' : count > 0 ? 'Exercida' : 'Sem atuação'}
                             </div>
                           </div>
                         </div>
 
-                        <div style={{
-                          padding: '2px 8px',
-                          borderRadius: '999px',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          background: count > 0 ? '#f59e0b' : 'rgba(255,255,255,0.06)',
-                          color: count > 0 ? '#0f172a' : '#64748b'
-                        }}>
-                          {count}x
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            fontSize: '0.82rem',
+                            fontWeight: 800,
+                            background: count > 0 ? color : 'rgba(255,255,255,0.06)',
+                            color: count > 0 ? '#0f172a' : '#64748b'
+                          }}>
+                            {count}x
+                          </div>
+                          {count > 0 && (
+                            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#f59e0b', marginTop: '2px' }}>
+                              +{pts} XP
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -989,7 +1004,12 @@ export default function TeamPerformanceRanking({
                               {m.isMultiDay && m.endDate && ` a ${formatDateBR(m.endDate)}`}
                             </span>
                             {m.isMultiDay && (
-                              <span className="rhr-multiday-badge">🏕️ Viagem</span>
+                              <span className="rhr-multiday-badge">🧭 Viagem</span>
+                            )}
+                            {m.extraHours > 0 && (
+                              <span className="rhr-multiday-badge" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.4)' }}>
+                                ⚡ +{m.extraHours}h extra
+                              </span>
                             )}
                           </div>
                           <strong className="rhr-desc">{m.description}</strong>
@@ -997,9 +1017,21 @@ export default function TeamPerformanceRanking({
                         </div>
 
                         <div className="rhr-right">
-                          <span className={`rhr-role-badge ${m.roleInMission.includes('Motorista') ? 'role-driver' : m.roleInMission.includes('Editor') ? 'role-editor' : 'role-field'}`}>
-                            {m.roleInMission}
-                          </span>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            {Array.isArray(m.rolesExercised) && m.rolesExercised.map((role) => (
+                              <span
+                                key={role}
+                                className="rhr-role-badge"
+                                style={{
+                                  background: `${ROLE_COLORS_MAP[role] || '#3b82f6'}20`,
+                                  borderColor: `${ROLE_COLORS_MAP[role] || '#3b82f6'}50`,
+                                  color: ROLE_COLORS_MAP[role] || '#93c5fd'
+                                }}
+                              >
+                                {ROLE_ICONS_MAP[role] || '💼'} {role}
+                              </span>
+                            ))}
+                          </div>
                           <span className="rhr-status-pill">{m.status}</span>
                         </div>
                       </div>
@@ -1038,4 +1070,3 @@ export default function TeamPerformanceRanking({
     </div>
   );
 }
-
