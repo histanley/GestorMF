@@ -33229,6 +33229,609 @@ body.light-theme .rmc-btn-xray {
   font-weight: 700 !important;
 }
 
+/* ==========================================================================
+   TEMA CLARO (LIGHT THEME): MAPA, GPS AO VIVO, RADAR E ELEMENTOS FLUTUANTES
+   ========================================================================== */
+
+/* 1. Marcadores Leaflet de Colaboradores em Campo */
+[data-theme="light"] .staff-radar-tag,
+body.light-theme .staff-radar-tag,
+.tile-mode-streets .staff-radar-tag {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16), 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .staff-tag-name,
+body.light-theme .staff-tag-name,
+.tile-mode-streets .staff-tag-name {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .staff-tag-speed.speed-fast,
+body.light-theme .staff-tag-speed.speed-fast,
+.tile-mode-streets .staff-tag-speed.speed-fast {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  border: 1px solid #bbf7d0 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .staff-tag-speed.speed-stop,
+body.light-theme .staff-tag-speed.speed-stop,
+.tile-mode-streets .staff-tag-speed.speed-stop {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .staff-radar-circle,
+body.light-theme .staff-radar-circle,
+.tile-mode-streets .staff-radar-circle {
+  border: 2.5px solid #ffffff !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.22) !important;
+}
+
+[data-theme="light"] .staff-status-dot,
+body.light-theme .staff-status-dot,
+.tile-mode-streets .staff-status-dot {
+  border: 1.5px solid #ffffff !important;
+}
+
+/* 2. Painel Flutuante do Radar GPS de Colaboradores Ao Vivo */
+[data-theme="light"] .map-gps-radar-panel,
+body.light-theme .map-gps-radar-panel {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1.5px solid #cbd5e1 !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme="light"] .mrp-header,
+body.light-theme .mrp-header {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+[data-theme="light"] .mrp-title,
+body.light-theme .mrp-title {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .mrp-count-badge,
+body.light-theme .mrp-count-badge {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .mrp-close-btn,
+body.light-theme .mrp-close-btn {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .mrp-close-btn:hover,
+body.light-theme .mrp-close-btn:hover {
+  color: #0f172a !important;
+  background: #e2e8f0 !important;
+}
+
+[data-theme="light"] .mrp-empty,
+body.light-theme .mrp-empty {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .mrp-item,
+body.light-theme .mrp-item {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .mrp-item:hover,
+body.light-theme .mrp-item:hover {
+  background: #f0fdfa !important;
+  border-color: #06b6d4 !important;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.12) !important;
+}
+
+[data-theme="light"] .mrp-avatar-box,
+body.light-theme .mrp-avatar-box {
+  border: 2px solid #e2e8f0 !important;
+}
+
+[data-theme="light"] .mrp-name,
+body.light-theme .mrp-name {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .mrp-role,
+body.light-theme .mrp-role {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .mrp-speed-moving,
+body.light-theme .mrp-speed-moving {
+  color: #15803d !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .mrp-speed-stopped,
+body.light-theme .mrp-speed-stopped {
+  color: #b45309 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .mrp-mission-tag,
+body.light-theme .mrp-mission-tag {
+  color: #b45309 !important;
+  background: #fef3c7 !important;
+  border: 1px solid #fde68a !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
+}
+
+[data-theme="light"] .mrp-live-dot,
+body.light-theme .mrp-live-dot {
+  border-color: #ffffff !important;
+}
+
+[data-theme="light"] .mrp-action-btn.mrp-wa,
+body.light-theme .mrp-action-btn.mrp-wa {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+}
+
+[data-theme="light"] .mrp-action-btn.mrp-wa:hover,
+body.light-theme .mrp-action-btn.mrp-wa:hover {
+  background: #16a34a !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .mrp-action-btn.mrp-fly,
+body.light-theme .mrp-action-btn.mrp-fly {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+}
+
+[data-theme="light"] .mrp-action-btn.mrp-fly:hover,
+body.light-theme .mrp-action-btn.mrp-fly:hover {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+/* 3. Barra Lateral de Missões do Mapa no Desktop e Geral */
+[data-theme="light"] .map-missions-sidebar,
+body.light-theme .map-missions-sidebar {
+  background: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
+  box-shadow: 2px 0 12px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .map-missions-sidebar .sidebar-header,
+body.light-theme .map-missions-sidebar .sidebar-header {
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+[data-theme="light"] .map-missions-sidebar .sidebar-header h3,
+body.light-theme .map-missions-sidebar .sidebar-header h3 {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .map-missions-sidebar .sidebar-count,
+body.light-theme .map-missions-sidebar .sidebar-count {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+[data-theme="light"] .map-filter-btn,
+body.light-theme .map-filter-btn {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] .map-filter-btn:hover,
+body.light-theme .map-filter-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+[data-theme="light"] .map-filter-btn.active.filter-all,
+body.light-theme .map-filter-btn.active.filter-all {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .map-filter-btn.active.filter-all .filter-count,
+body.light-theme .map-filter-btn.active.filter-all .filter-count {
+  background: #f59e0b !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .map-filter-btn.active.filter-andamento,
+body.light-theme .map-filter-btn.active.filter-andamento {
+  background: #e0f2fe !important;
+  border-color: #0284c7 !important;
+  color: #0369a1 !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .map-filter-btn.active.filter-andamento .filter-count,
+body.light-theme .map-filter-btn.active.filter-andamento .filter-count {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .map-filter-btn.active.filter-pendente,
+body.light-theme .map-filter-btn.active.filter-pendente {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .map-filter-btn.active.filter-pendente .filter-count,
+body.light-theme .map-filter-btn.active.filter-pendente .filter-count {
+  background: #f59e0b !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .map-filter-btn.active.filter-agendadas,
+body.light-theme .map-filter-btn.active.filter-agendadas {
+  background: #ede9fe !important;
+  border-color: #8b5cf6 !important;
+  color: #6d28d9 !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .map-filter-btn.active.filter-agendadas .filter-count,
+body.light-theme .map-filter-btn.active.filter-agendadas .filter-count {
+  background: #8b5cf6 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .map-filter-btn.active.filter-finalizadas,
+body.light-theme .map-filter-btn.active.filter-finalizadas {
+  background: #dcfce7 !important;
+  border-color: #10b981 !important;
+  color: #15803d !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .map-filter-btn.active.filter-finalizadas .filter-count,
+body.light-theme .map-filter-btn.active.filter-finalizadas .filter-count {
+  background: #10b981 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .day-overview-card,
+body.light-theme .day-overview-card {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme="light"] .overview-label,
+body.light-theme .overview-label {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .overview-val,
+body.light-theme .overview-val {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .overview-val.gold,
+body.light-theme .overview-val.gold {
+  color: #b45309 !important;
+}
+
+[data-theme="light"] .mission-list-item,
+body.light-theme .mission-list-item {
+  background: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .mission-list-item:hover,
+body.light-theme .mission-list-item:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme="light"] .mission-list-item.active,
+body.light-theme .mission-list-item.active {
+  background: #fffbeb !important;
+  border: 1.5px solid #f59e0b !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.16) !important;
+}
+
+[data-theme="light"] .mission-list-item .item-title,
+body.light-theme .mission-list-item .item-title {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .mission-list-item .item-location,
+body.light-theme .mission-list-item .item-location {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .mission-list-item .item-footer,
+body.light-theme .mission-list-item .item-footer {
+  border-top: 1px solid #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+[data-theme="light"] .mission-list-item .item-veh,
+body.light-theme .mission-list-item .item-veh {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .mission-list-item .item-fuel,
+body.light-theme .mission-list-item .item-fuel {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .mission-code-mini,
+body.light-theme .mission-code-mini {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border: 1px solid #bae6fd !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .item-btn-details,
+body.light-theme .item-btn-details {
+  background: #fef3c7 !important;
+  border: 1px solid #f59e0b !important;
+  color: #b45309 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .item-btn-details:hover,
+body.light-theme .item-btn-details:hover {
+  background: #fde68a !important;
+  color: #78350f !important;
+}
+
+/* 4. Popups do Leaflet e Detalhes dos Colaboradores no Mapa */
+[data-theme="light"] .leaflet-popup-content-wrapper,
+body.light-theme .leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16) !important;
+}
+
+[data-theme="light"] .leaflet-popup-tip,
+body.light-theme .leaflet-popup-tip {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+[data-theme="light"] .staff-cluster-popup,
+body.light-theme .staff-cluster-popup,
+[data-theme="light"] .staff-single-popup,
+body.light-theme .staff-single-popup {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .staff-popup-name,
+body.light-theme .staff-popup-name {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .staff-popup-role,
+body.light-theme .staff-popup-role {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .staff-popup-mission,
+body.light-theme .staff-popup-mission {
+  background: #fffbeb !important;
+  border-left-color: #f59e0b !important;
+  color: #b45309 !important;
+}
+
+[data-theme="light"] .staff-popup-mission-label,
+body.light-theme .staff-popup-mission-label {
+  color: #78350f !important;
+}
+
+[data-theme="light"] .staff-cluster-row,
+body.light-theme .staff-cluster-row {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .staff-cluster-header,
+body.light-theme .staff-cluster-header {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .staff-popup-footer,
+body.light-theme .staff-popup-footer {
+  border-top-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+[data-theme="light"] .map-popup,
+body.light-theme .map-popup {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .map-popup .popup-title,
+body.light-theme .map-popup .popup-title {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .map-popup .popup-subtitle,
+body.light-theme .map-popup .popup-subtitle {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .map-popup .popup-coords,
+body.light-theme .map-popup .popup-coords {
+  color: #0284c7 !important;
+}
+
+[data-theme="light"] .map-popup .popup-grid,
+body.light-theme .map-popup .popup-grid {
+  border-top-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+[data-theme="light"] .map-popup .popup-grid strong,
+body.light-theme .map-popup .popup-grid strong {
+  color: #0f172a !important;
+}
+
+/* 5. Barra Superior de Ferramentas do Mapa & Botão do Radar */
+[data-theme="light"] .map-floating-header,
+body.light-theme .map-floating-header {
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .map-title,
+body.light-theme .map-title {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .map-subtitle,
+body.light-theme .map-subtitle {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .map-control-btn,
+body.light-theme .map-control-btn {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+[data-theme="light"] .map-control-btn:hover,
+body.light-theme .map-control-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .map-control-btn.active,
+body.light-theme .map-control-btn.active {
+  background: #f59e0b !important;
+  border-color: #f59e0b !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .gps-radar-toggle-btn.has-online,
+body.light-theme .gps-radar-toggle-btn.has-online {
+  border-color: #0284c7 !important;
+  color: #0284c7 !important;
+  background: #f0f9ff !important;
+}
+
+[data-theme="light"] .gps-radar-toggle-btn.has-online.active,
+body.light-theme .gps-radar-toggle-btn.has-online.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .map-instruction-pill,
+body.light-theme .map-instruction-pill {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* 6. Card Flutuante de Detalhes da Missão Selecionada */
+[data-theme="light"] .map-mission-floating-card,
+body.light-theme .map-mission-floating-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1.5px solid #f59e0b !important;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.14) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .map-mission-floating-card .card-mission-title,
+body.light-theme .map-mission-floating-card .card-mission-title {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .map-mission-floating-card .card-mission-location,
+body.light-theme .map-mission-floating-card .card-mission-location {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .map-mission-floating-card .card-metrics-grid,
+body.light-theme .map-mission-floating-card .card-metrics-grid {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme="light"] .map-mission-floating-card .metric-label,
+body.light-theme .map-mission-floating-card .metric-label {
+  color: #64748b !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .map-mission-floating-card .metric-value,
+body.light-theme .map-mission-floating-card .metric-value {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .map-mission-floating-card .card-team-info,
+body.light-theme .map-mission-floating-card .card-team-info {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme="light"] .map-mission-floating-card .team-label,
+body.light-theme .map-mission-floating-card .team-label {
+  color: #64748b !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .map-mission-floating-card .team-names,
+body.light-theme .map-mission-floating-card .team-names {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .btn-card-detail-mission,
+body.light-theme .btn-card-detail-mission {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .btn-card-detail-mission:hover,
+body.light-theme .btn-card-detail-mission:hover {
+  background: #fde68a !important;
+  color: #78350f !important;
+}
+
+
 
 
 

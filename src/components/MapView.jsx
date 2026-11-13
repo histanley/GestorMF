@@ -506,18 +506,18 @@ export default function MapView({
                 ? `<a href="https://wa.me/55${phoneDigits}" target="_blank" rel="noreferrer" style="padding:4px 8px;border-radius:6px;background:#25d366;color:#fff;text-decoration:none;font-weight:600;font-size:0.72rem;display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">💬 WhatsApp</a>`
                 : '';
               const missionTag = loc.missionTitle
-                ? `<div style="font-size:0.7rem;color:#f59e0b;margin-top:2px;font-weight:600;">🎯 ${loc.missionTitle}</div>`
+                ? `<div class="staff-popup-mission-tag" style="font-size:0.7rem;color:#f59e0b;margin-top:2px;font-weight:600;">🎯 ${loc.missionTitle}</div>`
                 : '';
 
               return `
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
+                <div class="staff-cluster-row" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid rgba(148,163,184,0.18);">
                   <div style="display:flex;align-items:center;gap:8px;min-width:0;">
                     <div style="width:32px;height:32px;border-radius:50%;background:#06b6d4;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
                       ${avatarInner}
                     </div>
                     <div style="min-width:0;">
-                      <strong style="font-size:0.83rem;display:block;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${loc.memberName}</strong>
-                      <span style="font-size:0.7rem;opacity:0.75;display:block;">${formatMemberRole(loc.memberRole)} • <span style="color:${isMoving ? '#10b981' : '#f59e0b'};font-weight:600;">${statusText}</span></span>
+                      <strong class="staff-popup-name" style="font-size:0.83rem;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${loc.memberName}</strong>
+                      <span class="staff-popup-role" style="font-size:0.7rem;opacity:0.8;display:block;">${formatMemberRole(loc.memberRole)} • <span style="color:${isMoving ? '#10b981' : '#f59e0b'};font-weight:600;">${statusText}</span></span>
                       ${missionTag}
                     </div>
                   </div>
@@ -529,12 +529,12 @@ export default function MapView({
             }).join('');
 
             const clusterPopupHtml = `
-              <div style="min-width:270px;max-width:320px;font-family:inherit;padding:4px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.12);">
+              <div class="staff-cluster-popup" style="min-width:270px;max-width:320px;font-family:inherit;padding:4px;">
+                <div class="staff-cluster-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(148,163,184,0.22);">
                   <span style="padding:3px 8px;border-radius:12px;background:rgba(245,158,11,0.2);color:#f59e0b;font-weight:800;font-size:0.78rem;">
                     👥 ${group.length} Colaboradores Juntos
                   </span>
-                  <span style="font-size:0.7rem;opacity:0.6;">Mesmo Ponto</span>
+                  <span style="font-size:0.7rem;opacity:0.7;">Mesmo Ponto</span>
                 </div>
                 <div style="max-height:240px;overflow-y:auto;padding-right:4px;">
                   ${membersListHtml}
@@ -588,31 +588,31 @@ export default function MapView({
                 : '';
 
               const missionInfo = loc.missionTitle
-                ? `<div style="margin:8px 0;padding:8px;background:rgba(255,255,255,0.06);border-radius:6px;border-left:3px solid #f59e0b;font-size:0.75rem;">
-                    <div style="opacity:0.6;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.5px;">Missão Vinculada</div>
+                ? `<div class="staff-popup-mission" style="margin:8px 0;padding:8px;border-radius:6px;border-left:3px solid #f59e0b;font-size:0.75rem;">
+                    <div class="staff-popup-mission-label" style="opacity:0.7;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.5px;">Missão Vinculada</div>
                     <strong style="color:#f59e0b;display:block;margin-top:2px;">${loc.missionTitle}</strong>
                   </div>`
                 : '';
 
               const popupHtml = `
-                <div style="min-width:220px;font-family:inherit;padding:4px;">
+                <div class="staff-single-popup" style="min-width:220px;font-family:inherit;padding:4px;">
                   <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">
                     <div style="width:38px;height:38px;border-radius:50%;overflow:hidden;background:#06b6d4;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;border:2px solid #06b6d4;">
                       ${avatarInner}
                     </div>
                     <div>
-                      <h4 style="margin:0;font-size:0.92rem;font-weight:700;line-height:1.2;">${loc.memberName}</h4>
-                      <div style="font-size:0.72rem;opacity:0.75;margin-top:2px;">${formatMemberRole(loc.memberRole)} • ${loc.memberCompany || 'MegaFilmes'}</div>
+                      <h4 class="staff-popup-name" style="margin:0;font-size:0.92rem;font-weight:700;line-height:1.2;">${loc.memberName}</h4>
+                      <div class="staff-popup-role" style="font-size:0.72rem;opacity:0.8;margin-top:2px;">${formatMemberRole(loc.memberRole)} • ${loc.memberCompany || 'MegaFilmes'}</div>
                     </div>
                   </div>
                   <div style="display:flex;align-items:center;gap:6px;margin:8px 0;flex-wrap:wrap;">
                     <span style="padding:2px 8px;border-radius:12px;background:rgba(6,182,212,0.18);color:#06b6d4;font-weight:700;font-size:0.72rem;">📍 GPS Ao Vivo</span>
-                    <span style="font-size:0.75rem;font-weight:600;opacity:0.9;">${statusText}</span>
+                    <span class="staff-popup-status" style="font-size:0.75rem;font-weight:600;opacity:0.9;">${statusText}</span>
                     ${batteryBadge}
                   </div>
                   ${missionInfo}
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.1);">
-                    <small style="opacity:0.55;font-size:0.68rem;">Precisão: ±${Math.round(loc.accuracy || 5)}m</small>
+                  <div class="staff-popup-footer" style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:6px;border-top:1px solid rgba(148,163,184,0.2);">
+                    <small style="opacity:0.65;font-size:0.68rem;">Precisão: ±${Math.round(loc.accuracy || 5)}m</small>
                     ${whatsappBtn}
                   </div>
                 </div>
