@@ -26218,16 +26218,19 @@ body.light-theme .ehr-item-info {
   background: linear-gradient(135deg, rgba(22, 32, 51, 0.96) 0%, rgba(13, 20, 34, 0.98) 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 22px 26px;
+  padding: 26px 28px 24px 28px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1.25rem;
+  justify-content: center;
+  text-align: center;
+  gap: 16px;
   margin-bottom: 1.75rem;
   box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(12px);
   transition: all 0.25s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 [data-theme="light"] .cs-hero-card,
@@ -26239,14 +26242,17 @@ body.light-theme .cs-hero-card {
 
 .cs-hero-profile-wrap {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1.4rem;
-  min-width: 280px;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  width: 100%;
 }
 
 .cs-hero-avatar {
-  width: 80px;
-  height: 80px;
+  width: 86px;
+  height: 86px;
   border-radius: 50%;
   overflow: hidden;
   border: 3px solid #f59e0b;
@@ -26255,8 +26261,9 @@ body.light-theme .cs-hero-card {
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  margin: 0 auto;
   flex-shrink: 0;
-  font-size: 1.6rem;
+  font-size: 1.7rem;
   font-weight: 800;
   color: #f8fafc;
   transition: all 0.25s ease;
@@ -26278,19 +26285,24 @@ body.light-theme .cs-hero-avatar {
 .cs-hero-text {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  width: 100%;
 }
 
 .cs-hero-name-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
 .cs-hero-name {
   margin: 0;
-  font-size: 1.55rem;
+  font-size: 1.65rem;
   color: #ffffff;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -26322,12 +26334,14 @@ body.light-theme .cs-company-pill {
 .cs-hero-badges-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   flex-wrap: wrap;
+  max-width: 900px;
 }
 
 .cs-hero-role {
-  padding: 4px 12px;
+  padding: 5px 12px;
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.12) 100%);
   border: 1.5px solid rgba(245, 158, 11, 0.45);
@@ -26367,32 +26381,53 @@ body.light-theme .cs-hero-cnh {
   color: #15803d !important;
 }
 
+/* Divisor sutil entre perfil e PIX */
+.cs-hero-divider {
+  width: 100%;
+  max-width: 520px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.12) 50%, transparent 100%);
+  margin: 2px auto;
+}
+
+body.light-theme .cs-hero-divider {
+  background: linear-gradient(90deg, transparent 0%, rgba(15, 23, 42, 0.08) 50%, transparent 100%);
+}
+
+/* Chave PIX perfeitamente centralizada e estilizada como Cartão Bancário/PIX */
 .cs-pix-box {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(10, 15, 29, 0.96) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 15, 29, 0.98) 100%);
+  border: 1.5px solid rgba(56, 189, 248, 0.28);
   border-radius: 14px;
-  padding: 12px 18px;
+  padding: 12px 22px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  justify-content: center;
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(56, 189, 248, 0.08);
+  margin: 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 [data-theme="light"] .cs-pix-box,
 body.light-theme .cs-pix-box {
   background: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
 }
 
 .cs-pix-info {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
   gap: 2px;
 }
 
 .cs-pix-label {
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: #94a3b8;
   display: block;
   text-transform: uppercase;
@@ -26406,11 +26441,11 @@ body.light-theme .cs-pix-label {
 }
 
 .cs-pix-value {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   color: #38bdf8;
   font-weight: 800;
   font-family: var(--font-mono, monospace);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
 }
 
 [data-theme="light"] .cs-pix-value,
@@ -26422,15 +26457,22 @@ body.light-theme .cs-pix-value {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.14) 100%);
   border: 1.5px solid rgba(245, 158, 11, 0.45);
   color: #fbbf24;
-  padding: 7px 12px;
+  padding: 8px 14px;
   border-radius: 9px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.78rem;
+  gap: 6px;
+  font-size: 0.8rem;
   font-weight: 700;
   transition: all 0.2s ease;
+}
+
+.cs-btn-copy-pix:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.35) 0%, rgba(217, 119, 6, 0.25) 100%);
+  border-color: #f59e0b;
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .cs-btn-copy-pix:hover {

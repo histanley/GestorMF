@@ -526,6 +526,9 @@ export default function CollaboratorSpace({
           </div>
         </div>
 
+        {/* Divisor Visual Sutil para Harmonia Central */}
+        <div className="cs-hero-divider" />
+
         {/* Chave PIX com Cadastro, Edição e Exclusão */}
         <div className="cs-pix-box">
           {isEditingPix ? (
