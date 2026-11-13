@@ -120,6 +120,7 @@ import {
 } from './utils/geo';
 import {
   isNativeApp,
+  getAppPlatform,
   getNativePosition,
   watchNativePosition,
   enqueueOfflineGpsPoint,
@@ -231,6 +232,20 @@ export default function App() {
       document.body.classList.remove('light-theme');
     }
   }, [theme]);
+
+  // Identificação de dispositivo móvel (iOS / Android / Telas Pequenas) para otimização de layout
+  useEffect(() => {
+    const ua = navigator.userAgent || '';
+    const isMobileUa = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const isMobile = isNativeApp() || isMobileUa || window.innerWidth <= 900;
+    if (isMobile) {
+      document.body.classList.add('is-mobile-device');
+    }
+    if (isNativeApp()) {
+      document.body.classList.add('is-native-app');
+      document.body.classList.add(`platform-${getAppPlatform()}`);
+    }
+  }, []);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));

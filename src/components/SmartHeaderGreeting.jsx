@@ -18,6 +18,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { formatDateBR, getMissionCode } from '../utils/geo';
+import { isNativeApp } from '../utils/nativeBridge';
 
 // Mapeia códigos de clima da WMO (Open-Meteo) para descrições e ícones
 function getWeatherDetails(code, isDay = 1) {
@@ -68,14 +69,36 @@ export default function SmartHeaderGreeting({
   onNavigateTab = () => {},
   onOpenDetailMission = null,
 }) {
+  // Ocultar em celulares (iOS e Android / Telas Mobile)
+  const [isMobileDevice, setIsMobileDevice] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    if (isNativeApp()) return true;
+    const ua = navigator.userAgent || '';
+    if (/Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true;
+    return window.innerWidth <= 900;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile =
+        isNativeApp() ||
+        /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '') ||
+        window.innerWidth <= 900;
+      setIsMobileDevice(isMobile);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const isAdminUser = userRole === 'admin' || userRole === 'manager';
 
   // Relógio digital e data em tempo real
   const [currentTime, setCurrentTime] = useState(() => new Date());
   useEffect(() => {
+    if (isMobileDevice) return;
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isMobileDevice]);
 
   // Saudação por horário
   const greeting = useMemo(() => {
@@ -269,6 +292,10 @@ export default function SmartHeaderGreeting({
     ).length;
     return { inField, pendingPostProd };
   }, [isAdminUser, missions]);
+
+  if (isMobileDevice) {
+    return null;
+  }
 
   return (
     <div className="dynamic-body-greeting premium-smart-header">

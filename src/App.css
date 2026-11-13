@@ -26775,28 +26775,23 @@ body.light-theme .mori-input {
   }
 }
 
-@media (max-width: 768px) {
-  .dynamic-body-greeting.premium-smart-header {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 14px;
-    margin: 0.5rem 0.75rem;
+/* Ocultar barra de boas-vindas / Smart Header em celulares (iOS e Android / Telas Mobile <= 900px) */
+@media (max-width: 900px) {
+  .dynamic-body-greeting.premium-smart-header,
+  .premium-smart-header {
+    display: none !important;
   }
-  .sh-hero-identity {
-    width: 100%;
-  }
-  .sh-hero-widgets {
-    flex-direction: column;
-    align-items: stretch;
-    width: 100%;
-  }
-  .sh-capsule {
-    width: 100%;
-  }
-  .sh-hero-action-btn {
-    width: 100%;
-    justify-content: center;
-  }
+}
+
+body.is-mobile-device .dynamic-body-greeting.premium-smart-header,
+body.is-mobile-device .premium-smart-header,
+body.is-native-app .dynamic-body-greeting.premium-smart-header,
+body.is-native-app .premium-smart-header,
+body.platform-android .dynamic-body-greeting.premium-smart-header,
+body.platform-android .premium-smart-header,
+body.platform-ios .dynamic-body-greeting.premium-smart-header,
+body.platform-ios .premium-smart-header {
+  display: none !important;
 }
 
 /* ============================================================================== */
