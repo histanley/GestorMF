@@ -98,6 +98,8 @@ import {
   sendPushNotification,
   requestNotificationPermission,
   playNotificationSound,
+  checkAndNotifyPendingPostProductions,
+  clearPostProductionNotification,
 } from './utils/notifications';
 import {
   fetchRouteOSRM,
@@ -470,6 +472,22 @@ export default function App() {
     const interval = setInterval(fetchServerMessages, 12000);
     return () => clearInterval(interval);
   }, [fetchServerMessages]);
+
+  // Monitora continuamente materiais de pós-produção pendentes de aprovação da diretoria
+  // Alerta o Administrador/Gestor imediatamente e repete a notificação a cada 30min até decisão
+  useEffect(() => {
+    if (!currentUser || !Array.isArray(missions) || missions.length === 0) return;
+
+    // Dispara checagem imediata
+    checkAndNotifyPendingPostProductions(missions, currentUser);
+
+    // Checa a cada 30 segundos se alguma missão pendente atingiu 30 minutos desde o último alerta
+    const ppCheckInterval = setInterval(() => {
+      checkAndNotifyPendingPostProductions(missions, currentUser);
+    }, 30000);
+
+    return () => clearInterval(ppCheckInterval);
+  }, [missions, currentUser]);
 
   // Verifica com precisão se o usuário faz parte da missão (motorista, equipe ou editor)
   const isUserInMission = useCallback((mis, user) => {

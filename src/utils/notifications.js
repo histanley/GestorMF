@@ -162,13 +162,35 @@ export function sendPushNotification(title, options = {}) {
     } catch (e) {}
   }
 
-  // 2. Se as notificações do sistema estiverem autorizadas
+  // 2. Notificação Nativa via Capacitor (Android / iOS)
+  if (isNativeApp()) {
+    try {
+      ensureNotificationChannel().then(() => {
+        LocalNotifications.schedule({
+          notifications: [
+            {
+              title,
+              body: options.body || '',
+              id: Math.floor(Math.random() * 1000000),
+              schedule: { at: new Date(Date.now() + 100) },
+              sound: 'beep.wav',
+              channelId: 'megagestao_alerts',
+              smallIcon: 'ic_launcher',
+              extra: options.data || null,
+            },
+          ],
+        }).catch(() => {});
+      });
+    } catch (e) {}
+  }
+
+  // 3. Notificação Web Nativa (Navegadores desktop e mobile)
   if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
     try {
       const defaultOptions = {
         icon: '/favicon.ico',
         badge: '/favicon.ico',
-        tag: 'gestormf-mission-' + Date.now(),
+        tag: 'gestormf-alert-' + (options.tag || Date.now()),
         renotify: true,
         vibrate: [200, 100, 200, 100, 300],
         ...options,
@@ -186,4 +208,71 @@ export function sendPushNotification(title, options = {}) {
     }
   }
 }
+
+// Intervalo de repetição de alerta de pós-produção pendente: 30 minutos
+export const POST_PROD_NOTIFY_INTERVAL_MS = 30 * 60 * 1000;
+
+/**
+ * Limpa o rastreamento de notificação de uma missão avaliada
+ */
+export function clearPostProductionNotification(missionId) {
+  if (typeof window === 'undefined' || !missionId) return;
+  try {
+    localStorage.removeItem(`gestormf_last_pp_notify_${missionId}`);
+  } catch (e) {}
+}
+
+/**
+ * Monitora e notifica o Administrador/Gestor sobre materiais de pós-produção pendentes.
+ * Repete a cada 30 minutos enquanto a missão não for aceita ou rejeitada.
+ */
+export function checkAndNotifyPendingPostProductions(missions = [], currentUser = null) {
+  if (!currentUser || typeof window === 'undefined') return;
+
+  const roleStr = String(currentUser.role || '').toLowerCase().trim();
+  const isAdminOrManager =
+    roleStr === 'admin' ||
+    roleStr === 'administrador' ||
+    roleStr === 'gestor' ||
+    roleStr === 'gerente';
+
+  if (!isAdminOrManager) return;
+  if (!Array.isArray(missions) || missions.length === 0) return;
+
+  // Busca todas as missões que possuem entrega de pós-produção aguardando decisão
+  const pendingEditions = missions.filter(
+    (m) => m && m.editionStatus === 'Edição Concluída' && m.missionStatus !== 'Finalizada'
+  );
+
+  if (pendingEditions.length === 0) return;
+
+  const now = Date.now();
+
+  pendingEditions.forEach((m) => {
+    const storageKey = `gestormf_last_pp_notify_${m.id}`;
+    let lastNotified = 0;
+    try {
+      const val = localStorage.getItem(storageKey);
+      if (val) lastNotified = Number(val);
+    } catch (e) {}
+
+    // Dispara se for a primeira vez ou se já completou 30 minutos
+    if (!lastNotified || (now - lastNotified >= POST_PROD_NOTIFY_INTERVAL_MS)) {
+      const mCode = m.code || `#${m.id}`;
+      const editorName = m.editionCompletedBy || m.editorNamesDisplay || m.editorName || 'O editor';
+      const desc = m.description || 'Pauta de Campo';
+
+      sendPushNotification(`🎬 Pós-Produção Aguardando Avaliação! (${mCode})`, {
+        body: `${editorName} enviou o material de "${desc}" para aprovação. Acesse a Central do Admin para aprovar ou solicitar ajustes.`,
+        tag: `pp-pending-${m.id}`,
+        data: { missionId: m.id, type: 'post_production_approval' },
+      });
+
+      try {
+        localStorage.setItem(storageKey, String(now));
+      } catch (e) {}
+    }
+  });
+}
+
 

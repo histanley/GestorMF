@@ -35,6 +35,7 @@ import TeamPerformanceRanking from './TeamPerformanceRanking';
 import MissionHistoryModal from './MissionHistoryModal';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { getMissionCode } from '../utils/geo';
+import { clearPostProductionNotification } from '../utils/notifications';
 
 function formatDateBR(dateStr) {
   if (!dateStr) return '';
@@ -191,6 +192,7 @@ export default function AdminCenter({
         });
         return;
       }
+      clearPostProductionNotification(mission.id);
       await alertDialog({
         title: '🎉 Missão Finalizada com Sucesso',
         message: `A pauta "${mission.description}" foi aprovada e finalizada com sucesso!`,
@@ -256,6 +258,7 @@ export default function AdminCenter({
         });
         return;
       }
+      clearPostProductionNotification(m.id);
       await alertDialog({
         title: '↩️ Serviço Reaberto',
         message: `A missão "${m.description}" retornou para o status Pendente (Em Edição). Os editores foram notificados com as orientações.` + (hasNewDeadline ? ` Novo prazo: ${newDeadlineStr}.` : ''),

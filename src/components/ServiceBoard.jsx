@@ -66,6 +66,7 @@ import {
 } from '../utils/geo';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { normalizeRole } from '../utils/auth';
+import { sendPushNotification, clearPostProductionNotification } from '../utils/notifications';
 import MissionHistoryModal from './MissionHistoryModal';
 
 // Formata YYYY-MM-DD para DD/MM/AAAA
@@ -307,9 +308,15 @@ export default function ServiceBoard({
         });
         return;
       }
+      clearPostProductionNotification(mission.id);
+      sendPushNotification(`🎬 Nova Pós-Produção Pronta para Avaliação! (#${getMissionCode(mission, missions)})`, {
+        body: `${currentUser?.name || 'O editor'} concluiu a edição de "${mission.description}" e enviou para avaliação da diretoria.`,
+        tag: `pp-pending-${mission.id}`,
+        data: { missionId: mission.id, type: 'post_production_approval' },
+      });
       await alertDialog({
         title: '✅ Tarefa Concluída!',
-        message: 'A entrega da pós-produção foi registrada com sucesso! O status agora é "Aguardando Confirmação" da gestão.',
+        message: 'A entrega da pós-produção foi registrada com sucesso! A diretoria foi notificada para avaliar e aprovar o material.',
         variant: 'success',
       });
     } else if (onUpdateEditionStatus) {
@@ -401,6 +408,7 @@ export default function ServiceBoard({
         });
         return;
       }
+      clearPostProductionNotification(m.id);
       await alertDialog({
         title: '↩️ Serviço Reaberto',
         message: `A missão "${m.description}" retornou para o status Pendente (Em Edição). Os editores foram notificados com as orientações.` + (hasNewDeadline ? ` Novo prazo: ${newDeadlineStr}.` : ''),
@@ -466,6 +474,7 @@ export default function ServiceBoard({
         });
         return;
       }
+      clearPostProductionNotification(mission.id);
       await alertDialog({
         title: '⭐ Missão Finalizada!',
         message: `A entrega da pós-produção da pauta "${mission.description}" foi aprovada e a missão foi FINALIZADA e encerrada com sucesso!`,
