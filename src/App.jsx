@@ -42,6 +42,7 @@ import VehicleManager from './components/VehicleManager';
 import TeamManager from './components/TeamManager';
 import AdminCenter from './components/AdminCenter';
 import CollaboratorSpace from './components/CollaboratorSpace';
+import SmartHeaderGreeting from './components/SmartHeaderGreeting';
 import MissionModal from './components/MissionModal';
 import MissionDetailModal from './components/MissionDetailModal';
 import SettingsModal from './components/SettingsModal';
@@ -2304,34 +2305,6 @@ export default function App() {
     }
   }, [missions, currentUser, isUserInMission]);
 
-  // Saudação Dinâmica no Corpo da Página (Horário + Nome)
-  const greetingInfo = useMemo(() => {
-    const hr = new Date().getHours();
-    let text = 'Boa noite';
-    let icon = '🌙';
-    if (hr >= 5 && hr < 12) {
-      text = 'Bom dia';
-      icon = '☀️';
-    } else if (hr >= 12 && hr < 18) {
-      text = 'Boa tarde';
-      icon = '🌤️';
-    }
-    const firstName = currentUser?.name ? currentUser.name.trim().split(' ')[0] : 'Colaborador';
-    const now = new Date();
-    const dateFormatted = now.toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-    return {
-      text,
-      icon,
-      firstName,
-      dateFormatted: dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1)
-    };
-  }, [currentUser]);
-
   // Solicitações de Horas Extras Pendentes para Administradores
   const pendingExtraHoursRequests = useMemo(() => {
     if (!isAdminUser) return [];
@@ -2995,74 +2968,21 @@ export default function App() {
       {/* Conteúdo Principal com Abas */}
       <main className="app-main-content">
         {/* ============================================================== */}
-        {/* SAUDAÇÃO AUTOMÁTICA NO CORPO DA PÁGINA (Abaixo do Menu)        */}
+        {/* CABEÇALHO INTELIGENTE: SAUDAÇÃO, CLIMA & MISSÃO EM DESTAQUE   */}
         {/* ============================================================== */}
-        <div className="dynamic-body-greeting">
-          <div className="dbg-left">
-            <div className="dbg-icon-badge">{greetingInfo.icon}</div>
-            <div className="dbg-text">
-              <h1 className="dbg-title">
-                {greetingInfo.text}, <span className="dbg-name">{greetingInfo.firstName}</span>!
-              </h1>
-              <p className="dbg-subtitle">
-                {greetingInfo.dateFormatted} • {countAtivas} {countAtivas === 1 ? 'missão ativa' : 'missões ativas'} na base
-              </p>
-            </div>
-          </div>
-
-          <div className="dbg-right">
-            {isAdminUser ? (
-              activeTab !== 'admin' ? (
-                <button
-                  type="button"
-                  className="dbg-btn-space"
-                  onClick={() => setActiveTab('admin')}
-                  title="Abrir Central do Administrador: Aprovações, Diárias & Fechamento, Inteligência & Ranking"
-                >
-                  <ShieldCheck size={14} />
-                  <span>Central do Admin</span>
-                  {pendingExtraHoursRequests.length > 0 && (
-                    <span className="dbg-badge-count">
-                      ⏱️ {pendingExtraHoursRequests.length}
-                    </span>
-                  )}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="dbg-btn-space active"
-                  onClick={() => setActiveTab('map')}
-                  title="Voltar ao monitoramento de missões"
-                >
-                  <Navigation size={14} />
-                  <span>Mapa &amp; Frotas</span>
-                </button>
-              )
-            ) : (
-              activeTab !== 'me' ? (
-                <button
-                  type="button"
-                  className="dbg-btn-space"
-                  onClick={() => setActiveTab('me')}
-                  title="Ver meu extrato financeiro, histórico de missões e métricas"
-                >
-                  <Sparkles size={14} />
-                  <span>Meu Espaço</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="dbg-btn-space active"
-                  onClick={() => setActiveTab('map')}
-                  title="Voltar ao monitoramento de missões"
-                >
-                  <Navigation size={14} />
-                  <span>Mapa &amp; Frotas</span>
-                </button>
-              )
-            )}
-          </div>
-        </div>
+        <SmartHeaderGreeting
+          currentUser={currentUser}
+          userRole={userRole}
+          missions={missions}
+          members={members}
+          vehicles={vehicles}
+          baseLocation={settings.baseLocation}
+          countAtivas={countAtivas}
+          pendingExtraHoursRequests={pendingExtraHoursRequests}
+          activeTab={activeTab}
+          onNavigateTab={(tab) => setActiveTab(tab)}
+          onOpenDetailMission={(m) => setDetailMissionId(typeof m === 'object' ? m.id : m)}
+        />
 
         {/* ALERTA DE HORAS EXTRAS PENDENTES (Para Administradores fora da aba admin) */}
         {isAdminUser && activeTab !== 'admin' && pendingExtraHoursRequests.length > 0 && (
