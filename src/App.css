@@ -24888,9 +24888,9 @@ body.light-theme .pf-search-input {
   border-radius: 14px;
   padding: 16px 20px;
   display: grid;
-  grid-template-columns: 240px 1.2fr 160px 160px 220px;
+  grid-template-columns: minmax(180px, 220px) minmax(130px, 170px) minmax(170px, 210px) minmax(200px, 260px) minmax(130px, 160px) minmax(180px, 220px);
   align-items: center;
-  gap: 18px;
+  gap: 16px;
   transition: all 0.2s ease;
 }
 
@@ -25064,7 +25064,7 @@ body.light-theme .btn-edit-rates:hover {
 }
 
 .pmc-prod-val {
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   font-weight: 700;
   color: #ffffff;
 }
@@ -25076,6 +25076,136 @@ body.light-theme .pmc-prod-val {
 .pmc-prod-lbl {
   font-size: 0.72rem;
   color: #94a3b8;
+}
+
+/* Coluna Chave PIX Evidenciada */
+.pmc-col-pix {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pmc-pix-header {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pmc-pix-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 8px;
+  padding: 6px 10px;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.pmc-pix-box:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.pmc-pix-key-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f8fafc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.btn-copy-pix {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-copy-pix:hover {
+  background: rgba(56, 189, 248, 0.28);
+  border-color: #38bdf8;
+  color: #ffffff;
+  transform: scale(1.03);
+}
+
+.btn-copy-pix.is-copied {
+  background: rgba(16, 185, 129, 0.22) !important;
+  border-color: #10b981 !important;
+  color: #34d399 !important;
+}
+
+.pmc-pix-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+}
+
+.pmc-pix-empty-text {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.btn-add-pix-link {
+  background: transparent;
+  border: none;
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.btn-add-pix-link:hover {
+  color: #f59e0b;
+}
+
+body.light-theme .pmc-pix-box {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+body.light-theme .pmc-pix-key-text {
+  color: #0f172a;
+}
+
+body.light-theme .btn-copy-pix {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0369a1;
+}
+
+body.light-theme .pmc-pix-empty {
+  background: #f8fafc;
+  border-color: #e2e8f0;
 }
 
 /* Coluna Total */
@@ -25096,19 +25226,75 @@ body.light-theme .pmc-prod-val {
   color: #34d399;
 }
 
-.pmc-pix-pill {
+.pmc-pending-tag {
   font-size: 0.68rem;
-  color: #38bdf8;
-  background: rgba(6, 182, 212, 0.1);
-  border: 1px solid rgba(6, 182, 212, 0.2);
+  font-weight: 700;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
   padding: 2px 6px;
   border-radius: 4px;
   width: fit-content;
   margin-top: 3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 150px;
+}
+
+body.light-theme .pmc-pending-tag {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+/* Banner de PIX no Extrato / Espelho */
+.statement-pix-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+}
+
+body.light-theme .statement-pix-banner {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.spb-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.spb-label {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+body.light-theme .spb-label {
+  color: #64748b;
+}
+
+.spb-key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92rem;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+}
+
+body.light-theme .spb-key {
+  color: #0284c7;
+}
+
+.btn-copy-pix.btn-copy-pix-large {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  border-radius: 8px;
 }
 
 /* Coluna Ações */
@@ -25397,7 +25583,15 @@ body.light-theme .sir-desc {
   color: #94a3b8 !important;
 }
 
-/* 7. Responsividade Mobile para Payouts */
+/* 7. Responsividade para Payouts */
+@media (min-width: 981px) and (max-width: 1280px) {
+  .payout-member-card {
+    grid-template-columns: 180px 140px 180px 210px 130px 190px;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+}
+
 @media (max-width: 980px) {
   .payout-member-card {
     grid-template-columns: 1fr;

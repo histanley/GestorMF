@@ -18,6 +18,7 @@ import {
   Check,
   X,
   CreditCard,
+  Copy,
   MessageCircle,
   ChevronLeft,
   ChevronRight,
@@ -100,6 +101,7 @@ export default function TeamPayoutsDashboard({
   // Modais
   const [editingRatesMember, setEditingRatesMember] = useState(null);
   const [viewingStatementMember, setViewingStatementMember] = useState(null);
+  const [copiedPixMemberId, setCopiedPixMemberId] = useState(null);
 
   // Form local de edição de taxas
   const [ratesForm, setRatesForm] = useState({
@@ -497,6 +499,27 @@ export default function TeamPayoutsDashboard({
     window.open(url, '_blank');
   };
 
+  // Copiar chave PIX com feedback temporário
+  const handleCopyPix = async (pixKey, memberId) => {
+    if (!pixKey) return;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(pixKey);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = pixKey;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopiedPixMemberId(memberId);
+      setTimeout(() => setCopiedPixMemberId(null), 2500);
+    } catch (err) {
+      console.warn('Erro ao copiar chave PIX:', err);
+    }
+  };
+
   // Imprimir relatório da folha
   const handlePrintReport = () => {
     window.print();
@@ -711,22 +734,63 @@ export default function TeamPayoutsDashboard({
                     </button>
                   </div>
 
-                  {/* Produção no Mês */}
+                  {/* Produção Detalhada no Mês (Missões, Horas Extras e Diárias) */}
                   <div className="pmc-col-production">
-                    <div className="pmc-prod-metric">
+                    <div className="pmc-prod-metric" title="Total de missões participadas no mês">
                       <span className="pmc-prod-val">{member.missionCount}</span>
                       <span className="pmc-prod-lbl">Missões</span>
                     </div>
-                    <div className="pmc-prod-metric">
+                    <div className="pmc-prod-metric" title="Horas fora do expediente comercial (banco de horas)">
                       <span className="pmc-prod-val text-amber">{member.totalHours} h</span>
                       <span className="pmc-prod-lbl">Extras ({formatBRL(member.totalOffHoursAmount)})</span>
                     </div>
-                    {member.totalTravelDays > 0 ? (
-                      <div className="pmc-prod-metric">
-                        <span className="pmc-prod-val text-cyan">{member.totalTravelDays} d</span>
-                        <span className="pmc-prod-lbl">Diárias ({formatBRL(member.totalDailyAmount)})</span>
+                    <div className="pmc-prod-metric" title="Diárias de campo e viagens (+1 dia)">
+                      <span className="pmc-prod-val text-cyan">{member.totalTravelDays} d</span>
+                      <span className="pmc-prod-lbl">Diárias ({formatBRL(member.totalDailyAmount)})</span>
+                    </div>
+                  </div>
+
+                  {/* Chave PIX Evidenciada com Cópia Rápida */}
+                  <div className="pmc-col-pix">
+                    <span className="pmc-pix-header">
+                      <CreditCard size={12} className="text-cyan" />
+                      <span>CHAVE PIX</span>
+                    </span>
+                    {member.pixKey ? (
+                      <div className="pmc-pix-box" title={`Chave PIX: ${member.pixKey}`}>
+                        <span className="pmc-pix-key-text">{member.pixKey}</span>
+                        <button
+                          type="button"
+                          className={`btn-copy-pix ${copiedPixMemberId === member.id ? 'is-copied' : ''}`}
+                          onClick={() => handleCopyPix(member.pixKey, member.id)}
+                          title="Copiar Chave PIX para a área de transferência"
+                        >
+                          {copiedPixMemberId === member.id ? (
+                            <>
+                              <Check size={12} />
+                              <span>Copiado!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={12} />
+                              <span>Copiar</span>
+                            </>
+                          )}
+                        </button>
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="pmc-pix-empty">
+                        <span className="pmc-pix-empty-text">Sem chave PIX</span>
+                        <button
+                          type="button"
+                          className="btn-add-pix-link"
+                          onClick={() => handleOpenEditRates(member)}
+                          title="Cadastrar chave PIX deste colaborador"
+                        >
+                          + Cadastrar
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Valor Total a Pagar / Quitado */}
@@ -739,11 +803,11 @@ export default function TeamPayoutsDashboard({
                       <span className="cleared-hours-badge" title={`Horas quitadas em ${formatDateBR(member.clearedAt)}`}>
                         <Check size={11} /> {member.hoursCleared || member.totalHours}h quitadas
                       </span>
-                    ) : member.pixKey ? (
-                      <span className="pmc-pix-pill" title={`PIX: ${member.pixKey}`}>
-                        💳 {member.pixKey}
+                    ) : (
+                      <span className="pmc-pending-tag">
+                        ⏳ Saldo Pendente
                       </span>
-                    ) : null}
+                    )}
                   </div>
 
                   {/* Status de Pagamento & Ações com Botão Zerar Horas */}
@@ -961,6 +1025,37 @@ export default function TeamPayoutsDashboard({
                   </span>
                 </div>
               )}
+
+              {/* Chave PIX Evidenciada no Extrato do Colaborador */}
+              {viewingStatementMember.pixKey ? (
+                <div className="statement-pix-banner">
+                  <div className="spb-left">
+                    <CreditCard size={18} className="text-cyan" />
+                    <div>
+                      <span className="spb-label">Chave PIX para Pagamento:</span>
+                      <strong className="spb-key">{viewingStatementMember.pixKey}</strong>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`btn-copy-pix btn-copy-pix-large ${copiedPixMemberId === viewingStatementMember.id ? 'is-copied' : ''}`}
+                    onClick={() => handleCopyPix(viewingStatementMember.pixKey, viewingStatementMember.id)}
+                    title="Copiar chave PIX"
+                  >
+                    {copiedPixMemberId === viewingStatementMember.id ? (
+                      <>
+                        <Check size={14} />
+                        <span>Chave Copiada!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        <span>Copiar Chave PIX</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : null}
 
               {/* Lista Detalhada de Missões */}
               <div className="statement-missions-list">
