@@ -309,9 +309,6 @@ export default function SmartHeaderGreeting({
             <h1 className="sh-hero-title">
               {greeting.text}, <span className="sh-hero-name">{greeting.firstName}</span>!
             </h1>
-            <span className="sh-hero-clock">
-              <Clock size={12} /> {greeting.timeFormatted}
-            </span>
           </div>
           <div className="sh-hero-sub-row">
             <span className="sh-hero-date">{greeting.dateFormatted}</span>

@@ -26461,17 +26461,18 @@ body.light-theme .mori-input {
 }
 
 .sh-hero-icon-wrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0.06) 100%);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  width: auto;
+  height: auto;
+  background: transparent;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.7rem;
+  font-size: 2.1rem;
   flex-shrink: 0;
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.22);
+  box-shadow: none;
+  filter: drop-shadow(0 3px 10px rgba(245, 158, 11, 0.45));
+  padding: 0 2px 0 0;
 }
 
 .sh-hero-info {
@@ -27044,9 +27045,10 @@ body.light-theme .dynamic-body-greeting.premium-smart-header::before {
 
 [data-theme="light"] .sh-hero-icon-wrap,
 body.light-theme .sh-hero-icon-wrap {
-  background: #fffbeb !important;
-  border-color: #fde68a !important;
-  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.15) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 2px 6px rgba(217, 119, 6, 0.25)) !important;
 }
 
 [data-theme="light"] .sh-hero-title,
