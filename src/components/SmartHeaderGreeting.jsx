@@ -272,194 +272,194 @@ export default function SmartHeaderGreeting({
 
   return (
     <div className="dynamic-body-greeting premium-smart-header">
-      {/* 1. BLOCO DA ESQUERDA: SAUDAÇÃO & DATA / HORA EM TEMPO REAL */}
-      <div className="sh-block sh-greeting-block">
-        <div className="sh-greeting-avatar-badge" title="Horário de Boa Vista, RR">
-          <span className="sh-greeting-icon">{greeting.icon}</span>
+      {/* 1. LADO ESQUERDO: SAUDAÇÃO & DATA OPERACIONAL */}
+      <div className="sh-hero-identity">
+        <div className="sh-hero-icon-wrap" title="Horário de Boa Vista, RR">
+          <span className="sh-hero-icon">{greeting.icon}</span>
         </div>
-        <div className="sh-greeting-text">
-          <div className="sh-greeting-title-row">
-            <h1 className="sh-greeting-title">
-              {greeting.text}, <span className="sh-greeting-name">{greeting.firstName}</span>!
+        <div className="sh-hero-info">
+          <div className="sh-hero-greeting-row">
+            <h1 className="sh-hero-title">
+              {greeting.text}, <span className="sh-hero-name">{greeting.firstName}</span>!
             </h1>
-            <span className="sh-digital-clock">
+            <span className="sh-hero-clock">
               <Clock size={12} /> {greeting.timeFormatted}
             </span>
           </div>
-          <p className="sh-greeting-date">
-            {greeting.dateFormatted} •{' '}
-            <span className="sh-count-active">
+          <div className="sh-hero-sub-row">
+            <span className="sh-hero-date">{greeting.dateFormatted}</span>
+            <span className="sh-hero-dot">•</span>
+            <span className="sh-hero-badge-active">
+              <span className="sh-pulse-dot green" />
               {countAtivas} {countAtivas === 1 ? 'missão ativa' : 'missões ativas'}
             </span>
-          </p>
+          </div>
         </div>
       </div>
 
-      <div className="sh-divider" />
-
-      {/* 2. BLOCO CENTRAL: CLIMA LOCAL & STATUS DE OPERAÇÃO EM CAMPO */}
-      <div className="sh-block sh-weather-block" title={`Previsão do Tempo em ${weatherData.cityName}`}>
-        <div className="sh-weather-main">
-          <span className="sh-weather-icon">{weatherDetails.icon}</span>
-          <div className="sh-weather-temp-col">
-            <div className="sh-weather-temp-row">
-              <strong className="sh-weather-temp">{weatherData.temperature}°C</strong>
-              <span className="sh-weather-desc">{weatherDetails.label}</span>
+      {/* 2. LADO DIREITO: CÁPSULAS EXECUTIVAS (CLIMA, MISSÃO & AÇÕES) */}
+      <div className="sh-hero-widgets">
+        {/* CÁPSULA A: CLIMA & OPERAÇÃO DE CAMPO */}
+        <div className="sh-capsule sh-weather-capsule" title={`Clima em ${weatherData.cityName}: Sensação ${weatherData.apparentTemperature}°C, Vento ${weatherData.windSpeed} km/h, Umidade ${weatherData.humidity}%`}>
+          <div className="sh-capsule-icon-box">
+            <span className="sh-weather-emoji">{weatherDetails.icon}</span>
+          </div>
+          <div className="sh-weather-content">
+            <div className="sh-weather-headline">
+              <strong className="sh-weather-degree">{weatherData.temperature}°C</strong>
+              <span className="sh-weather-condition">{weatherDetails.label}</span>
             </div>
-            <div className="sh-weather-meta-row">
-              <span title="Sensação Térmica">Sensação {weatherData.apparentTemperature}°C</span>
+            <div className="sh-weather-subinfo">
+              <span>Sensação {weatherData.apparentTemperature}°C</span>
               <span>•</span>
-              <span title="Umidade Relativa do Ar"><Droplets size={10} /> {weatherData.humidity}%</span>
-              <span>•</span>
-              <span title="Velocidade do Vento"><Wind size={10} /> {weatherData.windSpeed} km/h</span>
+              <span><Wind size={10} /> {weatherData.windSpeed} km/h</span>
+              {operationalTip.type === 'heat' && (
+                <span className="sh-heat-warning-tag" title="Recomendada hidratação frequente e protetor solar em campo">
+                  <Flame size={10} /> Hidratação
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        <div className={`sh-weather-badge type-${operationalTip.type}`}>
-          <span className="sh-pulse-dot" />
-          <span>{operationalTip.text}</span>
-        </div>
-      </div>
-
-      <div className="sh-divider" />
-
-      {/* 3. BLOCO CENTRAL DIREITA: MISSÃO DESIGNADA / DESTAQUE OPERACIONAL */}
-      <div className="sh-block sh-featured-mission-block">
+        {/* CÁPSULA B: MISSÃO EM DESTAQUE / PAUTA DO MOMENTO */}
         {featuredMission ? (
           <div
-            className={`sh-mission-card status-${featuredMission.type}`}
+            className={`sh-capsule sh-mission-capsule is-clickable status-${featuredMission.type}`}
             onClick={() => onOpenDetailMission && onOpenDetailMission(featuredMission.mission)}
-            title="Clique para abrir a Ficha Completa desta Missão"
+            title="Clique para abrir a ficha completa desta missão"
             role="button"
             tabIndex={0}
           >
-            <div className="sh-mission-header">
-              <span className={`sh-mission-tag tag-${featuredMission.type}`}>
-                {featuredMission.type === 'executing' && <span className="sh-pulse-dot red" />}
-                {featuredMission.type === 'executing'
-                  ? '🔴 Em Campo Agora'
-                  : featuredMission.type === 'preparing'
-                  ? '⚡ Saída em Breve'
-                  : !isAdminUser
-                  ? '🎯 Sua Próxima Pauta'
-                  : '🚗 Próxima Saída'}
+            <div className="sh-mission-badge-line">
+              <span className={`sh-mission-status-pill pill-${featuredMission.type}`}>
+                {featuredMission.type === 'executing' ? (
+                  <>
+                    <span className="sh-pulse-dot red" />
+                    <span>Em Andamento</span>
+                  </>
+                ) : featuredMission.type === 'preparing' ? (
+                  <>
+                    <span className="sh-pulse-dot amber" />
+                    <span>Saída às {featuredMission.mission.departureTime || 'Breve'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Navigation size={10} />
+                    <span>Próxima Saída: {featuredMission.mission.departureTime || 'Agendada'}</span>
+                  </>
+                )}
               </span>
-
-              <span className="sh-mission-code">
-                #{getMissionCode(featuredMission.mission, missions)}
-              </span>
-
-              {featuredMission.mission.departureTime && (
-                <span className="sh-mission-time">
-                  Saída: <strong>{featuredMission.mission.departureTime}</strong>
-                </span>
-              )}
+              <span className="sh-mission-id">#{getMissionCode(featuredMission.mission, missions)}</span>
             </div>
 
-            <h4 className="sh-mission-title">
-              {featuredMission.mission.description}
-            </h4>
-
-            <div className="sh-mission-footer">
-              <div className="sh-mission-loc">
-                <MapPin size={11} className="text-amber" />
-                <span>
-                  {featuredMission.mission.locationName || featuredMission.mission.address || 'Local Definido'}
+            <div className="sh-mission-body">
+              <h4 className="sh-mission-subject" title={featuredMission.mission.description}>
+                {featuredMission.mission.description}
+              </h4>
+              <div className="sh-mission-meta">
+                <span className="sh-meta-loc">
+                  <MapPin size={11} />
+                  <span>{featuredMission.mission.locationName || featuredMission.mission.address || 'Local Definido'}</span>
                 </span>
-              </div>
-
-              {featuredMission.mission.vehicleNameDisplay && (
-                <div className="sh-mission-veh">
-                  <Car size={11} />
-                  <span>
-                    {featuredMission.mission.vehicleNameDisplay.split('(')[0].trim()}
+                {featuredMission.mission.vehicleNameDisplay && (
+                  <span className="sh-meta-veh">
+                    <Car size={11} />
+                    <span>{featuredMission.mission.vehicleNameDisplay.split('(')[0].trim()}</span>
                   </span>
+                )}
+              </div>
+            </div>
+
+            <div className="sh-mission-arrow" title="Ver Detalhes">
+              <ChevronRight size={15} />
+            </div>
+          </div>
+        ) : (
+          <div className="sh-capsule sh-standby-capsule">
+            <div className="sh-standby-icon">
+              <CheckCircle2 size={16} className="text-emerald" />
+            </div>
+            <div className="sh-standby-content">
+              <strong>Base em Operação Normal</strong>
+              <small>Equipes em prontidão para novas pautas</small>
+            </div>
+          </div>
+        )}
+
+        {/* CÁPSULA C: ATALHO DE AÇÃO RÁPIDA (ADMIN / MEU ESPAÇO) */}
+        <div className="sh-action-wrap">
+          {isAdminUser ? (
+            activeTab !== 'admin' ? (
+              <button
+                type="button"
+                className="sh-hero-action-btn admin-mode"
+                onClick={() => onNavigateTab('admin')}
+                title="Abrir Central do Administrador: Aprovações, Fechamento de Diárias & Performance"
+              >
+                <div className="sh-action-icon-circle">
+                  <ShieldCheck size={16} />
                 </div>
-              )}
-
-              <span className="sh-mission-cta">
-                <Eye size={11} /> Ver Ficha
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="sh-no-mission-box">
-            <Sparkles size={16} className="text-amber" />
-            <div>
-              <strong>{!isAdminUser ? 'Sem Pautas Escaladas Hoje' : 'Base em Standby'}</strong>
-              <small>{!isAdminUser ? 'Disponível na base para novas demandas' : 'Nenhuma equipe em deslocamento no momento'}</small>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="sh-divider" />
-
-      {/* 4. BLOCO DA DIREITA: ATALHOS RÁPIDOS & CONTROLES */}
-      <div className="sh-block sh-actions-block">
-        {isAdminUser ? (
-          activeTab !== 'admin' ? (
-            <button
-              type="button"
-              className="sh-btn-action admin-btn"
-              onClick={() => onNavigateTab('admin')}
-              title="Abrir Central do Administrador: Aprovações, Fechamento de Diárias & Performance"
-            >
-              <ShieldCheck size={16} />
-              <div className="sh-btn-action-text">
-                <strong>Central do Admin</strong>
-                <small>Gestão &amp; Decisão</small>
-              </div>
-              {pendingExtraHoursRequests.length > 0 && (
-                <span className="sh-badge-count-pulse" title="Solicitações de horas extras pendentes de análise">
-                  ⏱️ {pendingExtraHoursRequests.length}
-                </span>
-              )}
-            </button>
+                <div className="sh-action-text-col">
+                  <span className="sh-action-primary">Central do Admin</span>
+                  <span className="sh-action-secondary">Gestão &amp; Decisão</span>
+                </div>
+                {pendingExtraHoursRequests.length > 0 && (
+                  <span className="sh-action-badge-alert" title="Solicitações de horas extras pendentes de aprovação">
+                    {pendingExtraHoursRequests.length}
+                  </span>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="sh-hero-action-btn map-mode"
+                onClick={() => onNavigateTab('map')}
+                title="Voltar ao monitoramento de mapa e frotas"
+              >
+                <div className="sh-action-icon-circle">
+                  <Navigation size={15} />
+                </div>
+                <div className="sh-action-text-col">
+                  <span className="sh-action-primary">Mapa &amp; Frotas</span>
+                  <span className="sh-action-secondary">Painel de Campo</span>
+                </div>
+              </button>
+            )
           ) : (
-            <button
-              type="button"
-              className="sh-btn-action active-tab-btn"
-              onClick={() => onNavigateTab('map')}
-              title="Voltar ao monitoramento de mapa e frotas"
-            >
-              <Navigation size={15} />
-              <div className="sh-btn-action-text">
-                <strong>Mapa &amp; Frotas</strong>
-                <small>Painel Operacional</small>
-              </div>
-            </button>
-          )
-        ) : (
-          activeTab !== 'me' ? (
-            <button
-              type="button"
-              className="sh-btn-action me-btn"
-              onClick={() => onNavigateTab('me')}
-              title="Ver meu extrato financeiro, diárias, chave PIX e disponibilidade"
-            >
-              <Sparkles size={15} />
-              <div className="sh-btn-action-text">
-                <strong>Meu Espaço</strong>
-                <small>Fechamento &amp; PIX</small>
-              </div>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="sh-btn-action active-tab-btn"
-              onClick={() => onNavigateTab('map')}
-              title="Voltar ao monitoramento de mapa e frotas"
-            >
-              <Navigation size={15} />
-              <div className="sh-btn-action-text">
-                <strong>Mapa &amp; Frotas</strong>
-                <small>Painel Operacional</small>
-              </div>
-            </button>
-          )
-        )}
+            activeTab !== 'me' ? (
+              <button
+                type="button"
+                className="sh-hero-action-btn me-mode"
+                onClick={() => onNavigateTab('me')}
+                title="Ver meu extrato financeiro, diárias, chave PIX e disponibilidade"
+              >
+                <div className="sh-action-icon-circle">
+                  <Sparkles size={15} />
+                </div>
+                <div className="sh-action-text-col">
+                  <span className="sh-action-primary">Meu Espaço</span>
+                  <span className="sh-action-secondary">Extrato &amp; PIX</span>
+                </div>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="sh-hero-action-btn map-mode"
+                onClick={() => onNavigateTab('map')}
+                title="Voltar ao monitoramento de mapa e frotas"
+              >
+                <div className="sh-action-icon-circle">
+                  <Navigation size={15} />
+                </div>
+                <div className="sh-action-text-col">
+                  <span className="sh-action-primary">Mapa &amp; Frotas</span>
+                  <span className="sh-action-secondary">Painel de Campo</span>
+                </div>
+              </button>
+            )
+          )}
+        </div>
       </div>
     </div>
   );
