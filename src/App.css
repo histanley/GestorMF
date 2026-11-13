@@ -30299,6 +30299,533 @@ body.light-theme .rbi-value {
   color: #0f172a;
 }
 
+/* ==========================================================================
+   DISPONIBILIDADE PARA HORAS EXTRAS (MEU ESPAÇO & MODAL DE MISSÕES)
+   ========================================================================== */
+
+.cs-availability-block {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cs-avail-status-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  transition: all 0.25s ease;
+}
+
+.cs-avail-status-card.is-available {
+  border-color: rgba(34, 197, 94, 0.25);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, rgba(15, 23, 42, 0.7) 100%);
+}
+
+.cs-avail-status-card.is-unavailable {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.75) 100%);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.08);
+}
+
+body.light-theme .cs-avail-status-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+body.light-theme .cs-avail-status-card.is-available {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border-color: #86efac;
+}
+
+body.light-theme .cs-avail-status-card.is-unavailable {
+  background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+  border-color: #fca5a5;
+}
+
+.cs-avail-status-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.cs-avail-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cs-avail-status-card.is-available .cs-avail-icon-wrap {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.cs-avail-status-card.is-unavailable .cs-avail-icon-wrap {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.cs-avail-status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cs-avail-status-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cs-avail-badge {
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.cs-avail-status-card.is-available .cs-avail-badge {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.cs-avail-status-card.is-unavailable .cs-avail-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+body.light-theme .cs-avail-status-card.is-available .cs-avail-badge {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+body.light-theme .cs-avail-status-card.is-unavailable .cs-avail-badge {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.cs-avail-reason-tag {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+body.light-theme .cs-avail-reason-tag {
+  color: #334155;
+  background: #f1f5f9;
+}
+
+.cs-avail-status-desc {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+body.light-theme .cs-avail-status-desc {
+  color: #64748b;
+}
+
+.cs-avail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-avail-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.btn-avail-toggle.declare-unavail {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.btn-avail-toggle.declare-unavail:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ffffff;
+}
+
+.btn-avail-toggle.declare-avail {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #86efac;
+}
+
+.btn-avail-toggle.declare-avail:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.55);
+  color: #ffffff;
+}
+
+.btn-avail-edit {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  transition: all 0.2s ease;
+}
+
+.btn-avail-edit:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* Formulário de Indisponibilidade no Meu Espaço */
+.cs-avail-edit-card {
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+body.light-theme .cs-avail-edit-card {
+  background: #ffffff;
+  border-color: #fca5a5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.cs-avail-edit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.light-theme .cs-avail-edit-header {
+  border-bottom-color: #f1f5f9;
+}
+
+.cs-avail-edit-header h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+}
+
+body.light-theme .cs-avail-edit-header h4 {
+  color: #0f172a;
+}
+
+.cs-avail-edit-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cs-avail-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cs-avail-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+body.light-theme .cs-avail-label {
+  color: #475569;
+}
+
+.cs-avail-scope-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.cs-avail-scope-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.cs-avail-scope-btn strong {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+
+.cs-avail-scope-btn small {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.cs-avail-scope-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.cs-avail-scope-btn.active {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ef4444;
+}
+
+.cs-avail-scope-btn.active strong {
+  color: #fca5a5;
+}
+
+.cs-avail-scope-btn.active small {
+  color: #f87171;
+}
+
+body.light-theme .cs-avail-scope-btn {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+body.light-theme .cs-avail-scope-btn strong {
+  color: #334155;
+}
+
+body.light-theme .cs-avail-scope-btn.active {
+  background: #fef2f2;
+  border-color: #ef4444;
+}
+
+body.light-theme .cs-avail-scope-btn.active strong {
+  color: #dc2626;
+}
+
+.cs-avail-dates-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+body.light-theme .cs-avail-dates-grid {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.cs-avail-date-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cs-avail-date-col span {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.cs-avail-inputs-row {
+  display: flex;
+  gap: 8px;
+}
+
+.cs-input-date,
+.cs-input-time,
+.cs-input-text {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.cs-input-date:focus,
+.cs-input-time:focus,
+.cs-input-text:focus {
+  border-color: #f59e0b;
+}
+
+body.light-theme .cs-input-date,
+body.light-theme .cs-input-time,
+body.light-theme .cs-input-text {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.cs-avail-preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cs-avail-preset-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cs-avail-preset-chip:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #cbd5e1;
+}
+
+.cs-avail-preset-chip.active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+body.light-theme .cs-avail-preset-chip {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+body.light-theme .cs-avail-preset-chip.active {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #b45309;
+}
+
+.cs-avail-edit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.light-theme .cs-avail-edit-footer {
+  border-top-color: #f1f5f9;
+}
+
+.btn-cancel-avail {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-cancel-avail:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+}
+
+.btn-save-avail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #ef4444;
+  border: 1px solid #dc2626;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-save-avail:hover {
+  background: #dc2626;
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+}
+
+/* ==========================================================================
+   SINALIZAÇÃO NO MODAL DE CRIAÇÃO/EDIÇÃO DE MISSÕES (MissionModal.jsx)
+   ========================================================================== */
+
+.mm-member-card.has-extra-unavail {
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.mm-member-card.has-extra-unavail:hover {
+  border-color: rgba(239, 68, 68, 0.55) !important;
+}
+
+.mm-member-unavail-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 2px 7px;
+  border-radius: 5px;
+  margin-top: 4px;
+  width: fit-content;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.light-theme .mm-member-card.has-extra-unavail {
+  background: #fff5f5;
+  border-color: #fca5a5 !important;
+}
+
+body.light-theme .mm-member-unavail-badge {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
+
 
 
 

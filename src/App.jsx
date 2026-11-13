@@ -3291,6 +3291,7 @@ export default function App() {
             missions={missions}
             onReloadMissions={reloadServerMissions}
             onUpdatePixKey={handleUpdatePixKey}
+            onUpdateMember={handleUpdateMember}
           />
         )}
       </main>

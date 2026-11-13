@@ -26,13 +26,14 @@ import {
   Briefcase,
   ShieldCheck,
   Lock,
+  Ban,
 } from 'lucide-react';
 import {
   OFFICIAL_COMPANY_ROLES,
   ROLE_ICONS_MAP,
   normalizeToOfficialRole,
 } from '../utils/companyRoles';
-import { calculateMissionOffHours } from '../utils/workHours';
+import { calculateMissionOffHours, checkMemberExtraHoursAvailability } from '../utils/workHours';
 import {
   RECURRENCE_DAYS,
   getDayOfWeekFromDate,
@@ -780,16 +781,42 @@ export default function MissionModal({
   };
 
   // Toggle membros da equipe (SEMPRE LIVRE, INDEPENDENTE DE PÓS-PRODUÇÃO)
-  const toggleTeamMember = (memberId) => {
+  const toggleTeamMember = async (memberId) => {
+    const exists = formData.teamIds.includes(memberId);
+    if (!exists) {
+      const member = members.find((m) => m.id === memberId);
+      if (member) {
+        const availCheck = checkMemberExtraHoursAvailability(
+          member,
+          formData.date,
+          formData.departureTime,
+          formData.returnTimeEstimated || formData.returnTime,
+          formData.isMultiDay,
+          formData.endDate
+        );
+        if (availCheck.isUnavailable) {
+          const proceed = await confirmDialog({
+            title: '🚫 Colaborador Indisponível para Horas Extras',
+            message: `${member.name} declarou no Meu Espaço que NÃO estará disponível para atividades fora do expediente regular neste horário.`,
+            description: `Motivo informado pelo colaborador: "${availCheck.reason}" (${availCheck.periodLabel || 'Período fora do expediente'}).\n\nDeseja forçar a inclusão na equipe mesmo assim?`,
+            confirmText: 'Forçar Inclusão Excepcional',
+            cancelText: 'Voltar (Não Escalar)',
+            variant: 'danger',
+          });
+          if (!proceed) return;
+        }
+      }
+    }
+
     setFormData((prev) => {
-      const exists = prev.teamIds.includes(memberId);
-      const newTeam = exists
+      const existsNow = prev.teamIds.includes(memberId);
+      const newTeam = existsNow
         ? prev.teamIds.filter((id) => id !== memberId)
         : [...prev.teamIds, memberId];
 
       // Se removeu da equipe alguém que estava como motorista, limpa ou passa para outro
       const updatedAllocs = prev.vehicleAllocations.map((alloc) => {
-        if (exists && alloc.driverId === memberId) {
+        if (existsNow && alloc.driverId === memberId) {
           return { ...alloc, driverId: newTeam[0] || '' };
         }
         return alloc;
@@ -811,13 +838,39 @@ export default function MissionModal({
   };
 
   // Botão rápido "Motorista" no card do colaborador: atribui à 1ª viatura sem motorista (ou alterna)
-  const handleToggleMemberAsDriver = (memberId) => {
+  const handleToggleMemberAsDriver = async (memberId) => {
+    const existingIndex = formData.vehicleAllocations.findIndex((a) => a.driverId === memberId);
+    if (existingIndex < 0) {
+      const member = members.find((m) => m.id === memberId);
+      if (member) {
+        const availCheck = checkMemberExtraHoursAvailability(
+          member,
+          formData.date,
+          formData.departureTime,
+          formData.returnTimeEstimated || formData.returnTime,
+          formData.isMultiDay,
+          formData.endDate
+        );
+        if (availCheck.isUnavailable) {
+          const proceed = await confirmDialog({
+            title: '🚫 Motorista Indisponível para Horas Extras',
+            message: `${member.name} declarou no Meu Espaço que NÃO estará disponível para atividades fora do expediente regular neste horário.`,
+            description: `Motivo informado: "${availCheck.reason}" (${availCheck.periodLabel || 'Período fora do expediente'}).\n\nDeseja escalar como condutor mesmo assim?`,
+            confirmText: 'Forçar Escalação',
+            cancelText: 'Cancelar',
+            variant: 'danger',
+          });
+          if (!proceed) return;
+        }
+      }
+    }
+
     setFormData((prev) => {
-      const existingIndex = prev.vehicleAllocations.findIndex((a) => a.driverId === memberId);
+      const existingIdx = prev.vehicleAllocations.findIndex((a) => a.driverId === memberId);
       const copy = [...prev.vehicleAllocations];
 
-      if (existingIndex >= 0) {
-        copy[existingIndex] = { ...copy[existingIndex], driverId: '' };
+      if (existingIdx >= 0) {
+        copy[existingIdx] = { ...copy[existingIdx], driverId: '' };
         return { ...prev, vehicleAllocations: copy };
       }
 
@@ -2761,12 +2814,20 @@ export default function MissionModal({
                         const isDriver = driverSlotIndex >= 0;
                         const memConflict = scheduleConflicts.memberConflicts[m.id];
                         const isHabilitado = Boolean(m.canDrive ?? m.hasCnh);
+                        const extraAvailCheck = checkMemberExtraHoursAvailability(
+                          m,
+                          formData.date,
+                          formData.departureTime,
+                          formData.returnTimeEstimated || formData.returnTime,
+                          formData.isMultiDay,
+                          formData.endDate
+                        );
 
                         return (
                           <div
                             key={m.id}
                             className={`mm-member-card ${isSelected ? 'selected' : ''} ${isDriver ? 'is-driver' : ''
-                              } ${memConflict ? 'has-conflict' : ''}`}
+                              } ${memConflict ? 'has-conflict' : ''} ${extraAvailCheck.isUnavailable ? 'has-extra-unavail' : ''}`}
                             onClick={() => toggleTeamMember(m.id)}
                           >
                             <div className="mm-member-card-body">
@@ -2808,6 +2869,16 @@ export default function MissionModal({
                                     </span>
                                   )}
                                 </div>
+
+                                {extraAvailCheck.isUnavailable && (
+                                  <div
+                                    className="mm-member-unavail-badge"
+                                    title={`Indisponível fora do expediente: ${extraAvailCheck.reason} (${extraAvailCheck.periodLabel || 'Fora do horário regular'})`}
+                                  >
+                                    <Ban size={11} />
+                                    <span>Indisponível p/ Horas Extras ({extraAvailCheck.reason})</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
 

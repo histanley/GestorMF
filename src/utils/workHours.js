@@ -149,3 +149,124 @@ export function getOffHoursWarningText(offHoursResult) {
   return `Atenção: Esta missão possui ${offHours}h fora do horário de expediente comercial (Seg a Sex após 18h, Sáb após 12h ou Dom o dia todo). As ${offHours} horas excedentes serão acrescidas automaticamente no banco de horas do colaborador com seus respectivos valores.`;
 }
 
+/**
+ * Formata data YYYY-MM-DD para DD/MM/AAAA
+ */
+function formatSimpleDateBR(dateStr) {
+  if (!dateStr) return '';
+  const parts = String(dateStr).split('-');
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return dateStr;
+}
+
+/**
+ * Avalia se um colaborador declarou indisponibilidade para horas extras
+ * e se a missão atual conflita com esse bloqueio.
+ */
+export function checkMemberExtraHoursAvailability(
+  member,
+  missionDate,
+  departureTime,
+  returnTime,
+  isMultiDay = false,
+  endDate = null
+) {
+  if (!member || !member.extraHoursAvailability) {
+    return { isUnavailable: false };
+  }
+
+  const {
+    status,
+    scope = 'always_offhours',
+    startDate,
+    startTime = '18:00',
+    endDate: unavailEndDate,
+    endTime = '23:59',
+    reason = '',
+    presetReason = '',
+  } = member.extraHoursAvailability;
+
+  // Se o colaborador está disponível, sem bloqueio
+  if (status !== 'unavailable') {
+    return { isUnavailable: false };
+  }
+
+  // Calcula se a missão proposta tem horas fora do expediente
+  const offHoursData = calculateMissionOffHours(
+    missionDate,
+    departureTime,
+    endDate,
+    returnTime,
+    isMultiDay
+  );
+
+  // Se a missão ocorre 100% no horário comercial normal, a indisponibilidade de hora extra não afeta
+  if (!offHoursData.isOffHours) {
+    return { isUnavailable: false };
+  }
+
+  const fullReason = reason || presetReason || 'Não disponível para horas extras fora do expediente';
+
+  // 1. Bloqueio Completo: Sempre indisponível para qualquer hora extra fora do expediente
+  if (scope === 'always_offhours') {
+    return {
+      isUnavailable: true,
+      scope: 'always_offhours',
+      reason: fullReason,
+      badgeText: '🚫 Indisponível p/ Horas Extras',
+      offHours: offHoursData.offHours,
+      periodLabel: 'Todo o período fora do expediente',
+    };
+  }
+
+  // 2. Bloqueio em Período Específico (Data e Horário)
+  if (scope === 'specific_period' && startDate && startTime) {
+    try {
+      const effEndDate = unavailEndDate || startDate;
+      const effEndTime = endTime || '23:59';
+
+      const [uy1, um1, ud1] = startDate.split('-').map(Number);
+      const [uh1, umin1] = startTime.split(':').map(Number);
+      const unavailStart = new Date(uy1, um1 - 1, ud1, uh1, umin1, 0, 0);
+
+      const [uy2, um2, ud2] = effEndDate.split('-').map(Number);
+      const [uh2, umin2] = effEndTime.split(':').map(Number);
+      const unavailEnd = new Date(uy2, um2 - 1, ud2, uh2, umin2, 0, 0);
+
+      if (missionDate && departureTime && returnTime) {
+        const [my1, mm1, md1] = missionDate.split('-').map(Number);
+        const [mh1, mmin1] = departureTime.split(':').map(Number);
+        const missionStart = new Date(my1, mm1 - 1, md1, mh1, mmin1, 0, 0);
+
+        const effMissionEndDate = (isMultiDay && endDate) ? endDate : missionDate;
+        const [my2, mm2, md2] = effMissionEndDate.split('-').map(Number);
+        const [mh2, mmin2] = returnTime.split(':').map(Number);
+        let missionEnd = new Date(my2, mm2 - 1, md2, mh2, mmin2, 0, 0);
+        if (missionEnd <= missionStart && missionDate === effMissionEndDate) {
+          missionEnd = new Date(my2, mm2 - 1, md2 + 1, mh2, mmin2, 0, 0);
+        }
+
+        // Checa se os intervalos se sobrepõem
+        const overlaps = (missionStart < unavailEnd) && (missionEnd > unavailStart);
+
+        if (overlaps) {
+          const periodLabel = `${formatSimpleDateBR(startDate)} ${startTime} até ${formatSimpleDateBR(effEndDate)} ${effEndTime}`;
+          return {
+            isUnavailable: true,
+            scope: 'specific_period',
+            reason: fullReason,
+            periodLabel,
+            badgeText: `🚫 Indisponível (${startTime} - ${effEndTime})`,
+            offHours: offHoursData.offHours,
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao checar intervalo de indisponibilidade:', e);
+    }
+  }
+
+  return { isUnavailable: false };
+}
+
+

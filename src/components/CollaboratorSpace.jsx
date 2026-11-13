@@ -27,6 +27,9 @@ import {
   Lock,
   AlertTriangle,
   Zap,
+  CalendarOff,
+  Ban,
+  HelpCircle,
 } from 'lucide-react';
 import {
   OFFICIAL_COMPANY_ROLES,
@@ -62,6 +65,7 @@ export default function CollaboratorSpace({
   closures = {},
   onReloadMissions = null,
   onUpdatePixKey = null,
+  onUpdateMember = null,
 }) {
   // Identifica o colaborador correspondente ao usuário logado
   const myMember = useMemo(() => {
@@ -84,6 +88,121 @@ export default function CollaboratorSpace({
   const [isEditingPix, setIsEditingPix] = useState(false);
   const [pixInput, setPixInput] = useState('');
   const [isSavingPix, setIsSavingPix] = useState(false);
+
+  // ============================================================================
+  // DISPONIBILIDADE DO COLABORADOR PARA HORAS EXTRAS FORA DO EXPEDIENTE
+  // ============================================================================
+  const curAvail = myMember?.extraHoursAvailability || { status: 'available' };
+  const isUnavailableNow = curAvail.status === 'unavailable';
+
+  const [isEditingAvail, setIsEditingAvail] = useState(false);
+  const [availScope, setAvailScope] = useState(curAvail.scope || 'always_offhours');
+  const [availStartDate, setAvailStartDate] = useState(curAvail.startDate || new Date().toISOString().slice(0, 10));
+  const [availStartTime, setAvailStartTime] = useState(curAvail.startTime || '18:00');
+  const [availEndDate, setAvailEndDate] = useState(curAvail.endDate || new Date().toISOString().slice(0, 10));
+  const [availEndTime, setAvailEndTime] = useState(curAvail.endTime || '23:59');
+  const [availPresetReason, setAvailPresetReason] = useState(curAvail.presetReason || 'Faculdade / Estudos');
+  const [availCustomReason, setAvailCustomReason] = useState(curAvail.reason || '');
+  const [isSavingAvail, setIsSavingAvail] = useState(false);
+
+  // Presets criativos e rápidos de justificativa
+  const PRESET_REASONS = [
+    { id: 'faculdade', icon: '🎓', label: 'Faculdade / Estudos', defaultText: 'Aulas ou provas presenciais no período noturno' },
+    { id: 'familia', icon: '👨‍👩‍👧', label: 'Compromisso Familiar', defaultText: 'Compromisso familiar particular inadiável' },
+    { id: 'saude', icon: '🩺', label: 'Consulta / Saúde', defaultText: 'Consulta médica ou tratamento de saúde programado' },
+    { id: 'transporte', icon: '🚗', label: 'Sem Transporte Noturno', defaultText: 'Sem condução / transporte público disponível fora do expediente' },
+    { id: 'descanso', icon: '🏃', label: 'Descanso / Limite Físico', defaultText: 'Descanso e recuperação física' },
+    { id: 'outro', icon: '✏️', label: 'Outro Motivo', defaultText: '' },
+  ];
+
+  const handleStartEditAvailability = () => {
+    setAvailScope(curAvail.scope || 'always_offhours');
+    setAvailStartDate(curAvail.startDate || new Date().toISOString().slice(0, 10));
+    setAvailStartTime(curAvail.startTime || '18:00');
+    setAvailEndDate(curAvail.endDate || new Date().toISOString().slice(0, 10));
+    setAvailEndTime(curAvail.endTime || '23:59');
+    setAvailPresetReason(curAvail.presetReason || 'Faculdade / Estudos');
+    setAvailCustomReason(curAvail.reason || '');
+    setIsEditingAvail(true);
+  };
+
+  const handleMakeAvailable = async () => {
+    setIsSavingAvail(true);
+    try {
+      const updatedMember = {
+        ...myMember,
+        extraHoursAvailability: {
+          status: 'available',
+          scope: 'always_offhours',
+          updatedAt: new Date().toISOString(),
+        },
+      };
+      if (onUpdateMember) {
+        await onUpdateMember(updatedMember);
+      }
+      setIsEditingAvail(false);
+      await alertDialog({
+        title: '✅ Disponibilidade Atualizada',
+        message: 'Você voltou a ficar disponível para horas extras! Os administradores poderão contar com você para escalas fora do expediente regular.',
+        variant: 'success',
+      });
+    } catch (e) {
+      await alertDialog({
+        title: 'Erro ao Atualizar',
+        message: 'Não foi possível atualizar sua disponibilidade no momento.',
+        variant: 'danger',
+      });
+    } finally {
+      setIsSavingAvail(false);
+    }
+  };
+
+  const handleSaveUnavailable = async () => {
+    const finalReason = availCustomReason.trim() || availPresetReason;
+    if (!finalReason) {
+      await alertDialog({
+        title: 'Motivo Obrigatório',
+        message: 'Por favor, informe uma justificativa ou selecione um dos motivos rápidos para que a gestão compreenda sua indisponibilidade.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    setIsSavingAvail(true);
+    try {
+      const updatedMember = {
+        ...myMember,
+        extraHoursAvailability: {
+          status: 'unavailable',
+          scope: availScope,
+          startDate: availStartDate,
+          startTime: availStartTime,
+          endDate: availEndDate,
+          endTime: availEndTime,
+          presetReason: availPresetReason,
+          reason: finalReason,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+      if (onUpdateMember) {
+        await onUpdateMember(updatedMember);
+      }
+      setIsEditingAvail(false);
+      await alertDialog({
+        title: '🚫 Indisponibilidade Registrada',
+        message: 'Sua indisponibilidade para horas extras foi registrada! Os administradores serão alertados na lista de colaboradores ao criar missões fora do expediente.',
+        variant: 'info',
+      });
+    } catch (e) {
+      await alertDialog({
+        title: 'Erro ao Salvar',
+        message: 'Não foi possível salvar sua indisponibilidade no momento.',
+        variant: 'danger',
+      });
+    } finally {
+      setIsSavingAvail(false);
+    }
+  };
 
   // Modal / Form de Solicitação de Horas Extras Adicionais
   const [requestModalMission, setRequestModalMission] = useState(null);
@@ -612,7 +731,269 @@ export default function CollaboratorSpace({
       </div>
 
       {/* ============================================================== */}
-      {/* 4. MISSÕES ATIVAS COM SOLICITAÇÃO DE HORAS EXTRAS              */}
+      {/* 4. DISPONIBILIDADE DO COLABORADOR PARA HORAS EXTRAS            */}
+      {/* ============================================================== */}
+      <div className="cs-section-block cs-availability-block">
+        <div className="cs-section-header-row">
+          <h3 className="cs-section-heading">
+            <Shield size={18} className="text-amber" />
+            Minha Disponibilidade para Horas Extras &amp; Fora do Expediente
+          </h3>
+          <span className="cs-section-header-sub">
+            Sinalize aos administradores se você estará disponível para escalas fora do horário comercial
+          </span>
+        </div>
+
+        {!isEditingAvail ? (
+          // VISUALIZAÇÃO ATUAL DO STATUS DE DISPONIBILIDADE
+          <div className={`cs-avail-status-card ${isUnavailableNow ? 'is-blocked' : 'is-ready'}`}>
+            <div className="cs-avail-status-left">
+              <div className={`cs-avail-icon-circle ${isUnavailableNow ? 'icon-blocked' : 'icon-ready'}`}>
+                {isUnavailableNow ? <Ban size={24} /> : <CheckCircle2 size={24} />}
+              </div>
+              <div className="cs-avail-status-info">
+                <div className="cs-avail-status-tag-row">
+                  <span className={`cs-avail-status-pill ${isUnavailableNow ? 'pill-blocked' : 'pill-ready'}`}>
+                    {isUnavailableNow ? '🚫 INDISPONÍVEL PARA HORAS EXTRAS' : '🟢 DISPONÍVEL PARA HORAS EXTRAS'}
+                  </span>
+                  {isUnavailableNow && (
+                    <span className="cs-avail-scope-badge">
+                      {curAvail.scope === 'specific_period'
+                        ? `📅 Período: ${formatDateBR(curAvail.startDate)} ${curAvail.startTime || '18:00'} às ${formatDateBR(curAvail.endDate || curAvail.startDate)} ${curAvail.endTime || '23:59'}`
+                        : '🌙 Todo o período fora do expediente'}
+                    </span>
+                  )}
+                </div>
+
+                <h4 className="cs-avail-headline">
+                  {isUnavailableNow
+                    ? 'Você informou que não estará disponível para horas extras.'
+                    : 'Você está disponível para missões fora do expediente regular.'}
+                </h4>
+
+                <p className="cs-avail-desc">
+                  {isUnavailableNow ? (
+                    <>
+                      <strong>Motivo informado à gestão:</strong> "{curAvail.reason || curAvail.presetReason || 'Compromisso particular'}"
+                      <br />
+                      <span className="cs-avail-hint-text">
+                        ℹ️ Os administradores verão seu aviso de indisponibilidade na lista de colaboradores ao planejar missões com horas extras.
+                      </span>
+                    </>
+                  ) : (
+                    'Os administradores podem contar com você para escalas noturnas, fins de semana ou horas extras estendidas quando houver necessidade na empresa.'
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="cs-avail-status-actions">
+              {isUnavailableNow ? (
+                <>
+                  <button
+                    type="button"
+                    className="cs-btn-avail-toggle ready-btn"
+                    onClick={handleMakeAvailable}
+                    disabled={isSavingAvail}
+                    title="Voltar a ficar disponível para horas extras"
+                  >
+                    <CheckCircle2 size={15} />
+                    <span>Voltar a Ficar Disponível</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="cs-btn-avail-edit"
+                    onClick={handleStartEditAvailability}
+                    title="Alterar período ou motivo da indisponibilidade"
+                  >
+                    <Edit2 size={13} />
+                    <span>Alterar Período / Motivo</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="cs-btn-avail-toggle block-btn"
+                  onClick={handleStartEditAvailability}
+                  title="Declarar que não poderá fazer horas extras"
+                >
+                  <Ban size={15} />
+                  <span>Declarar Indisponibilidade</span>
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          // FORMULÁRIO INTERATIVO DE DECLARAÇÃO DE INDISPONIBILIDADE
+          <div className="cs-avail-edit-card">
+            <div className="cs-avail-edit-header">
+              <div className="cs-avail-edit-title-group">
+                <CalendarOff size={20} className="text-amber" />
+                <div>
+                  <h4 className="cs-avail-edit-title">Informar Indisponibilidade para Horas Extras</h4>
+                  <p className="cs-avail-edit-subtitle">
+                    Defina o período e o motivo para que a gestão não conte com você em escalas fora do expediente.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="cs-btn-close-edit"
+                onClick={() => setIsEditingAvail(false)}
+                title="Fechar formulário"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="cs-avail-edit-form">
+              {/* 1. Escolha da Abrangência */}
+              <div className="cs-avail-form-group">
+                <label className="cs-avail-form-label">
+                  1. Qual é o período em que você NÃO estará disponível?
+                </label>
+                <div className="cs-avail-scope-choices">
+                  <button
+                    type="button"
+                    className={`cs-avail-scope-choice-btn ${availScope === 'always_offhours' ? 'active' : ''}`}
+                    onClick={() => setAvailScope('always_offhours')}
+                  >
+                    <div className="cs-scope-choice-header">
+                      <span className="cs-scope-icon">🌙</span>
+                      <strong>Todo o Período Fora do Expediente</strong>
+                    </div>
+                    <span className="cs-scope-choice-desc">
+                      Seg a Sex após 18h / antes das 8h, Sábados após 12h e Domingos inteiros.
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`cs-avail-scope-choice-btn ${availScope === 'specific_period' ? 'active' : ''}`}
+                    onClick={() => setAvailScope('specific_period')}
+                  >
+                    <div className="cs-scope-choice-header">
+                      <span className="cs-scope-icon">⏱️</span>
+                      <strong>Em Data e Horário Específico</strong>
+                    </div>
+                    <span className="cs-scope-choice-desc">
+                      Apenas em um momento determinado (ex: hoje à noite, fim de semana ou dia específico).
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Se for período específico: seletores de data e hora */}
+              {availScope === 'specific_period' && (
+                <div className="cs-avail-period-grid">
+                  <div className="cs-avail-datetime-field">
+                    <label className="cs-avail-mini-lbl">Data de Início:</label>
+                    <input
+                      type="date"
+                      value={availStartDate}
+                      onChange={(e) => setAvailStartDate(e.target.value)}
+                      className="cs-avail-input"
+                    />
+                  </div>
+
+                  <div className="cs-avail-datetime-field">
+                    <label className="cs-avail-mini-lbl">A partir das (Hora):</label>
+                    <input
+                      type="time"
+                      value={availStartTime}
+                      onChange={(e) => setAvailStartTime(e.target.value)}
+                      className="cs-avail-input"
+                    />
+                  </div>
+
+                  <div className="cs-avail-datetime-field">
+                    <label className="cs-avail-mini-lbl">Data de Término:</label>
+                    <input
+                      type="date"
+                      value={availEndDate}
+                      onChange={(e) => setAvailEndDate(e.target.value)}
+                      className="cs-avail-input"
+                    />
+                  </div>
+
+                  <div className="cs-avail-datetime-field">
+                    <label className="cs-avail-mini-lbl">Até às (Hora):</label>
+                    <input
+                      type="time"
+                      value={availEndTime}
+                      onChange={(e) => setAvailEndTime(e.target.value)}
+                      className="cs-avail-input"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Motivo da Indisponibilidade */}
+              <div className="cs-avail-form-group">
+                <label className="cs-avail-form-label">
+                  2. Motivo da Indisponibilidade (Selecione uma opção rápida ou personalize):
+                </label>
+                <div className="cs-avail-preset-chips">
+                  {PRESET_REASONS.map((preset) => {
+                    const isSel = availPresetReason === preset.label;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        className={`cs-avail-preset-btn ${isSel ? 'selected' : ''}`}
+                        onClick={() => {
+                          setAvailPresetReason(preset.label);
+                          if (preset.defaultText && !availCustomReason.trim()) {
+                            setAvailCustomReason(preset.defaultText);
+                          }
+                        }}
+                      >
+                        <span>{preset.icon}</span>
+                        <span>{preset.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="cs-avail-textarea-wrap">
+                  <textarea
+                    rows={2}
+                    value={availCustomReason}
+                    onChange={(e) => setAvailCustomReason(e.target.value)}
+                    placeholder="Descreva o motivo ou detalhe seu compromisso para os administradores (ex: Prova da faculdade das 19h às 22h, compromisso familiar, etc.)..."
+                    className="cs-avail-textarea"
+                  />
+                </div>
+              </div>
+
+              {/* Botões do Formulário */}
+              <div className="cs-avail-form-actions">
+                <button
+                  type="button"
+                  className="cs-btn-cancel-edit"
+                  onClick={() => setIsEditingAvail(false)}
+                  disabled={isSavingAvail}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  className="cs-btn-submit-avail"
+                  onClick={handleSaveUnavailable}
+                  disabled={isSavingAvail}
+                >
+                  <Ban size={15} />
+                  <span>{isSavingAvail ? 'Gravando...' : 'Confirmar Indisponibilidade'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ============================================================== */}
+      {/* 5. MISSÕES ATIVAS COM SOLICITAÇÃO DE HORAS EXTRAS              */}
       {/* ============================================================== */}
       <div className="cs-section-block">
         {/* Banner de Urgência em Destaque no Topo quando uma missão estiver na reta final */}
