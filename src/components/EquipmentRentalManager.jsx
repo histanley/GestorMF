@@ -540,39 +540,70 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     <div className="equipment-rental-manager">
       {/* 1. Header do Módulo de Aluguel */}
       <div className="erm-header">
+        <div className="erm-header-glow-orb" />
         <div className="erm-header-main">
           <div className="erm-badge">
-            <Camera size={14} /> GESTÃO DE ESTOQUE &amp; LOCAÇÕES EXTERNAS
+            <span className="erm-badge-dot" />
+            <Camera size={13} />
+            <span>Gestão de Estoque &amp; Locações Externas</span>
           </div>
-          <h1 className="erm-title">Aluguel de Equipamentos MegaFilmes</h1>
+          <h1 className="erm-title">
+            Aluguel de Equipamentos <span className="erm-title-gradient">MegaFilmes</span>
+          </h1>
           <p className="erm-desc">
-            Controle de inventário em tempo real, geração automatizada de contratos e termos de responsabilidade, acompanhamento de prazos e check-in de devoluções.
+            Controle de inventário em tempo real, geração automatizada de contratos e acompanhamento de locações externas.
           </p>
         </div>
 
         {/* Strip de Indicadores Rápidos */}
         <div className="erm-kpi-strip">
-          <div className="erm-kpi-card">
-            <span className="erm-kpi-val text-gold">{kpiStats.totalUnits}</span>
-            <span className="erm-kpi-lbl">Total no Inventário</span>
+          <div className="erm-kpi-card kpi-total">
+            <div className="erm-kpi-top">
+              <div className="erm-kpi-icon-wrap icon-gold">
+                <Package size={15} />
+              </div>
+              <span className="erm-kpi-lbl">Total Acervo</span>
+            </div>
+            <div className="erm-kpi-val text-gold">{kpiStats.totalUnits}</div>
+            <span className="erm-kpi-sub">unidades no catálogo</span>
           </div>
 
-          <div className="erm-kpi-card">
-            <span className="erm-kpi-val text-emerald">{kpiStats.availableUnits}</span>
-            <span className="erm-kpi-lbl">Disponíveis</span>
+          <div className="erm-kpi-card kpi-available">
+            <div className="erm-kpi-top">
+              <div className="erm-kpi-icon-wrap icon-emerald">
+                <CheckCircle2 size={15} />
+              </div>
+              <span className="erm-kpi-lbl">Disponíveis</span>
+            </div>
+            <div className="erm-kpi-val text-emerald">{kpiStats.availableUnits}</div>
+            <span className="erm-kpi-sub">prontos para locação</span>
           </div>
 
-          <div className={`erm-kpi-card ${kpiStats.rentedUnits > 0 ? 'card-rented-highlight' : ''}`}>
-            <span className="erm-kpi-val text-cyan">{kpiStats.rentedUnits}</span>
-            <span className="erm-kpi-lbl">Em Locação</span>
+          <div className={`erm-kpi-card kpi-rented ${kpiStats.rentedUnits > 0 ? 'card-rented-highlight' : ''}`}>
+            <div className="erm-kpi-top">
+              <div className="erm-kpi-icon-wrap icon-cyan">
+                <Clock size={15} />
+              </div>
+              <span className="erm-kpi-lbl">Em Locação</span>
+            </div>
+            <div className="erm-kpi-val text-cyan">{kpiStats.rentedUnits}</div>
+            <span className="erm-kpi-sub">fora da sede</span>
           </div>
 
-          <div className={`erm-kpi-card ${kpiStats.overdueCount > 0 ? 'card-overdue-pulse' : ''}`}>
-            <span className={`erm-kpi-val ${kpiStats.overdueCount > 0 ? 'text-red' : 'text-amber'}`}>
+          <div className={`erm-kpi-card kpi-contracts ${kpiStats.overdueCount > 0 ? 'card-overdue-pulse' : ''}`}>
+            <div className="erm-kpi-top">
+              <div className={`erm-kpi-icon-wrap ${kpiStats.overdueCount > 0 ? 'icon-red' : 'icon-amber'}`}>
+                <FileText size={15} />
+              </div>
+              <span className="erm-kpi-lbl">
+                {kpiStats.overdueCount > 0 ? 'Atrasadas' : 'Locações Ativas'}
+              </span>
+            </div>
+            <div className={`erm-kpi-val ${kpiStats.overdueCount > 0 ? 'text-red' : 'text-amber'}`}>
               {kpiStats.activeRentalsCount}
-            </span>
-            <span className="erm-kpi-lbl">
-              {kpiStats.overdueCount > 0 ? `🚨 ${kpiStats.overdueCount} Atrasada(s)` : 'Locações Ativas'}
+            </div>
+            <span className="erm-kpi-sub">
+              {kpiStats.overdueCount > 0 ? `🚨 ${kpiStats.overdueCount} em atraso` : 'contratos em curso'}
             </span>
           </div>
         </div>

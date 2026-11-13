@@ -34918,49 +34918,89 @@ body.light-theme .kpi-card.kpi-red {
 /* 2. Cabeçalho do Módulo & KPIs */
 .erm-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
   padding: 24px 28px;
-  background: linear-gradient(135deg, rgba(22, 32, 54, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 18px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(135deg, rgba(20, 29, 47, 0.95) 0%, rgba(13, 19, 33, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.erm-header-glow-orb {
+  position: absolute;
+  top: -60px;
+  left: -40px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .erm-header-main {
   flex: 1 1 380px;
+  position: relative;
+  z-index: 2;
 }
 
 .erm-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.08) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.35);
   color: #fbbf24;
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+.erm-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  display: inline-block;
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
 }
 
 .erm-title {
-  font-size: 1.7rem;
-  font-weight: 800;
+  font-size: 1.85rem;
+  font-weight: 900;
   color: #ffffff;
-  margin: 0 0 6px 0;
-  letter-spacing: -0.02em;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.erm-title-gradient {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 60%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
 }
 
 .erm-desc {
-  font-size: 0.86rem;
-  color: var(--text-secondary, #94a3b8);
+  font-size: 0.88rem;
+  color: #94a3b8;
   margin: 0;
-  max-width: 680px;
+  max-width: 620px;
   line-height: 1.5;
 }
 
@@ -34968,32 +35008,98 @@ body.light-theme .kpi-card.kpi-red {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 2;
 }
 
 .erm-kpi-card {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 12px 18px;
-  min-width: 110px;
-  transition: all 0.2s ease;
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  padding: 14px 18px;
+  min-width: 135px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  backdrop-filter: blur(8px);
 }
 
-.erm-kpi-val {
-  font-size: 1.55rem;
-  font-weight: 900;
-  line-height: 1.1;
+.erm-kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.erm-kpi-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.erm-kpi-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-gold {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.icon-emerald {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.icon-cyan {
+  background: rgba(6, 182, 212, 0.15);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.icon-amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.icon-red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .erm-kpi-lbl {
   font-size: 0.72rem;
-  color: var(--text-muted, #64748b);
+  color: #94a3b8;
   font-weight: 700;
   text-transform: uppercase;
-  margin-top: 4px;
+  letter-spacing: 0.04em;
+}
+
+.erm-kpi-val {
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 2px;
+}
+
+.erm-kpi-sub {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .card-overdue-pulse {
@@ -37117,4 +37223,148 @@ body.light-theme .equip-desc,
 body.light-theme .equip-stock-info,
 [data-theme="light"] .equip-stock-info {
   color: #475569 !important;
+}
+
+/* Light Theme para o Header e KPIs de Aluguel */
+body.light-theme .erm-header,
+[data-theme="light"] .erm-header {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+body.light-theme .erm-header-glow-orb,
+[data-theme="light"] .erm-header-glow-orb {
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, transparent 70%) !important;
+}
+
+body.light-theme .erm-title-gradient,
+[data-theme="light"] .erm-title-gradient {
+  background: linear-gradient(135deg, #b45309 0%, #d97706 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+body.light-theme .erm-badge,
+[data-theme="light"] .erm-badge {
+  background: #fef3c7 !important;
+  border-color: #fde68a !important;
+  color: #b45309 !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1) !important;
+}
+
+body.light-theme .erm-kpi-card,
+[data-theme="light"] .erm-kpi-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-theme .erm-kpi-card:hover,
+[data-theme="light"] .erm-kpi-card:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08) !important;
+}
+
+body.light-theme .erm-kpi-lbl,
+[data-theme="light"] .erm-kpi-lbl {
+  color: #64748b !important;
+}
+
+body.light-theme .erm-kpi-sub,
+[data-theme="light"] .erm-kpi-sub {
+  color: #94a3b8 !important;
+}
+
+body.light-theme .icon-gold,
+[data-theme="light"] .icon-gold {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+
+body.light-theme .icon-emerald,
+[data-theme="light"] .icon-emerald {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  border-color: #bbf7d0 !important;
+}
+
+body.light-theme .icon-cyan,
+[data-theme="light"] .icon-cyan {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border-color: #bae6fd !important;
+}
+
+body.light-theme .icon-amber,
+[data-theme="light"] .icon-amber {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+
+body.light-theme .erm-kpi-val.text-gold,
+[data-theme="light"] .erm-kpi-val.text-gold {
+  color: #b45309 !important;
+}
+
+body.light-theme .erm-kpi-val.text-emerald,
+[data-theme="light"] .erm-kpi-val.text-emerald {
+  color: #15803d !important;
+}
+
+body.light-theme .erm-kpi-val.text-cyan,
+[data-theme="light"] .erm-kpi-val.text-cyan {
+  color: #0369a1 !important;
+}
+
+body.light-theme .erm-kpi-val.text-amber,
+[data-theme="light"] .erm-kpi-val.text-amber {
+  color: #b45309 !important;
+}
+
+/* Responsividade do Header de Aluguel */
+@media (max-width: 900px) {
+  .erm-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 18px 20px;
+    gap: 18px;
+  }
+
+  .erm-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+    gap: 10px;
+  }
+
+  .erm-kpi-card {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .erm-header {
+    padding: 16px 14px;
+    border-radius: 14px;
+  }
+
+  .erm-title {
+    font-size: 1.45rem;
+  }
+
+  .erm-kpi-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .erm-kpi-card {
+    padding: 10px 12px;
+  }
+
+  .erm-kpi-val {
+    font-size: 1.4rem;
+  }
 }
