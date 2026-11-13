@@ -119,6 +119,7 @@ export default function TeamManager({
   missions = [],
   roles = [],
   userRole = 'admin',
+  currentUser = null,
   onAddMember,
   onUpdateMember,
   onDeleteMember,
@@ -126,9 +127,11 @@ export default function TeamManager({
   onUpdateRole,
   onDeleteRole,
 }) {
-  const canAddMember = userRole === 'admin';
-  const canEditMember = userRole === 'admin';
-  const canDeleteMember = userRole === 'admin';
+  const effectiveRole = String(userRole || '').trim().toLowerCase();
+  const isAdmin = effectiveRole === 'admin' || effectiveRole === 'administrador';
+  const canAddMember = isAdmin;
+  const canEditMember = isAdmin;
+  const canDeleteMember = isAdmin;
   // ---- Estados dos Modais ----
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [showRolesModal, setShowRolesModal] = useState(false);
@@ -153,6 +156,13 @@ export default function TeamManager({
   const [systemUsers, setSystemUsers] = useState([]);
   const [showAddAdminModal, setShowAddAdminModal] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
+
+  // Segurança de Interface: Se o usuário logado não for Administrador, força subview de campo
+  useEffect(() => {
+    if (!isAdmin && teamSubView === 'admins') {
+      setTeamSubView('field');
+    }
+  }, [isAdmin, teamSubView]);
   const [adminFormData, setAdminFormData] = useState({
     name: '',
     email: '',
@@ -192,6 +202,10 @@ export default function TeamManager({
   };
 
   const loadSystemUsers = async () => {
+    if (!isAdmin) {
+      setSystemUsers([]);
+      return;
+    }
     try {
       const res = await apiListUsers();
       if (res.success && Array.isArray(res.users)) {
@@ -203,8 +217,10 @@ export default function TeamManager({
   };
 
   useEffect(() => {
-    loadSystemUsers();
-  }, [accountsVersion]);
+    if (isAdmin) {
+      loadSystemUsers();
+    }
+  }, [accountsVersion, isAdmin]);
 
   // Polling em tempo real das posições GPS dos colaboradores
   const [activeGpsMap, setActiveGpsMap] = useState({});
@@ -247,6 +263,7 @@ export default function TeamManager({
   });
 
   const adminUsers = useMemo(() => {
+    if (!isAdmin) return [];
     const map = new Map();
 
     (systemUsers || []).forEach((u) => {
@@ -259,7 +276,7 @@ export default function TeamManager({
     });
 
     // Se o usuário atualmente logado for administrador, garante que esteja na lista
-    const logged = getCurrentUser();
+    const logged = currentUser || getCurrentUser();
     if (logged && normalizeRole(logged.role) === ROLES.ADMIN && logged.email) {
       const loggedEmail = logged.email.toLowerCase();
       map.set(loggedEmail, { ...(map.get(loggedEmail) || {}), ...logged });
@@ -271,10 +288,18 @@ export default function TeamManager({
     });
 
     return Array.from(map.values());
-  }, [systemUsers, deletedAdminEmails]);
+  }, [systemUsers, deletedAdminEmails, isAdmin, currentUser]);
 
   // Upload e Atualização Direta de Foto de Administrador
   const handleAdminPhotoClick = (admin) => {
+    if (!isAdmin) {
+      alertDialog({
+        title: 'Acesso Negado',
+        message: 'Apenas Administradores do Sistema têm permissão para alterar fotos de administradores.',
+        variant: 'warning',
+      });
+      return;
+    }
     setTargetAdminForPhoto(admin);
     adminPhotoInputRef.current?.click();
   };
@@ -317,7 +342,15 @@ export default function TeamManager({
 
   // Exclusão de Administrador por outro Administrador
   const handleDeleteAdminClick = async (admin) => {
-    const current = getCurrentUser();
+    if (!isAdmin) {
+      await alertDialog({
+        title: 'Acesso Negado',
+        message: 'Apenas Administradores do Sistema têm permissão para excluir contas de administrador.',
+        variant: 'danger',
+      });
+      return;
+    }
+    const current = currentUser || getCurrentUser();
     if (current && (current.id === admin.id || current.email?.toLowerCase() === admin.email?.toLowerCase())) {
       await alertDialog({
         title: 'Operação de Segurança',
@@ -339,6 +372,14 @@ export default function TeamManager({
 
   const handleConfirmDeleteAdmin = async () => {
     if (!adminToDelete) return;
+    if (!isAdmin) {
+      await alertDialog({
+        title: 'Acesso Negado',
+        message: 'Apenas Administradores do Sistema têm permissão para excluir contas de administrador.',
+        variant: 'danger',
+      });
+      return;
+    }
     setIsDeletingAdmin(true);
     try {
       const res = await apiDeleteUser(adminToDelete.id);
@@ -369,6 +410,14 @@ export default function TeamManager({
 
   // Edição de Dados do Administrador (Nome, Cargo, Departamento, Telefone)
   const handleOpenEditAdmin = (admin) => {
+    if (!isAdmin) {
+      alertDialog({
+        title: 'Acesso Negado',
+        message: 'Apenas Administradores do Sistema têm permissão para editar outros administradores.',
+        variant: 'warning',
+      });
+      return;
+    }
     setAdminToEdit(admin);
     setAdminEditForm({
       name: admin.name || '',
@@ -381,6 +430,14 @@ export default function TeamManager({
   const handleSaveEditAdmin = async (e) => {
     e.preventDefault();
     if (!adminToEdit) return;
+    if (!isAdmin) {
+      await alertDialog({
+        title: 'Acesso Negado',
+        message: 'Apenas Administradores do Sistema têm permissão para salvar alterações de administradores.',
+        variant: 'danger',
+      });
+      return;
+    }
     setAdminEditSaving(true);
     try {
       const res = await apiUpdateUser(adminToEdit.id, adminEditForm);
@@ -394,7 +451,7 @@ export default function TeamManager({
       );
       setSystemUsers(updatedList);
 
-      const current = getCurrentUser();
+      const current = currentUser || getCurrentUser();
       if (current && (current.id === adminToEdit.id || current.email?.toLowerCase() === adminToEdit.email?.toLowerCase())) {
         const updatedCurrent = { ...current, ...adminEditForm };
         localStorage.setItem('gestormf_current_user', JSON.stringify(updatedCurrent));
@@ -430,6 +487,11 @@ export default function TeamManager({
   const handleCreateAdmin = async (e) => {
     e.preventDefault();
     setAdminError('');
+
+    if (!isAdmin) {
+      setAdminError('Apenas Administradores do Sistema têm permissão para cadastrar novos administradores.');
+      return;
+    }
 
     if (!adminFormData.name.trim() || !adminFormData.email.trim() || !adminFormData.password) {
       setAdminError('Preencha nome, e-mail e senha de acesso.');
@@ -829,78 +891,80 @@ export default function TeamManager({
       <div className="board-header">
         <div>
           <div className="board-badge">
-            {teamSubView === 'field'
+            {teamSubView === 'field' || !isAdmin
               ? 'EQUIPES & PROFISSIONAIS'
               : 'DIRETORIA & TI'}
           </div>
           <h1 className="board-main-title">
-            {teamSubView === 'field'
+            {teamSubView === 'field' || !isAdmin
               ? 'Membros e Equipes de Campo'
               : 'Administradores do Sistema'}
           </h1>
           <p className="board-subtitle">
-            {teamSubView === 'field'
+            {teamSubView === 'field' || !isAdmin
               ? 'Organização de diretores, cinegrafistas, pilotos de drone, editores e técnicos de campo'
               : 'Usuários com acesso total às configurações, gestão de frotas e controle geral da plataforma'}
           </p>
         </div>
 
         <div className="team-header-actions">
-          {teamSubView === 'field' ? (
+          {teamSubView === 'field' || !isAdmin ? (
             <>
-              <button className="btn-secondary" onClick={() => setShowRolesModal(true)}>
-                <Settings2 size={15} /> Gerenciar Funções
-              </button>
+              {isAdmin && (
+                <button className="btn-secondary" onClick={() => setShowRolesModal(true)}>
+                  <Settings2 size={15} /> Gerenciar Funções
+                </button>
+              )}
               {canAddMember && (
                 <button className="btn-primary" onClick={handleOpenAdd}>
                   <UserPlus size={16} /> Novo Colaborador
                 </button>
               )}
             </>
-          ) : teamSubView === 'admins' ? (
-            canAddMember && (
-              <button
-                className="btn-primary"
-                onClick={() => {
-                  setAdminError('');
-                  setShowAddAdminModal(true);
-                }}
-              >
-                <Shield size={16} /> Novo Administrador
-              </button>
-            )
+          ) : teamSubView === 'admins' && isAdmin ? (
+            <button
+              className="btn-primary"
+              onClick={() => {
+                setAdminError('');
+                setShowAddAdminModal(true);
+              }}
+            >
+              <Shield size={16} /> Novo Administrador
+            </button>
           ) : null}
         </div>
       </div>
 
-      {/* ---- Seletor de Subvisão: Equipes vs Administradores vs Ranking ---- */}
-      <div className="team-segmented-wrap">
-        <div className="team-segmented-pill">
-          <button
-            type="button"
-            className={`team-seg-btn ${teamSubView === 'field' ? 'is-active' : ''}`}
-            onClick={() => setTeamSubView('field')}
-          >
-            <Users size={16} />
-            <span className="seg-label">Equipes de Campo / Missões</span>
-            <span className="seg-counter">{members.length}</span>
-          </button>
+      {/* ---- Seletor de Subvisão: Equipes vs Administradores ---- */}
+      {isAdmin && (
+        <div className="team-segmented-wrap">
+          <div className="team-segmented-pill">
+            <button
+              type="button"
+              className={`team-seg-btn ${teamSubView === 'field' ? 'is-active' : ''}`}
+              onClick={() => setTeamSubView('field')}
+            >
+              <Users size={16} />
+              <span className="seg-label">Equipes de Campo / Missões</span>
+              <span className="seg-counter">{members.length}</span>
+            </button>
 
-          <button
-            type="button"
-            className={`team-seg-btn ${teamSubView === 'admins' ? 'is-active' : ''}`}
-            onClick={() => setTeamSubView('admins')}
-          >
-            <Shield size={16} />
-            <span className="seg-label">Administradores do Sistema</span>
-            <span className="seg-counter admin-count">{adminUsers.length}</span>
-          </button>
+            <button
+              type="button"
+              className={`team-seg-btn ${teamSubView === 'admins' ? 'is-active' : ''}`}
+              onClick={() => setTeamSubView('admins')}
+            >
+              <Shield size={16} />
+              <span className="seg-label">Administradores do Sistema</span>
+              <span className="seg-counter admin-count">{adminUsers.length}</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ---- Conteúdo da Subvisão (Equipes de Campo vs Administradores) ---- */}
       <>
-        {teamSubView === 'field' ? (
+        {teamSubView === 'field' || !isAdmin ? (
         <div className="fleet-kpi-grid team-kpi-grid">
           <div className="kpi-card kpi-gold">
             <div className="kpi-icon-box bg-gold">
@@ -989,7 +1053,7 @@ export default function TeamManager({
       )}
 
       {/* ---- Conteúdo da Visão Selecionada ---- */}
-      {teamSubView === 'field' ? (
+      {teamSubView === 'field' || !isAdmin ? (
         members.length === 0 ? (
           <div className="team-empty-state-showcase">
             <div className="tes-icon-circle">
@@ -1184,7 +1248,7 @@ export default function TeamManager({
             );
           })}
         </div>
-      )) : (
+      )) : isAdmin ? (
         /* ---- Seção de Administradores do Sistema ---- */
         <div className="admin-section-wrap">
           <div className="admin-explainer-banner">
@@ -1372,7 +1436,7 @@ export default function TeamManager({
             })}
           </div>
         </div>
-      )}
+      ) : null}
       </>
 
       {/* Input oculto para troca rápida de foto de membro de campo */}
@@ -1385,18 +1449,20 @@ export default function TeamManager({
       />
 
       {/* Input oculto para troca de foto de administrador */}
-      <input
-        ref={adminPhotoInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={handleAdminPhotoChange}
-      />
+      {isAdmin && (
+        <input
+          ref={adminPhotoInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleAdminPhotoChange}
+        />
+      )}
 
       {/* =============================================================== */}
       {/* Modal de Confirmação de Exclusão de Administrador               */}
       {/* =============================================================== */}
-      {adminToDelete && (
+      {adminToDelete && isAdmin && (
         <div className="modal-overlay" style={{ zIndex: 9999 }}>
           <div className="modal-box danger-modal-box" style={{ maxWidth: '480px' }}>
             <div className="modal-header danger-header">
@@ -1452,7 +1518,7 @@ export default function TeamManager({
       {/* =============================================================== */}
       {/* Modal de Edição de Dados do Administrador                       */}
       {/* =============================================================== */}
-      {adminToEdit && (
+      {adminToEdit && isAdmin && (
         <div className="modal-overlay" style={{ zIndex: 9999 }}>
           <div className="modal-box" style={{ maxWidth: '520px' }}>
             <div className="modal-header">
@@ -2121,7 +2187,7 @@ export default function TeamManager({
       {/* =============================================================== */}
       {/* Modal de Cadastro de Novo Administrador                         */}
       {/* =============================================================== */}
-      {showAddAdminModal && (
+      {showAddAdminModal && isAdmin && (
         <div className="modal-overlay">
           <div className="modal-box" style={{ maxWidth: '520px' }}>
             <div className="modal-header">

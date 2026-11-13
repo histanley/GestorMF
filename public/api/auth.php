@@ -267,6 +267,14 @@ if ($method === 'POST' && $action === 'update_avatar') {
         jsonResponse(['success' => false, 'error' => 'Apenas Administradores podem alterar a foto de outros usuários.'], 403);
     }
 
+    // Impede que não-ADMIN altere foto de conta ADMIN
+    $targetStmt = $db->prepare("SELECT role FROM users WHERE id = ?");
+    $targetStmt->execute([$targetUserId]);
+    $targetUserRole = $targetStmt->fetchColumn();
+    if ($targetUserRole === 'ADMIN' && $auth['role'] !== 'ADMIN') {
+        jsonResponse(['success' => false, 'error' => 'Gestores não têm permissão para alterar a foto de Administradores.'], 403);
+    }
+
     $db->prepare("UPDATE users SET avatar = ? WHERE id = ?")->execute([$avatar, $targetUserId]);
     $db->prepare("UPDATE members SET photo_url = ? WHERE user_id = ?")->execute([$avatar, $targetUserId]);
     bumpSyncVersion("members");
@@ -330,7 +338,12 @@ if ($method === 'POST' && $action === 'logout') {
 // ------------------------------------------------------------------------------
 if ($method === 'GET' && $action === 'list_users') {
     $auth = requireAuth(['ADMIN', 'MANAGER']);
-    $stmt = $db->query("SELECT id, name, email, role, title, department, phone, avatar, created_at FROM users ORDER BY role ASC, name ASC");
+    // Apenas ADMIN pode visualizar a listagem com outros ADMINS
+    if ($auth['role'] === 'ADMIN') {
+        $stmt = $db->query("SELECT id, name, email, role, title, department, phone, avatar, created_at FROM users ORDER BY role ASC, name ASC");
+    } else {
+        $stmt = $db->query("SELECT id, name, email, role, title, department, phone, avatar, created_at FROM users WHERE role != 'ADMIN' ORDER BY role ASC, name ASC");
+    }
     $users = $stmt->fetchAll();
     jsonResponse(['success' => true, 'users' => $users]);
 }

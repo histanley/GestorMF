@@ -3246,6 +3246,7 @@ export default function App() {
             missions={missions}
             roles={roles}
             userRole={userRole}
+            currentUser={currentUser}
             onAddMember={handleAddMember}
             onUpdateMember={handleUpdateMember}
             onDeleteMember={handleDeleteMember}
