@@ -707,7 +707,7 @@ export default function CollaboratorSpace({
             return (
               <div
                 key={roleName}
-                className={`cs-role-item ${count > 0 ? 'has-count' : 'no-count'}`}
+                className={`cs-role-item ${count > 0 ? 'has-count' : 'no-count'} ${isMainRole ? 'role-card-main' : isSecRole ? 'role-card-sec' : ''}`}
               >
                 <div className="cs-role-item-left">
                   <span className="cs-role-icon">{icon}</span>
@@ -716,7 +716,7 @@ export default function CollaboratorSpace({
                       {roleName}
                     </div>
                     <div className={`cs-role-status ${isMainRole ? 'is-main' : isSecRole ? 'is-sec' : count > 0 ? 'is-done' : ''}`}>
-                      {isMainRole ? 'Minha Função Principal' : isSecRole ? 'Função Secundária' : count > 0 ? 'Cumprida em Missões' : 'Ainda não exercida'}
+                      {isMainRole ? '⭐ Função Principal' : isSecRole ? '🎯 Função Adicional' : count > 0 ? '✅ Exercida em Missões' : 'Ainda não exercida'}
                     </div>
                   </div>
                 </div>
