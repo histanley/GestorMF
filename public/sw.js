@@ -1,8 +1,8 @@
 // ==============================================================================
 // GestorMF - Service Worker (PWA & Notificações de Pauta/Missão)
-// Versão 6.6.3 - Força atualização imediata de cache
+// Versão 7.0.0 - Força atualização imediata de cache
 // ==============================================================================
-const CACHE_NAME = 'gestormf-cache-v6-6-3';
+const CACHE_NAME = 'gestormf-cache-v7-0-0';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
