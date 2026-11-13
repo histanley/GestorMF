@@ -311,6 +311,11 @@ export default function CollaboratorSpace({
     let totalDaysVal = 0;
 
     monthMissions.forEach((m) => {
+      const mStatus = String(m.missionStatus || 'Agendada').trim().toLowerCase();
+      const isCompleted = (mStatus === 'finalizada' || mStatus === 'finalizado' || mStatus === 'concluída' || mStatus === 'concluida');
+      // Apenas missões concluídas/finalizadas são contabilizadas no fechamento financeiro
+      if (!isCompleted) return;
+
       const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
       const customRate = (m.customRates && m.customRates[myMember.id] !== undefined)
         ? Number(m.customRates[myMember.id])

@@ -179,12 +179,22 @@ export default function TeamPayoutsDashboard({
       const blockRate = Number(member.blockRate ?? member.block_rate ?? (hourlyRate * 4 || 200));
       const pixKey = member.pixKey || member.pix_key || '';
 
+      // Valores Homologados (Missões Concluídas / Efetivos para Pagamento)
       let totalHours = 0;
       let totalOffHoursAmount = 0;
       let totalTravelDays = 0;
       let totalDailyAmount = 0;
-      let missionCount = 0;
+      let completedMissionCount = 0;
       let totalAmount = 0;
+
+      // Valores Previstos / A Cumprir (Missões Agendadas / Não Homologadas)
+      let plannedHours = 0;
+      let plannedOffHoursAmount = 0;
+      let plannedTravelDays = 0;
+      let plannedDailyAmount = 0;
+      let scheduledMissionCount = 0;
+      let plannedTotalAmount = 0;
+
       const statementMissions = [];
 
       monthMissions.forEach((m) => {
@@ -209,7 +219,19 @@ export default function TeamPayoutsDashboard({
         const participated = isDriver || inTeamIds || inTeamMembers || inTeamField || inEditorIds || inEditorDisplay;
 
         if (participated) {
-          missionCount++;
+          const mStatus = String(m.missionStatus || 'Agendada').trim().toLowerCase();
+          const isCompleted = (mStatus === 'finalizada' || mStatus === 'finalizado' || mStatus === 'concluída' || mStatus === 'concluida');
+          const isCancelled = (mStatus === 'cancelada' || mStatus === 'cancelado');
+
+          // Missões canceladas são completamente desconsideradas
+          if (isCancelled) return;
+
+          if (isCompleted) {
+            completedMissionCount++;
+          } else {
+            scheduledMissionCount++;
+          }
+
           const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
           const missionHours = calculateMissionHours(m.departureTime, m.returnTimeEstimated);
 
@@ -239,14 +261,21 @@ export default function TeamPayoutsDashboard({
 
           if (isDailyRemuneration) {
             daysCount = isMDay ? calculateDaysBetween(m.date, m.endDate) : 1;
-            totalTravelDays += daysCount;
             itemAmount = daysCount * effectiveDailyRate;
-            totalDailyAmount += itemAmount;
+
+            if (isCompleted) {
+              totalTravelDays += daysCount;
+              totalDailyAmount += itemAmount;
+              totalAmount += itemAmount;
+            } else {
+              plannedTravelDays += daysCount;
+              plannedDailyAmount += itemAmount;
+              plannedTotalAmount += itemAmount;
+            }
           } else {
             // Banco de Horas: Horas fora do expediente + Horas extras aprovadas pela gestão
             const extraApproved = Number(m.extraHoursApproved) || 0;
             const totalMissionOffHours = offHoursWorked + extraApproved;
-            totalHours += totalMissionOffHours;
 
             if (totalMissionOffHours > 0) {
               if (rateModel === 'block_4h') {
@@ -258,10 +287,17 @@ export default function TeamPayoutsDashboard({
             } else {
               itemAmount = 0;
             }
-            totalOffHoursAmount += itemAmount;
-          }
 
-          totalAmount += itemAmount;
+            if (isCompleted) {
+              totalHours += totalMissionOffHours;
+              totalOffHoursAmount += itemAmount;
+              totalAmount += itemAmount;
+            } else {
+              plannedHours += totalMissionOffHours;
+              plannedOffHoursAmount += itemAmount;
+              plannedTotalAmount += itemAmount;
+            }
+          }
 
           statementMissions.push({
             id: m.id,
@@ -269,6 +305,8 @@ export default function TeamPayoutsDashboard({
             date: m.date,
             endDate: m.endDate,
             isMultiDay: isMDay,
+            missionStatus: m.missionStatus || 'Agendada',
+            isCompleted,
             remunerationType: isDailyRemuneration ? 'daily' : 'off_hours',
             daysCount,
             description: m.description || 'Missão sem título',
@@ -304,12 +342,21 @@ export default function TeamPayoutsDashboard({
         rateModel,
         blockRate: blockRate > 0 ? blockRate : 200,
         pixKey,
+        // Homologado (efetivo a pagar)
         totalHours: Number(totalHours.toFixed(1)),
         totalOffHoursAmount: Number(totalOffHoursAmount.toFixed(2)),
         totalTravelDays,
         totalDailyAmount: Number(totalDailyAmount.toFixed(2)),
-        missionCount,
+        missionCount: completedMissionCount,
         totalAmount: Number(totalAmount.toFixed(2)),
+        // A cumprir (previsto / não homologado)
+        plannedHours: Number(plannedHours.toFixed(1)),
+        plannedOffHoursAmount: Number(plannedOffHoursAmount.toFixed(2)),
+        plannedTravelDays,
+        plannedDailyAmount: Number(plannedDailyAmount.toFixed(2)),
+        scheduledMissionCount,
+        plannedTotalAmount: Number(plannedTotalAmount.toFixed(2)),
+        totalAllMissionsCount: completedMissionCount + scheduledMissionCount,
         status,
         paidAt,
         hoursCleared,
@@ -479,10 +526,11 @@ export default function TeamPayoutsDashboard({
       `👤 *Colaborador:* ${member.name}`,
       `📅 *Mês de Referência:* ${monthLabel}`,
       `---------------------------------------`,
-      `🎯 *Missões Participadas:* ${member.missionCount}`,
-      `⏱️ *Horas Extras:* ${member.totalHours}h (${formatBRL(member.totalOffHoursAmount)})`,
-      `📅 *Diárias de Campo/Viagem:* ${member.totalTravelDays} diárias (${formatBRL(member.totalDailyAmount)})`,
-      `💰 *Total Líquido Geral:* ${formatBRL(member.totalAmount)}`,
+      `🎯 *Missões Concluídas:* ${member.missionCount}${member.scheduledMissionCount > 0 ? ` (+${member.scheduledMissionCount} agendadas)` : ''}`,
+      `⏱️ *Horas Extras Homologadas:* ${member.totalHours}h (${formatBRL(member.totalOffHoursAmount)})`,
+      `📅 *Diárias Homologadas:* ${member.totalTravelDays} diárias (${formatBRL(member.totalDailyAmount)})`,
+      member.plannedHours > 0 ? `⏳ *Previsão em Pautas Agendadas (A Cumprir):* ${member.plannedHours}h (${formatBRL(member.plannedOffHoursAmount)}) - Não Homologadas` : null,
+      `💰 *Total Líquido Homologado a Pagar:* ${formatBRL(member.totalAmount)}`,
       member.pixKey ? `💳 *Chave PIX:* ${member.pixKey}` : null,
       `---------------------------------------`,
       isPaid
@@ -734,20 +782,28 @@ export default function TeamPayoutsDashboard({
                     </button>
                   </div>
 
-                  {/* Produção Detalhada no Mês (Missões, Horas Extras e Diárias) */}
+                  {/* Produção Detalhada no Mês (Missões, Horas Extras e Diárias Homologadas) */}
                   <div className="pmc-col-production">
-                    <div className="pmc-prod-metric" title="Total de missões participadas no mês">
+                    <div className="pmc-prod-metric" title="Missões concluídas no mês">
                       <span className="pmc-prod-val">{member.missionCount}</span>
-                      <span className="pmc-prod-lbl">Missões</span>
+                      <span className="pmc-prod-lbl">
+                        Concluídas {member.scheduledMissionCount > 0 && <span className="pmc-scheduled-count">({member.scheduledMissionCount} agend.)</span>}
+                      </span>
                     </div>
-                    <div className="pmc-prod-metric" title="Horas fora do expediente comercial (banco de horas)">
+                    <div className="pmc-prod-metric" title="Horas extras de missões concluídas (Banco de Horas Homologado)">
                       <span className="pmc-prod-val text-amber">{member.totalHours} h</span>
                       <span className="pmc-prod-lbl">Extras ({formatBRL(member.totalOffHoursAmount)})</span>
                     </div>
-                    <div className="pmc-prod-metric" title="Diárias de campo e viagens (+1 dia)">
+                    <div className="pmc-prod-metric" title="Diárias de missões concluídas">
                       <span className="pmc-prod-val text-cyan">{member.totalTravelDays} d</span>
                       <span className="pmc-prod-lbl">Diárias ({formatBRL(member.totalDailyAmount)})</span>
                     </div>
+                    {member.plannedHours > 0 && (
+                      <div className="pmc-planned-strip" title="Horas extras previstas em missões agendadas que ainda não aconteceram">
+                        <span>⏳ {member.plannedHours}h a cumprir</span>
+                        <small>(Não homologadas)</small>
+                      </div>
+                    )}
                   </div>
 
                   {/* Chave PIX Evidenciada com Cópia Rápida */}
@@ -1057,13 +1113,23 @@ export default function TeamPayoutsDashboard({
                 </div>
               ) : null}
 
+              {/* Aviso de Horas e Valores Agendados a Cumprir (Não Homologados) */}
+              {viewingStatementMember.plannedHours > 0 && (
+                <div className="statement-planned-banner">
+                  <Clock size={16} className="text-amber" />
+                  <span>
+                    <strong>Horas Agendadas Não Homologadas:</strong> Existem <strong>{viewingStatementMember.plannedHours}h extras ({formatBRL(viewingStatementMember.plannedOffHoursAmount)})</strong> previstas em pautas agendadas que ainda não foram realizadas. Elas <strong>NÃO</strong> constam no Total Líquido a pagar e só serão homologadas após a conclusão efetiva das missões.
+                  </span>
+                </div>
+              )}
+
               {/* Lista Detalhada de Missões */}
               <div className="statement-missions-list">
                 {viewingStatementMember.statementMissions.length === 0 ? (
                   <p className="statement-empty">Nenhuma missão realizada por este colaborador neste mês.</p>
                 ) : (
                   viewingStatementMember.statementMissions.map((item) => (
-                    <div key={item.id} className="statement-item-row">
+                    <div key={item.id} className={`statement-item-row ${!item.isCompleted ? 'row-scheduled-pending' : ''}`}>
                       <div className="sir-left">
                         <div className="sir-code-date">
                           <span className="sir-code">{item.code}</span>
@@ -1071,13 +1137,25 @@ export default function TeamPayoutsDashboard({
                             <Calendar size={12} /> {formatDateBR(item.date)}
                             {item.isMultiDay && item.endDate && ` a ${formatDateBR(item.endDate)}`}
                           </span>
+
+                          {/* Badge de Homologação de Missão Concluída vs. Agendada */}
+                          {item.isCompleted ? (
+                            <span className="sir-badge-homologated">
+                              ✅ Concluída (Homologada)
+                            </span>
+                          ) : (
+                            <span className="sir-badge-unhomologated">
+                              ⏳ Agendada (Aguardando Realização)
+                            </span>
+                          )}
+
                           {item.remunerationType === 'daily' ? (
                             <span className="sir-badge-multiday">
                               📅 Diária {item.isMultiDay ? `Viagem (${item.daysCount}d)` : 'Campo (1d)'}
                             </span>
                           ) : (item.offHoursWorked > 0 || item.extraHoursApproved > 0) ? (
-                            <span className="sir-badge-hours sir-badge-offhours" title="Horas fora do expediente comercial computadas no banco de horas">
-                              ⏱️ +{item.offHoursWorked + (item.extraHoursApproved || 0)}h Extras
+                            <span className={`sir-badge-hours ${item.isCompleted ? 'sir-badge-offhours' : 'sir-badge-offhours-planned'}`} title={item.isCompleted ? "Horas fora do expediente homologadas no banco de horas" : "Horas extras previstas caso a missão seja realizada conforme agendado"}>
+                              ⏱️ +{item.offHoursWorked + (item.extraHoursApproved || 0)}h Extras {item.isCompleted ? '' : '(A Cumprir)'}
                               {item.extraHoursApproved > 0 && ` (+${item.extraHoursApproved}h aprovadas)`}
                             </span>
                           ) : (
@@ -1105,6 +1183,7 @@ export default function TeamPayoutsDashboard({
                             {(item.offHoursWorked > 0 || item.extraHoursApproved > 0) ? (
                               <span className="sir-rate-applied">
                                 • Taxa: {formatBRL(item.effectiveHourlyRate)}/h {item.isCustomRate ? '(Definida na Missão)' : '(Padrão)'}
+                                {!item.isCompleted && ' • (Não homologada até a realização)'}
                               </span>
                             ) : (
                               <span className="sir-rate-commercial">
@@ -1117,9 +1196,20 @@ export default function TeamPayoutsDashboard({
 
                       <div className="sir-right">
                         <span className="sir-role">{item.roleInMission}</span>
-                        <strong className={`sir-amount ${item.itemAmount > 0 ? 'text-gold' : 'text-muted'}`}>
-                          {formatBRL(item.itemAmount)}
-                        </strong>
+                        {item.isCompleted ? (
+                          <strong className={`sir-amount ${item.itemAmount > 0 ? 'text-gold' : 'text-muted'}`}>
+                            {formatBRL(item.itemAmount)}
+                          </strong>
+                        ) : (
+                          <div className="sir-amount-scheduled-wrap">
+                            <strong className="sir-amount text-muted">
+                              R$ 0,00
+                            </strong>
+                            <small className="sir-amount-planned-hint">
+                              Previsto: {formatBRL(item.itemAmount)}
+                            </small>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
