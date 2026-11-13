@@ -749,12 +749,13 @@ export default function CollaboratorSpace({
           <div className={`cs-avail-status-card ${isUnavailableNow ? 'is-blocked' : 'is-ready'}`}>
             <div className="cs-avail-status-left">
               <div className={`cs-avail-icon-circle ${isUnavailableNow ? 'icon-blocked' : 'icon-ready'}`}>
-                {isUnavailableNow ? <Ban size={24} /> : <CheckCircle2 size={24} />}
+                {isUnavailableNow ? <Ban size={22} strokeWidth={2.5} /> : <CheckCircle2 size={22} strokeWidth={2.5} />}
               </div>
               <div className="cs-avail-status-info">
                 <div className="cs-avail-status-tag-row">
                   <span className={`cs-avail-status-pill ${isUnavailableNow ? 'pill-blocked' : 'pill-ready'}`}>
-                    {isUnavailableNow ? '🚫 INDISPONÍVEL PARA HORAS EXTRAS' : '🟢 DISPONÍVEL PARA HORAS EXTRAS'}
+                    <span className={`cs-avail-status-dot ${isUnavailableNow ? 'dot-blocked' : 'dot-ready'}`} />
+                    {isUnavailableNow ? 'INDISPONÍVEL PARA HORAS EXTRAS' : 'DISPONÍVEL PARA HORAS EXTRAS'}
                   </span>
                   {isUnavailableNow && (
                     <span className="cs-avail-scope-badge">
@@ -771,19 +772,21 @@ export default function CollaboratorSpace({
                     : 'Você está disponível para missões fora do expediente regular.'}
                 </h4>
 
-                <p className="cs-avail-desc">
-                  {isUnavailableNow ? (
-                    <>
-                      <strong>Motivo informado à gestão:</strong> "{curAvail.reason || curAvail.presetReason || 'Compromisso particular'}"
-                      <br />
-                      <span className="cs-avail-hint-text">
-                        ℹ️ Os administradores verão seu aviso de indisponibilidade na lista de colaboradores ao planejar missões com horas extras.
-                      </span>
-                    </>
-                  ) : (
-                    'Os administradores podem contar com você para escalas noturnas, fins de semana ou horas extras estendidas quando houver necessidade na empresa.'
-                  )}
-                </p>
+                {isUnavailableNow ? (
+                  <div className="cs-avail-blocked-reason-box">
+                    <span className="cs-avail-reason-lbl">Motivo Informado:</span>
+                    <strong className="cs-avail-reason-val">
+                      "{curAvail.reason || curAvail.presetReason || 'Compromisso particular'}"
+                    </strong>
+                    <span className="cs-avail-hint-text">
+                      Os administradores são sinalizados com este aviso na lista de colaboradores ao planejar missões fora do expediente.
+                    </span>
+                  </div>
+                ) : (
+                  <p className="cs-avail-desc">
+                    Os administradores podem contar com você para escalas noturnas, fins de semana ou horas extras estendidas quando houver necessidade na empresa.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -797,7 +800,7 @@ export default function CollaboratorSpace({
                     disabled={isSavingAvail}
                     title="Voltar a ficar disponível para horas extras"
                   >
-                    <CheckCircle2 size={15} />
+                    <CheckCircle2 size={16} />
                     <span>Voltar a Ficar Disponível</span>
                   </button>
                   <button
@@ -806,7 +809,7 @@ export default function CollaboratorSpace({
                     onClick={handleStartEditAvailability}
                     title="Alterar período ou motivo da indisponibilidade"
                   >
-                    <Edit2 size={13} />
+                    <Edit2 size={14} />
                     <span>Alterar Período / Motivo</span>
                   </button>
                 </>
@@ -817,7 +820,7 @@ export default function CollaboratorSpace({
                   onClick={handleStartEditAvailability}
                   title="Declarar que não poderá fazer horas extras"
                 >
-                  <Ban size={15} />
+                  <Ban size={16} />
                   <span>Declarar Indisponibilidade</span>
                 </button>
               )}
