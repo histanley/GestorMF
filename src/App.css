@@ -34876,3 +34876,1446 @@ body.light-theme .kpi-card.kpi-red {
   background: #ffffff !important;
   border-color: #fca5a5 !important;
 }
+
+
+/* ==============================================================================
+   SISTEMA DE ALUGUEL & ESTOQUE DE EQUIPAMENTOS (MEGAFILMES)
+   ============================================================================== */
+
+/* Ajustes no menu principal para acomodar a aba do Gestor sem aperto */
+.nav-tabs-container {
+  gap: 6px !important;
+}
+
+.tab-btn {
+  padding: 6px 12px !important;
+  font-size: 0.8rem !important;
+}
+
+.tab-btn-rentals .tab-icon-box {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.tab-btn-rentals.active {
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25) !important;
+}
+
+/* 1. Container Geral do Módulo */
+.equipment-rental-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 32px 64px 32px;
+  max-width: 1540px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  animation: fadeInModalOverlay 0.22s ease-out;
+}
+
+/* 2. Cabeçalho do Módulo & KPIs */
+.erm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, rgba(22, 32, 54, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.erm-header-main {
+  flex: 1 1 380px;
+}
+
+.erm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.erm-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.erm-desc {
+  font-size: 0.86rem;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0;
+  max-width: 680px;
+  line-height: 1.5;
+}
+
+.erm-kpi-strip {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.erm-kpi-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 18px;
+  min-width: 110px;
+  transition: all 0.2s ease;
+}
+
+.erm-kpi-val {
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.erm-kpi-lbl {
+  font-size: 0.72rem;
+  color: var(--text-muted, #64748b);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.card-overdue-pulse {
+  border-color: rgba(239, 68, 68, 0.6) !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+  animation: pulse-urgent-banner 2s infinite ease-in-out;
+}
+
+.card-rented-highlight {
+  border-color: rgba(6, 182, 212, 0.35);
+  background: rgba(6, 182, 212, 0.08);
+}
+
+/* 3. Barra de Abas do Módulo */
+.erm-tabs-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
+}
+
+.erm-tabs-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.erm-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.erm-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.erm-tab-btn.is-active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.15) 100%);
+  border-color: rgba(245, 158, 11, 0.6);
+  color: #fbbf24;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
+}
+
+.erm-tab-count {
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.erm-tab-count.cart-badge {
+  background: #f59e0b;
+  color: #0f172a;
+}
+
+.erm-tab-count.badge-danger {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.erm-btn-add-equip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+/* 4. Toolbar do Catálogo */
+.erm-catalog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.erm-category-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.erm-cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+.erm-cat-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.erm-cat-pill.active {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.erm-cat-badge {
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 0.68rem;
+}
+
+.erm-cat-pill.active .erm-cat-badge {
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffffff;
+}
+
+.erm-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 8px 14px;
+  min-width: 280px;
+  flex: 1 1 280px;
+  max-width: 440px;
+}
+
+.erm-search-box input {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 0.85rem;
+  width: 100%;
+  outline: none;
+}
+
+.erm-search-box input::placeholder {
+  color: var(--text-muted, #64748b);
+}
+
+.clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  padding: 2px;
+}
+
+/* 5. Grid de Cards de Equipamentos */
+.erm-equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+.erm-equip-card {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(22, 32, 54, 0.85) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.erm-equip-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+
+.card-fully-rented {
+  opacity: 0.8;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.card-partial-rented {
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.equip-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.equip-cat-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--accent-gold, #f59e0b);
+  letter-spacing: 0.5px;
+}
+
+.status-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+}
+
+.pill-available {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.pill-partial {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.pill-rented {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.equip-name {
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+}
+
+.equip-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.equip-serial {
+  font-size: 0.72rem;
+  color: var(--text-muted, #64748b);
+  margin-bottom: 10px;
+}
+
+.equip-pricing-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.equip-price .price-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+.equip-price .price-unit {
+  font-size: 0.76rem;
+  color: var(--text-muted, #64748b);
+}
+
+.equip-stock-info {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.equip-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.equip-card-actions button {
+  flex: 1;
+}
+
+.btn-rent-action {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  border: none !important;
+}
+
+.btn-rent-action:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+}
+
+.btn-rent-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 6. Layout de Nova Locação (Form + Carrinho) */
+.rental-flow-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 24px;
+}
+
+@media (max-width: 1080px) {
+  .rental-flow-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rental-form-pane,
+.rental-cart-pane {
+  background: linear-gradient(180deg, rgba(22, 32, 54, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.pane-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.pane-section-header h2 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.rental-duration-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  font-size: 0.84rem;
+  color: #fbbf24;
+}
+
+/* Carrinho de Equipamentos */
+.cart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cart-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cart-title h2 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.cart-empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.cart-empty-box p {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin: 10px 0 4px 0;
+  font-weight: 700;
+}
+
+.cart-empty-box small {
+  color: var(--text-muted);
+}
+
+.cart-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.cart-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.cir-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cir-name {
+  display: block;
+  font-size: 0.86rem;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cir-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.cir-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cir-btn-qty {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.cir-qty {
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: #ffffff;
+  min-width: 18px;
+  text-align: center;
+}
+
+.cir-subtotal {
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: #fbbf24;
+  min-width: 75px;
+  text-align: right;
+}
+
+.cir-remove-btn {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.quick-add-section {
+  margin-top: 14px;
+  margin-bottom: 16px;
+}
+
+.quick-add-section label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.quick-add-section select {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 0.84rem;
+}
+
+.cart-summary-box {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.cs-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.cs-row.discount {
+  color: #34d399;
+}
+
+.cs-row.cs-total {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #ffffff;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 10px;
+  margin-top: 8px;
+}
+
+.btn-generate-contract {
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+}
+
+/* 7. Lista de Locações Ativas & Histórico */
+.erm-rentals-toolbar {
+  margin-bottom: 16px;
+}
+
+.erm-filter-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.erm-pill-btn {
+  padding: 7px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.erm-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.erm-pill-btn.active {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+.erm-rentals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.erm-rental-card {
+  background: linear-gradient(180deg, rgba(22, 32, 54, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 4px solid var(--accent-gold, #f59e0b);
+  border-radius: 14px;
+  padding: 18px 22px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.erm-rental-card.card-overdue {
+  border-left-color: #ef4444;
+  background: linear-gradient(180deg, rgba(40, 20, 25, 0.9) 0%, rgba(20, 15, 22, 0.95) 100%);
+}
+
+.erm-rental-card.card-due-today {
+  border-left-color: #f59e0b;
+}
+
+.erm-rental-card.card-returned {
+  border-left-color: #10b981;
+  opacity: 0.85;
+}
+
+.erc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.erc-code-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.erc-code {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.erc-status-pill {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.pill-active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.pill-due-today {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.pill-overdue {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  font-weight: 800;
+}
+
+.pill-returned {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.erc-price-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.erc-price {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #fbbf24;
+}
+
+.erc-pay-status {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.erc-client-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.erc-client-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.92rem;
+  color: #ffffff;
+}
+
+.erc-dates-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.erc-days-tag {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.erc-items-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.erc-items-lbl {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.erc-items-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.erc-item-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.erc-returned-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: #34d399;
+}
+
+.erc-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.btn-checkin {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+/* 8. MODAL DO TERMO DE RESPONSABILIDADE & CONTRATO */
+.rental-contract-overlay {
+  z-index: 10010 !important;
+}
+
+.rental-contract-modal {
+  width: 100%;
+  max-width: 860px;
+  max-height: 94vh;
+  background: #0f172a;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: mdm-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rc-modal-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #1e293b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rc-topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.rc-code-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.rc-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rc-btn-whatsapp {
+  background: rgba(34, 197, 94, 0.18) !important;
+  border-color: rgba(34, 197, 94, 0.45) !important;
+  color: #4ade80 !important;
+  font-weight: 700;
+}
+
+.rc-btn-whatsapp:hover {
+  background: rgba(34, 197, 94, 0.35) !important;
+}
+
+.rc-close-btn {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border: 1.5px solid rgba(239, 68, 68, 0.6) !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  width: 36px !important;
+  height: 36px !important;
+}
+
+/* Folha A4 do Contrato */
+.rc-document-sheet {
+  background: #ffffff;
+  color: #1e293b;
+  padding: 36px 44px;
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.45;
+}
+
+.rc-doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.rc-brand-name {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.rc-brand-sub {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #d97706;
+  letter-spacing: 1px;
+}
+
+.rc-brand-info {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin: 6px 0 0 0;
+  line-height: 1.4;
+}
+
+.rc-meta-box {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-align: right;
+}
+
+.rc-meta-lbl {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.5px;
+}
+
+.rc-meta-code {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 2px 0;
+}
+
+.rc-meta-date {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.rc-divider {
+  height: 2px;
+  background: #e2e8f0;
+  margin: 16px 0;
+}
+
+.rc-parties-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.rc-party-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.rc-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 6px;
+}
+
+.rc-party-card p {
+  margin: 4px 0;
+  font-size: 0.76rem;
+  color: #334155;
+}
+
+.rc-schedule-strip {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+}
+
+.rc-sched-box {
+  flex: 1;
+}
+
+.rc-sched-box.highlight {
+  border-left: 3px solid #d97706;
+  padding-left: 10px;
+}
+
+.rc-sched-lbl {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #475569;
+  margin-bottom: 3px;
+}
+
+.rc-sched-val {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.rc-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 10px 0;
+}
+
+.rc-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+  margin-bottom: 18px;
+}
+
+.rc-items-table th {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 8px 10px;
+  font-weight: 800;
+  color: #0f172a;
+  text-align: left;
+}
+
+.rc-items-table td {
+  border: 1px solid #e2e8f0;
+  padding: 7px 10px;
+  color: #334155;
+}
+
+.rc-table-cat {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-weight: normal;
+}
+
+.rc-financial-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+}
+
+.rc-fin-details p {
+  margin: 3px 0;
+  font-size: 0.76rem;
+  color: #334155;
+}
+
+.rc-pay-status {
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.7rem;
+}
+
+.rc-pay-status.status-pago {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.rc-pay-status.status-pendente {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.rc-fin-totals {
+  min-width: 220px;
+}
+
+.rc-fin-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.rc-fin-row.text-discount {
+  color: #16a34a;
+}
+
+.rc-fin-row.total-highlight {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #0f172a;
+  border-top: 1.5px solid #cbd5e1;
+  padding-top: 6px;
+  margin-top: 6px;
+}
+
+.rc-clauses-box {
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+}
+
+.rc-clauses-title {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.rc-clauses-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.68rem;
+  color: #4b5563;
+  line-height: 1.45;
+}
+
+.rc-clauses-list li {
+  margin-bottom: 6px;
+}
+
+.rc-signatures-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+  margin-top: 36px;
+  padding-top: 10px;
+}
+
+.rc-sig-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.rc-sig-line {
+  width: 80%;
+  height: 1px;
+  background: #475569;
+  margin-bottom: 8px;
+}
+
+.rc-sig-name {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.rc-sig-role {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.rc-sig-doc {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* Modais de Check-in e Edição */
+.checkin-warning-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 0.84rem;
+}
+
+.checkin-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+
+.checkin-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+}
+
+/* REGRAS DE IMPRESSÃO / PDF DO TERMO */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .rental-contract-overlay,
+  .rental-contract-modal,
+  .rc-document-sheet,
+  .rc-document-sheet * {
+    visibility: visible;
+  }
+  .rental-contract-overlay {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+  .rental-contract-modal {
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .rc-document-sheet {
+    padding: 20mm !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* TEMA CLARO - ALUGUEL DE EQUIPAMENTOS */
+body.light-theme .equipment-rental-manager,
+[data-theme="light"] .equipment-rental-manager {
+  color: #0f172a;
+}
+
+body.light-theme .erm-header,
+[data-theme="light"] .erm-header {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-theme .erm-title,
+[data-theme="light"] .erm-title {
+  color: #0f172a !important;
+}
+
+body.light-theme .erm-kpi-card,
+[data-theme="light"] .erm-kpi-card {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+body.light-theme .erm-tab-btn,
+[data-theme="light"] .erm-tab-btn {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+body.light-theme .erm-tab-btn.is-active,
+[data-theme="light"] .erm-tab-btn.is-active {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+}
+
+body.light-theme .erm-equip-card,
+[data-theme="light"] .erm-equip-card,
+body.light-theme .rental-form-pane,
+[data-theme="light"] .rental-form-pane,
+body.light-theme .rental-cart-pane,
+[data-theme="light"] .rental-cart-pane,
+body.light-theme .erm-rental-card,
+[data-theme="light"] .erm-rental-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-theme .equip-name,
+[data-theme="light"] .equip-name,
+body.light-theme .pane-section-header h2,
+[data-theme="light"] .pane-section-header h2,
+body.light-theme .erc-code,
+[data-theme="light"] .erc-code,
+body.light-theme .erc-client-info,
+[data-theme="light"] .erc-client-info {
+  color: #0f172a !important;
+}
+
+body.light-theme .equip-pricing-bar,
+[data-theme="light"] .equip-pricing-bar,
+body.light-theme .cart-item-row,
+[data-theme="light"] .cart-item-row,
+body.light-theme .cart-summary-box,
+[data-theme="light"] .cart-summary-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+body.light-theme .erm-search-box,
+[data-theme="light"] .erm-search-box {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+body.light-theme .erm-search-box input,
+[data-theme="light"] .erm-search-box input {
+  color: #0f172a !important;
+}

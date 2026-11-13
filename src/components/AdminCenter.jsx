@@ -29,10 +29,12 @@ import {
   HardDrive,
   Copy,
   ExternalLink,
+  Camera,
 } from 'lucide-react';
 import TeamPayoutsDashboard from './TeamPayoutsDashboard';
 import TeamPerformanceRanking from './TeamPerformanceRanking';
 import MissionHistoryModal from './MissionHistoryModal';
+import EquipmentRentalManager from './EquipmentRentalManager';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { getMissionCode } from '../utils/geo';
 import { clearPostProductionNotification } from '../utils/notifications';
@@ -425,6 +427,16 @@ export default function AdminCenter({
             <Trophy size={16} />
             <span>Inteligência &amp; Ranking</span>
             <span className="ac-tab-count-badge">PERFORMANCE</span>
+          </button>
+
+          <button
+            type="button"
+            className={`ac-tab-btn ${adminTab === 'rentals' ? 'is-active' : ''}`}
+            onClick={() => setAdminTab('rentals')}
+          >
+            <Camera size={16} />
+            <span>Aluguel &amp; Equipamentos</span>
+            <span className="ac-tab-count-badge">ESTOQUE</span>
           </button>
         </div>
       </div>
@@ -913,6 +925,15 @@ export default function AdminCenter({
               missions={missions}
               onOpenEditMember={null}
             />
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* SUB-ABA 5: ALUGUEL & ESTOQUE DE EQUIPAMENTOS                 */}
+        {/* ============================================================ */}
+        {adminTab === 'rentals' && (
+          <div className="ac-rentals-view">
+            <EquipmentRentalManager currentUser={currentUser} />
           </div>
         )}
       </div>

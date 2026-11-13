@@ -34,6 +34,7 @@ import {
   ShieldCheck,
   Zap,
   User,
+  Camera,
 } from 'lucide-react';
 
 import MapView from './components/MapView';
@@ -42,6 +43,7 @@ import VehicleManager from './components/VehicleManager';
 import TeamManager from './components/TeamManager';
 import AdminCenter from './components/AdminCenter';
 import CollaboratorSpace from './components/CollaboratorSpace';
+import EquipmentRentalManager from './components/EquipmentRentalManager';
 import SmartHeaderGreeting from './components/SmartHeaderGreeting';
 import MissionModal from './components/MissionModal';
 import MissionDetailModal from './components/MissionDetailModal';
@@ -192,6 +194,7 @@ export default function App() {
   const userRole = normalizeRole(currentUser?.role);
   const isAdmin = userRole === ROLES.ADMIN;
   const isAdminUser = isAdmin;
+  const isManagerUser = userRole === ROLES.MANAGER;
   const canCreateMission = userRole === ROLES.ADMIN || userRole === ROLES.MANAGER;
   const canManageSettings = userRole === ROLES.ADMIN;
   // Apenas Gestores e Administradores visualizam e acessam Viaturas e Equipes
@@ -199,7 +202,7 @@ export default function App() {
   // Administradores e Gestores podem enviar mensagens e comunicados (para todos ou individual)
   const canSendMessage = userRole === ROLES.ADMIN || userRole === ROLES.MANAGER;
 
-  // Estado de Navegação de Abas: 'map' (Mapa), 'board' (Tabela de Serviço), 'vehicles' (Viaturas), 'teams' (Equipes)
+  // Estado de Navegação de Abas: 'map' (Mapa), 'board' (Tabela de Serviço), 'vehicles' (Viaturas), 'teams' (Equipes), 'rentals' (Aluguéis)
   const [activeTab, setActiveTab] = useState('map');
 
   // Protege e direciona abas conforme permissões:
@@ -211,7 +214,7 @@ export default function App() {
     if (!isAdminUser && activeTab === 'admin') {
       setActiveTab('me');
     }
-    if (!canManageFleetAndTeams && (activeTab === 'vehicles' || activeTab === 'teams')) {
+    if (!canManageFleetAndTeams && (activeTab === 'vehicles' || activeTab === 'teams' || activeTab === 'rentals')) {
       setActiveTab('map');
     }
   }, [isAdminUser, canManageFleetAndTeams, activeTab]);
@@ -2486,6 +2489,20 @@ export default function App() {
                 <span className="tab-label">Equipes</span>
                 <span className="tab-badge">{members.length}</span>
               </button>
+
+              {/* Módulo de Aluguel no Menu Principal: Exclusivo para Gestores */}
+              {isManagerUser && (
+                <button
+                  className={`tab-btn tab-btn-rentals ${activeTab === 'rentals' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('rentals')}
+                  title="Aluguel & Equipamentos: Gestão de Estoque e Locações Externas"
+                >
+                  <span className="tab-icon-box">
+                    <Camera size={15} />
+                  </span>
+                  <span className="tab-label">Aluguéis</span>
+                </button>
+              )}
             </>
           )}
 
@@ -2711,6 +2728,16 @@ export default function App() {
                     <span>Equipes &amp; Administradores</span>
                     <span className="md-nav-badge">{members.length}</span>
                   </button>
+
+                  {isManagerUser && (
+                    <button
+                      className={`md-nav-item ${activeTab === 'rentals' ? 'active' : ''}`}
+                      onClick={() => { setActiveTab('rentals'); setIsMobileDrawerOpen(false); }}
+                    >
+                      <Camera size={18} />
+                      <span>Aluguel de Equipamentos</span>
+                    </button>
+                  )}
                 </>
               )}
 
@@ -3301,6 +3328,11 @@ export default function App() {
             onUpdateMember={handleUpdateMember}
             onUpdateAvailability={handleUpdateMemberAvailability}
           />
+        )}
+
+        {/* ABA 7: ALUGUEL DE EQUIPAMENTOS (Acesso Direto no Menu para Gestor) */}
+        {activeTab === 'rentals' && canManageFleetAndTeams && (
+          <EquipmentRentalManager currentUser={currentUser} />
         )}
       </main>
 

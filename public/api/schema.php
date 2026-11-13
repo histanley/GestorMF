@@ -351,5 +351,58 @@ function runDatabaseInstallation($db) {
     try {
         $db->exec("ALTER TABLE system_messages ADD COLUMN dismissed_by JSON NULL AFTER read_by");
     } catch (Exception $e) {}
+
+    // 11. Sistema de Aluguel e Estoque de Equipamentos (MegaFilmes)
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS equipment (
+            id VARCHAR(64) PRIMARY KEY,
+            name VARCHAR(191) NOT NULL,
+            category VARCHAR(64) NOT NULL,
+            daily_rate DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+            rate_unit VARCHAR(32) NOT NULL DEFAULT 'diária',
+            total_qty INT NOT NULL DEFAULT 1,
+            available_qty INT NOT NULL DEFAULT 1,
+            serial_number VARCHAR(191) NULL DEFAULT '',
+            description TEXT NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'available',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_equip_cat (category),
+            INDEX idx_equip_status (status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS rentals (
+            id VARCHAR(64) PRIMARY KEY,
+            code VARCHAR(32) NOT NULL UNIQUE,
+            client_name VARCHAR(191) NOT NULL,
+            client_document VARCHAR(64) NULL DEFAULT '',
+            client_phone VARCHAR(64) NULL DEFAULT '',
+            client_email VARCHAR(191) NULL DEFAULT '',
+            client_address TEXT NULL,
+            start_date DATE NOT NULL,
+            start_time VARCHAR(10) DEFAULT '08:00',
+            end_date DATE NOT NULL,
+            end_time VARCHAR(10) DEFAULT '18:00',
+            total_days INT NOT NULL DEFAULT 1,
+            subtotal DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+            discount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+            total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+            payment_method VARCHAR(64) DEFAULT 'PIX',
+            payment_status VARCHAR(32) DEFAULT 'Pendente',
+            status VARCHAR(32) DEFAULT 'active',
+            notes TEXT NULL,
+            items_json LONGTEXT NOT NULL,
+            created_by VARCHAR(150) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            returned_at TIMESTAMP NULL,
+            return_notes TEXT NULL,
+            INDEX idx_rent_status (status),
+            INDEX idx_rent_client (client_name),
+            INDEX idx_rent_dates (start_date, end_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
 }
 

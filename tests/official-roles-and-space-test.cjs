@@ -47,24 +47,28 @@ const dummyMissions = [
   {
     id: 'mis-1',
     date: '2026-11-20',
+    missionStatus: 'Finalizada',
     teamIds: ['m1'],
     memberRoles: { m1: 'Diretor(a) de Cena' },
   },
   {
     id: 'mis-2',
     date: '2026-11-21',
+    missionStatus: 'Finalizada',
     teamIds: ['m1'],
     memberRoles: { m1: 'Cinegrafista' },
   },
   {
     id: 'mis-3',
     date: '2026-11-22',
+    missionStatus: 'Finalizada',
     teamIds: ['m1'],
     memberRoles: { m1: 'Fotógrafo(a)' },
   },
   {
     id: 'mis-4',
     date: '2026-11-23',
+    missionStatus: 'Finalizada',
     vehicleAllocations: [{ driverId: 'm1', driverName: 'Gabriel Costa' }],
     teamIds: [],
   },
