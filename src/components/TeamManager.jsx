@@ -987,13 +987,13 @@ export default function TeamManager({
             </div>
           </div>
 
-          <div className="kpi-card kpi-blue" style={{ borderColor: ocupados > 0 ? 'var(--accent-cyan)' : undefined }}>
-            <div className="kpi-icon-box bg-blue">
+          <div className={`kpi-card ${ocupados > 0 ? 'kpi-red' : 'kpi-blue'}`} style={{ borderColor: ocupados > 0 ? '#ef4444' : undefined }}>
+            <div className={`kpi-icon-box ${ocupados > 0 ? 'bg-red' : 'bg-blue'}`}>
               <Route size={20} />
             </div>
             <div className="kpi-content">
               <span className="kpi-label">Em Missão Agora</span>
-              <span className="kpi-value" style={{ color: ocupados > 0 ? 'var(--accent-cyan)' : undefined }}>
+              <span className="kpi-value" style={{ color: ocupados > 0 ? '#ef4444' : undefined }}>
                 {ocupados} Ocupados
               </span>
             </div>
@@ -1081,16 +1081,22 @@ export default function TeamManager({
             const activeMission = getActiveMissionForMember(m);
             const isOccupied = !!activeMission;
             const isInactive = !m.active;
+            const isPreparo = activeMission?.missionStatus === 'Em Preparo';
+            const isExecuting = isOccupied && !isPreparo;
 
             return (
               <div
                 key={m.id}
-                className={`team-card ${isOccupied ? 'card-occupied' : ''} ${isInactive ? 'card-inactive' : ''}`}
+                className={`team-card ${
+                  isExecuting ? 'card-occupied card-occupied-exec' : isPreparo ? 'card-occupied card-occupied-prep' : isOccupied ? 'card-occupied' : ''
+                } ${isInactive ? 'card-inactive' : ''}`}
               >
                 {/* Cabeçalho do Card */}
                 <div className="team-card-header">
                   <div
-                    className={`member-avatar member-avatar-clickable ${isOccupied ? 'avatar-occupied' : ''} ${isInactive ? 'avatar-inactive' : ''}`}
+                    className={`member-avatar member-avatar-clickable ${
+                      isExecuting ? 'avatar-occupied avatar-occupied-exec' : isPreparo ? 'avatar-occupied avatar-occupied-prep' : isOccupied ? 'avatar-occupied' : ''
+                    } ${isInactive ? 'avatar-inactive' : ''}`}
                     onClick={() => handleQuickPhotoClick(m)}
                     title="Clique para adicionar ou alterar foto de perfil"
                   >
@@ -1168,13 +1174,14 @@ export default function TeamManager({
                 {/* Banner de Missão Ativa / Em Preparo */}
                 {isOccupied && (
                   <div
-                    className={`active-mission-banner ${activeMission.missionStatus === 'Em Preparo' ? 'prep-mission-banner' : ''
-                      }`}
+                    className={`active-mission-banner ${
+                      isPreparo ? 'prep-mission-banner' : 'exec-mission-banner'
+                    }`}
                   >
                     <Route size={14} />
                     <div>
                       <strong>
-                        {activeMission.missionStatus === 'Em Preparo'
+                        {isPreparo
                           ? 'Em preparo (1h antes):'
                           : 'Em execução:'}
                       </strong>{' '}
@@ -1204,11 +1211,12 @@ export default function TeamManager({
                 <div className="member-card-footer">
                   {isOccupied ? (
                     <span
-                      className={`member-status-indicator occupied ${activeMission.missionStatus === 'Em Preparo' ? 'occupied-prep' : ''
-                        }`}
+                      className={`member-status-indicator occupied ${
+                        isPreparo ? 'occupied-prep' : 'occupied-exec'
+                      }`}
                     >
                       <span className="pulse-dot"></span>
-                      {activeMission.missionStatus === 'Em Preparo'
+                      {isPreparo
                         ? 'Ocupado — Em Preparo'
                         : 'Ocupado — Em Execução'}
                     </span>
