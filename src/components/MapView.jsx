@@ -102,7 +102,26 @@ export default function MapView({
   const gpsMarkersGroupRef = useRef(null);
   const [activeGpsLocations, setActiveGpsLocations] = useState([]);
   const [isGpsRadarOpen, setIsGpsRadarOpen] = useState(false);
-  const [showStaffGpsMarkers, setShowStaffGpsMarkers] = useState(true);
+  // Visibilidade de colaboradores no mapa: por padrão inicia OCULTO (false) ao logar no sistema.
+  // Gestores ou administradores podem clicar no botão para alternar para Visível.
+  const [showStaffGpsMarkers, setShowStaffGpsMarkers] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('gestormf_staff_gps_visible');
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleStaffGps = () => {
+    setShowStaffGpsMarkers((prev) => {
+      const next = !prev;
+      try {
+        sessionStorage.setItem('gestormf_staff_gps_visible', String(next));
+      } catch {}
+      return next;
+    });
+  };
   const [isSharingGps, setIsSharingGps] = useState(false);
   const gpsWatchIdRef = useRef(null);
   const hasInitialFitRef = useRef(false);
@@ -762,7 +781,7 @@ export default function MapView({
             <button
               type="button"
               className={`map-control-btn ${showStaffGpsMarkers ? 'active' : ''}`}
-              onClick={() => setShowStaffGpsMarkers((prev) => !prev)}
+              onClick={handleToggleStaffGps}
               title={showStaffGpsMarkers ? 'Ocultar marcadores de colaboradores no mapa' : 'Exibir marcadores de colaboradores no mapa'}
             >
               {showStaffGpsMarkers ? <Eye size={14} /> : <EyeOff size={14} />}

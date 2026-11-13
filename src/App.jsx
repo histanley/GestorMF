@@ -1360,6 +1360,7 @@ export default function App() {
     apiLogout().catch(() => { });
     logoutUser();
     setCurrentUser(null);
+    try { sessionStorage.removeItem('gestormf_staff_gps_visible'); } catch {}
   };
 
   const handleEditMission = (mission) => {
@@ -2377,6 +2378,7 @@ export default function App() {
         onLoginSuccess={(user) => {
           setStoredCurrentUser(user);
           setCurrentUser(user);
+          try { sessionStorage.removeItem('gestormf_staff_gps_visible'); } catch {}
         }}
       />
     );
