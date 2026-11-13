@@ -28318,6 +28318,466 @@ body.light-theme .cs-btn-request-extra {
   color: #b45309 !important;
 }
 
+/* Estado Vazio de Missões */
+.cs-empty-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 20px;
+  background: rgba(22, 31, 50, 0.5);
+  border: 1.5px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.cs-empty-icon {
+  color: #f59e0b;
+  opacity: 0.75;
+}
+
+[data-theme="light"] .cs-empty-notice,
+body.light-theme .cs-empty-notice {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+[data-theme="light"] .cs-empty-icon,
+body.light-theme .cs-empty-icon {
+  color: #d97706 !important;
+}
+
+/* ============================================================================== */
+/* OTIMIZAÇÕES EXCLUSIVAS DE "MEU ESPAÇO" PARA CELULARES (iOS & ANDROID)          */
+/* ============================================================================== */
+@media (max-width: 768px) {
+  /* Container e espaçamentos no celular */
+  .collaborator-space-container {
+    padding: 12px 12px 96px 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 1. Hero Card Mobile */
+  .cs-hero-card {
+    padding: 18px 14px 16px 14px !important;
+    border-radius: 18px !important;
+    gap: 12px !important;
+    margin-bottom: 1.25rem !important;
+    box-shadow: 0 10px 26px -6px rgba(0, 0, 0, 0.45) !important;
+  }
+
+  .cs-hero-avatar {
+    width: 72px !important;
+    height: 72px !important;
+    border-width: 2.5px !important;
+    font-size: 1.4rem !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25), 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+  }
+
+  .cs-hero-name-row {
+    gap: 6px !important;
+  }
+
+  .cs-hero-name {
+    font-size: 1.35rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .cs-company-pill {
+    font-size: 0.7rem !important;
+    padding: 2px 8px !important;
+  }
+
+  .cs-hero-badges-row {
+    gap: 6px !important;
+    margin-top: 2px !important;
+  }
+
+  .cs-hero-role {
+    font-size: 0.76rem !important;
+    padding: 4px 10px !important;
+  }
+
+  .cs-hero-cnh,
+  .cs-hero-role-secondary {
+    font-size: 0.72rem !important;
+    padding: 3px 8px !important;
+  }
+
+  .cs-hero-divider {
+    max-width: 100% !important;
+    margin: 4px auto 8px auto !important;
+    opacity: 0.7 !important;
+  }
+
+  /* PIX Box no celular */
+  .cs-pix-box {
+    width: 100% !important;
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+    gap: 10px !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+  }
+
+  .cs-pix-info {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    text-align: left !important;
+  }
+
+  .cs-pix-label {
+    font-size: 0.62rem !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  .cs-pix-value {
+    font-size: 0.88rem !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: block !important;
+  }
+
+  .cs-pix-actions {
+    flex-shrink: 0 !important;
+    gap: 6px !important;
+  }
+
+  .cs-btn-copy-pix,
+  .cs-btn-pix-add {
+    padding: 6px 12px !important;
+    font-size: 0.76rem !important;
+    height: 34px !important;
+    border-radius: 8px !important;
+    white-space: nowrap !important;
+  }
+
+  .cs-btn-pix-action {
+    padding: 6px 8px !important;
+    height: 34px !important;
+  }
+
+  /* 2. Seção de Títulos */
+  .cs-section-block {
+    margin-bottom: 1.35rem !important;
+  }
+
+  .cs-section-heading {
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    margin-bottom: 6px !important;
+  }
+
+  .cs-section-header-sub {
+    font-size: 0.7rem !important;
+    line-height: 1.35 !important;
+    margin-bottom: 8px !important;
+    display: block !important;
+  }
+
+  /* 3. Fechamento & Resumo Financeiro no Celular */
+  /* Grid 2 colunas com o Card Total destacado no topo ocupando as 2 colunas */
+  .cs-summary-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .cs-summary-card {
+    padding: 14px 12px 12px 12px !important;
+    border-radius: 14px !important;
+    box-shadow: 0 6px 18px -3px rgba(0, 0, 0, 0.35) !important;
+  }
+
+  /* Card Total ocupa a largura toda no topo */
+  .cs-summary-card.cs-card-total {
+    grid-column: 1 / -1 !important;
+    order: -1 !important;
+    padding: 16px 16px 14px 16px !important;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(22, 31, 50, 0.95) 45%, rgba(14, 20, 34, 0.98) 100%) !important;
+  }
+
+  .cs-card-header {
+    margin-bottom: 6px !important;
+  }
+
+  .cs-card-lbl {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+  }
+
+  .cs-card-total .cs-card-lbl {
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.4px !important;
+    text-transform: uppercase !important;
+  }
+
+  .cs-card-val {
+    font-size: 1.3rem !important;
+    line-height: 1.15 !important;
+  }
+
+  .cs-card-total .cs-card-val {
+    font-size: 1.7rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .cs-card-sub {
+    font-size: 0.67rem !important;
+    margin-top: 4px !important;
+  }
+
+  /* 4. Grade de Funções (11 Funções Oficiais) em 2 Colunas Tipo Badges no Celular */
+  .cs-roles-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .cs-role-item {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: stretch !important;
+    padding: 10px 10px 8px 10px !important;
+    border-radius: 12px !important;
+    min-height: 88px !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+  }
+
+  .cs-role-item-left {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 3px !important;
+    width: 100% !important;
+  }
+
+  .cs-role-icon {
+    font-size: 1.25rem !important;
+    line-height: 1 !important;
+    margin-bottom: 2px !important;
+  }
+
+  .cs-role-info {
+    width: 100% !important;
+  }
+
+  .cs-role-name {
+    font-size: 0.77rem !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    min-height: 26px !important;
+  }
+
+  .cs-role-status {
+    font-size: 0.63rem !important;
+    margin-top: 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
+  }
+
+  .cs-role-count-badge {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    padding: 2px 7px !important;
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    border-radius: 999px !important;
+  }
+
+  /* 5. Card de Disponibilidade para Horas Extras no Celular */
+  .cs-avail-status-card {
+    padding: 14px 14px !important;
+    border-radius: 16px !important;
+    gap: 12px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .cs-avail-status-left {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .cs-avail-icon-circle {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 10px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .cs-avail-icon-circle svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .cs-avail-status-info {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .cs-avail-status-pill {
+    font-size: 0.66rem !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+  }
+
+  .cs-avail-headline {
+    font-size: 0.88rem !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+    margin: 5px 0 4px 0 !important;
+  }
+
+  .cs-avail-desc {
+    font-size: 0.72rem !important;
+    line-height: 1.4 !important;
+    color: #94a3b8 !important;
+    margin: 0 !important;
+  }
+
+  .cs-avail-status-actions {
+    width: 100% !important;
+    margin-top: 4px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+
+  .cs-btn-avail-toggle {
+    width: 100% !important;
+    height: 42px !important;
+    border-radius: 10px !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .cs-btn-avail-edit {
+    width: 100% !important;
+    height: 38px !important;
+    border-radius: 10px !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+  }
+
+  /* 6. Empty Notice e Missões no Celular */
+  .cs-empty-notice {
+    padding: 26px 14px !important;
+    border-radius: 14px !important;
+    font-size: 0.82rem !important;
+    gap: 8px !important;
+  }
+
+  .cs-empty-icon {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .cs-mission-card {
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    gap: 10px !important;
+  }
+
+  .cs-mission-card-left {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+
+  .cs-mission-title {
+    font-size: 0.9rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .cs-mission-loc {
+    font-size: 0.74rem !important;
+  }
+
+  .cs-btn-request-extra {
+    width: 100% !important;
+    height: 42px !important;
+    border-radius: 10px !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Adaptações do Tema Claro no Celular */
+  body.light-theme .cs-summary-card.cs-card-total,
+  [data-theme="light"] .cs-summary-card.cs-card-total {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%) !important;
+    border-color: #86efac !important;
+  }
+
+  body.light-theme .cs-summary-card.cs-card-hours,
+  [data-theme="light"] .cs-summary-card.cs-card-hours {
+    background: #ffffff !important;
+    border-color: #fde68a !important;
+  }
+
+  body.light-theme .cs-summary-card.cs-card-travel,
+  [data-theme="light"] .cs-summary-card.cs-card-travel {
+    background: #ffffff !important;
+    border-color: #bae6fd !important;
+  }
+
+  body.light-theme .cs-role-item,
+  [data-theme="light"] .cs-role-item {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04) !important;
+  }
+
+  body.light-theme .cs-role-item.role-card-main,
+  [data-theme="light"] .cs-role-item.role-card-main {
+    background: #fffbeb !important;
+    border-color: #f59e0b !important;
+  }
+
+  body.light-theme .cs-role-item.role-card-sec,
+  [data-theme="light"] .cs-role-item.role-card-sec {
+    background: #f0f9ff !important;
+    border-color: #38bdf8 !important;
+  }
+
+  body.light-theme .cs-avail-desc,
+  [data-theme="light"] .cs-avail-desc {
+    color: #64748b !important;
+  }
+}
+
 /* ============================================================================== */
 /* CAMPO PREMIUM DE VALOR DA DIÁRIA / HORA EXTRA                                  */
 /* ============================================================================== */

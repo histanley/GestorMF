@@ -1118,7 +1118,8 @@ export default function CollaboratorSpace({
 
         {sortedMyMissions.length === 0 ? (
           <div className="cs-empty-notice">
-            Você ainda não possui missões registradas nesta base.
+            <Calendar size={28} className="cs-empty-icon" />
+            <span>Você ainda não possui missões registradas nesta base.</span>
           </div>
         ) : (
           <div className="cs-missions-list">
