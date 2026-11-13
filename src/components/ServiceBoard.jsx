@@ -2999,6 +2999,15 @@ export default function ServiceBoard({
                       <Lock size={14} /> Missão Encerrada
                     </span>
                   ) : null}
+
+                  <button
+                    type="button"
+                    className="btn-secondary btn-close-modal-footer"
+                    onClick={() => setSelectedDetailMissionId(null)}
+                    title="Fechar Ficha da Missão"
+                  >
+                    <X size={15} /> Fechar
+                  </button>
                 </div>
               </div>
             </div>
