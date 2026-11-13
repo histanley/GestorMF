@@ -20,6 +20,7 @@ import {
   Eye,
   EyeOff,
   Calendar,
+  FileText,
 } from 'lucide-react';
 import { getNavigationLinks, getMissionTotalKm, fetchRouteOSRM, formatDateBR } from '../utils/geo';
 import { apiGetActiveGpsLocations, apiSendGpsLocation, apiStopGpsLocation } from '../utils/api';
@@ -83,6 +84,7 @@ export default function MapView({
   selectedMissionId,
   onSelectMission,
   onOpenNewMissionAtCoord,
+  onOpenDetailMission = null,
   theme = 'dark',
   userRole = 'admin',
 }) {
@@ -1007,26 +1009,37 @@ export default function MapView({
             </div>
           </div>
 
-          {navLinks && (
-            <div className="card-nav-actions">
-              <a
-                href={navLinks.googleMaps}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-nav-external google-maps"
-              >
-                <ExternalLink size={14} /> Abrir Google Maps
-              </a>
-              <a
-                href={navLinks.waze}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-nav-external waze"
-              >
-                <ExternalLink size={14} /> Abrir Waze
-              </a>
-            </div>
-          )}
+          <div className="card-actions-wrapper">
+            <button
+              type="button"
+              className="btn-card-detail-mission"
+              onClick={() => onOpenDetailMission && onOpenDetailMission(activeMission)}
+              title="Abrir Detalhes e Ficha Completa da Missão"
+            >
+              <FileText size={15} /> Detalhes da Missão
+            </button>
+
+            {navLinks && (
+              <div className="card-nav-actions">
+                <a
+                  href={navLinks.googleMaps}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-nav-external google-maps"
+                >
+                  <ExternalLink size={14} /> Abrir Google Maps
+                </a>
+                <a
+                  href={navLinks.waze}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-nav-external waze"
+                >
+                  <ExternalLink size={14} /> Abrir Waze
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

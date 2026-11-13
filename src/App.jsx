@@ -29,6 +29,7 @@ import {
   Bell,
   BellRing,
   Radio,
+  FileText,
   Shield,
   ShieldCheck,
   Zap,
@@ -42,6 +43,7 @@ import TeamManager from './components/TeamManager';
 import AdminCenter from './components/AdminCenter';
 import CollaboratorSpace from './components/CollaboratorSpace';
 import MissionModal from './components/MissionModal';
+import MissionDetailModal from './components/MissionDetailModal';
 import SettingsModal from './components/SettingsModal';
 import LoginScreen from './components/LoginScreen';
 import UserMenu from './components/UserMenu';
@@ -334,10 +336,16 @@ export default function App() {
   // Estados de Modais e Seleções
   const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
   const [editingMission, setEditingMission] = useState(null);
+  const [detailMissionId, setDetailMissionId] = useState(null);
   const [initialCoordsForNewMission, setInitialCoordsForNewMission] = useState(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedMissionId, setSelectedMissionId] = useState(INITIAL_MISSIONS[0]?.id || null);
   const [mapMissionFilter, setMapMissionFilter] = useState('ativas'); // 'ativas' (Agendada + Em Preparo + Em Execução) | 'agendadas' | 'andamento' | 'finalizadas'
+
+  const detailMission = useMemo(() => {
+    if (!detailMissionId) return null;
+    return missions.find((m) => m.id === detailMissionId) || null;
+  }, [detailMissionId, missions]);
 
   // Estados de Notificações Push e Alertas em Tempo Real
   const knownMissionsRef = useRef(null);
@@ -3211,16 +3219,30 @@ export default function App() {
                             </span>
                           </div>
 
-                          <div className="item-fuel" title={`Ida: ${m.distanceKm} km | Total Ida e Volta: ${getMissionTotalKm(m)} km`}>
-                            <Navigation size={12} />
-                            <span>{getMissionTotalKm(m)} km</span>
-                            {canManageFleetAndTeams && (
-                              <>
-                                <span style={{ opacity: 0.45 }}>•</span>
-                                <Fuel size={13} />
-                                <span>R$ {Number(m.estimatedFuelCost || 0).toFixed(2)}</span>
-                              </>
-                            )}
+                          <div className="item-right-actions">
+                            <div className="item-fuel" title={`Ida: ${m.distanceKm} km | Total Ida e Volta: ${getMissionTotalKm(m)} km`}>
+                              <Navigation size={12} />
+                              <span>{getMissionTotalKm(m)} km</span>
+                              {canManageFleetAndTeams && (
+                                <>
+                                  <span style={{ opacity: 0.45 }}>•</span>
+                                  <Fuel size={13} />
+                                  <span>R$ {Number(m.estimatedFuelCost || 0).toFixed(2)}</span>
+                                </>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              className="item-btn-details"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetailMissionId(m.id);
+                              }}
+                              title="Abrir Detalhes Completos da Missão"
+                            >
+                              <FileText size={11} /> Detalhes
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -3242,6 +3264,7 @@ export default function App() {
                 selectedMissionId={selectedMissionId}
                 onSelectMission={(id) => setSelectedMissionId(id)}
                 onOpenNewMissionAtCoord={(lat, lon) => handleOpenNewMission({ lat, lon })}
+                onOpenDetailMission={(m) => setDetailMissionId(typeof m === 'object' ? m.id : m)}
                 theme={theme}
                 userRole={userRole}
               />
@@ -3352,6 +3375,39 @@ export default function App() {
         vehicles={vehicles}
         members={members}
         missions={missions}
+      />
+
+      {/* Modal / Ficha Completa de Detalhes da Missão (Acessível pelo Mapa, Barra Lateral e Tabela) */}
+      <MissionDetailModal
+        isOpen={Boolean(detailMission)}
+        mission={detailMission}
+        missions={missions}
+        vehicles={vehicles}
+        members={members}
+        baseLocation={settings.baseLocation}
+        fuelPricePerLiter={settings.fuelPricePerLiter}
+        settings={settings}
+        userRole={userRole}
+        currentUser={currentUser}
+        onClose={() => setDetailMissionId(null)}
+        onEditMission={(m) => {
+          setDetailMissionId(null);
+          handleEditMission(m);
+        }}
+        onSelectMissionOnMap={(id) => {
+          setDetailMissionId(null);
+          const target = missions.find((m) => m.id === id);
+          if (target && isMissionFinalizada(target)) {
+            setMapMissionFilter('finalizadas');
+          } else {
+            setMapMissionFilter('ativas');
+          }
+          setSelectedMissionId(id);
+          setActiveTab('map');
+        }}
+        onUpdateEditionStatus={(id, status) => {
+          handleUpdateEditionStatus(id, status);
+        }}
       />
 
       {/* Modal de Configurações da Sede & Combustível (Apenas Administrador) */}
