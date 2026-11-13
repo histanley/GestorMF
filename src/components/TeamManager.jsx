@@ -34,6 +34,7 @@ import {
   AlertTriangle,
   Car,
   Sparkles,
+  DollarSign,
 } from 'lucide-react';
 import { getActiveMissionForMember as findActiveMissionForMember } from '../utils/geo';
 import {
