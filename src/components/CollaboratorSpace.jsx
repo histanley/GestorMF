@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Trophy,
   Award,
@@ -25,6 +25,8 @@ import {
   Trash2,
   X,
   Lock,
+  AlertTriangle,
+  Zap,
 } from 'lucide-react';
 import {
   OFFICIAL_COMPANY_ROLES,
@@ -36,7 +38,8 @@ import {
 import { apiRequestExtraHours, apiUpdatePixKey } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 import { calculateMissionOffHours } from '../utils/workHours';
-import { sortMissionsByStatusPriority } from '../utils/geo';
+import { sortMissionsByStatusPriority, getMissionLiveProgress } from '../utils/geo';
+import { sendPushNotification, requestNotificationPermission } from '../utils/notifications';
 
 // Formata data ISO para PT-BR
 function formatDateBR(dateStr) {
@@ -88,6 +91,19 @@ export default function CollaboratorSpace({
   const [requestReason, setRequestReason] = useState('');
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
 
+  // Monitor em tempo real: atualiza a cada 20s para verificar reta final das missões
+  const [liveTick, setLiveTick] = useState(0);
+
+  useEffect(() => {
+    // Solicita permissão de notificações em segundo plano
+    requestNotificationPermission().catch(() => {});
+
+    const interval = setInterval(() => {
+      setLiveTick((t) => t + 1);
+    }, 20000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Filtro de mês atual (YYYY-MM)
   const currentMonthKey = useMemo(() => {
     const d = new Date();
@@ -122,6 +138,35 @@ export default function CollaboratorSpace({
     });
   }, [myMember, missions]);
 
+  // Identifica se há alguma missão ativa na reta final crítica (restam <= 30 min)
+  const urgentMissionNow = useMemo(() => {
+    return myMissions.find((m) => {
+      const prog = getMissionLiveProgress(m);
+      return prog.isUrgentEnd;
+    }) || null;
+  }, [myMissions, liveTick]);
+
+  // Disparo inteligente de Notificação Push e Alerta Sonoro para o colaborador quando em reta final
+  useEffect(() => {
+    if (!urgentMissionNow) return;
+
+    const notifKey = `notified_urgent_${urgentMissionNow.id}_${urgentMissionNow.extraHoursApproved || 0}`;
+    const alreadyNotified = sessionStorage.getItem(notifKey);
+
+    if (!alreadyNotified) {
+      sessionStorage.setItem(notifKey, 'true');
+      const prog = getMissionLiveProgress(urgentMissionNow);
+      const remText = prog.remainingMinutes > 0
+        ? `Restam apenas ${prog.remainingMinutes} minutos para o término previsto.`
+        : 'Horário limite atingido!';
+
+      sendPushNotification(`🚨 Atenção: Reta Final de Serviço!`, {
+        body: `${urgentMissionNow.description}: ${remText} Solicite mais horas extras se precisar estender a gravação.`,
+        tag: `urgent-mission-${urgentMissionNow.id}`,
+      });
+    }
+  }, [urgentMissionNow]);
+
   // Contagem fiel de cada uma das 11 funções oficiais
   const roleCounts = useMemo(() => {
     if (!myMember) return {};
@@ -131,7 +176,7 @@ export default function CollaboratorSpace({
   // Missões ordenadas estritamente por ordem de acontecimento (o que vai acontecer logo aparece primeiro)
   const sortedMyMissions = useMemo(() => {
     return sortMissionsByStatusPriority(myMissions);
-  }, [myMissions]);
+  }, [myMissions, liveTick]);
 
   // Resumo financeiro do mês
   const financialSummary = useMemo(() => {
@@ -570,6 +615,33 @@ export default function CollaboratorSpace({
       {/* 4. MISSÕES ATIVAS COM SOLICITAÇÃO DE HORAS EXTRAS              */}
       {/* ============================================================== */}
       <div className="cs-section-block">
+        {/* Banner de Urgência em Destaque no Topo quando uma missão estiver na reta final */}
+        {urgentMissionNow && (
+          <div className="cs-urgent-banner">
+            <div className="cs-urgent-banner-left">
+              <div className="cs-urgent-icon-pulse">
+                <AlertTriangle size={22} />
+              </div>
+              <div>
+                <h4 className="cs-urgent-title">
+                  🚨 Reta Final do Horário: {urgentMissionNow.description}
+                </h4>
+                <p className="cs-urgent-desc">
+                  O horário previsto desta missão está nos minutos finais ({getMissionLiveProgress(urgentMissionNow).remainingMinutes > 0 ? `restam ${getMissionLiveProgress(urgentMissionNow).remainingMinutes} min até às ${getMissionLiveProgress(urgentMissionNow).effectiveEndTimeStr}` : `horário limite ${getMissionLiveProgress(urgentMissionNow).effectiveEndTimeStr} atingido`}). Caso precise de mais tempo de gravação em campo, solicite horas extras agora para o administrador.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="cs-urgent-banner-btn"
+              onClick={() => setRequestModalMission(urgentMissionNow)}
+            >
+              <Zap size={16} />
+              <span>Pedir Horas Extras Agora</span>
+            </button>
+          </div>
+        )}
+
         <h3 className="cs-section-heading">
           <Sparkles size={18} className="text-amber" />
           Minhas Missões &amp; Solicitação de Horas Extras
@@ -586,64 +658,96 @@ export default function CollaboratorSpace({
               const requests = Array.isArray(m.extraHoursRequests) ? m.extraHoursRequests : [];
               const myRequests = requests.filter((r) => String(r.memberId) === String(myMember.id));
               const isClosed = m.missionStatus === 'Finalizada';
+              const progress = getMissionLiveProgress(m);
 
               return (
-                <div key={m.id} className="cs-mission-card">
-                  <div className="cs-mission-card-left">
-                    <div className="cs-mission-meta-row">
-                      <span className="cs-mission-code">{m.code || `#${m.id}`}</span>
-                      <span className="cs-mission-date">
-                        📅 {formatDateBR(m.date)} {isMDay && m.endDate ? ` a ${formatDateBR(m.endDate)}` : ''}
-                      </span>
-                      {isMDay ? (
-                        <span className="cs-badge-mday">
-                          🏕️ Viagem (+1d)
-                        </span>
-                      ) : (
-                        <span className="cs-badge-hours">
-                          🕒 {m.departureTime || '--:--'} às {m.returnTimeEstimated || '--:--'}
-                        </span>
-                      )}
-                      <span className={`cs-badge-status ${isClosed ? 'closed' : 'open'}`}>
-                        {m.missionStatus || 'Agendada'}
+                <div
+                  key={m.id}
+                  className={`cs-mission-card ${progress.isUrgentEnd ? 'card-urgent-final-hours' : progress.isHappeningNow ? 'card-happening-now' : ''}`}
+                >
+                  {/* Faixa Superior de Destaque em Tempo Real */}
+                  {progress.isUrgentEnd ? (
+                    <div className="cs-urgent-top-badge">
+                      <AlertTriangle size={14} className="icon-pulse-urgent" />
+                      <span>
+                        🚨 RETA FINAL DO HORÁRIO • {progress.remainingMinutes > 0 ? `Restam apenas ${progress.remainingMinutes} min (Até ${progress.effectiveEndTimeStr})` : `Horário previsto limite atingido (${progress.effectiveEndTimeStr})!`}
                       </span>
                     </div>
+                  ) : progress.isHappeningNow ? (
+                    <div className="cs-live-top-badge">
+                      <span className="cs-live-dot" />
+                      <span>🟢 Acontecendo Agora (Em Campo) • Término previsto às {progress.effectiveEndTimeStr}</span>
+                    </div>
+                  ) : null}
 
-                    <strong className="cs-mission-title">
-                      {m.description}
-                    </strong>
-                    <span className="cs-mission-loc">📍 {m.locationName}</span>
-
-                    {/* Histórico de solicitações de horas extras nesta missão */}
-                    {myRequests.length > 0 && (
-                      <div className="cs-requests-chips">
-                        {myRequests.map((req, rIdx) => {
-                          const isPending = req.status === 'PENDING';
-                          const isApproved = req.status === 'APPROVED';
-                          return (
-                            <span
-                              key={rIdx}
-                              className={`cs-req-chip ${isPending ? 'pending' : isApproved ? 'approved' : 'rejected'}`}
-                            >
-                              {isPending ? <Clock size={11} /> : isApproved ? <Check size={11} /> : <XCircle size={11} />}
-                              +{req.hoursRequested}h {isPending ? 'Aguardando Aprovação' : isApproved ? 'Aprovada' : 'Recusada'}
-                            </span>
-                          );
-                        })}
+                  <div className="cs-mission-card-content">
+                    <div className="cs-mission-card-left">
+                      <div className="cs-mission-meta-row">
+                        <span className="cs-mission-code">{m.code || `#${m.id}`}</span>
+                        <span className="cs-mission-date">
+                          📅 {formatDateBR(m.date)} {isMDay && m.endDate ? ` a ${formatDateBR(m.endDate)}` : ''}
+                        </span>
+                        {isMDay ? (
+                          <span className="cs-badge-mday">
+                            🏕️ Viagem (+1d)
+                          </span>
+                        ) : (
+                          <span className={`cs-badge-hours ${progress.isUrgentEnd ? 'badge-hours-urgent' : ''}`}>
+                            🕒 {m.departureTime || '--:--'} às {progress.effectiveEndTimeStr || m.returnTimeEstimated || '--:--'}
+                            {progress.approvedExtraHours > 0 && ` (+${progress.approvedExtraHours}h aprovadas)`}
+                          </span>
+                        )}
+                        <span className={`cs-badge-status ${isClosed ? 'closed' : progress.isUrgentEnd ? 'urgent' : progress.isHappeningNow ? 'live' : 'open'}`}>
+                          {progress.isUrgentEnd ? '🚨 Reta Final' : progress.isHappeningNow ? '🟢 Em Campo' : (m.missionStatus || 'Agendada')}
+                        </span>
                       </div>
+
+                      <strong className="cs-mission-title">
+                        {m.description}
+                      </strong>
+                      <span className="cs-mission-loc">📍 {m.locationName}</span>
+
+                      {/* Histórico de solicitações de horas extras nesta missão */}
+                      {myRequests.length > 0 && (
+                        <div className="cs-requests-chips">
+                          {myRequests.map((req, rIdx) => {
+                            const isPending = req.status === 'PENDING';
+                            const isApproved = req.status === 'APPROVED';
+                            return (
+                              <span
+                                key={rIdx}
+                                className={`cs-req-chip ${isPending ? 'pending' : isApproved ? 'approved' : 'rejected'}`}
+                              >
+                                {isPending ? <Clock size={11} /> : isApproved ? <Check size={11} /> : <XCircle size={11} />}
+                                +{req.hoursRequested}h {isPending ? 'Aguardando Aprovação' : isApproved ? 'Aprovada' : 'Recusada'}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Ação: Solicitar Horas Extras */}
+                    {!isClosed && (
+                      <button
+                        type="button"
+                        onClick={() => setRequestModalMission(m)}
+                        className={`cs-btn-request-extra ${progress.isUrgentEnd ? 'btn-urgent-extra' : progress.isHappeningNow ? 'btn-live-extra' : ''}`}
+                      >
+                        {progress.isUrgentEnd ? (
+                          <>
+                            <Zap size={15} />
+                            <span>⚡ Solicitar Mais Horas Extras (+1h, +2h)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus size={14} />
+                            <span>Solicitar Hora Extra (+1h, +2h)</span>
+                          </>
+                        )}
+                      </button>
                     )}
                   </div>
-
-                  {/* Ação: Solicitar Horas Extras */}
-                  {!isClosed && (
-                    <button
-                      type="button"
-                      onClick={() => setRequestModalMission(m)}
-                      className="cs-btn-request-extra"
-                    >
-                      <Plus size={14} /> Solicitar Hora Extra (+1h, +2h)
-                    </button>
-                  )}
                 </div>
               );
             })}

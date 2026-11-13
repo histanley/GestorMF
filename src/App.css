@@ -29422,5 +29422,337 @@ body.light-theme .cs-modal-btn-submit {
   border-color: #f59e0b !important;
 }
 
+/* ==========================================================================
+   ALERTA DE MISSÃO EM ANDAMENTO E RETA FINAL CRÍTICA (URGÊNCIA VERMELHA)
+   ========================================================================== */
+
+/* Banner de Urgência no topo do espaço do colaborador */
+.cs-urgent-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1.5px solid #ef4444;
+  border-radius: 14px;
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: pulse-urgent-banner 2.2s infinite ease-in-out;
+}
+
+@keyframes pulse-urgent-banner {
+  0%, 100% {
+    box-shadow: 0 0 22px rgba(239, 68, 68, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-color: rgba(239, 68, 68, 0.85);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(239, 68, 68, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-color: #f87171;
+  }
+}
+
+.cs-urgent-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+}
+
+.cs-urgent-icon-pulse {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.22);
+  border: 1.5px solid #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+  animation: pulse-urgent-icon 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse-urgent-icon {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.6));
+  }
+  50% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.9));
+  }
+}
+
+.cs-urgent-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fca5a5;
+  letter-spacing: -0.01em;
+  margin: 0 0 3px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cs-urgent-desc {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.cs-urgent-banner-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  border: 1.5px solid #f87171;
+  color: #ffffff;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+  transition: all 0.22s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cs-urgent-banner-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(239, 68, 68, 0.6);
+}
+
+/* Card - Layout estrutural */
+.cs-mission-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+/* Card: Missão Acontecendo Agora (Verde / Ciano Esmeralda) */
+.cs-mission-card.card-happening-now {
+  border: 1.5px solid #10b981 !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.85) 100%) !important;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.cs-live-top-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.16);
+  padding: 4px 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  width: fit-content;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.cs-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  display: inline-block;
+  animation: pulse-live-dot 1.4s infinite ease-in-out;
+}
+
+@keyframes pulse-live-dot {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 1;
+    box-shadow: 0 0 12px #34d399;
+  }
+}
+
+/* Card: Missão em Reta Final Crítica (URGENTE EM VERMELHO) */
+.cs-mission-card.card-urgent-final-hours {
+  border: 2px solid #ef4444 !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(15, 23, 42, 0.92) 100%) !important;
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.4) !important;
+  position: relative;
+  overflow: hidden;
+  animation: pulse-urgent-card-border 2s infinite ease-in-out;
+}
+
+@keyframes pulse-urgent-card-border {
+  0%, 100% {
+    border-color: #ef4444;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.35);
+  }
+  50% {
+    border-color: #f87171;
+    box-shadow: 0 0 32px rgba(239, 68, 68, 0.55);
+  }
+}
+
+.cs-urgent-top-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fee2e2;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.45) 0%, rgba(185, 28, 28, 0.25) 100%);
+  padding: 5px 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  width: fit-content;
+  border: 1px solid rgba(248, 113, 113, 0.6);
+  animation: pulse-urgent-badge 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-urgent-badge {
+  0%, 100% {
+    background-color: rgba(239, 68, 68, 0.45);
+  }
+  50% {
+    background-color: rgba(239, 68, 68, 0.7);
+  }
+}
+
+/* Badges e Horários */
+.badge-hours-urgent {
+  color: #fca5a5 !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+  font-weight: 800 !important;
+}
+
+.cs-badge-status.urgent {
+  background: rgba(239, 68, 68, 0.22);
+  color: #f87171;
+  border: 1px solid #ef4444;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.cs-badge-status.live {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid #10b981;
+  font-weight: 800;
+}
+
+/* Botões de Ação de Hora Extra nos Cards */
+.cs-btn-request-extra.btn-live-extra {
+  border-color: #34d399;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.cs-btn-request-extra.btn-live-extra:hover {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: #10b981;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.35);
+}
+
+.cs-btn-request-extra.btn-urgent-extra {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+  border: 1.5px solid #fca5a5 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.55) !important;
+  animation: pulse-urgent-btn 1.4s infinite ease-in-out;
+}
+
+@keyframes pulse-urgent-btn {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 22px rgba(239, 68, 68, 0.75);
+  }
+}
+
+.cs-btn-request-extra.btn-urgent-extra:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%) !important;
+  transform: translateY(-2px) scale(1.04) !important;
+  box-shadow: 0 0 26px rgba(239, 68, 68, 0.85) !important;
+}
+
+/* Modo Claro / Light Theme */
+body.light-theme .cs-urgent-banner {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #ef4444;
+}
+
+body.light-theme .cs-urgent-title {
+  color: #991b1b;
+}
+
+body.light-theme .cs-urgent-desc {
+  color: #4b5563;
+}
+
+body.light-theme .cs-mission-card.card-happening-now {
+  background: #f0fdf4 !important;
+  border-color: #10b981 !important;
+}
+
+body.light-theme .cs-mission-card.card-urgent-final-hours {
+  background: #fff1f2 !important;
+  border-color: #ef4444 !important;
+}
+
+body.light-theme .cs-urgent-top-badge {
+  color: #991b1b;
+  background: #fecaca;
+  border-color: #f87171;
+}
+
+body.light-theme .cs-live-top-badge {
+  color: #065f46;
+  background: #d1fae5;
+  border-color: #6ee7b7;
+}
+
+@media (max-width: 768px) {
+  .cs-urgent-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .cs-urgent-banner-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .cs-mission-card-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .cs-btn-request-extra {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
 
 

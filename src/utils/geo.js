@@ -456,7 +456,16 @@ export function sortMissionsByStatusPriority(missions = []) {
     }
 
     // Ambas são ativas:
-    // 1º lugar: Em Execução / Em Andamento tem prioridade máxima imediata no terreno
+    // 1º lugar: Missão na Reta Final Crítica (Urgente) ou Acontecendo Agora tem prioridade máxima imediata
+    const progA = getMissionLiveProgress(a);
+    const progB = getMissionLiveProgress(b);
+
+    if (progA.isUrgentEnd && !progB.isUrgentEnd) return -1;
+    if (!progA.isUrgentEnd && progB.isUrgentEnd) return 1;
+
+    if (progA.isHappeningNow && !progB.isHappeningNow) return -1;
+    if (!progA.isHappeningNow && progB.isHappeningNow) return 1;
+
     const isExecA = a.missionStatus === 'Em Execução' || a.missionStatus === 'Em Andamento';
     const isExecB = b.missionStatus === 'Em Execução' || b.missionStatus === 'Em Andamento';
     if (isExecA && !isExecB) return -1;
@@ -1092,4 +1101,117 @@ export function checkIsMissionOverdue(mission) {
   const deadlineDate = new Date(y, m - 1, d, isNaN(h) ? 18 : h, isNaN(min) ? 0 : min, 0, 0);
 
   return Date.now() > deadlineDate.getTime();
+}
+
+/**
+ * Calcula o andamento em tempo real de uma missão em campo:
+ * - isHappeningNow: se a missão está acontecendo hoje e já iniciou a saída da base.
+ * - isUrgentEnd: se a missão está acontecendo e está a 30 minutos ou menos do término previsto
+ *   (considerando também as horas extras aprovadas).
+ * - remainingMinutes: quantos minutos faltam para o fim do horário previsto (negativo se passou).
+ * - effectiveEndTimeStr: horário final formatado HH:MM considerando horas extras aprovadas.
+ */
+export function getMissionLiveProgress(mission) {
+  if (!mission || !mission.date || !mission.departureTime) {
+    return {
+      isHappeningNow: false,
+      isUrgentEnd: false,
+      remainingMinutes: null,
+      effectiveEndTimeStr: '--:--',
+      approvedExtraHours: 0,
+      startTimeStr: mission?.departureTime || '--:--',
+    };
+  }
+
+  const mStatus = String(mission.missionStatus || 'Agendada').trim().toLowerCase();
+  if (
+    mStatus === 'finalizada' ||
+    mStatus === 'finalizado' ||
+    mStatus === 'concluída' ||
+    mStatus === 'cancelada'
+  ) {
+    return {
+      isHappeningNow: false,
+      isUrgentEnd: false,
+      remainingMinutes: null,
+      effectiveEndTimeStr: '--:--',
+      approvedExtraHours: 0,
+      startTimeStr: mission.departureTime,
+    };
+  }
+
+  const now = new Date();
+  const dateParts = String(mission.date).split('-').map(Number);
+  const depParts = String(mission.departureTime).split(':').map(Number);
+  if (dateParts.length < 3 || depParts.length < 2 || isNaN(depParts[0]) || isNaN(depParts[1])) {
+    return {
+      isHappeningNow: false,
+      isUrgentEnd: false,
+      remainingMinutes: null,
+      effectiveEndTimeStr: '--:--',
+      approvedExtraHours: 0,
+      startTimeStr: mission.departureTime,
+    };
+  }
+
+  const [y, m, d] = dateParts;
+  const [depH, depM] = depParts;
+  const startTime = new Date(y, m - 1, d, depH, depM, 0, 0);
+
+  // Horário previsto de retorno base
+  let endTime;
+  const returnCandidate = mission.returnTimeEstimated || mission.arrivalTimeEstimated;
+  if (returnCandidate && String(returnCandidate).includes(':')) {
+    const [retH, retM] = String(returnCandidate).split(':').map(Number);
+    if (!isNaN(retH) && !isNaN(retM)) {
+      endTime = new Date(y, m - 1, d, retH, retM, 0, 0);
+      if (endTime <= startTime) {
+        endTime.setDate(endTime.getDate() + 1);
+      }
+    }
+  }
+  if (!endTime) {
+    endTime = new Date(startTime.getTime() + 2 * 60 * 60 * 1000); // 2h padrão
+  }
+
+  // Horas extras aprovadas somadas ao horário final
+  const approvedExtraHours = Number(mission.extraHoursApproved || 0);
+  const effectiveEndTime = new Date(endTime.getTime() + approvedExtraHours * 60 * 60 * 1000);
+
+  const endH = String(effectiveEndTime.getHours()).padStart(2, '0');
+  const endMin = String(effectiveEndTime.getMinutes()).padStart(2, '0');
+  const effectiveEndTimeStr = `${endH}:${endMin}`;
+
+  const isToday = (
+    now.getFullYear() === y &&
+    now.getMonth() === (m - 1) &&
+    now.getDate() === d
+  );
+
+  const diffMs = effectiveEndTime.getTime() - now.getTime();
+  const remainingMinutes = Math.round(diffMs / (60 * 1000));
+
+  // Missão acontecendo no momento:
+  // - Marcada explicitamente como "Em Execução" ou "Em Andamento"
+  // OU
+  // - É hoje, já passou da saída e ainda não estourou 90 minutos após o término previsto sem ser finalizada
+  const isHappeningNow = (
+    mStatus === 'em execução' ||
+    mStatus === 'em execucao' ||
+    mStatus === 'em andamento' ||
+    (isToday && now.getTime() >= startTime.getTime() && diffMs > -90 * 60 * 1000)
+  );
+
+  // Urgência / Reta final:
+  // Quando a missão está em andamento e faltam 30 minutos ou menos (ou acabou de atingir o limite previsto)
+  const isUrgentEnd = isHappeningNow && remainingMinutes <= 30;
+
+  return {
+    isHappeningNow,
+    isUrgentEnd,
+    remainingMinutes,
+    effectiveEndTimeStr,
+    approvedExtraHours,
+    startTimeStr: mission.departureTime,
+  };
 }
