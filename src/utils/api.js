@@ -227,6 +227,13 @@ export async function apiRequestExtraHours({ missionId, hoursRequested = 1.0, re
   });
 }
 
+export async function apiExtendMissionReturnTime({ missionId, newReturnTime, hoursAdded = 1.0, reason = '', memberId = null, memberName = null }) {
+  return await apiRequest('/missions.php?action=extend_return_time', {
+    method: 'POST',
+    body: JSON.stringify({ missionId, newReturnTime, hoursAdded, reason, memberId, memberName })
+  });
+}
+
 export async function apiRespondExtraHours({ missionId, requestId, decision = 'APPROVE' }) {
   return await apiRequest('/missions.php?action=respond_extra_hours', {
     method: 'POST',

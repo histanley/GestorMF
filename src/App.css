@@ -29630,6 +29630,10 @@ body.light-theme .cs-modal-btn-submit {
    ALERTA DE MISSÃO EM ANDAMENTO E RETA FINAL CRÍTICA (URGÊNCIA VERMELHA)
    ========================================================================== */
 
+/* ==========================================================================
+   ALERTA DE MISSÃO EM ANDAMENTO E RETA FINAL (EXPEDIENTE vs. HORAS EXTRAS)
+   ========================================================================== */
+
 /* Banner de Urgência no topo do espaço do colaborador */
 .cs-urgent-banner {
   display: flex;
@@ -29638,11 +29642,24 @@ body.light-theme .cs-modal-btn-submit {
   gap: 16px;
   padding: 16px 20px;
   margin-bottom: 20px;
+  border-radius: 14px;
+  transition: all 0.25s ease;
+}
+
+/* Variação 1: Fora do Expediente (Vermelho / Alerta Crítico de Horas Extras) */
+.cs-urgent-banner.banner-offhours {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(15, 23, 42, 0.95) 100%);
   border: 1.5px solid #ef4444;
-  border-radius: 14px;
   box-shadow: 0 0 25px rgba(239, 68, 68, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   animation: pulse-urgent-banner 2.2s infinite ease-in-out;
+}
+
+/* Variação 2: Dentro do Expediente (Âmbar / Pauta em Campo - Sem Hora Extra) */
+.cs-urgent-banner.banner-inhours {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1.5px solid rgba(245, 158, 11, 0.7);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: pulse-inhours-banner 2.4s infinite ease-in-out;
 }
 
 @keyframes pulse-urgent-banner {
@@ -29653,6 +29670,17 @@ body.light-theme .cs-modal-btn-submit {
   50% {
     box-shadow: 0 0 35px rgba(239, 68, 68, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     border-color: #f87171;
+  }
+}
+
+@keyframes pulse-inhours-banner {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-color: rgba(245, 158, 11, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    border-color: #fbbf24;
   }
 }
 
@@ -29667,14 +29695,25 @@ body.light-theme .cs-modal-btn-submit {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(239, 68, 68, 0.22);
-  border: 1.5px solid #ef4444;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.35rem;
   flex-shrink: 0;
+}
+
+.cs-urgent-icon-pulse.pulse-offhours {
+  background: rgba(239, 68, 68, 0.22);
+  border: 1.5px solid #ef4444;
+  color: #f87171;
   animation: pulse-urgent-icon 1.2s infinite ease-in-out;
+}
+
+.cs-urgent-icon-pulse.pulse-inhours {
+  background: rgba(245, 158, 11, 0.22);
+  border: 1.5px solid #f59e0b;
+  color: #fbbf24;
+  animation: pulse-inhours-icon 1.4s infinite ease-in-out;
 }
 
 @keyframes pulse-urgent-icon {
@@ -29688,15 +29727,33 @@ body.light-theme .cs-modal-btn-submit {
   }
 }
 
+@keyframes pulse-inhours-icon {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.5));
+  }
+  50% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.8));
+  }
+}
+
 .cs-urgent-title {
   font-size: 1rem;
   font-weight: 800;
-  color: #fca5a5;
   letter-spacing: -0.01em;
   margin: 0 0 3px 0;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.banner-offhours .cs-urgent-title {
+  color: #fca5a5;
+}
+
+.banner-inhours .cs-urgent-title {
+  color: #fef08a;
 }
 
 .cs-urgent-desc {
@@ -29707,9 +29764,6 @@ body.light-theme .cs-modal-btn-submit {
 }
 
 .cs-urgent-banner-btn {
-  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-  border: 1.5px solid #f87171;
-  color: #ffffff;
   padding: 10px 18px;
   border-radius: 10px;
   font-weight: 700;
@@ -29718,16 +29772,35 @@ body.light-theme .cs-modal-btn-submit {
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
   transition: all 0.22s ease;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.cs-urgent-banner-btn:hover {
+.cs-urgent-banner-btn.btn-urgent-offhours {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  border: 1.5px solid #f87171;
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+
+.cs-urgent-banner-btn.btn-urgent-offhours:hover {
   background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 22px rgba(239, 68, 68, 0.6);
+}
+
+.cs-urgent-banner-btn.btn-urgent-inhours {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  border: 1.5px solid #fcd34d;
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
+}
+
+.cs-urgent-banner-btn.btn-urgent-inhours:hover {
+  background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(217, 119, 6, 0.6);
 }
 
 /* Card - Layout estrutural */
@@ -29787,7 +29860,7 @@ body.light-theme .cs-modal-btn-submit {
   }
 }
 
-/* Card: Missão em Reta Final Crítica (URGENTE EM VERMELHO) */
+/* Card: Missão em Reta Final Crítica FORA DO EXPEDIENTE (URGENTE EM VERMELHO) */
 .cs-mission-card.card-urgent-final-hours {
   border: 2px solid #ef4444 !important;
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(15, 23, 42, 0.92) 100%) !important;
@@ -29808,6 +29881,27 @@ body.light-theme .cs-modal-btn-submit {
   }
 }
 
+/* Card: Missão em Reta Final DENTRO DO EXPEDIENTE (ÂMBAR OPERACIONAL) */
+.cs-mission-card.card-urgent-inhours {
+  border: 2px solid #f59e0b !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(15, 23, 42, 0.92) 100%) !important;
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.3) !important;
+  position: relative;
+  overflow: hidden;
+  animation: pulse-inhours-card-border 2.4s infinite ease-in-out;
+}
+
+@keyframes pulse-inhours-card-border {
+  0%, 100% {
+    border-color: #f59e0b;
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.25);
+  }
+  50% {
+    border-color: #fbbf24;
+    box-shadow: 0 0 28px rgba(245, 158, 11, 0.45);
+  }
+}
+
 .cs-urgent-top-badge {
   display: flex;
   align-items: center;
@@ -29816,23 +29910,34 @@ body.light-theme .cs-modal-btn-submit {
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #fee2e2;
-  background: linear-gradient(90deg, rgba(239, 68, 68, 0.45) 0%, rgba(185, 28, 28, 0.25) 100%);
   padding: 5px 12px;
   border-radius: 6px;
   margin-bottom: 10px;
   width: fit-content;
+}
+
+.cs-urgent-top-badge.badge-offhours {
+  color: #fee2e2;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.45) 0%, rgba(185, 28, 28, 0.25) 100%);
   border: 1px solid rgba(248, 113, 113, 0.6);
   animation: pulse-urgent-badge 1.5s infinite ease-in-out;
 }
 
+.cs-urgent-top-badge.badge-inhours {
+  color: #fef3c7;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.4) 0%, rgba(180, 83, 9, 0.25) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.6);
+  animation: pulse-inhours-badge 1.8s infinite ease-in-out;
+}
+
 @keyframes pulse-urgent-badge {
-  0%, 100% {
-    background-color: rgba(239, 68, 68, 0.45);
-  }
-  50% {
-    background-color: rgba(239, 68, 68, 0.7);
-  }
+  0%, 100% { background-color: rgba(239, 68, 68, 0.45); }
+  50% { background-color: rgba(239, 68, 68, 0.7); }
+}
+
+@keyframes pulse-inhours-badge {
+  0%, 100% { background-color: rgba(245, 158, 11, 0.4); }
+  50% { background-color: rgba(245, 158, 11, 0.65); }
 }
 
 /* Badges e Horários */
@@ -29840,6 +29945,13 @@ body.light-theme .cs-modal-btn-submit {
   color: #fca5a5 !important;
   border-color: rgba(239, 68, 68, 0.5) !important;
   background: rgba(239, 68, 68, 0.15) !important;
+  font-weight: 800 !important;
+}
+
+.badge-hours-inhours {
+  color: #fef3c7 !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  background: rgba(245, 158, 11, 0.2) !important;
   font-weight: 800 !important;
 }
 
@@ -29851,6 +29963,14 @@ body.light-theme .cs-modal-btn-submit {
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
 }
 
+.cs-badge-status.inhours-urgent {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fbbf24;
+  border: 1px solid #f59e0b;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+}
+
 .cs-badge-status.live {
   background: rgba(16, 185, 129, 0.2);
   color: #34d399;
@@ -29858,7 +29978,7 @@ body.light-theme .cs-modal-btn-submit {
   font-weight: 800;
 }
 
-/* Botões de Ação de Hora Extra nos Cards */
+/* Botões de Ação de Hora Extra / Prorrogação nos Cards */
 .cs-btn-request-extra.btn-live-extra {
   border-color: #34d399;
   color: #34d399;
@@ -29897,14 +30017,153 @@ body.light-theme .cs-modal-btn-submit {
   box-shadow: 0 0 26px rgba(239, 68, 68, 0.85) !important;
 }
 
+.cs-btn-request-extra.btn-inhours-extend {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.28) 100%) !important;
+  border: 1.5px solid #f59e0b !important;
+  color: #fef3c7 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.35) !important;
+  transition: all 0.2s ease;
+}
+
+.cs-btn-request-extra.btn-inhours-extend:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.32) 0%, rgba(217, 119, 6, 0.42) 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.55) !important;
+}
+
+/* ==============================================================================
+   MODAL INTELIGENTE DE HORA EXTRA VS. PRORROGAÇÃO DE RETORNO DE PAUTA
+   ============================================================================== */
+.cs-extra-hours-modal.modal-theme-inhours {
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), 0 0 28px rgba(245, 158, 11, 0.2);
+}
+
+.cs-extra-hours-modal.modal-theme-offhours {
+  border-color: rgba(239, 68, 68, 0.45);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), 0 0 28px rgba(239, 68, 68, 0.2);
+}
+
+.cs-modal-icon-badge.badge-icon-inhours {
+  background: rgba(245, 158, 11, 0.18);
+  border: 1.5px solid #f59e0b;
+  color: #fbbf24;
+}
+
+.cs-modal-icon-badge.badge-icon-offhours {
+  background: rgba(239, 68, 68, 0.18);
+  border: 1.5px solid #ef4444;
+  color: #f87171;
+}
+
+.cs-modal-hint-box.hint-inhours {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.cs-modal-hint-box.hint-offhours {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.cs-modal-hint-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cs-modal-scope-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 3px 9px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cs-modal-scope-tag.scope-inhours {
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.cs-modal-scope-tag.scope-offhours {
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.cs-modal-time-preview {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.cs-modal-time-preview strong {
+  color: #cbd5e1;
+}
+
+.cs-modal-time-preview .new-time-highlight {
+  color: #fbbf24;
+  font-weight: 800;
+}
+
+.cs-modal-hint-text {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #cbd5e1;
+  margin: 0;
+}
+
+.cs-hour-choice-btn.active-inhours {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+  border-color: #fcd34d !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4) !important;
+}
+
+.cs-hour-choice-btn.active-offhours {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+  border-color: #fca5a5 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4) !important;
+}
+
+.cs-modal-btn.cs-modal-btn-inhours {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: 1.5px solid #34d399;
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
+  font-weight: 700;
+}
+
+.cs-modal-btn.cs-modal-btn-inhours:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+  transform: translateY(-2px);
+}
+
 /* Modo Claro / Light Theme */
-body.light-theme .cs-urgent-banner {
+body.light-theme .cs-urgent-banner.banner-offhours {
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
   border-color: #ef4444;
 }
 
-body.light-theme .cs-urgent-title {
+body.light-theme .cs-urgent-banner.banner-inhours {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #f59e0b;
+}
+
+body.light-theme .banner-offhours .cs-urgent-title {
   color: #991b1b;
+}
+
+body.light-theme .banner-inhours .cs-urgent-title {
+  color: #92400e;
 }
 
 body.light-theme .cs-urgent-desc {
@@ -29921,10 +30180,21 @@ body.light-theme .cs-mission-card.card-urgent-final-hours {
   border-color: #ef4444 !important;
 }
 
-body.light-theme .cs-urgent-top-badge {
+body.light-theme .cs-mission-card.card-urgent-inhours {
+  background: #fffbeb !important;
+  border-color: #f59e0b !important;
+}
+
+body.light-theme .cs-urgent-top-badge.badge-offhours {
   color: #991b1b;
   background: #fecaca;
   border-color: #f87171;
+}
+
+body.light-theme .cs-urgent-top-badge.badge-inhours {
+  color: #92400e;
+  background: #fde68a;
+  border-color: #f59e0b;
 }
 
 body.light-theme .cs-live-top-badge {

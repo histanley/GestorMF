@@ -461,6 +461,60 @@ if ($method === 'POST' && $action === 'request_extra_hours') {
     jsonResponse(['success' => true, 'request' => $newReq, 'message' => 'Solicitação de hora extra enviada para a gestão.']);
 }
 
+// PRORROGAR HORÁRIO DE RETORNO DA PAUTA EM CAMPO (DENTRO DO EXPEDIENTE REGULAR)
+if ($method === 'POST' && $action === 'extend_return_time') {
+    $user = requireAuth();
+    $data = getJsonInput();
+    $missionId = trim($data['missionId'] ?? '');
+    $newReturnTime = trim($data['newReturnTime'] ?? '');
+    $hoursAdded = (float)($data['hoursAdded'] ?? 1.0);
+    $reason = trim($data['reason'] ?? 'Prorrogação de tempo em campo dentro do expediente regular.');
+
+    if (empty($missionId) || empty($newReturnTime)) {
+        jsonResponse(['success' => false, 'error' => 'ID da missão e novo horário de retorno são obrigatórios.'], 400);
+    }
+
+    ensureMissionColumnsExist($db);
+    $stmt = $db->prepare("SELECT * FROM missions WHERE id = ?");
+    $stmt->execute([$missionId]);
+    $m = $stmt->fetch();
+    if (!$m) {
+        jsonResponse(['success' => false, 'error' => 'Missão não encontrada.'], 404);
+    }
+
+    $oldReturn = $m['return_time_estimated'] ?: ($m['arrival_time_estimated'] ?: 'previsto');
+
+    $stmtUp = $db->prepare("
+        UPDATE missions 
+        SET return_time_estimated = ?, arrival_time_estimated = ?, version = version + 1, updated_at = NOW()
+        WHERE id = ?
+    ");
+    $stmtUp->execute([$newReturnTime, $newReturnTime, $missionId]);
+
+    // Cria notificação informativa para a gestão
+    try {
+        $msgId = 'msg-ext-' . bin2hex(random_bytes(6));
+        $db->prepare("
+            INSERT INTO system_messages (id, title, message, type, priority, requires_confirmation, created_by)
+            VALUES (?, ?, ?, 'INFO', 'NORMAL', 0, ?)
+        ")->execute([
+            $msgId,
+            "⏱️ Prorrogação de Retorno: {$m['description']}",
+            "{$user['name']} prorrogou a previsão de retorno em campo de {$oldReturn} para às {$newReturnTime} (+{$hoursAdded}h dentro do expediente). Motivo: {$reason}",
+            $user['id']
+        ]);
+    } catch (Exception $e) {}
+
+    logAudit('EXTEND_RETURN_TIME', 'MISSIONS', $missionId, "{$user['name']} prorrogou retorno para {$newReturnTime} (+{$hoursAdded}h). Motivo: {$reason}", $user['id'], $user['name']);
+    bumpSyncVersion("mission_{$missionId}");
+
+    jsonResponse([
+        'success' => true,
+        'newReturnTime' => $newReturnTime,
+        'message' => "Horário de retorno da pauta estendido para as {$newReturnTime} com sucesso!"
+    ]);
+}
+
 // GESTÃO APROVA OU RECUSA HORA EXTRA ADICIONAL
 if ($method === 'POST' && $action === 'respond_extra_hours') {
     $user = requireAuth(['ADMIN', 'MANAGER']);

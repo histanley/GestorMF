@@ -160,6 +160,107 @@ function formatSimpleDateBR(dateStr) {
 }
 
 /**
+ * Verifica se uma determinada data e horário estão fora do expediente comercial regular.
+ * Expediente regular:
+ * - Segunda a Sexta: 08:00 às 18:00
+ * - Sábado: 08:00 às 12:00
+ * - Domingo: Fora de expediente o dia todo
+ * 
+ * @param {Date|string} dateInput - Objeto Date ou string YYYY-MM-DD
+ * @param {string} timeStr - Horário HH:mm (opcional se dateInput for Date)
+ * @returns {boolean} true se estiver fora do expediente
+ */
+export function isOffHoursTime(dateInput, timeStr = null) {
+  let dateObj;
+  if (dateInput instanceof Date) {
+    dateObj = dateInput;
+  } else if (typeof dateInput === 'string' && timeStr) {
+    const [y, m, d] = dateInput.split('-').map(Number);
+    const [h, min] = timeStr.split(':').map(Number);
+    dateObj = new Date(y, m - 1, d, h || 0, min || 0, 0, 0);
+  } else if (typeof dateInput === 'string' && dateInput.includes('T')) {
+    dateObj = new Date(dateInput);
+  } else {
+    return false;
+  }
+
+  const dayOfWeek = dateObj.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+  const minuteOfDay = dateObj.getHours() * 60 + dateObj.getMinutes();
+
+  if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+    // Segunda a Sexta: 08:00 (480 min) às 18:00 (1080 min)
+    return minuteOfDay < 480 || minuteOfDay > 1080;
+  } else if (dayOfWeek === 6) {
+    // Sábado: 08:00 (480 min) às 12:00 (720 min)
+    return minuteOfDay < 480 || minuteOfDay > 720;
+  } else {
+    // Domingo: 100% fora do expediente
+    return true;
+  }
+}
+
+/**
+ * Avalia uma extensão de horário de uma missão (ex: +30min, +1h, +2h).
+ * Informa se o novo horário permanece integralmente no expediente ou se gera horas extras.
+ * 
+ * @param {string} missionDate - YYYY-MM-DD
+ * @param {string} currentEndTimeStr - HH:mm
+ * @param {number} extensionHours - Horas adicionais (ex: 0.5, 1, 2)
+ * @returns {object} Detalhes da extensão
+ */
+export function evaluateMissionExtension(missionDate, currentEndTimeStr, extensionHours = 1.0) {
+  if (!currentEndTimeStr) {
+    return {
+      isFullInHours: true,
+      isOffHours: false,
+      newEndTimeStr: '--:--',
+      offHoursDeltaMinutes: 0,
+    };
+  }
+
+  const [retH, retM] = String(currentEndTimeStr).split(':').map(Number);
+  const dateParts = String(missionDate || new Date().toISOString().slice(0, 10)).split('-').map(Number);
+  const baseEnd = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], retH || 0, retM || 0, 0, 0);
+
+  const extensionMs = Math.round(Number(extensionHours || 1.0) * 60) * 60 * 1000;
+  const extendedEnd = new Date(baseEnd.getTime() + extensionMs);
+
+  const newEndH = String(extendedEnd.getHours()).padStart(2, '0');
+  const newEndMin = String(extendedEnd.getMinutes()).padStart(2, '0');
+  const newEndTimeStr = `${newEndH}:${newEndMin}`;
+
+  const currentIsOffHours = isOffHoursTime(baseEnd);
+  const extendedIsOffHours = isOffHoursTime(extendedEnd);
+
+  // Calcula minuto a minuto o trecho estendido
+  let inHoursExtensionMinutes = 0;
+  let offHoursExtensionMinutes = 0;
+  const cur = new Date(baseEnd.getTime());
+  while (cur < extendedEnd) {
+    if (isOffHoursTime(cur)) {
+      offHoursExtensionMinutes++;
+    } else {
+      inHoursExtensionMinutes++;
+    }
+    cur.setMinutes(cur.getMinutes() + 1);
+  }
+
+  const isFullInHours = offHoursExtensionMinutes === 0 && !currentIsOffHours;
+  const isOffHours = offHoursExtensionMinutes > 0 || currentIsOffHours;
+
+  return {
+    isFullInHours,
+    isOffHours,
+    currentIsOffHours,
+    extendedIsOffHours,
+    newEndTimeStr,
+    inHoursExtensionMinutes,
+    offHoursExtensionMinutes,
+    offHoursExtensionHours: Number((offHoursExtensionMinutes / 60).toFixed(1)),
+  };
+}
+
+/**
  * Avalia se um colaborador declarou indisponibilidade para horas extras
  * e se a missão atual conflita com esse bloqueio.
  */

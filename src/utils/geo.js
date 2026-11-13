@@ -1206,9 +1206,30 @@ export function getMissionLiveProgress(mission) {
   // Quando a missão está em andamento e faltam 30 minutos ou menos (ou acabou de atingir o limite previsto)
   const isUrgentEnd = isHappeningNow && remainingMinutes <= 30;
 
+  // Verifica se o término previsto está fora do expediente comercial regular
+  // Expediente: Seg a Sex 08:00 às 18:00, Sáb 08:00 às 12:00, Dom dia todo fora
+  const dayOfWeek = effectiveEndTime.getDay();
+  const minuteOfDay = effectiveEndTime.getHours() * 60 + effectiveEndTime.getMinutes();
+  let isOffHoursEnd = false;
+  if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+    isOffHoursEnd = minuteOfDay < 480 || minuteOfDay > 1080;
+  } else if (dayOfWeek === 6) {
+    isOffHoursEnd = minuteOfDay < 480 || minuteOfDay > 720;
+  } else {
+    isOffHoursEnd = true;
+  }
+
+  // Reta final FORA do expediente -> Hora extra financeira real
+  const isUrgentOffHours = isUrgentEnd && isOffHoursEnd;
+  // Reta final DENTRO do expediente -> Prorrogação de retorno de pauta operacional
+  const isUrgentInHours = isUrgentEnd && !isOffHoursEnd;
+
   return {
     isHappeningNow,
     isUrgentEnd,
+    isUrgentOffHours,
+    isUrgentInHours,
+    isOffHoursEnd,
     remainingMinutes,
     effectiveEndTimeStr,
     approvedExtraHours,

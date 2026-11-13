@@ -38,9 +38,9 @@ import {
   normalizeToOfficialRole,
   computeMemberRoleCounts,
 } from '../utils/companyRoles';
-import { apiRequestExtraHours, apiUpdatePixKey } from '../utils/api';
+import { apiRequestExtraHours, apiExtendMissionReturnTime, apiUpdatePixKey } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
-import { calculateMissionOffHours } from '../utils/workHours';
+import { calculateMissionOffHours, evaluateMissionExtension, isOffHoursTime } from '../utils/workHours';
 import { sortMissionsByStatusPriority, getMissionLiveProgress } from '../utils/geo';
 import { sendPushNotification, requestNotificationPermission } from '../utils/notifications';
 
@@ -434,36 +434,77 @@ export default function CollaboratorSpace({
     }
   };
 
-  // Enviar solicitação de hora extra
+  // Avaliação em tempo real da extensão selecionada no modal (dentro vs. fora do expediente)
+  const modalExtEval = useMemo(() => {
+    if (!requestModalMission) return null;
+    const baseReturn = requestModalMission.returnTimeEstimated || requestModalMission.arrivalTimeEstimated || '18:00';
+    return evaluateMissionExtension(requestModalMission.date, baseReturn, requestedHours);
+  }, [requestModalMission, requestedHours]);
+
+  // Enviar solicitação de hora extra ou confirmação de prorrogação de pauta
   const handleSubmitExtraHoursRequest = async (e) => {
     e.preventDefault();
     if (!requestModalMission) return;
     setIsSubmittingRequest(true);
     try {
-      const res = await apiRequestExtraHours({
-        missionId: requestModalMission.id,
-        hoursRequested: requestedHours,
-        reason: requestReason.trim() || 'Necessário tempo adicional para conclusão das atividades da pauta.',
-        memberId: myMember?.id,
-        memberName: myMember?.name,
-      });
+      const baseReturn = requestModalMission.returnTimeEstimated || requestModalMission.arrivalTimeEstimated || '18:00';
+      const extEval = evaluateMissionExtension(requestModalMission.date, baseReturn, requestedHours);
 
-      if (res.success) {
-        await alertDialog({
-          title: '✅ Solicitação Enviada',
-          message: `Sua solicitação de +${requestedHours}h foi enviada para aprovação da administração.`,
-          variant: 'success',
+      // Se a prorrogação for 100% dentro do expediente comercial regular (não gera horas extras):
+      if (extEval.isFullInHours) {
+        const res = await apiExtendMissionReturnTime({
+          missionId: requestModalMission.id,
+          newReturnTime: extEval.newEndTimeStr,
+          hoursAdded: requestedHours,
+          reason: requestReason.trim() || 'Prorrogação de tempo em campo dentro do expediente comercial regular.',
+          memberId: myMember?.id,
+          memberName: myMember?.name,
         });
-        setRequestModalMission(null);
-        setRequestReason('');
-        setRequestedHours(1.0);
-        if (onReloadMissions) onReloadMissions();
+
+        if (res.success) {
+          await alertDialog({
+            title: '⏱️ Prorrogação Confirmada',
+            message: `O retorno da pauta foi estendido para as ${extEval.newEndTimeStr} com sucesso dentro do expediente regular. A equipe e a viatura já estão atualizadas na escala do dia.`,
+            variant: 'success',
+          });
+          setRequestModalMission(null);
+          setRequestReason('');
+          setRequestedHours(1.0);
+          if (onReloadMissions) onReloadMissions();
+        } else {
+          await alertDialog({
+            title: 'Atenção',
+            message: res.error || 'Não foi possível registrar a prorrogação.',
+            variant: 'danger',
+          });
+        }
       } else {
-        await alertDialog({
-          title: 'Atenção',
-          message: res.error || 'Não foi possível registrar a solicitação.',
-          variant: 'danger',
+        // Se a prorrogação atinge ou ultrapassa o horário de expediente comercial (gera horas extras financeiras):
+        const res = await apiRequestExtraHours({
+          missionId: requestModalMission.id,
+          hoursRequested: requestedHours,
+          reason: requestReason.trim() || 'Necessário tempo adicional de trabalho fora do expediente regular.',
+          memberId: myMember?.id,
+          memberName: myMember?.name,
         });
+
+        if (res.success) {
+          await alertDialog({
+            title: '⚡ Solicitação de Hora Extra Enviada',
+            message: `Sua solicitação de +${requestedHours}h fora do expediente foi enviada para aprovação do administrador.`,
+            variant: 'success',
+          });
+          setRequestModalMission(null);
+          setRequestReason('');
+          setRequestedHours(1.0);
+          if (onReloadMissions) onReloadMissions();
+        } else {
+          await alertDialog({
+            title: 'Atenção',
+            message: res.error || 'Não foi possível registrar a solicitação.',
+            variant: 'danger',
+          });
+        }
       }
     } catch (err) {
       await alertDialog({
@@ -999,39 +1040,58 @@ export default function CollaboratorSpace({
       </div>
 
       {/* ============================================================== */}
-      {/* 5. MISSÕES ATIVAS COM SOLICITAÇÃO DE HORAS EXTRAS              */}
+      {/* 5. MISSÕES ATIVAS COM SOLICITAÇÃO DE HORAS EXTRAS OU PRORROGAÇÃO */}
       {/* ============================================================== */}
       <div className="cs-section-block">
         {/* Banner de Urgência em Destaque no Topo quando uma missão estiver na reta final */}
-        {urgentMissionNow && (
-          <div className="cs-urgent-banner">
-            <div className="cs-urgent-banner-left">
-              <div className="cs-urgent-icon-pulse">
-                <AlertTriangle size={22} />
+        {urgentMissionNow && (() => {
+          const uProg = getMissionLiveProgress(urgentMissionNow);
+          const isOffHours = uProg.isUrgentOffHours;
+          return (
+            <div className={`cs-urgent-banner ${isOffHours ? 'banner-offhours' : 'banner-inhours'}`}>
+              <div className="cs-urgent-banner-left">
+                <div className={`cs-urgent-icon-pulse ${isOffHours ? 'pulse-offhours' : 'pulse-inhours'}`}>
+                  {isOffHours ? <AlertTriangle size={22} /> : <Clock size={22} />}
+                </div>
+                <div>
+                  <h4 className="cs-urgent-title">
+                    {isOffHours
+                      ? `🚨 Reta Final de Horas Extras: ${urgentMissionNow.description}`
+                      : `⏱️ Reta Final da Pauta em Campo: ${urgentMissionNow.description}`
+                    }
+                  </h4>
+                  <p className="cs-urgent-desc">
+                    {isOffHours
+                      ? `O horário previsto desta missão está nos minutos finais (${uProg.remainingMinutes > 0 ? `restam ${uProg.remainingMinutes} min até às ${uProg.effectiveEndTimeStr}` : `horário limite ${uProg.effectiveEndTimeStr} atingido`}). Por estar fora do expediente regular, caso precise de mais tempo solicite horas extras agora para o administrador.`
+                      : `O horário previsto de retorno da equipe está nos minutos finais (${uProg.remainingMinutes > 0 ? `restam ${uProg.remainingMinutes} min até às ${uProg.effectiveEndTimeStr}` : `horário previsto ${uProg.effectiveEndTimeStr} atingido`}). Esta missão ocorre dentro do expediente comercial. Se precisar estender o tempo de gravação, confirme a prorrogação de retorno.`
+                    }
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="cs-urgent-title">
-                  🚨 Reta Final do Horário: {urgentMissionNow.description}
-                </h4>
-                <p className="cs-urgent-desc">
-                  O horário previsto desta missão está nos minutos finais ({getMissionLiveProgress(urgentMissionNow).remainingMinutes > 0 ? `restam ${getMissionLiveProgress(urgentMissionNow).remainingMinutes} min até às ${getMissionLiveProgress(urgentMissionNow).effectiveEndTimeStr}` : `horário limite ${getMissionLiveProgress(urgentMissionNow).effectiveEndTimeStr} atingido`}). Caso precise de mais tempo de gravação em campo, solicite horas extras agora para o administrador.
-                </p>
-              </div>
+              <button
+                type="button"
+                className={`cs-urgent-banner-btn ${isOffHours ? 'btn-urgent-offhours' : 'btn-urgent-inhours'}`}
+                onClick={() => setRequestModalMission(urgentMissionNow)}
+              >
+                {isOffHours ? (
+                  <>
+                    <Zap size={16} />
+                    <span>Pedir Horas Extras Agora</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock size={16} />
+                    <span>Prorrogar Retorno de Pauta</span>
+                  </>
+                )}
+              </button>
             </div>
-            <button
-              type="button"
-              className="cs-urgent-banner-btn"
-              onClick={() => setRequestModalMission(urgentMissionNow)}
-            >
-              <Zap size={16} />
-              <span>Pedir Horas Extras Agora</span>
-            </button>
-          </div>
-        )}
+          );
+        })()}
 
         <h3 className="cs-section-heading">
           <Sparkles size={18} className="text-amber" />
-          Minhas Missões &amp; Solicitação de Horas Extras
+          Minhas Missões &amp; Prorrogações de Horário
         </h3>
 
         {sortedMyMissions.length === 0 ? (
@@ -1050,20 +1110,27 @@ export default function CollaboratorSpace({
               return (
                 <div
                   key={m.id}
-                  className={`cs-mission-card ${progress.isUrgentEnd ? 'card-urgent-final-hours' : progress.isHappeningNow ? 'card-happening-now' : ''}`}
+                  className={`cs-mission-card ${progress.isUrgentOffHours ? 'card-urgent-final-hours' : progress.isUrgentInHours ? 'card-urgent-inhours' : progress.isHappeningNow ? 'card-happening-now' : ''}`}
                 >
                   {/* Faixa Superior de Destaque em Tempo Real */}
-                  {progress.isUrgentEnd ? (
-                    <div className="cs-urgent-top-badge">
+                  {progress.isUrgentOffHours ? (
+                    <div className="cs-urgent-top-badge badge-offhours">
                       <AlertTriangle size={14} className="icon-pulse-urgent" />
                       <span>
-                        🚨 RETA FINAL DO HORÁRIO • {progress.remainingMinutes > 0 ? `Restam apenas ${progress.remainingMinutes} min (Até ${progress.effectiveEndTimeStr})` : `Horário previsto limite atingido (${progress.effectiveEndTimeStr})!`}
+                        🚨 RETA FINAL DO HORÁRIO • {progress.remainingMinutes > 0 ? `Restam apenas ${progress.remainingMinutes} min (Até ${progress.effectiveEndTimeStr})` : `Horário limite atingido (${progress.effectiveEndTimeStr})!`}
+                      </span>
+                    </div>
+                  ) : progress.isUrgentInHours ? (
+                    <div className="cs-urgent-top-badge badge-inhours">
+                      <Clock size={14} className="icon-pulse-inhours" />
+                      <span>
+                        ⏱️ RETA FINAL DA PAUTA • {progress.remainingMinutes > 0 ? `Restam apenas ${progress.remainingMinutes} min (Até ${progress.effectiveEndTimeStr})` : `Horário previsto atingido (${progress.effectiveEndTimeStr})`}
                       </span>
                     </div>
                   ) : progress.isHappeningNow ? (
                     <div className="cs-live-top-badge">
                       <span className="cs-live-dot" />
-                      <span>🟢 Acontecendo Agora (Em Campo) • Término previsto às {progress.effectiveEndTimeStr}</span>
+                      <span>🟢 Acontecendo Agora (Em Campo) • Retorno previsto às {progress.effectiveEndTimeStr}</span>
                     </div>
                   ) : null}
 
@@ -1079,13 +1146,13 @@ export default function CollaboratorSpace({
                             🏕️ Viagem (+1d)
                           </span>
                         ) : (
-                          <span className={`cs-badge-hours ${progress.isUrgentEnd ? 'badge-hours-urgent' : ''}`}>
+                          <span className={`cs-badge-hours ${progress.isUrgentOffHours ? 'badge-hours-urgent' : progress.isUrgentInHours ? 'badge-hours-inhours' : ''}`}>
                             🕒 {m.departureTime || '--:--'} às {progress.effectiveEndTimeStr || m.returnTimeEstimated || '--:--'}
-                            {progress.approvedExtraHours > 0 && ` (+${progress.approvedExtraHours}h aprovadas)`}
+                            {progress.approvedExtraHours > 0 && ` (+${progress.approvedExtraHours}h extras)`}
                           </span>
                         )}
-                        <span className={`cs-badge-status ${isClosed ? 'closed' : progress.isUrgentEnd ? 'urgent' : progress.isHappeningNow ? 'live' : 'open'}`}>
-                          {progress.isUrgentEnd ? '🚨 Reta Final' : progress.isHappeningNow ? '🟢 Em Campo' : (m.missionStatus || 'Agendada')}
+                        <span className={`cs-badge-status ${isClosed ? 'closed' : progress.isUrgentOffHours ? 'urgent' : progress.isUrgentInHours ? 'inhours-urgent' : progress.isHappeningNow ? 'live' : 'open'}`}>
+                          {progress.isUrgentOffHours ? '🚨 Reta Final (H.E.)' : progress.isUrgentInHours ? '⏱️ Reta Final da Pauta' : progress.isHappeningNow ? '🟢 Em Campo' : (m.missionStatus || 'Agendada')}
                         </span>
                       </div>
 
@@ -1114,22 +1181,32 @@ export default function CollaboratorSpace({
                       )}
                     </div>
 
-                    {/* Ação: Solicitar Horas Extras */}
+                    {/* Ação: Solicitar Horas Extras ou Prorrogar Retorno */}
                     {!isClosed && (
                       <button
                         type="button"
                         onClick={() => setRequestModalMission(m)}
-                        className={`cs-btn-request-extra ${progress.isUrgentEnd ? 'btn-urgent-extra' : progress.isHappeningNow ? 'btn-live-extra' : ''}`}
+                        className={`cs-btn-request-extra ${progress.isUrgentOffHours ? 'btn-urgent-extra' : progress.isUrgentInHours ? 'btn-inhours-extend' : progress.isHappeningNow ? 'btn-live-extra' : ''}`}
                       >
-                        {progress.isUrgentEnd ? (
+                        {progress.isUrgentOffHours ? (
                           <>
                             <Zap size={15} />
                             <span>⚡ Solicitar Mais Horas Extras (+1h, +2h)</span>
                           </>
+                        ) : progress.isUrgentInHours ? (
+                          <>
+                            <Clock size={15} />
+                            <span>⏱️ Prorrogar Retorno (+30m, +1h)</span>
+                          </>
+                        ) : progress.isOffHoursEnd ? (
+                          <>
+                            <Zap size={14} />
+                            <span>Solicitar Hora Extra (+1h, +2h)</span>
+                          </>
                         ) : (
                           <>
-                            <Plus size={14} />
-                            <span>Solicitar Hora Extra (+1h, +2h)</span>
+                            <Clock size={14} />
+                            <span>Prorrogar Horário de Retorno</span>
                           </>
                         )}
                       </button>
@@ -1143,107 +1220,139 @@ export default function CollaboratorSpace({
       </div>
 
       {/* ============================================================== */}
-      {/* 5. MODAL DE SOLICITAÇÃO DE HORA EXTRA                          */}
+      {/* 5. MODAL DINÂMICO: PRORROGAÇÃO DE PAUTA OU HORAS EXTRAS         */}
       {/* ============================================================== */}
-      {requestModalMission && (
-        <div className="modal-overlay cs-modal-overlay" onClick={() => setRequestModalMission(null)}>
-          <div className="modal-box cs-extra-hours-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Header Moderno com Badge e Fechar */}
-            <div className="cs-modal-header">
-              <div className="cs-modal-header-info">
-                <div className="cs-modal-icon-badge">
-                  <Clock size={20} className="text-amber" />
-                </div>
-                <div>
-                  <h3 className="cs-modal-title">Solicitar Hora Extra</h3>
-                  <div className="cs-modal-sub-row">
-                    <span className="cs-modal-sub-code">#{requestModalMission.code}</span>
-                    <span className="cs-modal-sub-desc" title={requestModalMission.description}>
-                      {requestModalMission.description}
-                    </span>
+      {requestModalMission && (() => {
+        const isFullInHours = modalExtEval?.isFullInHours ?? true;
+        const newEndTime = modalExtEval?.newEndTimeStr || '--:--';
+        const currentEndTime = requestModalMission.returnTimeEstimated || requestModalMission.arrivalTimeEstimated || '--:--';
+
+        return (
+          <div className="modal-overlay cs-modal-overlay" onClick={() => setRequestModalMission(null)}>
+            <div className={`modal-box cs-extra-hours-modal ${isFullInHours ? 'modal-theme-inhours' : 'modal-theme-offhours'}`} onClick={(e) => e.stopPropagation()}>
+              {/* Header Moderno com Badge e Fechar */}
+              <div className="cs-modal-header">
+                <div className="cs-modal-header-info">
+                  <div className={`cs-modal-icon-badge ${isFullInHours ? 'badge-icon-inhours' : 'badge-icon-offhours'}`}>
+                    {isFullInHours ? <Clock size={20} /> : <Zap size={20} />}
+                  </div>
+                  <div>
+                    <h3 className="cs-modal-title">
+                      {isFullInHours ? 'Prorrogar Retorno de Pauta' : 'Solicitar Horas Extras de Campo'}
+                    </h3>
+                    <div className="cs-modal-sub-row">
+                      <span className="cs-modal-sub-code">#{requestModalMission.code}</span>
+                      <span className="cs-modal-sub-desc" title={requestModalMission.description}>
+                        {requestModalMission.description}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <button
-                type="button"
-                className="cs-modal-close-btn"
-                onClick={() => setRequestModalMission(null)}
-                title="Fechar janela"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitExtraHoursRequest} className="cs-modal-form">
-              {/* Box Informativo */}
-              <div className="cs-modal-hint-box">
-                <Sparkles size={16} className="text-amber icon-shrink" />
-                <p>
-                  Informe a quantidade de horas adicionais necessárias em campo e a justificativa para que a gestão possa avaliar e autorizar.
-                </p>
-              </div>
-
-              {/* Seletor de Horas Extras em Grade Moderna */}
-              <div className="cs-modal-group">
-                <label className="cs-modal-label">
-                  <Clock size={13} className="text-amber" />
-                  <span>Quantidade de Horas Extras Adicionais:</span>
-                </label>
-                <div className="cs-hours-btn-grid">
-                  {[0.5, 1.0, 1.5, 2.0, 3.0, 4.0].map((h) => (
-                    <button
-                      key={h}
-                      type="button"
-                      onClick={() => setRequestedHours(h)}
-                      className={`cs-hour-choice-btn ${requestedHours === h ? 'active' : ''}`}
-                    >
-                      <span className="cs-h-plus">+</span>
-                      <span className="cs-h-val">{h}</span>
-                      <span className="cs-h-unit">h</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Justificativa / Motivo */}
-              <div className="cs-modal-group">
-                <label className="cs-modal-label">
-                  <span>Motivo / Justificativa da Prorrogação:</span>
-                  <span className="cs-modal-req">*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Ex: Pauta atrasou devido ao cliente; necessário captar cenas adicionais ao pôr do sol..."
-                  value={requestReason}
-                  onChange={(e) => setRequestReason(e.target.value)}
-                  className="cs-modal-textarea"
-                />
-              </div>
-
-              {/* Botões de Ação Simétricos e Elegantes */}
-              <div className="cs-modal-actions-row">
                 <button
                   type="button"
-                  className="cs-modal-btn cs-modal-btn-cancel"
+                  className="cs-modal-close-btn"
                   onClick={() => setRequestModalMission(null)}
-                  disabled={isSubmittingRequest}
+                  title="Fechar janela"
                 >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="cs-modal-btn cs-modal-btn-submit"
-                  disabled={isSubmittingRequest || !requestReason.trim()}
-                >
-                  <Send size={15} />
-                  <span>{isSubmittingRequest ? 'Enviando...' : `Confirmar Solicitação (+${requestedHours}h)`}</span>
+                  <X size={16} />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleSubmitExtraHoursRequest} className="cs-modal-form">
+                {/* Box Informativo Inteligente */}
+                <div className={`cs-modal-hint-box ${isFullInHours ? 'hint-inhours' : 'hint-offhours'}`}>
+                  <div className="cs-modal-hint-header">
+                    <span className={`cs-modal-scope-tag ${isFullInHours ? 'scope-inhours' : 'scope-offhours'}`}>
+                      {isFullInHours ? '🌿 Expediente Comercial Regular (Sem Hora Extra)' : '⚡ Fora do Expediente • Gera Hora Extra (R$ 50/h)'}
+                    </span>
+                    <span className="cs-modal-time-preview">
+                      Retorno: <strong>{currentEndTime}</strong> ➔ <strong className="new-time-highlight">{newEndTime}</strong>
+                    </span>
+                  </div>
+                  <p className="cs-modal-hint-text">
+                    {isFullInHours
+                      ? `Esta prorrogação estende a gravação dentro do horário comercial regular (até 18:00). A previsão de retorno da viatura e da equipe para a base será atualizada para as ${newEndTime}, mantendo a escala do dia sincronizada.`
+                      : `Esta prorrogação ultrapassa o expediente regular (18:00) e estende o término até às ${newEndTime}. A solicitação será enviada para aprovação do administrador e computada na folha do colaborador.`
+                    }
+                  </p>
+                </div>
+
+                {/* Seletor de Horas em Grade Moderna */}
+                <div className="cs-modal-group">
+                  <label className="cs-modal-label">
+                    <Clock size={13} className={isFullInHours ? 'text-cyan' : 'text-amber'} />
+                    <span>
+                      {isFullInHours ? 'Tempo Adicional em Campo:' : 'Quantidade de Horas Extras Adicionais:'}
+                    </span>
+                  </label>
+                  <div className="cs-hours-btn-grid">
+                    {[0.5, 1.0, 1.5, 2.0, 3.0, 4.0].map((h) => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => setRequestedHours(h)}
+                        className={`cs-hour-choice-btn ${requestedHours === h ? (isFullInHours ? 'active-inhours' : 'active-offhours') : ''}`}
+                      >
+                        <span className="cs-h-plus">+</span>
+                        <span className="cs-h-val">{h === 0.5 ? '30' : h}</span>
+                        <span className="cs-h-unit">{h === 0.5 ? 'min' : 'h'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Justificativa / Motivo */}
+                <div className="cs-modal-group">
+                  <label className="cs-modal-label">
+                    <span>
+                      {isFullInHours ? 'Motivo da Prorrogação de Retorno:' : 'Motivo / Justificativa da Hora Extra:'}
+                    </span>
+                    <span className="cs-modal-req">*</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    placeholder={isFullInHours
+                      ? "Ex: Pauta estendida a pedido do cliente; gravação de depoimentos adicionais..."
+                      : "Ex: Gravação noturna estendida; pauta ultrapassou o horário regular..."
+                    }
+                    value={requestReason}
+                    onChange={(e) => setRequestReason(e.target.value)}
+                    className="cs-modal-textarea"
+                  />
+                </div>
+
+                {/* Botões de Ação Simétricos e Elegantes */}
+                <div className="cs-modal-actions-row">
+                  <button
+                    type="button"
+                    className="cs-modal-btn cs-modal-btn-cancel"
+                    onClick={() => setRequestModalMission(null)}
+                    disabled={isSubmittingRequest}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className={`cs-modal-btn ${isFullInHours ? 'cs-modal-btn-inhours' : 'cs-modal-btn-submit'}`}
+                    disabled={isSubmittingRequest || !requestReason.trim()}
+                  >
+                    {isFullInHours ? <CheckCircle2 size={15} /> : <Send size={15} />}
+                    <span>
+                      {isSubmittingRequest
+                        ? 'Processando...'
+                        : isFullInHours
+                          ? `Confirmar Prorrogação (até ${newEndTime})`
+                          : `Enviar Solicitação (+${requestedHours}h)`
+                      }
+                    </span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
