@@ -1866,7 +1866,6 @@ export default function ServiceBoard({
                 <div className="mmc-header">
                   <div className="mmc-header-left">
                     <span className="mmc-code-badge">#{missionCode}</span>
-                    <span className="mmc-view-pill"><Eye size={10} /> Ficha</span>
                     {mission.isRecurring && (
                       <span className="mmc-recurring-badge" title="Missão Recorrente">
                         <Repeat size={10} /> {mission.recurrenceDays || 'Recorrente'}
@@ -1918,19 +1917,19 @@ export default function ServiceBoard({
                     </span>
                   </div>
                   <div className="mmc-times-grid">
-                    <div className="mmc-time-box">
+                    <div className="mmc-time-box saida">
                       <span className="mmc-time-label">Saída Base</span>
-                      <strong className="mmc-time-val gold">{mission.departureTime || '--:--'}</strong>
+                      <strong className="mmc-time-val">{mission.departureTime || '--:--'}</strong>
                     </div>
-                    <div className="mmc-time-box">
+                    <div className="mmc-time-box chegada">
                       <span className="mmc-time-label">Chegada</span>
                       <strong className="mmc-time-val">{mission.arrivalTimeEstimated || '--:--'}</strong>
                     </div>
-                    <div className="mmc-time-box">
+                    <div className="mmc-time-box evento">
                       <span className="mmc-time-label">Início Evento</span>
-                      <strong className="mmc-time-val orange">{mission.eventStartTime || '--:--'}</strong>
+                      <strong className="mmc-time-val">{mission.eventStartTime || '--:--'}</strong>
                     </div>
-                    <div className="mmc-time-box">
+                    <div className="mmc-time-box retorno">
                       <span className="mmc-time-label">Retorno</span>
                       <strong className="mmc-time-val">{mission.returnTimeEstimated || '--:--'}</strong>
                     </div>

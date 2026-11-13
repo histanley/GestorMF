@@ -17324,9 +17324,9 @@ body.light-theme .mbn-center-action {
     flex-direction: column;
     gap: 8px;
     padding: 10px 12px;
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.025);
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     width: 100%;
     box-sizing: border-box;
   }
@@ -17336,14 +17336,20 @@ body.light-theme .mbn-center-action {
     border-color: #e2e8f0;
   }
 
-  .mmc-date-pill {
-    display: inline-flex;
+  .mmc-date-row {
+    display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     font-size: 0.78rem;
     font-weight: 700;
     color: #38bdf8;
-    align-self: flex-start;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  body.light-theme .mmc-date-row {
+    color: #0284c7;
+    border-bottom-color: #e2e8f0;
   }
 
   .mmc-times-grid {
@@ -17351,103 +17357,136 @@ body.light-theme .mbn-center-action {
     grid-template-columns: repeat(4, 1fr);
     gap: 6px;
     width: 100%;
+    box-sizing: border-box;
   }
 
+  .mmc-time-box,
   .mmc-time-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 6px 2px;
+    padding: 7px 2px;
     border-radius: 8px;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     text-align: center;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
+  body.light-theme .mmc-time-box,
   body.light-theme .mmc-time-item {
     background: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   }
 
+  .mmc-time-label,
+  .mmc-time-box span,
   .mmc-time-item span {
     font-size: 0.62rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 
+  .mmc-time-val,
+  .mmc-time-box strong,
   .mmc-time-item strong {
-    font-size: 0.82rem;
+    font-size: 0.84rem;
     font-weight: 800;
-    font-family: ui-monospace, monospace;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    white-space: nowrap;
   }
 
+  .mmc-time-box.saida,
   .mmc-time-item.saida {
-    border: 1px solid rgba(245, 158, 11, 0.25);
+    border: 1px solid rgba(245, 158, 11, 0.3);
   }
 
+  .mmc-time-box.saida .mmc-time-label,
   .mmc-time-item.saida span {
     color: #f59e0b;
   }
 
+  .mmc-time-box.saida .mmc-time-val,
   .mmc-time-item.saida strong {
     color: #fde68a;
   }
 
+  body.light-theme .mmc-time-box.saida .mmc-time-val,
   body.light-theme .mmc-time-item.saida strong {
-    color: #d97706;
+    color: #b45309;
   }
 
+  .mmc-time-box.chegada,
   .mmc-time-item.chegada {
-    border: 1px solid rgba(6, 182, 212, 0.25);
+    border: 1px solid rgba(6, 182, 212, 0.3);
   }
 
+  .mmc-time-box.chegada .mmc-time-label,
   .mmc-time-item.chegada span {
     color: #06b6d4;
   }
 
+  .mmc-time-box.chegada .mmc-time-val,
   .mmc-time-item.chegada strong {
     color: #a5f3fc;
   }
 
+  body.light-theme .mmc-time-box.chegada .mmc-time-val,
   body.light-theme .mmc-time-item.chegada strong {
-    color: #0891b2;
+    color: #0369a1;
   }
 
+  .mmc-time-box.evento,
   .mmc-time-item.evento {
-    border: 1px solid rgba(234, 179, 8, 0.25);
+    border: 1px solid rgba(234, 179, 8, 0.3);
   }
 
+  .mmc-time-box.evento .mmc-time-label,
   .mmc-time-item.evento span {
     color: #eab308;
   }
 
+  .mmc-time-box.evento .mmc-time-val,
   .mmc-time-item.evento strong {
     color: #fef08a;
   }
 
+  body.light-theme .mmc-time-box.evento .mmc-time-val,
   body.light-theme .mmc-time-item.evento strong {
     color: #ca8a04;
   }
 
+  .mmc-time-box.retorno,
   .mmc-time-item.retorno {
-    border: 1px solid rgba(168, 85, 247, 0.25);
+    border: 1px solid rgba(168, 85, 247, 0.3);
   }
 
+  .mmc-time-box.retorno .mmc-time-label,
   .mmc-time-item.retorno span {
     color: #c084fc;
   }
 
+  .mmc-time-box.retorno .mmc-time-val,
   .mmc-time-item.retorno strong {
     color: #e9d5ff;
   }
 
+  body.light-theme .mmc-time-box.retorno .mmc-time-val,
   body.light-theme .mmc-time-item.retorno strong {
-    color: #9333ea;
+    color: #7e22ce;
   }
 
   /* 5. Equipe Escalada */
+  .mmc-team-section,
   .mmc-team-box {
     display: flex;
     flex-direction: column;
@@ -17455,46 +17494,20 @@ body.light-theme .mbn-center-action {
     width: 100%;
   }
 
-  .mmc-driver-chip {
+  .mmc-team-label {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    border-radius: 10px;
-    font-size: 0.78rem;
-    color: #fef3c7;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  body.light-theme .mmc-driver-chip {
-    background: #fffbeb;
-    border-color: #fde68a;
-    color: #92400e;
-  }
-
-  .mmc-driver-icon {
-    color: #f59e0b;
-    flex-shrink: 0;
-  }
-
-  .mmc-driver-chip strong {
+    gap: 6px;
+    font-size: 0.76rem;
     font-weight: 700;
+    color: #94a3b8;
   }
 
-  .driver-tag {
-    font-size: 0.65rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    background: #f59e0b;
-    color: #111827;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-left: auto;
+  body.light-theme .mmc-team-label {
+    color: #64748b;
   }
 
+  .mmc-team-chips,
   .mmc-members-wrap {
     display: flex;
     flex-wrap: wrap;
@@ -17510,8 +17523,8 @@ body.light-theme .mbn-center-action {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
-    font-size: 0.74rem;
-    color: #e2e8f0;
+    font-size: 0.75rem;
+    color: #f1f5f9;
   }
 
   body.light-theme .mmc-member-chip {
@@ -17520,38 +17533,45 @@ body.light-theme .mbn-center-action {
     color: #1e293b;
   }
 
-  .mmc-member-avatar {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    font-size: 0.65rem;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(59, 130, 246, 0.2);
-    color: #60a5fa;
-    overflow: hidden;
+  .mmc-member-chip.is-driver {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #fef3c7;
+    font-weight: 700;
   }
 
-  .mmc-member-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  body.light-theme .mmc-member-chip.is-driver {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #92400e;
   }
 
-  .mmc-guests-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 8px;
-    font-size: 0.72rem;
-    color: #cbd5e1;
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 6px;
+  .mmc-driver-wheel {
+    font-size: 0.8rem;
+  }
+
+  .mmc-role-tag {
+    font-size: 0.66rem;
+    opacity: 0.85;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  body.light-theme .mmc-role-tag {
+    background: rgba(0, 0, 0, 0.06);
   }
 
   /* 6. Viatura, Combustível & Tanque */
+  .mmc-vehicle-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .mmc-veh-card,
   .mmc-vehicle-card {
     display: flex;
     flex-direction: column;
@@ -17564,6 +17584,7 @@ body.light-theme .mbn-center-action {
     box-sizing: border-box;
   }
 
+  body.light-theme .mmc-veh-card,
   body.light-theme .mmc-vehicle-card {
     background: #f8fafc;
     border-color: #e2e8f0;
@@ -17576,38 +17597,34 @@ body.light-theme .mbn-center-action {
     width: 100%;
   }
 
+  .mmc-veh-ident,
   .mmc-veh-info {
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-
-  .mmc-veh-icon {
-    color: #38bdf8;
-    flex-shrink: 0;
-  }
-
-  .mmc-veh-model {
-    font-size: 0.85rem;
-    font-weight: 700;
+    font-size: 0.86rem;
+    font-weight: 800;
     color: #f1f5f9;
   }
 
-  body.light-theme .mmc-veh-model {
+  body.light-theme .mmc-veh-ident,
+  body.light-theme .mmc-veh-info {
     color: #0f172a;
   }
 
+  .mmc-plate,
   .mmc-veh-plate {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 800;
     font-family: ui-monospace, monospace;
     background: rgba(0, 0, 0, 0.35);
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: #94a3b8;
+    padding: 2px 7px;
+    border-radius: 6px;
+    color: #cbd5e1;
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
+  body.light-theme .mmc-plate,
   body.light-theme .mmc-veh-plate {
     background: #e2e8f0;
     color: #334155;
@@ -17618,34 +17635,31 @@ body.light-theme .mbn-center-action {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     font-weight: 800;
-    padding: 3px 8px;
+    padding: 2px 8px;
     border-radius: 12px;
   }
 
+  .mmc-tank-pill.ok,
   .mmc-tank-pill.tank-ok {
     background: rgba(16, 185, 129, 0.15);
     color: #34d399;
     border: 1px solid rgba(16, 185, 129, 0.3);
   }
 
+  .mmc-tank-pill.reserve,
   .mmc-tank-pill.tank-warn {
     background: rgba(245, 158, 11, 0.15);
     color: #fbbf24;
     border: 1px solid rgba(245, 158, 11, 0.3);
   }
 
-  .mmc-tank-pill.tank-crit {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-  }
-
+  .mmc-veh-fuel-info,
   .mmc-veh-bottom {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 6px;
     font-size: 0.74rem;
     color: #94a3b8;
     padding-top: 4px;
@@ -17653,29 +17667,33 @@ body.light-theme .mbn-center-action {
     width: 100%;
   }
 
+  body.light-theme .mmc-veh-fuel-info,
   body.light-theme .mmc-veh-bottom {
     border-top-color: #e2e8f0;
     color: #64748b;
   }
 
   /* 7. Pós-Produção / Edição */
+  .mmc-postprod-box,
   .mmc-postprod-card {
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 10px 12px;
-    background: rgba(99, 102, 241, 0.06);
+    background: rgba(99, 102, 241, 0.07);
     border-radius: 12px;
-    border: 1px solid rgba(99, 102, 241, 0.18);
+    border: 1px solid rgba(99, 102, 241, 0.2);
     width: 100%;
     box-sizing: border-box;
   }
 
+  body.light-theme .mmc-postprod-box,
   body.light-theme .mmc-postprod-card {
     background: #f5f3ff;
     border-color: #ddd6fe;
   }
 
+  .mmc-pp-header,
   .mmc-pp-top {
     display: flex;
     justify-content: space-between;
@@ -17688,14 +17706,14 @@ body.light-theme .mbn-center-action {
   .mmc-pp-editor {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     font-size: 0.78rem;
     font-weight: 700;
-    color: #a5b4fc;
+    color: #c7d2fe;
   }
 
   body.light-theme .mmc-pp-editor {
-    color: #6366f1;
+    color: #4f46e5;
   }
 
   .mmc-pp-deadline {
@@ -17716,7 +17734,7 @@ body.light-theme .mbn-center-action {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 9px 12px;
+    height: 38px;
     border-radius: 10px;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #ffffff;
@@ -17733,8 +17751,9 @@ body.light-theme .mbn-center-action {
     text-align: center;
     font-size: 0.75rem;
     font-weight: 700;
-    padding: 6px;
+    padding: 7px;
     border-radius: 8px;
+    box-sizing: border-box;
   }
 
   .mmc-pp-status-tag.atrasado {
@@ -17744,8 +17763,15 @@ body.light-theme .mbn-center-action {
   }
 
   .mmc-pp-status-tag.pendente {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.04);
     color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  body.light-theme .mmc-pp-status-tag.pendente {
+    background: #ffffff;
+    color: #64748b;
+    border-color: #cbd5e1;
   }
 
   .mmc-admin-buttons {
@@ -17760,7 +17786,7 @@ body.light-theme .mbn-center-action {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 8px;
+    height: 36px;
     border-radius: 8px;
     background: rgba(239, 68, 68, 0.15);
     color: #f87171;
@@ -17776,7 +17802,7 @@ body.light-theme .mbn-center-action {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 8px;
+    height: 36px;
     border-radius: 8px;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #ffffff;
@@ -17806,10 +17832,10 @@ body.light-theme .mbn-center-action {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    height: 38px;
+    height: 40px;
     border-radius: 10px;
-    font-size: 0.78rem;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 800;
     border: none;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -17819,33 +17845,39 @@ body.light-theme .mbn-center-action {
     flex: 2;
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     color: #ffffff;
-    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
   }
 
   .mmc-action-pill.map {
     flex: 2;
-    background: rgba(6, 182, 212, 0.12);
+    background: rgba(6, 182, 212, 0.14);
     color: #22d3ee;
-    border: 1px solid rgba(6, 182, 212, 0.3);
+    border: 1px solid rgba(6, 182, 212, 0.32);
   }
 
   .mmc-action-pill.history {
-    width: 38px;
+    width: 40px;
+    min-width: 40px;
+    flex: 0 0 40px;
     background: rgba(255, 255, 255, 0.05);
     color: #94a3b8;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .mmc-action-pill.edit {
-    width: 38px;
-    background: rgba(245, 158, 11, 0.1);
+    width: 40px;
+    min-width: 40px;
+    flex: 0 0 40px;
+    background: rgba(245, 158, 11, 0.12);
     color: #fbbf24;
     border: 1px solid rgba(245, 158, 11, 0.3);
   }
 
   .mmc-action-pill.delete {
-    width: 38px;
-    background: rgba(239, 68, 68, 0.1);
+    width: 40px;
+    min-width: 40px;
+    flex: 0 0 40px;
+    background: rgba(239, 68, 68, 0.12);
     color: #f87171;
     border: 1px solid rgba(239, 68, 68, 0.3);
   }
