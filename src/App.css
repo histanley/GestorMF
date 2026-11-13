@@ -36319,3 +36319,802 @@ body.light-theme .erm-search-box input,
 [data-theme="light"] .erm-search-box input {
   color: #0f172a !important;
 }
+
+/* ============================================================================== */
+/* GESTORMF: MODAIS DE ALUGUEL & EQUIPAMENTOS COM FUNDO SÓLIDO                   */
+/* ============================================================================== */
+.equip-edit-modal,
+.equip-detail-modal,
+.checkin-modal {
+  background: #111827 !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75) !important;
+  width: 95%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  z-index: 10001;
+}
+
+.equip-detail-modal {
+  max-width: 680px;
+}
+
+.checkin-modal {
+  max-width: 580px;
+}
+
+body.light-theme .equip-edit-modal,
+[data-theme="light"] .equip-edit-modal,
+body.light-theme .equip-detail-modal,
+[data-theme="light"] .equip-detail-modal,
+body.light-theme .checkin-modal,
+[data-theme="light"] .checkin-modal {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Campos de formulário nos modais de aluguel */
+.equip-edit-modal .modal-form input,
+.equip-edit-modal .modal-form select,
+.equip-edit-modal .modal-form textarea,
+.checkin-modal .modal-form textarea {
+  background: #1f2937 !important;
+  color: #f8fafc !important;
+  border: 1px solid #374151 !important;
+}
+
+body.light-theme .equip-edit-modal .modal-form input,
+[data-theme="light"] .equip-edit-modal .modal-form input,
+body.light-theme .equip-edit-modal .modal-form select,
+[data-theme="light"] .equip-edit-modal .modal-form select,
+body.light-theme .equip-edit-modal .modal-form textarea,
+[data-theme="light"] .equip-edit-modal .modal-form textarea,
+body.light-theme .checkin-modal .modal-form textarea,
+[data-theme="light"] .checkin-modal .modal-form textarea {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+body.light-theme .equip-edit-modal label,
+[data-theme="light"] .equip-edit-modal label,
+body.light-theme .checkin-modal label,
+[data-theme="light"] .checkin-modal label {
+  color: #334155 !important;
+  font-weight: 700;
+}
+
+.form-tip {
+  font-size: 0.73rem;
+  color: var(--text-muted, #94a3b8);
+  margin-top: 4px;
+  display: block;
+}
+
+/* Upload de foto no modal de edição */
+.equip-photo-group {
+  margin-bottom: 16px;
+}
+
+.equip-photo-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+body.light-theme .equip-photo-edit-row,
+[data-theme="light"] .equip-photo-edit-row {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.equip-photo-edit-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.equip-photo-edit-preview img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid var(--accent-gold, #f59e0b);
+}
+
+.btn-remove-photo {
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.equip-photo-empty-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.65rem;
+  text-align: center;
+  color: #94a3b8;
+  padding: 4px;
+}
+
+body.light-theme .equip-photo-empty-drop,
+[data-theme="light"] .equip-photo-empty-drop {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.equip-photo-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.upload-file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.photo-url-input {
+  font-size: 0.8rem;
+}
+
+/* Thumbnail nos cards */
+.equip-card-thumb {
+  width: 100%;
+  height: 140px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.equip-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.equip-card-thumb:hover img {
+  transform: scale(1.04);
+}
+
+.pointer-title {
+  cursor: pointer;
+}
+
+.pointer-title:hover {
+  color: var(--accent-gold, #f59e0b);
+}
+
+/* ============================================================================== */
+/* MODAL DE DETALHES DO EQUIPAMENTO (EquipmentDetailModal)                       */
+/* ============================================================================== */
+.edm-overlay {
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(6px) !important;
+  z-index: 10000;
+}
+
+.edm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.light-theme .edm-header,
+[data-theme="light"] .edm-header {
+  border-bottom-color: #e2e8f0;
+}
+
+.edm-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.edm-cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 3px 9px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+.edm-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edm-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+body.light-theme .edm-close-btn:hover,
+[data-theme="light"] .edm-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.edm-photo-hero {
+  position: relative;
+  width: 100%;
+  max-height: 240px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.light-theme .edm-photo-hero,
+[data-theme="light"] .edm-photo-hero {
+  background: #f1f5f9;
+  border-bottom-color: #e2e8f0;
+}
+
+.edm-photo-wrapper {
+  position: relative;
+  width: 100%;
+  height: 220px;
+}
+
+.edm-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.edm-btn-change-photo {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.edm-btn-change-photo:hover {
+  background: #f59e0b;
+  color: #0f172a;
+  border-color: #f59e0b;
+}
+
+.edm-photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--text-secondary, #94a3b8);
+  transition: all 0.2s;
+}
+
+.edm-photo-placeholder:hover {
+  background: rgba(245, 158, 11, 0.05);
+  color: #f59e0b;
+}
+
+.edm-add-photo-text {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+body.light-theme .edm-add-photo-text,
+[data-theme="light"] .edm-add-photo-text {
+  color: #0f172a;
+}
+
+.edm-body {
+  padding: 20px;
+}
+
+.edm-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+  line-height: 1.25;
+}
+
+body.light-theme .edm-title,
+[data-theme="light"] .edm-title {
+  color: #0f172a !important;
+}
+
+.edm-desc {
+  font-size: 0.86rem;
+  color: #94a3b8;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+body.light-theme .edm-desc,
+[data-theme="light"] .edm-desc {
+  color: #475569 !important;
+}
+
+.edm-desc-empty {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-style: italic;
+  margin: 0 0 16px 0;
+}
+
+.edm-specs-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.edm-spec-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.light-theme .edm-spec-card,
+[data-theme="light"] .edm-spec-card {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.edm-spec-card.highlight-serial {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+body.light-theme .edm-spec-card.highlight-serial,
+[data-theme="light"] .edm-spec-card.highlight-serial {
+  background: #fffbeb !important;
+  border-color: #fde68a !important;
+}
+
+.edm-spec-icon {
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.light-theme .edm-spec-icon,
+[data-theme="light"] .edm-spec-icon {
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.edm-spec-info {
+  flex: 1;
+}
+
+.edm-spec-lbl {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 3px;
+}
+
+body.light-theme .edm-spec-lbl,
+[data-theme="light"] .edm-spec-lbl {
+  color: #64748b;
+}
+
+.edm-serial-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edm-serial-val {
+  font-size: 1.05rem;
+  font-family: monospace;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+body.light-theme .edm-serial-val,
+[data-theme="light"] .edm-serial-val {
+  color: #b45309;
+}
+
+.edm-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+body.light-theme .edm-copy-btn,
+[data-theme="light"] .edm-copy-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.edm-copy-btn:hover {
+  background: #f59e0b;
+  color: #0f172a;
+}
+
+.edm-serial-tip {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  display: block;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+body.light-theme .edm-serial-tip,
+[data-theme="light"] .edm-serial-tip {
+  color: #64748b;
+}
+
+.edm-price-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #34d399;
+  display: block;
+}
+
+body.light-theme .edm-price-val,
+[data-theme="light"] .edm-price-val {
+  color: #047857;
+}
+
+.edm-unit {
+  font-size: 0.8rem;
+  font-weight: normal;
+  color: #94a3b8;
+}
+
+.edm-stock-numbers {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #f8fafc;
+  margin-bottom: 6px;
+}
+
+body.light-theme .edm-stock-numbers,
+[data-theme="light"] .edm-stock-numbers {
+  color: #0f172a;
+}
+
+.edm-progress-track {
+  width: 100%;
+  height: 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+body.light-theme .edm-progress-track,
+[data-theme="light"] .edm-progress-track {
+  background: #e2e8f0;
+}
+
+.edm-progress-bar {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.bg-emerald { background: #10b981; }
+.bg-amber { background: #f59e0b; }
+.bg-red { background: #ef4444; }
+
+.edm-active-rentals-box {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.light-theme .edm-active-rentals-box,
+[data-theme="light"] .edm-active-rentals-box {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.edm-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #f8fafc;
+  margin: 0 0 10px 0;
+}
+
+body.light-theme .edm-section-title,
+[data-theme="light"] .edm-section-title {
+  color: #0f172a;
+}
+
+.edm-rentals-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  padding: 6px 0;
+}
+
+body.light-theme .edm-rentals-empty,
+[data-theme="light"] .edm-rentals-empty {
+  color: #64748b;
+}
+
+.edm-rentals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edm-rental-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.light-theme .edm-rental-item-card,
+[data-theme="light"] .edm-rental-item-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.edm-rental-item-card.item-overdue {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.eric-client {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #f8fafc;
+  margin-bottom: 2px;
+}
+
+body.light-theme .eric-client,
+[data-theme="light"] .eric-client {
+  color: #0f172a;
+}
+
+.eric-code {
+  font-size: 0.72rem;
+  font-family: monospace;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #cbd5e1;
+}
+
+body.light-theme .eric-code,
+[data-theme="light"] .eric-code {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.eric-dates {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+body.light-theme .eric-dates,
+[data-theme="light"] .eric-dates {
+  color: #64748b;
+}
+
+.eric-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.eric-qty-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+body.light-theme .eric-qty-badge,
+[data-theme="light"] .eric-qty-badge {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.eric-overdue-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #ef4444;
+}
+
+.edm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.light-theme .edm-footer,
+[data-theme="light"] .edm-footer {
+  border-top-color: #e2e8f0;
+}
+
+/* ============================================================================== */
+/* GESTORMF: POLIMENTO MODO CLARO DO SISTEMA DE LOCAÇÕES                         */
+/* ============================================================================== */
+body.light-theme .equip-price .price-val,
+[data-theme="light"] .equip-price .price-val {
+  color: #b45309 !important;
+  font-weight: 900 !important;
+}
+
+body.light-theme .equip-cat-tag,
+[data-theme="light"] .equip-cat-tag {
+  color: #b45309 !important;
+  font-weight: 800 !important;
+}
+
+body.light-theme .erm-cat-pill,
+[data-theme="light"] .erm-cat-pill {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+body.light-theme .erm-cat-pill:hover,
+[data-theme="light"] .erm-cat-pill:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+body.light-theme .erm-cat-pill.active,
+[data-theme="light"] .erm-cat-pill.active {
+  background: #f59e0b !important;
+  border-color: #d97706 !important;
+  color: #ffffff !important;
+}
+
+body.light-theme .erm-cat-pill .erm-cat-badge,
+[data-theme="light"] .erm-cat-pill .erm-cat-badge {
+  background: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+body.light-theme .erm-cat-pill.active .erm-cat-badge,
+[data-theme="light"] .erm-cat-pill.active .erm-cat-badge {
+  background: rgba(0, 0, 0, 0.25) !important;
+  color: #ffffff !important;
+}
+
+body.light-theme .erm-equip-card,
+[data-theme="light"] .erm-equip-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme .erm-equip-card:hover,
+[data-theme="light"] .erm-equip-card:hover {
+  border-color: #f59e0b !important;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.16) !important;
+}
+
+body.light-theme .equip-card-actions .btn-secondary,
+[data-theme="light"] .equip-card-actions .btn-secondary {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+body.light-theme .equip-card-actions .btn-secondary:hover,
+[data-theme="light"] .equip-card-actions .btn-secondary:hover {
+  background: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+}
+
+body.light-theme .equip-serial,
+[data-theme="light"] .equip-serial {
+  color: #64748b !important;
+}
+
+body.light-theme .equip-desc,
+[data-theme="light"] .equip-desc {
+  color: #64748b !important;
+}
+
+body.light-theme .equip-stock-info,
+[data-theme="light"] .equip-stock-info {
+  color: #475569 !important;
+}

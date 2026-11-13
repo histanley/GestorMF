@@ -19,6 +19,7 @@ function ensureRentalsTables($db) {
             total_qty INT NOT NULL DEFAULT 1,
             available_qty INT NOT NULL DEFAULT 1,
             serial_number VARCHAR(191) NULL DEFAULT '',
+            photo_url LONGTEXT NULL,
             description TEXT NULL,
             status VARCHAR(32) NOT NULL DEFAULT 'available',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -27,6 +28,10 @@ function ensureRentalsTables($db) {
             INDEX idx_equip_status (status)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
+
+    try {
+        $db->exec("ALTER TABLE equipment ADD COLUMN photo_url LONGTEXT NULL");
+    } catch (Exception $e) {}
 
     $db->exec("
         CREATE TABLE IF NOT EXISTS rentals (
@@ -217,6 +222,7 @@ if ($method === 'GET') {
             'totalQty'     => (int)$e['total_qty'],
             'availableQty' => (int)$e['available_qty'],
             'serialNumber' => $e['serial_number'] ?? '',
+            'photoUrl'     => $e['photo_url'] ?? '',
             'description'  => $e['description'] ?? '',
             'status'       => $e['status'] ?? 'available',
             'createdAt'    => $e['created_at'],
@@ -308,6 +314,7 @@ if ($method === 'POST' && $action === 'save_equipment') {
     $rateUnit = trim($data['rateUnit'] ?? 'diária');
     $totalQty = max(1, (int)($data['totalQty'] ?? 1));
     $serialNumber = trim($data['serialNumber'] ?? '');
+    $photoUrl = trim($data['photoUrl'] ?? $data['photo_url'] ?? '');
     $description = trim($data['description'] ?? '');
 
     if (empty($name)) {
@@ -326,19 +333,19 @@ if ($method === 'POST' && $action === 'save_equipment') {
 
         $stmtUp = $db->prepare("
             UPDATE equipment 
-            SET name = ?, category = ?, daily_rate = ?, rate_unit = ?, total_qty = ?, available_qty = ?, serial_number = ?, description = ?, status = ?
+            SET name = ?, category = ?, daily_rate = ?, rate_unit = ?, total_qty = ?, available_qty = ?, serial_number = ?, photo_url = ?, description = ?, status = ?
             WHERE id = ?
         ");
         $stmtUp->execute([
-            $name, $category, $dailyRate, $rateUnit, $totalQty, $newAvailable, $serialNumber, $description, $status, $id
+            $name, $category, $dailyRate, $rateUnit, $totalQty, $newAvailable, $serialNumber, $photoUrl, $description, $status, $id
         ]);
     } else {
         $stmtIns = $db->prepare("
-            INSERT INTO equipment (id, name, category, daily_rate, rate_unit, total_qty, available_qty, serial_number, description, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
+            INSERT INTO equipment (id, name, category, daily_rate, rate_unit, total_qty, available_qty, serial_number, photo_url, description, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
         ");
         $stmtIns->execute([
-            $id, $name, $category, $dailyRate, $rateUnit, $totalQty, $totalQty, $serialNumber, $description
+            $id, $name, $category, $dailyRate, $rateUnit, $totalQty, $totalQty, $serialNumber, $photoUrl, $description
         ]);
     }
 
@@ -577,3 +584,4 @@ if ($method === 'POST' && $action === 'return_rental') {
 
 // Se nenhuma ação casar
 jsonResponse(['success' => false, 'error' => 'Endpoint ou ação não suportada.'], 404);
+

@@ -23,12 +23,21 @@ assert.ok(fs.existsSync(managerPath), 'EquipmentRentalManager.jsx deve existir')
 const contractPath = path.join(__dirname, '../src/components/RentalContractModal.jsx');
 assert.ok(fs.existsSync(contractPath), 'RentalContractModal.jsx deve existir');
 
+const detailModalPath = path.join(__dirname, '../src/components/EquipmentDetailModal.jsx');
+assert.ok(fs.existsSync(detailModalPath), 'EquipmentDetailModal.jsx deve existir');
+
+const managerContent = fs.readFileSync(managerPath, 'utf8');
+assert.ok(managerContent.includes('EquipmentDetailModal'), 'EquipmentRentalManager deve importar EquipmentDetailModal');
+assert.ok(managerContent.includes('selectedDetailEquipment'), 'EquipmentRentalManager deve controlar selectedDetailEquipment');
+assert.ok(managerContent.includes('modal-box equip-edit-modal'), 'Modal de edição deve usar modal-box');
+
 // 3. Verifica API PHP
 const apiPath = path.join(__dirname, '../public/api/rentals.php');
 assert.ok(fs.existsSync(apiPath), 'rentals.php deve existir');
 const apiContent = fs.readFileSync(apiPath, 'utf8');
 assert.ok(apiContent.includes('CREATE TABLE IF NOT EXISTS equipment'), 'API deve criar tabela equipment');
 assert.ok(apiContent.includes('CREATE TABLE IF NOT EXISTS rentals'), 'API deve criar tabela rentals');
+assert.ok(apiContent.includes('photo_url'), 'API deve suportar photo_url');
 assert.ok(apiContent.includes('create_rental'), 'API deve ter ação create_rental');
 assert.ok(apiContent.includes('return_rental'), 'API deve ter ação return_rental');
 
@@ -42,3 +51,4 @@ assert.ok(appContent.includes('EquipmentRentalManager'), 'App.jsx deve importar 
 assert.ok(appContent.includes("activeTab === 'rentals'"), 'App.jsx deve suportar aba rentals para gestor');
 
 console.log('✅ Todos os 4 conjuntos de validações do Sistema de Aluguel passaram com 100% de sucesso!');
+

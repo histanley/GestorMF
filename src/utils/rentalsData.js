@@ -6,10 +6,11 @@ export const CATEGORY_LABELS = {
   all: 'Todos os Equipamentos',
   cameras: 'Câmeras',
   lenses: 'Lentes',
-  video: 'Vídeo & Mesas',
-  audio: 'Áudio & Microfones',
-  lighting: 'Luz & Iluminação',
-  accessories: 'Acessórios & Suportes',
+  lighting: 'Iluminação',
+  audio: 'Áudio',
+  drones: 'Estabilizadores & Drones',
+  video: 'Vídeo',
+  accessories: 'Acessórios',
 };
 
 export const INITIAL_EQUIPMENT_CATALOG = [
@@ -103,8 +104,8 @@ export const INITIAL_EQUIPMENT_CATALOG = [
   { id: 'eq-077', name: 'Tripe de camera Tr 688v', category: 'accessories', dailyRate: 100, rateUnit: 'diária', totalQty: 10, availableQty: 10, serialNumber: '', description: 'Tripé com cabeça fluida para vídeo' },
   { id: 'eq-078', name: 'tripe de camera nt777', category: 'accessories', dailyRate: 150, rateUnit: 'diária', totalQty: 2, availableQty: 2, serialNumber: '', description: 'Tripé de vídeo resistente com espalhador' },
   { id: 'eq-079', name: 'Tripe de camera Benro Kh26p', category: 'accessories', dailyRate: 150, rateUnit: 'diária', totalQty: 5, availableQty: 5, serialNumber: '', description: 'Tripé profissional Benro com cabeça fluida' },
-  { id: 'eq-080', name: 'Estabilizador Weebill 3s', category: 'accessories', dailyRate: 350, rateUnit: 'diária', totalQty: 2, availableQty: 2, serialNumber: '', description: 'Gimbal 3 eixos com luz de preenchimento' },
-  { id: 'eq-081', name: 'Estabilizador Weebill S', category: 'accessories', dailyRate: 150, rateUnit: 'diária', totalQty: 3, availableQty: 3, serialNumber: '', description: 'Gimbal compacto para câmeras mirrorless' },
+  { id: 'eq-080', name: 'Estabilizador Weebill 3s', category: 'drones', dailyRate: 350, rateUnit: 'diária', totalQty: 2, availableQty: 2, serialNumber: '', description: 'Gimbal 3 eixos com luz de preenchimento' },
+  { id: 'eq-081', name: 'Estabilizador Weebill S', category: 'drones', dailyRate: 150, rateUnit: 'diária', totalQty: 3, availableQty: 3, serialNumber: '', description: 'Gimbal compacto para câmeras mirrorless' },
   { id: 'eq-082', name: 'Impressora termica de fotos', category: 'accessories', dailyRate: 900, rateUnit: 'evento/hora', totalQty: 1, availableQty: 1, serialNumber: '', description: 'Impressora fotográfica sublimação instantânea' },
   { id: 'eq-083', name: 'Comunicadores Hollyland 6s', category: 'accessories', dailyRate: 600, rateUnit: 'diária', totalQty: 1, availableQty: 1, serialNumber: '', description: 'Kit 6 fones sem fio intercomunicação' },
   { id: 'eq-084', name: 'Tripe de Luz', category: 'accessories', dailyRate: 150, rateUnit: 'diária', totalQty: 9, availableQty: 9, serialNumber: '', description: 'Tripé de iluminação com amortecimento' },
@@ -123,3 +124,4 @@ export function formatDateBR(dateStr) {
   if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
   return dateStr;
 }
+

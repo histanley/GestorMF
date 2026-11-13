@@ -26,6 +26,8 @@ import {
   AlertCircle,
   X,
   Sparkles,
+  Eye,
+  Upload,
 } from 'lucide-react';
 import {
   CATEGORY_LABELS,
@@ -35,6 +37,7 @@ import {
 } from '../utils/rentalsData';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import RentalContractModal from './RentalContractModal';
+import EquipmentDetailModal from './EquipmentDetailModal';
 
 export default function EquipmentRentalManager({ currentUser, onClose = null }) {
   // Abas do Módulo: 'catalog' (Estoque), 'new_rental' (Nova Locação), 'rentals' (Locações Ativas & Histórico)
@@ -68,8 +71,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
 
   // Modais
   const [selectedRentalForContract, setSelectedRentalForContract] = useState(null);
+  const [selectedDetailEquipment, setSelectedDetailEquipment] = useState(null); // Detalhes completos do equipamento
   const [editingEquipment, setEditingEquipment] = useState(null); // null ou objeto
   const [isNewEquipModalOpen, setIsNewEquipModalOpen] = useState(false);
+  const [editEquipPhoto, setEditEquipPhoto] = useState('');
   const [returningRental, setReturningRental] = useState(null); // null ou objeto
   const [returnNotes, setReturnNotes] = useState('');
 
@@ -128,6 +133,15 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       localStorage.setItem('gestormf_rentals_cache', JSON.stringify(rentalsList));
     } catch {}
   }, [equipmentList, rentalsList]);
+
+  // Sincroniza foto ao abrir modal de edição
+  useEffect(() => {
+    if (editingEquipment) {
+      setEditEquipPhoto(editingEquipment.photoUrl || '');
+    } else {
+      setEditEquipPhoto('');
+    }
+  }, [editingEquipment, isNewEquipModalOpen]);
 
   // Contadores Gerais & KPIs
   const kpiStats = useMemo(() => {
@@ -432,7 +446,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
         const updated = [...prev];
         const diff = (equipData.totalQty || 1) - (prev[idx].totalQty || 1);
         const newAvail = Math.max(0, (prev[idx].availableQty || 0) + diff);
-        updated[idx] = { ...prev[idx], ...equipData, availableQty: newAvail, status: newAvail > 0 ? 'available' : 'rented' };
+        const merged = { ...prev[idx], ...equipData, availableQty: newAvail, status: newAvail > 0 ? 'available' : 'rented' };
+        updated[idx] = merged;
+        if (selectedDetailEquipment && selectedDetailEquipment.id === equipData.id) {
+          setSelectedDetailEquipment(merged);
+        }
         return updated;
       } else {
         const newObj = {
@@ -452,6 +470,14 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       message: `Equipamento "${equipData.name}" atualizado no catálogo de locações.`,
       variant: 'success',
     });
+  };
+
+  // Atualizar foto do equipamento diretamente (via modal de detalhes ou edição)
+  const handleUpdateEquipmentPhoto = async (equipmentId, photoUrl) => {
+    const equip = equipmentList.find((e) => e.id === equipmentId);
+    if (!equip) return;
+    const updated = { ...equip, photoUrl };
+    await handleSaveEquipment(updated);
   };
 
   // Check-in / Devolução de Equipamentos
@@ -688,7 +714,23 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                         </div>
                       </div>
 
-                      <h3 className="equip-name">{equip.name}</h3>
+                      {equip.photoUrl && (
+                        <div
+                          className="equip-card-thumb"
+                          onClick={() => setSelectedDetailEquipment(equip)}
+                          title="Clique para ver detalhes"
+                        >
+                          <img src={equip.photoUrl} alt={equip.name} />
+                        </div>
+                      )}
+
+                      <h3
+                        className="equip-name pointer-title"
+                        onClick={() => setSelectedDetailEquipment(equip)}
+                        title="Ver detalhes do equipamento"
+                      >
+                        {equip.name}
+                      </h3>
                       {equip.description && <p className="equip-desc">{equip.description}</p>}
                       {equip.serialNumber && (
                         <div className="equip-serial">
@@ -708,6 +750,15 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                       </div>
 
                       <div className="equip-card-actions">
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm btn-detail-action"
+                          onClick={() => setSelectedDetailEquipment(equip)}
+                          title="Ver Ficha Completa e Detalhes do Equipamento"
+                        >
+                          <Eye size={13} /> Detalhes
+                        </button>
+
                         <button
                           type="button"
                           className="btn-secondary btn-sm"
@@ -1221,11 +1272,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             setIsNewEquipModalOpen(false);
           }}
         >
-          <div className="modal-dialog equip-edit-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-box equip-edit-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-header-text">
                 <h2>{editingEquipment ? 'Editar Equipamento' : 'Novo Equipamento no Acervo'}</h2>
-                <p>Ajuste o valor da diária, quantidade de unidades ou especificações.</p>
+                <p>Ajuste o valor da diária, quantidade de unidades, foto ou especificações.</p>
               </div>
               <button
                 type="button"
@@ -1252,11 +1303,63 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   totalQty: Number(formData.get('totalQty')) || 1,
                   serialNumber: formData.get('serialNumber') || '',
                   description: formData.get('description') || '',
+                  photoUrl: editEquipPhoto || (editingEquipment?.photoUrl || ''),
                 };
                 handleSaveEquipment(equipData);
               }}
               className="modal-form"
             >
+              {/* Foto do Equipamento */}
+              <div className="form-group equip-photo-group">
+                <label>Foto do Equipamento</label>
+                <div className="equip-photo-edit-row">
+                  {editEquipPhoto ? (
+                    <div className="equip-photo-edit-preview">
+                      <img src={editEquipPhoto} alt="Prévia do Equipamento" />
+                      <button
+                        type="button"
+                        className="btn-danger btn-xs btn-remove-photo"
+                        onClick={() => setEditEquipPhoto('')}
+                        title="Remover foto"
+                      >
+                        Remover Foto
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="equip-photo-empty-drop">
+                      <Camera size={26} className="text-muted" />
+                      <span>Sem foto cadastrada</span>
+                    </div>
+                  )}
+
+                  <div className="equip-photo-inputs">
+                    <label className="btn-secondary btn-sm upload-file-btn">
+                      <Upload size={14} /> Carregar Imagem
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => setEditEquipPhoto(ev.target?.result);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="Ou cole o link da foto (URL)..."
+                      value={editEquipPhoto}
+                      onChange={(e) => setEditEquipPhoto(e.target.value)}
+                      className="photo-url-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="form-group">
                 <label>Nome / Modelo do Equipamento *</label>
                 <input
@@ -1264,7 +1367,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   name="name"
                   required
                   defaultValue={editingEquipment?.name || ''}
-                  placeholder="Ex: Sony a7IV"
+                  placeholder="Ex: Sony FX3, Lente GM 24-70mm, Drone DJI Air 3..."
                 />
               </div>
 
@@ -1274,9 +1377,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   <select name="category" defaultValue={editingEquipment?.category || 'accessories'}>
                     <option value="cameras">Câmeras</option>
                     <option value="lenses">Lentes</option>
+                    <option value="lighting">Iluminação</option>
+                    <option value="audio">Áudio</option>
+                    <option value="drones">Estabilizadores &amp; Drones</option>
                     <option value="video">Vídeo &amp; Mesas</option>
-                    <option value="audio">Áudio &amp; Microfones</option>
-                    <option value="lighting">Luz &amp; Iluminação</option>
                     <option value="accessories">Acessórios &amp; Suportes</option>
                   </select>
                 </div>
@@ -1321,8 +1425,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   type="text"
                   name="serialNumber"
                   defaultValue={editingEquipment?.serialNumber || ''}
-                  placeholder="Ex: SN-8837192"
+                  placeholder="Ex: SN-8837192 (essencial para constar no termo e evitar troca de peças)"
                 />
+                <small className="form-tip">
+                  Identificador obrigatório em contrato para segurança e conferência no check-in.
+                </small>
               </div>
 
               <div className="form-group">
@@ -1331,7 +1438,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   type="text"
                   name="description"
                   defaultValue={editingEquipment?.description || ''}
-                  placeholder="Ex: Acompanha estojo rígido e cabos..."
+                  placeholder="Ex: Acompanha estojo rígido, 2 baterias e cabos..."
                 />
               </div>
 
@@ -1360,7 +1467,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       {/* ==================================================================== */}
       {returningRental && (
         <div className="modal-overlay" onClick={() => setReturningRental(null)}>
-          <div className="modal-dialog checkin-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-box checkin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-header-text">
                 <h2>Receber Devolução de Equipamentos</h2>
@@ -1417,6 +1524,28 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
           </div>
         </div>
       )}
+
+      {/* ==================================================================== */}
+      {/* MODAL 4: DETALHES COMPLETOS DO EQUIPAMENTO                          */}
+      {/* ==================================================================== */}
+      {selectedDetailEquipment && (
+        <EquipmentDetailModal
+          equipment={selectedDetailEquipment}
+          rentals={rentalsList}
+          onClose={() => setSelectedDetailEquipment(null)}
+          onEdit={(eq) => {
+            setSelectedDetailEquipment(null);
+            setEditingEquipment(eq);
+          }}
+          onRent={(eq) => {
+            setSelectedDetailEquipment(null);
+            handleAddToCart(eq);
+            setActiveTab('new_rental');
+          }}
+          onUpdatePhoto={handleUpdateEquipmentPhoto}
+        />
+      )}
     </div>
   );
 }
+
