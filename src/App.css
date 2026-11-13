@@ -27474,7 +27474,17 @@ body.light-theme .rcf-subtotal-val {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  padding: 0.5rem 0 2rem 0;
+  padding: 28px 36px 40px 36px;
+  max-width: 1480px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .admin-center-container {
+    padding: 16px 14px 30px 14px;
+  }
 }
 
 .admin-center-header {
