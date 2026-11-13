@@ -29754,8 +29754,329 @@ body.light-theme .cs-live-top-badge {
 }
 
 /* ==========================================================================
-   INTELIGÊNCIA & RANKING: PONTUAÇÃO FIEL DE TODAS AS 11 FUNÇÕES OFICIAIS
+   CARDS DE APROVAÇÃO DE PÓS-PRODUÇÃO - DESIGN MODERNO E ELEGANTE (ADMIN)
    ========================================================================== */
+
+/* Grid amplo e bem distribuído para aprovações */
+.ac-requests-grid.ac-pp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 640px), 1fr)) !important;
+  gap: 24px !important;
+  max-width: 1400px;
+}
+
+/* Card Principal de Pós-Produção */
+.ac-request-card.ac-pp-card {
+  background: linear-gradient(145deg, rgba(24, 33, 49, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  border-left: 6px solid #f59e0b !important;
+  border-radius: 18px !important;
+  padding: 24px 26px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.5), 0 0 24px rgba(245, 158, 11, 0.1) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden;
+}
+
+.ac-request-card.ac-pp-card:hover {
+  border-color: rgba(245, 158, 11, 0.55) !important;
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.6), 0 0 32px rgba(245, 158, 11, 0.16) !important;
+  transform: translateY(-2px);
+}
+
+body.light-theme .ac-request-card.ac-pp-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-left: 6px solid #f59e0b !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06), 0 2px 10px rgba(245, 158, 11, 0.1) !important;
+}
+
+/* Cabeçalho do Card */
+.ac-pp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Título e Local da Missão */
+.ac-pp-mission-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ac-pp-title {
+  font-size: 1.22rem !important;
+  font-weight: 800 !important;
+  color: #f8fafc !important;
+  line-height: 1.35 !important;
+  letter-spacing: -0.015em !important;
+  margin: 0 !important;
+}
+
+body.light-theme .ac-pp-title {
+  color: #0f172a !important;
+}
+
+.ac-pp-loc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem !important;
+  color: #cbd5e1 !important;
+}
+
+body.light-theme .ac-pp-loc {
+  color: #475569 !important;
+}
+
+/* Painel Estruturado de Detalhes da Pós-Produção */
+.ac-pp-details-panel {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+body.light-theme .ac-pp-details-panel {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+/* Linha com 2 Colunas (Editor e Prazo) */
+.ac-pp-two-col-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .ac-pp-two-col-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ac-pp-mini-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+body.light-theme .ac-pp-mini-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.ac-pp-mini-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+body.light-theme .ac-pp-mini-label {
+  color: #64748b;
+}
+
+.ac-pp-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.ac-pp-avatar-circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.74rem;
+  border: 1.5px solid #38bdf8;
+  flex-shrink: 0;
+}
+
+.ac-pp-user-name {
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+body.light-theme .ac-pp-user-name {
+  color: #0f172a;
+}
+
+.ac-pp-deadline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.ac-pp-deadline-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+body.light-theme .ac-pp-deadline-info {
+  color: #1e293b;
+}
+
+/* Seções de Arquivos do Servidor e Equipe */
+.ac-pp-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ac-pp-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+body.light-theme .ac-pp-section-label {
+  color: #64748b;
+}
+
+.ac-pp-server-path-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(10, 15, 29, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+body.light-theme .ac-pp-server-path-box {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.ac-pp-path-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ac-pp-path-text {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.84rem !important;
+  color: #38bdf8 !important;
+  word-break: break-all;
+  font-weight: 600 !important;
+  line-height: 1.4;
+}
+
+body.light-theme .ac-pp-path-text {
+  color: #0284c7 !important;
+}
+
+/* Rodapé de Ações - Botões Perfeitamente Alinhados e Proporcionais */
+.ac-pp-actions-footer {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  width: 100% !important;
+  margin-top: 4px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.light-theme .ac-pp-actions-footer {
+  border-top-color: #e2e8f0 !important;
+}
+
+.ac-pp-btn-action {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+  font-size: 0.92rem !important;
+  font-weight: 800 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 9px !important;
+  cursor: pointer !important;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  padding: 0 16px !important;
+}
+
+/* Botão Rejeitar e Reabrir */
+.ac-btn-reject.ac-pp-btn-action {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, rgba(185, 28, 28, 0.08) 100%) !important;
+  border: 1.5px solid rgba(239, 68, 68, 0.45) !important;
+  color: #fca5a5 !important;
+}
+
+.ac-btn-reject.ac-pp-btn-action:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Botão Confirmar Finalização */
+.ac-btn-approve.ac-pp-btn-action {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border: 1.5px solid #34d399 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35) !important;
+}
+
+.ac-btn-approve.ac-pp-btn-action:hover {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 26px rgba(16, 185, 129, 0.5) !important;
+}
+
+.ac-pp-btn-action:active {
+  transform: scale(0.98) !important;
+}
+
+@media (max-width: 640px) {
+  .ac-pp-actions-footer {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .ac-pp-btn-action {
+    width: 100% !important;
+  }
+}
+
 
 /* Barra Rápida de Modalidades / Funções Oficiais */
 .ranking-role-pills-bar {

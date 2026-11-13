@@ -492,7 +492,7 @@ export default function AdminCenter({
                 </p>
               </div>
             ) : (
-              <div className="ac-requests-grid">
+              <div className="ac-requests-grid ac-pp-grid">
                 {displayedEditions.map((mission) => {
                   const mCode = getMissionCode(mission, missions);
                   const isPending = mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada';
@@ -509,10 +509,10 @@ export default function AdminCenter({
                   return (
                     <div
                       key={mission.id}
-                      className={`ac-request-card ${isPending ? 'card-pending-pp' : 'card-approved'}`}
+                      className={`ac-request-card ac-pp-card ${isPending ? 'card-pending-pp' : 'card-approved'}`}
                     >
                       {/* Topo do Card: Código, Status e Ações Rápidas */}
-                      <div className="ac-rc-header">
+                      <div className="ac-rc-header ac-pp-header">
                         <div className="ac-rc-header-left">
                           <span className="ac-rc-code">#{mCode}</span>
                           <span className={`ac-rc-status-pill ${isPending ? 'status-pending-gold' : 'status-approved'}`}>
@@ -537,62 +537,69 @@ export default function AdminCenter({
                       {/* Sub-header com Data e Saída em chips elegantes */}
                       <div className="ac-rc-meta-chips">
                         <span className="ac-meta-chip">
-                          <Calendar size={12} className="text-amber" />
+                          <Calendar size={13} className="text-amber" />
                           <span>{formatDateBR(mission.date)}</span>
                         </span>
                         {mission.departureTime && (
                           <span className="ac-meta-chip">
-                            <Clock size={12} className="text-cyan" />
+                            <Clock size={13} className="text-cyan" />
                             <span>Saída: {mission.departureTime}</span>
                           </span>
                         )}
                       </div>
 
                       {/* Descrição / Pauta e Local */}
-                      <div className="ac-rc-mission-box">
-                        <h4 className="ac-rc-mission-title">
+                      <div className="ac-rc-mission-box ac-pp-mission-box">
+                        <h4 className="ac-rc-mission-title ac-pp-title">
                           {mission.description}
                         </h4>
-                        <div className="ac-rc-mission-loc">
-                          <MapPin size={13} className="text-amber" />
+                        <div className="ac-rc-mission-loc ac-pp-loc">
+                          <MapPin size={14} className="text-amber" />
                           <span>{mission.locationName || mission.address || 'Local não definido'}</span>
                         </div>
                       </div>
 
-                      {/* Grid de Pós-Produção */}
-                      <div className="ac-pp-details-grid">
-                        {/* Editor Responsável */}
-                        <div className="ac-pp-detail-item">
-                          <span className="ac-pp-label">Editor Responsável:</span>
-                          <div className="ac-pp-val-row">
-                            <div className="ac-pp-user-chip">
-                              <User size={13} className="text-cyan" />
-                              <strong>{editorName}</strong>
+                      {/* Painel Moderno de Pós-Produção */}
+                      <div className="ac-pp-details-panel">
+                        {/* Linha com Editor e Prazo em Cards Lado a Lado */}
+                        <div className="ac-pp-two-col-row">
+                          {/* Editor Responsável */}
+                          <div className="ac-pp-mini-card">
+                            <span className="ac-pp-mini-label">Editor Responsável:</span>
+                            <div className="ac-pp-user-row">
+                              <div className="ac-pp-avatar-circle">
+                                {editorName.slice(0, 2).toUpperCase()}
+                              </div>
+                              <strong className="ac-pp-user-name">{editorName}</strong>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Prazo de Entrega */}
-                        <div className="ac-pp-detail-item">
-                          <span className="ac-pp-label">Prazo de Entrega:</span>
-                          <div className="ac-pp-val-row">
-                            <Clock size={13} className="text-muted" />
-                            <span>
-                              {mission.deliveryDeadlineDate ? `${formatDateBR(mission.deliveryDeadlineDate)} às ${mission.deliveryDeadlineTime || '18:00'}` : 'Não estipulado'}
-                            </span>
-                            <span className={`ac-pp-status-badge ${isOverdue ? 'overdue' : 'ontime'}`}>
-                              {isOverdue ? '⚠️ Atrasado' : '✅ No Prazo'}
-                            </span>
+                          {/* Prazo de Entrega */}
+                          <div className="ac-pp-mini-card">
+                            <span className="ac-pp-mini-label">Prazo de Entrega:</span>
+                            <div className="ac-pp-deadline-row">
+                              <div className="ac-pp-deadline-info">
+                                <Clock size={13} className="text-muted" />
+                                <span>
+                                  {mission.deliveryDeadlineDate ? `${formatDateBR(mission.deliveryDeadlineDate)} às ${mission.deliveryDeadlineTime || '18:00'}` : 'Não estipulado'}
+                                </span>
+                              </div>
+                              <span className={`ac-pp-status-badge ${isOverdue ? 'overdue' : 'ontime'}`}>
+                                {isOverdue ? '⚠️ Atrasado' : '✅ No Prazo'}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
                         {/* Caminho dos Arquivos no Servidor */}
                         {serverPath && (
-                          <div className="ac-pp-detail-item full-width">
-                            <span className="ac-pp-label">Local dos Arquivos no Servidor:</span>
+                          <div className="ac-pp-section-block">
+                            <span className="ac-pp-section-label">Local dos Arquivos no Servidor:</span>
                             <div className="ac-pp-server-path-box">
-                              <HardDrive size={14} className="text-amber icon-shrink" />
-                              <code className="ac-pp-path-text" title={serverPath}>{serverPath}</code>
+                              <div className="ac-pp-path-left">
+                                <HardDrive size={15} className="text-amber icon-shrink" />
+                                <code className="ac-pp-path-text" title={serverPath}>{serverPath}</code>
+                              </div>
                               <button
                                 type="button"
                                 className="ac-btn-copy-path"
@@ -601,11 +608,13 @@ export default function AdminCenter({
                               >
                                 {copiedPathId === mission.id ? (
                                   <>
-                                    <Check size={12} className="text-emerald" /> Copiado!
+                                    <Check size={13} className="text-emerald" />
+                                    <span>Copiado!</span>
                                   </>
                                 ) : (
                                   <>
-                                    <Copy size={12} /> Copiar
+                                    <Copy size={13} />
+                                    <span>Copiar</span>
                                   </>
                                 )}
                               </button>
@@ -615,8 +624,8 @@ export default function AdminCenter({
 
                         {/* Mensagem / Observações do Editor */}
                         {editorMessage && (
-                          <div className="ac-pp-detail-item full-width">
-                            <span className="ac-pp-label">Observações da Entrega pelo Editor:</span>
+                          <div className="ac-pp-section-block">
+                            <span className="ac-pp-section-label">Observações da Entrega pelo Editor:</span>
                             <div className="ac-pp-message-box">
                               "{editorMessage}"
                             </div>
@@ -624,24 +633,24 @@ export default function AdminCenter({
                         )}
 
                         {/* Equipe de Campo */}
-                        <div className="ac-pp-detail-item full-width">
-                          <span className="ac-pp-label">Equipe de Gravação em Campo:</span>
+                        <div className="ac-pp-section-block">
+                          <span className="ac-pp-section-label">Equipe de Gravação em Campo:</span>
                           <div className="ac-pp-team-chips">
                             {mission.vehicleNameDisplay && (
                               <span className="ac-team-chip">
-                                <Car size={12} className="text-rose" />
+                                <Car size={13} className="text-rose" />
                                 <span>{mission.vehicleNameDisplay}</span>
                               </span>
                             )}
                             {mission.driverName && (
                               <span className="ac-team-chip">
-                                <User size={12} className="text-amber" />
+                                <User size={13} className="text-amber" />
                                 <span>Motorista: {mission.driverName}</span>
                               </span>
                             )}
                             {mission.teamNamesDisplay && (
                               <span className="ac-team-chip">
-                                <Users size={12} className="text-indigo" />
+                                <Users size={13} className="text-indigo" />
                                 <span>{mission.teamNamesDisplay}</span>
                               </span>
                             )}
@@ -649,12 +658,12 @@ export default function AdminCenter({
                         </div>
                       </div>
 
-                      {/* Botões de Ação para o Administrador */}
+                      {/* Botões de Ação para o Administrador - Perfeitamente Proporcionais */}
                       {isPending && (
-                        <div className="ac-rc-actions-row">
+                        <div className="ac-rc-actions-row ac-pp-actions-footer">
                           <button
                             type="button"
-                            className="ac-btn-reject"
+                            className="ac-btn-reject ac-pp-btn-action"
                             onClick={() => setReopenModal({
                               isOpen: true,
                               mission,
@@ -665,17 +674,17 @@ export default function AdminCenter({
                             })}
                             title="Rejeitar material e solicitar ajustes com novo prazo"
                           >
-                            <RotateCcw size={15} />
+                            <RotateCcw size={16} />
                             <span>Rejeitar e Reabrir</span>
                           </button>
 
                           <button
                             type="button"
-                            className="ac-btn-approve"
+                            className="ac-btn-approve ac-pp-btn-action"
                             onClick={() => handleApproveEdition(mission)}
                             title="Confirmar finalização da missão e encerrar serviço"
                           >
-                            <CheckCheck size={16} />
+                            <CheckCheck size={17} />
                             <span>Confirmar Finalização</span>
                           </button>
                         </div>
