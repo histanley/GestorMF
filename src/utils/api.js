@@ -192,6 +192,13 @@ export async function apiUpdatePixKey(pixKey) {
   });
 }
 
+export async function apiUpdateExtraHoursAvailability(availability, memberId = null) {
+  return await apiRequest('/auth.php?action=update_availability', {
+    method: 'POST',
+    body: JSON.stringify({ availability, memberId })
+  });
+}
+
 export async function apiUpdateUser(userId, userData) {
   return await apiRequest('/auth.php?action=update_user', {
     method: 'POST',

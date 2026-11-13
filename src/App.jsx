@@ -93,6 +93,7 @@ import {
   apiDismissAllMessages,
   apiRespondExtraHours,
   apiUpdatePixKey,
+  apiUpdateExtraHoursAvailability,
 } from './utils/api';
 import {
   sendPushNotification,
@@ -1980,9 +1981,23 @@ export default function App() {
 
   const handleUpdateMember = async (updatedMem) => {
     const previous = members;
+    // Atualização otimista imediata no estado e no cache local
+    setMembers((prev) => {
+      const next = prev.map((m) => (m.id === updatedMem.id ? updatedMem : m));
+      localStorage.setItem('gestormf_members', JSON.stringify(next));
+      return next;
+    });
+
     try {
       const res = await apiSaveMember(updatedMem);
       if (!res.success) {
+        // Fallback resiliente: se falhou por privilégio mas tem alteração de disponibilidade, salva pela rota específica
+        if (updatedMem.extraHoursAvailability) {
+          const availRes = await apiUpdateExtraHoursAvailability(updatedMem.extraHoursAvailability, updatedMem.id);
+          if (availRes && availRes.success) return true;
+        }
+        setMembers(previous);
+        localStorage.setItem('gestormf_members', JSON.stringify(previous));
         await alertDialog({
           title: 'Erro ao Atualizar Colaborador',
           message: res.error || 'Falha ao atualizar dados do colaborador no servidor.',
@@ -1990,16 +2005,43 @@ export default function App() {
         });
         return false;
       }
-      setMembers((prev) => prev.map((m) => (m.id === updatedMem.id ? updatedMem : m)));
       return true;
     } catch (e) {
+      if (updatedMem.extraHoursAvailability) {
+        try {
+          const availRes = await apiUpdateExtraHoursAvailability(updatedMem.extraHoursAvailability, updatedMem.id);
+          if (availRes && availRes.success) return true;
+        } catch (_) {}
+      }
       setMembers(previous);
+      localStorage.setItem('gestormf_members', JSON.stringify(previous));
       await alertDialog({
         title: 'Erro de Conexão',
         message: 'Falha de rede ao atualizar dados do colaborador.',
         variant: 'danger',
       });
       return false;
+    }
+  };
+
+  const handleUpdateMemberAvailability = async (memberId, availability) => {
+    // Atualização otimista imediata em todos os colaboradores correspondentes
+    setMembers((prev) => {
+      const next = prev.map((m) => {
+        const isMatch = m.id === memberId ||
+          (currentUser && (m.userId === currentUser.id || (m.name && m.name.trim().toLowerCase() === currentUser.name?.trim().toLowerCase())));
+        return isMatch ? { ...m, extraHoursAvailability: availability } : m;
+      });
+      localStorage.setItem('gestormf_members', JSON.stringify(next));
+      return next;
+    });
+
+    try {
+      const res = await apiUpdateExtraHoursAvailability(availability, memberId);
+      return res;
+    } catch (err) {
+      console.warn('Erro ao persistir disponibilidade de horas extras:', err);
+      return { success: false, error: err.message };
     }
   };
 
@@ -3292,6 +3334,7 @@ export default function App() {
             onReloadMissions={reloadServerMissions}
             onUpdatePixKey={handleUpdatePixKey}
             onUpdateMember={handleUpdateMember}
+            onUpdateAvailability={handleUpdateMemberAvailability}
           />
         )}
       </main>

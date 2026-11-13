@@ -26,6 +26,13 @@ function ensureMembersColumns($db) {
         }
     } catch (Exception $e) {}
 
+    try {
+        $stmt = $db->query("SHOW COLUMNS FROM members LIKE 'extra_hours_availability'");
+        if (!$stmt || !$stmt->fetch()) {
+            $db->exec("ALTER TABLE members ADD COLUMN extra_hours_availability LONGTEXT NULL AFTER pix_key");
+        }
+    } catch (Exception $e) {}
+
     // Sincronização automática e contínua de fotos de perfil de usuários para colaboradores
     try {
         $db->exec("
@@ -56,27 +63,33 @@ if ($method === 'GET') {
             $decoded = is_array($m['secondary_roles']) ? $m['secondary_roles'] : json_decode($m['secondary_roles'], true);
             if (is_array($decoded)) $secRoles = $decoded;
         }
+        $extraAvail = null;
+        if (!empty($m['extra_hours_availability'])) {
+            $decodedAvail = is_array($m['extra_hours_availability']) ? $m['extra_hours_availability'] : json_decode($m['extra_hours_availability'], true);
+            if (is_array($decodedAvail)) $extraAvail = $decodedAvail;
+        }
         // Prioriza a foto atualizada do usuário (app móvel/perfil); fallback para photo_url do membro
         $resolvedPhoto = !empty($m['user_avatar']) ? $m['user_avatar'] : (!empty($m['photo_url']) ? $m['photo_url'] : null);
         return [
-            'id'             => $m['id'],
-            'name'           => $m['name'],
-            'role'           => $m['role'],
-            'secondaryRoles' => $secRoles,
-            'company'        => $m['company'],
-            'phone'          => $m['phone'],
-            'photoUrl'       => $resolvedPhoto,
-            'canDrive'       => (bool)($m['can_drive'] ?? false),
-            'cnhCategory'    => $m['cnh_category'] ?? 'B',
-            'hourlyRate'     => isset($m['hourly_rate']) ? (float)$m['hourly_rate'] : 0.0,
-            'dailyRate'      => isset($m['daily_rate']) ? (float)$m['daily_rate'] : 0.0,
-            'rateModel'      => $m['rate_model'] ?? 'hourly',
-            'blockRate'      => isset($m['block_rate']) ? (float)$m['block_rate'] : 0.0,
-            'pixKey'         => $m['pix_key'] ?? '',
-            'userId'         => $m['user_id'] ?? null,
-            'active'         => (bool)$m['active'],
-            'createdAt'      => $m['created_at'],
-            'updatedAt'      => $m['updated_at']
+            'id'                     => $m['id'],
+            'name'                   => $m['name'],
+            'role'                   => $m['role'],
+            'secondaryRoles'         => $secRoles,
+            'company'                => $m['company'],
+            'phone'                  => $m['phone'],
+            'photoUrl'               => $resolvedPhoto,
+            'canDrive'               => (bool)($m['can_drive'] ?? false),
+            'cnhCategory'            => $m['cnh_category'] ?? 'B',
+            'hourlyRate'             => isset($m['hourly_rate']) ? (float)$m['hourly_rate'] : 0.0,
+            'dailyRate'              => isset($m['daily_rate']) ? (float)$m['daily_rate'] : 0.0,
+            'rateModel'              => $m['rate_model'] ?? 'hourly',
+            'blockRate'              => isset($m['block_rate']) ? (float)$m['block_rate'] : 0.0,
+            'pixKey'                 => $m['pix_key'] ?? '',
+            'extraHoursAvailability' => $extraAvail,
+            'userId'                 => $m['user_id'] ?? null,
+            'active'                 => (bool)$m['active'],
+            'createdAt'              => $m['created_at'],
+            'updatedAt'              => $m['updated_at']
         ];
     }, $raw);
 
@@ -85,8 +98,53 @@ if ($method === 'GET') {
 
 // SALVAR OU ATUALIZAR COLABORADOR (POST / PUT)
 if ($method === 'POST' || $method === 'PUT') {
+    $inputData = getJsonInput();
+    $action = $_GET['action'] ?? ($inputData['action'] ?? '');
+
+    // Rota Rápida: Atualizar Disponibilidade para Horas Extras (Próprio Colaborador ou Admin)
+    if ($action === 'update_availability' || (isset($inputData['extraHoursAvailability']) && count($inputData) <= 3 && isset($inputData['id']))) {
+        $user = requireAuth(); // Qualquer perfil autenticado (USER, MANAGER, ADMIN)
+        $targetId = trim($inputData['id'] ?? ($inputData['memberId'] ?? ''));
+        $avail = $inputData['extraHoursAvailability'] ?? ($inputData['availability'] ?? null);
+        $availJson = !empty($avail) ? (is_string($avail) ? $avail : json_encode($avail, JSON_UNESCAPED_UNICODE)) : null;
+
+        // Permissão: Admin, Manager ou o próprio colaborador vinculado
+        $canEdit = ($user['role'] === 'ADMIN' || $user['role'] === 'MANAGER');
+        if (!$canEdit && !empty($targetId)) {
+            $stmtOwner = $db->prepare("SELECT id, name, user_id FROM members WHERE id = ?");
+            $stmtOwner->execute([$targetId]);
+            $owner = $stmtOwner->fetch();
+            if ($owner && ($owner['user_id'] === $user['id'] || strtolower(trim($owner['name'])) === strtolower(trim($user['name'])))) {
+                $canEdit = true;
+            }
+        }
+        if (!$canEdit && empty($targetId)) {
+            $canEdit = true; // Edita a si próprio
+        }
+
+        if (!$canEdit) {
+            jsonResponse(['success' => false, 'error' => 'Acesso negado para alterar disponibilidade deste colaborador.'], 403);
+        }
+
+        if (!empty($targetId)) {
+            $db->prepare("UPDATE members SET extra_hours_availability = ? WHERE id = ?")->execute([$availJson, $targetId]);
+        } else {
+            $db->prepare("
+                UPDATE members
+                SET extra_hours_availability = ?, user_id = COALESCE(user_id, ?)
+                WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))
+            ")->execute([$availJson, $user['id'], $user['id'], $user['name']]);
+        }
+
+        bumpSyncVersion("members");
+        $statusVal = is_array($avail) ? ($avail['status'] ?? 'available') : 'available';
+        logAudit('UPDATE_AVAILABILITY', 'TEAMS', $targetId ?: $user['id'], "Disponibilidade de horas extras alterada para '{$statusVal}' por {$user['name']}.", $user['id'], $user['name']);
+
+        jsonResponse(['success' => true, 'message' => 'Disponibilidade atualizada com sucesso!', 'extraHoursAvailability' => $avail]);
+    }
+
     $user = requireAuth(['ADMIN', 'MANAGER']);
-    $data = getJsonInput();
+    $data = $inputData;
 
     $id = trim($data['id'] ?? '');
     if (empty($id)) {
@@ -225,9 +283,14 @@ if ($method === 'POST' || $method === 'PUT') {
         $blockRate = isset($data['blockRate']) ? (float)$data['blockRate'] : (isset($data['block_rate']) ? (float)$data['block_rate'] : 0.00);
         $pixKey = trim($data['pixKey'] ?? ($data['pix_key'] ?? ''));
 
+        $extraHoursAvailInput = $data['extraHoursAvailability'] ?? ($data['extra_hours_availability'] ?? null);
+        $extraHoursAvailJson = !empty($extraHoursAvailInput)
+            ? (is_string($extraHoursAvailInput) ? $extraHoursAvailInput : json_encode($extraHoursAvailInput, JSON_UNESCAPED_UNICODE))
+            : null;
+
         $sql = "
-            INSERT INTO members (id, name, role, secondary_roles, company, phone, photo_url, user_id, can_drive, cnh_category, hourly_rate, daily_rate, rate_model, block_rate, pix_key, active)
-            VALUES (:id, :name, :role, :secondary_roles, :company, :phone, :photo_url, :user_id, :can_drive, :cnh_category, :hourly_rate, :daily_rate, :rate_model, :block_rate, :pix_key, :active)
+            INSERT INTO members (id, name, role, secondary_roles, company, phone, photo_url, user_id, can_drive, cnh_category, hourly_rate, daily_rate, rate_model, block_rate, pix_key, extra_hours_availability, active)
+            VALUES (:id, :name, :role, :secondary_roles, :company, :phone, :photo_url, :user_id, :can_drive, :cnh_category, :hourly_rate, :daily_rate, :rate_model, :block_rate, :pix_key, :extra_hours_availability, :active)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
                 role = VALUES(role),
@@ -243,27 +306,29 @@ if ($method === 'POST' || $method === 'PUT') {
                 rate_model = VALUES(rate_model),
                 block_rate = VALUES(block_rate),
                 pix_key = VALUES(pix_key),
+                extra_hours_availability = VALUES(extra_hours_availability),
                 active = VALUES(active)
         ";
 
         $stmtSave = $db->prepare($sql);
         $stmtSave->execute([
-            ':id'              => $id,
-            ':name'            => $name,
-            ':role'            => $role,
-            ':secondary_roles' => $secondaryRolesJson,
-            ':company'         => $data['company'] ?? 'MegaFilmes',
-            ':phone'           => $data['phone'] ?? '',
-            ':photo_url'       => $data['photoUrl'] ?? null,
-            ':user_id'         => $assignedUserId,
-            ':can_drive'       => $canDrive,
-            ':cnh_category'    => $cnhCategory,
-            ':hourly_rate'     => $hourlyRate,
-            ':daily_rate'      => $dailyRate,
-            ':rate_model'      => $rateModel,
-            ':block_rate'      => $blockRate,
-            ':pix_key'         => $pixKey,
-            ':active'          => isset($data['active']) && !$data['active'] ? 0 : 1
+            ':id'                       => $id,
+            ':name'                     => $name,
+            ':role'                     => $role,
+            ':secondary_roles'          => $secondaryRolesJson,
+            ':company'                  => $data['company'] ?? 'MegaFilmes',
+            ':phone'                    => $data['phone'] ?? '',
+            ':photo_url'                => $data['photoUrl'] ?? null,
+            ':user_id'                  => $assignedUserId,
+            ':can_drive'                => $canDrive,
+            ':cnh_category'             => $cnhCategory,
+            ':hourly_rate'              => $hourlyRate,
+            ':daily_rate'               => $dailyRate,
+            ':rate_model'               => $rateModel,
+            ':block_rate'               => $blockRate,
+            ':pix_key'                  => $pixKey,
+            ':extra_hours_availability' => $extraHoursAvailJson,
+            ':active'                   => isset($data['active']) && !$data['active'] ? 0 : 1
         ]);
 
         // Sincroniza foto no usuário vinculado caso definida

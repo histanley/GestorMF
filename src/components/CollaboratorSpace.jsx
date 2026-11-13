@@ -66,6 +66,7 @@ export default function CollaboratorSpace({
   onReloadMissions = null,
   onUpdatePixKey = null,
   onUpdateMember = null,
+  onUpdateAvailability = null,
 }) {
   // Identifica o colaborador correspondente ao usuário logado
   const myMember = useMemo(() => {
@@ -92,7 +93,15 @@ export default function CollaboratorSpace({
   // ============================================================================
   // DISPONIBILIDADE DO COLABORADOR PARA HORAS EXTRAS FORA DO EXPEDIENTE
   // ============================================================================
-  const curAvail = myMember?.extraHoursAvailability || { status: 'available' };
+  const [localAvail, setLocalAvail] = useState(() => myMember?.extraHoursAvailability || { status: 'available' });
+
+  useEffect(() => {
+    if (myMember?.extraHoursAvailability) {
+      setLocalAvail(myMember.extraHoursAvailability);
+    }
+  }, [myMember?.extraHoursAvailability]);
+
+  const curAvail = localAvail?.status ? localAvail : (myMember?.extraHoursAvailability || { status: 'available' });
   const isUnavailableNow = curAvail.status === 'unavailable';
 
   const [isEditingAvail, setIsEditingAvail] = useState(false);
@@ -128,17 +137,21 @@ export default function CollaboratorSpace({
 
   const handleMakeAvailable = async () => {
     setIsSavingAvail(true);
+    const newAvail = {
+      status: 'available',
+      scope: 'always_offhours',
+      updatedAt: new Date().toISOString(),
+    };
+    setLocalAvail(newAvail);
+
     try {
-      const updatedMember = {
-        ...myMember,
-        extraHoursAvailability: {
-          status: 'available',
-          scope: 'always_offhours',
-          updatedAt: new Date().toISOString(),
-        },
-      };
-      if (onUpdateMember) {
-        await onUpdateMember(updatedMember);
+      if (onUpdateAvailability && myMember?.id) {
+        await onUpdateAvailability(myMember.id, newAvail);
+      } else if (onUpdateMember) {
+        await onUpdateMember({
+          ...myMember,
+          extraHoursAvailability: newAvail,
+        });
       }
       setIsEditingAvail(false);
       await alertDialog({
@@ -169,28 +182,32 @@ export default function CollaboratorSpace({
     }
 
     setIsSavingAvail(true);
+    const newAvail = {
+      status: 'unavailable',
+      scope: availScope,
+      startDate: availStartDate,
+      startTime: availStartTime,
+      endDate: availEndDate,
+      endTime: availEndTime,
+      presetReason: availPresetReason,
+      reason: finalReason,
+      updatedAt: new Date().toISOString(),
+    };
+    setLocalAvail(newAvail);
+    setIsEditingAvail(false);
+
     try {
-      const updatedMember = {
-        ...myMember,
-        extraHoursAvailability: {
-          status: 'unavailable',
-          scope: availScope,
-          startDate: availStartDate,
-          startTime: availStartTime,
-          endDate: availEndDate,
-          endTime: availEndTime,
-          presetReason: availPresetReason,
-          reason: finalReason,
-          updatedAt: new Date().toISOString(),
-        },
-      };
-      if (onUpdateMember) {
-        await onUpdateMember(updatedMember);
+      if (onUpdateAvailability && myMember?.id) {
+        await onUpdateAvailability(myMember.id, newAvail);
+      } else if (onUpdateMember) {
+        await onUpdateMember({
+          ...myMember,
+          extraHoursAvailability: newAvail,
+        });
       }
-      setIsEditingAvail(false);
       await alertDialog({
         title: '🚫 Indisponibilidade Registrada',
-        message: 'Sua indisponibilidade para horas extras foi registrada! Os administradores serão alertados na lista de colaboradores ao criar missões fora do expediente.',
+        message: 'Sua indisponibilidade para horas extras foi registrada com sucesso! Os administradores serão alertados na lista de colaboradores ao planejar missões fora do expediente.',
         variant: 'info',
       });
     } catch (e) {

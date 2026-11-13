@@ -219,6 +219,42 @@ if ($method === 'POST' && $action === 'update_pix') {
 }
 
 // ------------------------------------------------------------------------------
+// ATUALIZAR DISPONIBILIDADE PARA HORAS EXTRAS (COLABORADOR OU ADMIN)
+// ------------------------------------------------------------------------------
+if ($method === 'POST' && $action === 'update_availability') {
+    $auth = requireAuth();
+    $input = getJsonInput();
+    $availability = $input['availability'] ?? null;
+    $targetMemberId = trim($input['memberId'] ?? ($input['id'] ?? ''));
+
+    // Garante que a coluna extra_hours_availability exista na tabela members
+    try {
+        $chk = $db->query("SHOW COLUMNS FROM members LIKE 'extra_hours_availability'")->fetch();
+        if (!$chk) {
+            $db->exec("ALTER TABLE members ADD COLUMN extra_hours_availability LONGTEXT NULL AFTER pix_key");
+        }
+    } catch (Exception $e) {}
+
+    $availJson = !empty($availability) ? (is_string($availability) ? $availability : json_encode($availability, JSON_UNESCAPED_UNICODE)) : null;
+
+    if (!empty($targetMemberId) && ($auth['role'] === 'ADMIN' || $auth['role'] === 'MANAGER')) {
+        $db->prepare("UPDATE members SET extra_hours_availability = ? WHERE id = ?")->execute([$availJson, $targetMemberId]);
+    } else {
+        $db->prepare("
+            UPDATE members
+            SET extra_hours_availability = ?, user_id = COALESCE(user_id, ?)
+            WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))
+        ")->execute([$availJson, $auth['id'], $auth['id'], $auth['name']]);
+    }
+
+    bumpSyncVersion("members");
+    $statusVal = is_array($availability) ? ($availability['status'] ?? 'available') : 'available';
+    logAudit('UPDATE_AVAILABILITY', 'MEMBERS', $targetMemberId ?: $auth['id'], "Disponibilidade de horas extras alterada para '{$statusVal}' por {$auth['name']}.", $auth['id'], $auth['name']);
+
+    jsonResponse(['success' => true, 'extraHoursAvailability' => $availability]);
+}
+
+// ------------------------------------------------------------------------------
 // ATUALIZAR AVATAR/FOTO DIRETAMENTE (ADMIN OU PRÓPRIO USUÁRIO)
 // ------------------------------------------------------------------------------
 if ($method === 'POST' && $action === 'update_avatar') {
