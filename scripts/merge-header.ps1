@@ -22,3 +22,4 @@ $imgText.Dispose()
 $bmp.Save("public/images/contract/header-full-banner.png", [System.Drawing.Imaging.ImageFormat]::Png)
 $bmp.Dispose()
 Write-Host "Combined image created: header-full-banner.png"
+

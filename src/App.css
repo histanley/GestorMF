@@ -38346,7 +38346,9 @@ body.light-theme .erm-kpi-val.text-amber,
 }
 
 @keyframes pv-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .pv-hero {
