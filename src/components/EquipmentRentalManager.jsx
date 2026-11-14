@@ -114,6 +114,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     discount: 0,
     paymentMethod: 'PIX',
     paymentStatus: 'Pendente',
+    paidAmount: '',
+    remainingDueTerms: 'Na Devolução dos Equipamentos',
+    remainingDueDate: '',
+    securityDeposit: '',
     notes: '',
   });
 
@@ -343,12 +347,42 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       return;
     }
 
+    // Validação de pagamento parcial
+    if (rentalForm.paymentStatus === 'Caução Recebido') {
+      if (rentalForm.paidAmount === '' || parseFloat(rentalForm.paidAmount) < 0) {
+        alertDialog({
+          title: 'Valor Pago Obrigatório',
+          message: 'Como o status selecionado é "Caução / Parcial", informe o valor que já foi pago de entrada.',
+          variant: 'warning',
+        });
+        return;
+      }
+      if (rentalForm.remainingDueTerms === 'Data Específica' && !rentalForm.remainingDueDate) {
+        alertDialog({
+          title: 'Data Limite Obrigatória',
+          message: 'Por favor, informe a data limite para o pagamento do saldo faltante.',
+          variant: 'warning',
+        });
+        return;
+      }
+    }
+
+    const paidVal = parseFloat(rentalForm.paidAmount) || 0;
+    const remainingVal = rentalForm.paymentStatus === 'Pago'
+      ? 0
+      : (rentalForm.paidAmount !== '' ? Math.max(0, cartTotalAmount - paidVal) : cartTotalAmount);
+
     // Se o usuário selecionou status explicitamente ou se paymentStatus não for 'Pago', permite 'reserved' (Agendamento/Reserva)
     const statusToApply = intendedStatus || (rentalForm.paymentStatus === 'Pago' ? 'active' : 'reserved');
     const isReservation = statusToApply === 'reserved';
 
     const payload = {
       ...rentalForm,
+      paidAmount: paidVal,
+      remainingAmount: remainingVal,
+      remainingDueTerms: rentalForm.remainingDueTerms || 'Na Devolução dos Equipamentos',
+      remainingDueDate: rentalForm.remainingDueDate || null,
+      securityDeposit: parseFloat(rentalForm.securityDeposit) || 0,
       totalDays: rentalDays,
       subtotal: cartSubtotal,
       discount: Number(rentalForm.discount) || 0,
@@ -1133,33 +1167,155 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     </select>
                   </div>
 
-                  <div className="form-group">
+                  <div className="form-group span-2">
                     <label>Status do Pagamento</label>
                     <select
                       value={rentalForm.paymentStatus}
                       onChange={(e) => setRentalForm({ ...rentalForm, paymentStatus: e.target.value })}
                     >
                       <option value="Pendente">Pendente (Não Pago)</option>
-                      <option value="Pago">Pago (Quitado)</option>
-                      <option value="Caução Recebido">Caução / Parcial</option>
+                      <option value="Pago">Pago (Quitado Total)</option>
+                      <option value="Caução Recebido">Caução / Parcial (Pagamento Parcial ou Sinal)</option>
                     </select>
 
-                    {rentalForm.paymentStatus !== 'Pago' ? (
+                    {rentalForm.paymentStatus === 'Pendente' && (
                       <div className="payment-status-alert alert-pending">
                         <Calendar size={15} />
                         <span>
                           <strong>Pagamento não realizado:</strong> Você pode <u>Agendar / Reservar</u> para garantir o equipamento bloqueado para a data desejada, ou iniciar a locação direta.
                         </span>
                       </div>
-                    ) : (
+                    )}
+
+                    {rentalForm.paymentStatus === 'Pago' && (
                       <div className="payment-status-alert alert-paid">
                         <CheckCircle2 size={15} />
                         <span>
-                          <strong>Pagamento confirmado:</strong> O termo oficial de locação será emitido com quitação registrada.
+                          <strong>Pagamento confirmado:</strong> O termo oficial de locação será emitido com quitação integral registrada.
                         </span>
                       </div>
                     )}
                   </div>
+
+                  {/* Detalhamento Dinâmico de Pagamento Parcial & Caução */}
+                  {rentalForm.paymentStatus === 'Caução Recebido' && (
+                    <div className="partial-payment-card span-2">
+                      <div className="ppc-header">
+                        <DollarSign size={18} className="text-gold" />
+                        <div>
+                          <strong>Detalhamento de Pagamento Parcial &amp; Caução</strong>
+                          <p>
+                            Especifique o valor pago de entrada, o saldo que falta, o prazo de quitação e o valor do caução de garantia se exigido.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="ppc-grid">
+                        <div className="form-group">
+                          <label>Valor Pago / Entrada (R$) *</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max={cartTotalAmount}
+                            placeholder="Ex: 100.00"
+                            value={rentalForm.paidAmount}
+                            onChange={(e) =>
+                              setRentalForm({ ...rentalForm, paidAmount: e.target.value })
+                            }
+                          />
+                          <small className="form-tip">Valor recebido de entrada.</small>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Saldo Faltante a Pagar</label>
+                          <div className="ppc-remaining-box">
+                            <span className="ppc-remaining-val">
+                              {formatCurrency(
+                                Math.max(
+                                  0,
+                                  cartTotalAmount - (parseFloat(rentalForm.paidAmount) || 0)
+                                )
+                              )}
+                            </span>
+                          </div>
+                          <small className="form-tip">Calculado automaticamente (Total - Pago).</small>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Prazo para Quitar o Valor Faltante *</label>
+                          <select
+                            value={rentalForm.remainingDueTerms}
+                            onChange={(e) =>
+                              setRentalForm({
+                                ...rentalForm,
+                                remainingDueTerms: e.target.value,
+                              })
+                            }
+                          >
+                            <option value="Na Devolução dos Equipamentos">Na Devolução dos Equipamentos</option>
+                            <option value="Na Retirada dos Equipamentos">Na Retirada dos Equipamentos</option>
+                            <option value="Em até 7 dias">Em até 7 dias</option>
+                            <option value="Em até 15 dias">Em até 15 dias</option>
+                            <option value="Em até 30 dias">Em até 30 dias</option>
+                            <option value="Data Específica">Data Específica</option>
+                          </select>
+                        </div>
+
+                        {rentalForm.remainingDueTerms === 'Data Específica' && (
+                          <div className="form-group">
+                            <label>Data Limite para Quitação *</label>
+                            <input
+                              type="date"
+                              value={rentalForm.remainingDueDate}
+                              onChange={(e) =>
+                                setRentalForm({
+                                  ...rentalForm,
+                                  remainingDueDate: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                        )}
+
+                        <div className="form-group">
+                          <label>Valor do Caução de Garantia (R$)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Ex: 500.00 (Caso o item precise de caução)"
+                            value={rentalForm.securityDeposit}
+                            onChange={(e) =>
+                              setRentalForm({
+                                ...rentalForm,
+                                securityDeposit: e.target.value,
+                              })
+                            }
+                          />
+                          <small className="form-tip">
+                            Depósito retido em garantia (restituído após devolução sem avarias).
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Campo de Caução de Garantia se for Pago ou Pendente */}
+                  {rentalForm.paymentStatus !== 'Caução Recebido' && (
+                    <div className="form-group">
+                      <label>Caução de Garantia (R$) (Opcional)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Ex: 500.00 (Caso exija caução)"
+                        value={rentalForm.securityDeposit}
+                        onChange={(e) => setRentalForm({ ...rentalForm, securityDeposit: e.target.value })}
+                      />
+                      <small className="form-tip">Caso o item/locação exija depósito em garantia.</small>
+                    </div>
+                  )}
 
                   <div className="form-group">
                     <label>Desconto Concedido (R$)</label>
@@ -1442,6 +1598,16 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                           <span className="erc-pay-status">
                             {rental.paymentMethod} • {rental.paymentStatus || 'Pendente'}
                           </span>
+                          {rental.paidAmount > 0 && rental.remainingAmount > 0 && (
+                            <span className="erc-partial-badge">
+                              Entrada: {formatCurrency(rental.paidAmount)} • Falta: {formatCurrency(rental.remainingAmount)} ({rental.remainingDueTerms || 'Na devolução'})
+                            </span>
+                          )}
+                          {rental.securityDeposit > 0 && (
+                            <span className="erc-deposit-badge">
+                              🛡️ Caução: {formatCurrency(rental.securityDeposit)}
+                            </span>
+                          )}
                         </div>
                       </div>
 

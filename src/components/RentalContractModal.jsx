@@ -153,6 +153,16 @@ export default function RentalContractModal({ rental, currentUser = null, onClos
         ? `⚠️ *Importante:* Agendamento confirmado com reserva prévia de estoque. A liberação dos equipamentos fica condicionada à quitação do pagamento acordado.`
         : `⚠️ *Importante:* Devolução impreterível no horário acordado, com cabos e acessórios em perfeito estado técnico e de conservação.`;
 
+      let paymentFinancialInfo = `💰 *Valor Total:* *${formatCurrency(rental.totalAmount)}*\n💳 *Pagamento:* ${rental.paymentMethod || 'PIX'} (${rental.paymentStatus || 'Pendente'})`;
+      if (Number(rental.paidAmount) > 0 && Number(rental.remainingAmount) > 0) {
+        const termsText = rental.remainingDueDate ? `${rental.remainingDueTerms} (${formatDateBR(rental.remainingDueDate)})` : (rental.remainingDueTerms || 'Na devolução');
+        paymentFinancialInfo += `\n💵 *Entrada Paga:* ${formatCurrency(rental.paidAmount)}`;
+        paymentFinancialInfo += `\n⏳ *Saldo a Pagar:* ${formatCurrency(rental.remainingAmount)} (${termsText})`;
+      }
+      if (Number(rental.securityDeposit) > 0) {
+        paymentFinancialInfo += `\n🛡️ *Caução de Garantia:* ${formatCurrency(rental.securityDeposit)} (Restituível após vistoria)`;
+      }
+
       const text = `${headerTitle}
 📄 *Contrato Nº:* ${rental.code}
 👤 *Cliente:* ${rental.clientName}
@@ -166,8 +176,7 @@ export default function RentalContractModal({ rental, currentUser = null, onClos
 📦 *Equipamentos Relacionados:*
 ${itemsList}
 
-💰 *Valor Total:* *${formatCurrency(rental.totalAmount)}*
-💳 *Pagamento:* ${rental.paymentMethod || 'PIX'} (${rental.paymentStatus || 'Pendente'})
+${paymentFinancialInfo}
 
 🔐 *Autenticação Sistêmica Digital:*
 • *Responsável:* ${authorizerName} (${authorizerRole})
@@ -397,6 +406,21 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
                     {rental.paymentStatus || 'Pendente'}
                   </span>
                 </p>
+                {Number(rental.paidAmount) > 0 && Number(rental.remainingAmount) > 0 && (
+                  <p className="rc-partial-detail-p">
+                    <span className="rc-badge-pill paid">Pago: {formatCurrency(rental.paidAmount)}</span>
+                    <span className="rc-badge-pill remaining">
+                      Falta: {formatCurrency(rental.remainingAmount)} ({rental.remainingDueDate ? `${rental.remainingDueTerms} em ${formatDateBR(rental.remainingDueDate)}` : (rental.remainingDueTerms || 'Na devolução')})
+                    </span>
+                  </p>
+                )}
+                {Number(rental.securityDeposit) > 0 && (
+                  <p className="rc-deposit-detail-p">
+                    <span className="rc-badge-pill deposit">
+                      🛡️ Caução de Garantia: {formatCurrency(rental.securityDeposit)} (Restituível após conferência)
+                    </span>
+                  </p>
+                )}
                 {rental.notes && <p className="rc-notes-p"><strong>Observações:</strong> {rental.notes}</p>}
               </div>
 
@@ -415,6 +439,24 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
                   <span>VALOR TOTAL:</span>
                   <span>{formatCurrency(rental.totalAmount)}</span>
                 </div>
+                {Number(rental.paidAmount) > 0 && Number(rental.remainingAmount) > 0 && (
+                  <>
+                    <div className="rc-fin-row text-paid-row">
+                      <span>Entrada Paga:</span>
+                      <span>{formatCurrency(rental.paidAmount)}</span>
+                    </div>
+                    <div className="rc-fin-row text-remaining-row">
+                      <span>Saldo a Quitar:</span>
+                      <span>{formatCurrency(rental.remainingAmount)}</span>
+                    </div>
+                  </>
+                )}
+                {Number(rental.securityDeposit) > 0 && (
+                  <div className="rc-fin-row text-caucao-row">
+                    <span>Caução em Garantia:</span>
+                    <span>{formatCurrency(rental.securityDeposit)}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -429,13 +471,25 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
                 {isReserved ? (
                   <>
                     <li><strong>BLOQUEIO DE ESTOQUE:</strong> A emissão deste comprovante reserva previamente os equipamentos descritos no período estipulado, garantindo a sua disponibilidade.</li>
-                    <li><strong>RETIRADA &amp; QUITAÇÃO:</strong> A liberação e entrega dos equipamentos na sede da LOCADORA fica estritamente condicionada à quitação integral do pagamento acordado.</li>
+                    <li><strong>RETIRADA &amp; QUITAÇÃO:</strong> A liberação e entrega dos equipamentos na sede da LOCADORA fica estritamente condicionada à quitação do valor acordado ou entrada mínima estipulada.</li>
+                    {Number(rental.securityDeposit) > 0 && (
+                      <li><strong>CAUÇÃO DE GARANTIA:</strong> A caução no valor de {formatCurrency(rental.securityDeposit)} será retida em garantia provisória e integralmente restituída ao(à) LOCATÁRIO(A) na devolução dos itens sem danos.</li>
+                    )}
+                    {Number(rental.remainingAmount) > 0 && (
+                      <li><strong>SALDO REMANESCENTE:</strong> O saldo de {formatCurrency(rental.remainingAmount)} deverá ser liquidado no prazo acordado ({rental.remainingDueDate ? `${rental.remainingDueTerms} em ${formatDateBR(rental.remainingDueDate)}` : (rental.remainingDueTerms || 'na devolução')}).</li>
+                    )}
                     <li><strong>CANCELAMENTO:</strong> Cancelamentos ou reagendamentos devem ser solicitados com no mínimo 24h de antecedência para desimpedimento do acervo.</li>
                     <li><strong>TOLERÂNCIA:</strong> O não comparecimento para retirada até 4h após o horário agendado sem aviso faculta à LOCADORA o cancelamento da reserva e liberação dos bens.</li>
                   </>
                 ) : (
                   <>
                     <li><strong>VISTORIA &amp; RECEBIMENTO:</strong> O(A) LOCATÁRIO(A) declara inspecionar e testar previamente os bens, cabos e acessórios relacionados, recebendo-os em perfeito estado de funcionamento e conservação.</li>
+                    {Number(rental.securityDeposit) > 0 && (
+                      <li><strong>CAUÇÃO DE GARANTIA:</strong> O valor de caução de {formatCurrency(rental.securityDeposit)} prestado em garantia será integralmente restituído ao(à) LOCATÁRIO(A) após a conferência e vistoria final de devolução, deduzindo-se eventuais diárias adicionais, reposições ou reparos devidos.</li>
+                    )}
+                    {Number(rental.remainingAmount) > 0 && (
+                      <li><strong>QUITAÇÃO DO SALDO:</strong> O saldo remanescente de {formatCurrency(rental.remainingAmount)} deverá ser impreterivelmente quitado pelo(a) LOCATÁRIO(A) conforme acordado ({rental.remainingDueDate ? `${rental.remainingDueTerms} em ${formatDateBR(rental.remainingDueDate)}` : (rental.remainingDueTerms || 'na devolução dos equipamentos')}).</li>
+                    )}
                     <li><strong>GUARDA &amp; DESTINAÇÃO:</strong> O(A) LOCATÁRIO(A) responde integralmente pela guarda, zelo e conservação dos bens, utilizando-os para os fins a que se destinam, vedada sublocação, cessão ou empréstimo.</li>
                     <li><strong>AVARIAS, DANOS E EXTRAVIO:</strong> Qualquer avaria estética, quebra mecânica, dano por líquido/queda, furto ou roubo será de inteira responsabilidade do(a) LOCATÁRIO(A), que arcará com o conserto em autorizada ou reposição de item novo similar, além das diárias paradas.</li>
                     <li><strong>DEVOLUÇÃO &amp; MORA:</strong> Os equipamentos deverão ser devolvidos rigorosamente limpos e funcionais até a data e hora limites. Atrasos na entrega acarretarão cobrança de nova diária integral e penalidades do Art. 575 do Código Civil.</li>

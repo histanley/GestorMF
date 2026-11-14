@@ -63,6 +63,11 @@ function ensureRentalsTables($db) {
             pickup_notes TEXT NULL,
             inspection_notes TEXT NULL,
             has_damage TINYINT(1) NOT NULL DEFAULT 0,
+            paid_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+            remaining_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+            remaining_due_terms VARCHAR(191) NULL DEFAULT '',
+            remaining_due_date DATE NULL,
+            security_deposit DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
             created_by VARCHAR(150) NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -88,6 +93,21 @@ function ensureRentalsTables($db) {
     } catch (Exception $e) {}
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN has_damage TINYINT(1) NOT NULL DEFAULT 0");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN paid_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN remaining_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN remaining_due_terms VARCHAR(191) NULL DEFAULT ''");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN remaining_due_date DATE NULL");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN security_deposit DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
     } catch (Exception $e) {}
 
     // Seed inicial dos 86 equipamentos se tabela estiver vazia
@@ -436,6 +456,11 @@ if ($method === 'GET') {
             'pickupNotes'    => $r['pickup_notes'] ?? '',
             'inspectionNotes'=> $r['inspection_notes'] ?? '',
             'hasDamage'      => !empty($r['has_damage']),
+            'paidAmount'        => (float)($r['paid_amount'] ?? 0),
+            'remainingAmount'   => (float)($r['remaining_amount'] ?? 0),
+            'remainingDueTerms' => $r['remaining_due_terms'] ?? '',
+            'remainingDueDate'  => $r['remaining_due_date'] ?? null,
+            'securityDeposit'   => (float)($r['security_deposit'] ?? 0),
             'createdBy'      => $r['created_by'] ?? 'Sistema',
             'createdAt'      => $r['created_at'],
             'updatedAt'      => $r['updated_at'],
@@ -698,6 +723,17 @@ if ($method === 'POST' && $action === 'create_rental') {
         $paymentStatus = trim($data['paymentStatus'] ?? 'Pendente');
         $notes = trim($data['notes'] ?? '');
 
+        $paidAmount = max(0, (float)($data['paidAmount'] ?? 0));
+        $remainingAmount = max(0, (float)($data['remainingAmount'] ?? ($totalAmount - $paidAmount)));
+        $remainingDueTerms = trim($data['remainingDueTerms'] ?? '');
+        $remainingDueDate = !empty($data['remainingDueDate']) ? trim($data['remainingDueDate']) : null;
+        $securityDeposit = max(0, (float)($data['securityDeposit'] ?? 0));
+
+        if ($paymentStatus === 'Pago' && $paidAmount == 0) {
+            $paidAmount = $totalAmount;
+            $remainingAmount = 0;
+        }
+
         // Define status: 'reserved' (Agendamento/Reserva) ou 'active' (Locação ativa)
         $status = trim($data['status'] ?? '');
         if (!in_array($status, ['active', 'reserved'])) {
@@ -717,12 +753,12 @@ if ($method === 'POST' && $action === 'create_rental') {
                 id, code, client_name, client_document, client_phone, client_email, client_address,
                 start_date, start_time, end_date, end_time, total_days,
                 subtotal, discount, total_amount, payment_method, payment_status, status,
-                notes, items_json, created_by
+                notes, items_json, paid_amount, remaining_amount, remaining_due_terms, remaining_due_date, security_deposit, created_by
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?, ?,
-                ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?
             )
         ");
 
@@ -730,7 +766,9 @@ if ($method === 'POST' && $action === 'create_rental') {
             $rentalId, $code, $clientName, $clientDocument, $clientPhone, $clientEmail, $clientAddress,
             $startDate, $startTime, $endDate, $endTime, $diffDays,
             $subtotal, $discount, $totalAmount, $paymentMethod, $paymentStatus, $status,
-            $notes, json_encode($validatedItems, JSON_UNESCAPED_UNICODE), $user['name']
+            $notes, json_encode($validatedItems, JSON_UNESCAPED_UNICODE),
+            $paidAmount, $remainingAmount, $remainingDueTerms, $remainingDueDate, $securityDeposit,
+            $user['name']
         ]);
 
         $db->commit();
