@@ -114,130 +114,144 @@ function ensureRentalsTables($db) {
         $db->exec("ALTER TABLE rentals ADD COLUMN security_deposit DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
     } catch (Exception $e) {}
 
+        // 1.1 Tabela de migrações internas
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS system_migrations (
+            migration_key VARCHAR(191) PRIMARY KEY,
+            executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ");
+
+    $calibratedCatalog = [
+            ['id' => 'eq-001', 'name' => 'Sony a7III', 'category' => 'cameras', 'daily_rate' => 160, 'asset_value' => 8900, 'total_qty' => 8, 'rate_unit' => 'diária'],
+            ['id' => 'eq-002', 'name' => 'Sony Fx30', 'category' => 'cameras', 'daily_rate' => 190, 'asset_value' => 10800, 'total_qty' => 6, 'rate_unit' => 'diária'],
+            ['id' => 'eq-003', 'name' => 'Sony a7IV', 'category' => 'cameras', 'daily_rate' => 220, 'asset_value' => 13900, 'total_qty' => 3, 'rate_unit' => 'diária'],
+            ['id' => 'eq-004', 'name' => 'Sony 6600', 'category' => 'cameras', 'daily_rate' => 100, 'asset_value' => 5400, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-005', 'name' => 'Canon eos RP', 'category' => 'cameras', 'daily_rate' => 90, 'asset_value' => 4700, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-006', 'name' => 'Canon eos 5D mark III', 'category' => 'cameras', 'daily_rate' => 70, 'asset_value' => 2800, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-007', 'name' => 'Sony HXR- NX5', 'category' => 'cameras', 'daily_rate' => 90, 'asset_value' => 3200, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-008', 'name' => 'Sony NX5 R', 'category' => 'cameras', 'daily_rate' => 100, 'asset_value' => 3600, 'total_qty' => 3, 'rate_unit' => 'diária'],
+            ['id' => 'eq-009', 'name' => 'Sony PMW- EX3', 'category' => 'cameras', 'daily_rate' => 110, 'asset_value' => 3900, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-010', 'name' => 'Sony HXR- NX3', 'category' => 'cameras', 'daily_rate' => 95, 'asset_value' => 3400, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-011', 'name' => 'Sony PMW- EX1', 'category' => 'cameras', 'daily_rate' => 100, 'asset_value' => 3500, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-012', 'name' => 'GoPro 11 Black', 'category' => 'cameras', 'daily_rate' => 60, 'asset_value' => 1950, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-013', 'name' => 'GoPro 360', 'category' => 'cameras', 'daily_rate' => 85, 'asset_value' => 2450, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-014', 'name' => 'GoPro 8 Black', 'category' => 'cameras', 'daily_rate' => 45, 'asset_value' => 1150, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-015', 'name' => 'Sony 24/70 f4', 'category' => 'lenses', 'daily_rate' => 65, 'asset_value' => 2700, 'total_qty' => 5, 'rate_unit' => 'diária'],
+            ['id' => 'eq-016', 'name' => 'Sony 50mm 1.8', 'category' => 'lenses', 'daily_rate' => 35, 'asset_value' => 1150, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-017', 'name' => 'Sony 35mm 1.8', 'category' => 'lenses', 'daily_rate' => 65, 'asset_value' => 2900, 'total_qty' => 3, 'rate_unit' => 'diária'],
+            ['id' => 'eq-018', 'name' => 'Sony 70/200 2.8', 'category' => 'lenses', 'daily_rate' => 190, 'asset_value' => 12000, 'total_qty' => 3, 'rate_unit' => 'diária'],
+            ['id' => 'eq-019', 'name' => 'Sony 18/105 f4', 'category' => 'lenses', 'daily_rate' => 60, 'asset_value' => 2500, 'total_qty' => 3, 'rate_unit' => 'diária'],
+            ['id' => 'eq-020', 'name' => 'Sony 85mm 1.8', 'category' => 'lenses', 'daily_rate' => 65, 'asset_value' => 2800, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-021', 'name' => 'Sigma 16mm 1.4', 'category' => 'lenses', 'daily_rate' => 55, 'asset_value' => 2100, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-022', 'name' => 'Sony 24/70 2.8', 'category' => 'lenses', 'daily_rate' => 160, 'asset_value' => 9800, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-023', 'name' => 'Canon 24/70 2.8', 'category' => 'lenses', 'daily_rate' => 85, 'asset_value' => 4800, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-024', 'name' => 'Canon 35mm 1.4', 'category' => 'lenses', 'daily_rate' => 75, 'asset_value' => 3900, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-025', 'name' => 'Monitor Feelworld 5.5 POL', 'category' => 'video', 'daily_rate' => 45, 'asset_value' => 950, 'total_qty' => 5, 'rate_unit' => 'diária'],
+            ['id' => 'eq-026', 'name' => 'Monitor Feelworld 7.0 POL', 'category' => 'video', 'daily_rate' => 65, 'asset_value' => 1450, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-027', 'name' => 'Transmissor cosmo c1 Hollyland', 'category' => 'video', 'daily_rate' => 160, 'asset_value' => 5100, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-028', 'name' => 'Transmissor mars 300 pro Hollyland', 'category' => 'video', 'daily_rate' => 85, 'asset_value' => 2350, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-029', 'name' => 'Mesa de corte switcher estudio 6+', 'category' => 'video', 'daily_rate' => 160, 'asset_value' => 4800, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-030', 'name' => 'Mesa de corte Blackmagic mini extreme live', 'category' => 'video', 'daily_rate' => 220, 'asset_value' => 6200, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-031', 'name' => 'Mesa de corte Blackmagic Atem mini Pro', 'category' => 'video', 'daily_rate' => 110, 'asset_value' => 2450, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-032', 'name' => 'Mesa de corte Neo iD Estudio 4+', 'category' => 'video', 'daily_rate' => 130, 'asset_value' => 3900, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-033', 'name' => 'Mesa de corte Atem 2 Blackmagic', 'category' => 'video', 'daily_rate' => 450, 'asset_value' => 13500, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-034', 'name' => 'Placa de captura de videos HDMI', 'category' => 'video', 'daily_rate' => 25, 'asset_value' => 180, 'total_qty' => 5, 'rate_unit' => 'diária'],
+            ['id' => 'eq-035', 'name' => 'NEO id tally', 'category' => 'video', 'daily_rate' => 85, 'asset_value' => 2400, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-036', 'name' => 'Teleprompter profissional', 'category' => 'video', 'daily_rate' => 150, 'asset_value' => 2700, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-037', 'name' => 'Teleprompter camera vídeo', 'category' => 'video', 'daily_rate' => 75, 'asset_value' => 950, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-038', 'name' => 'Microfone Takstar para camera', 'category' => 'audio', 'daily_rate' => 20, 'asset_value' => 180, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-039', 'name' => 'Microfone YOGA AT81', 'category' => 'audio', 'daily_rate' => 25, 'asset_value' => 290, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-040', 'name' => 'Microfone Sennheiser Mike 600', 'category' => 'audio', 'daily_rate' => 110, 'asset_value' => 2650, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-041', 'name' => 'Microfone Boya', 'category' => 'audio', 'daily_rate' => 20, 'asset_value' => 220, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-042', 'name' => 'Pricila + capsula BOOM', 'category' => 'audio', 'daily_rate' => 45, 'asset_value' => 780, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-043', 'name' => 'Zoom H5', 'category' => 'audio', 'daily_rate' => 75, 'asset_value' => 1750, 'total_qty' => 3, 'rate_unit' => 'diária'],
+            ['id' => 'eq-044', 'name' => 'Mix de Áudio Rode Caster pro', 'category' => 'audio', 'daily_rate' => 160, 'asset_value' => 4500, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-045', 'name' => 'Lapela Hollyland lark m2 duo', 'category' => 'audio', 'daily_rate' => 65, 'asset_value' => 1050, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-046', 'name' => 'Lapela Hollayland Lark M2s', 'category' => 'audio', 'daily_rate' => 75, 'asset_value' => 1200, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-047', 'name' => 'Microfone Hollayland Lark 150 Duplo', 'category' => 'audio', 'daily_rate' => 55, 'asset_value' => 950, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-048', 'name' => 'Mesa de som Digital Soundcraft Ui24R', 'category' => 'audio', 'daily_rate' => 200, 'asset_value' => 5900, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-049', 'name' => 'Caixa de som JBL EON615', 'category' => 'audio', 'daily_rate' => 110, 'asset_value' => 3100, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-050', 'name' => 'Interface de Áudio Usb Behringer 4 canais', 'category' => 'audio', 'daily_rate' => 45, 'asset_value' => 1050, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-051', 'name' => 'Interface de áudio Behringer UMC204HD 2 canais', 'category' => 'audio', 'daily_rate' => 35, 'asset_value' => 750, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-052', 'name' => 'Interface de audio Behriger UM2 USB 1 CANAL', 'category' => 'audio', 'daily_rate' => 20, 'asset_value' => 380, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-053', 'name' => 'LED Soleste 1700 de camera', 'category' => 'lighting', 'daily_rate' => 30, 'asset_value' => 320, 'total_qty' => 3, 'rate_unit' => 'diária'],
+            ['id' => 'eq-054', 'name' => 'LED Yongnuo YN600L II', 'category' => 'lighting', 'daily_rate' => 50, 'asset_value' => 750, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-055', 'name' => 'LED VL 49', 'category' => 'lighting', 'daily_rate' => 12, 'asset_value' => 75, 'total_qty' => 3, 'rate_unit' => 'diária'],
+            ['id' => 'eq-056', 'name' => 'Yongnuo YN300- II', 'category' => 'lighting', 'daily_rate' => 30, 'asset_value' => 360, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-057', 'name' => 'Flash Godox V860 IIIC Bateria para sony', 'category' => 'lighting', 'daily_rate' => 75, 'asset_value' => 1450, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-058', 'name' => 'Flash Godox V350s Bateria para sony', 'category' => 'lighting', 'daily_rate' => 50, 'asset_value' => 920, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-059', 'name' => 'Flash Godox TT350s pilha para Sony', 'category' => 'lighting', 'daily_rate' => 30, 'asset_value' => 520, 'total_qty' => 3, 'rate_unit' => 'diária'],
+            ['id' => 'eq-060', 'name' => 'Flash Godox TT600s pilha para Sony', 'category' => 'lighting', 'daily_rate' => 25, 'asset_value' => 460, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-061', 'name' => 'Flash Canon 580EXII', 'category' => 'lighting', 'daily_rate' => 40, 'asset_value' => 720, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-062', 'name' => 'Rádio Flash Godox Xpro S', 'category' => 'lighting', 'daily_rate' => 30, 'asset_value' => 460, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-063', 'name' => 'Rádio Flash Godox X3 S', 'category' => 'lighting', 'daily_rate' => 40, 'asset_value' => 620, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-064', 'name' => 'Led Rgb Sokani X25', 'category' => 'lighting', 'daily_rate' => 35, 'asset_value' => 420, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-065', 'name' => 'Softbox QR- P120', 'category' => 'lighting', 'daily_rate' => 45, 'asset_value' => 750, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-066', 'name' => 'Rebatedor', 'category' => 'lighting', 'daily_rate' => 15, 'asset_value' => 95, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-067', 'name' => 'Softbox Triopo 90cm', 'category' => 'lighting', 'daily_rate' => 25, 'asset_value' => 240, 'total_qty' => 3, 'rate_unit' => 'diária'],
+            ['id' => 'eq-068', 'name' => 'Softbox Godox 90cm', 'category' => 'lighting', 'daily_rate' => 35, 'asset_value' => 420, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-069', 'name' => 'Softbox Godox 120cm', 'category' => 'lighting', 'daily_rate' => 40, 'asset_value' => 540, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-070', 'name' => 'Softbox Globo Balão Chines', 'category' => 'lighting', 'daily_rate' => 35, 'asset_value' => 420, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-071', 'name' => 'Tocha Sz200 Bi', 'category' => 'lighting', 'daily_rate' => 130, 'asset_value' => 2950, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-072', 'name' => 'Tocha Godox Fv200', 'category' => 'lighting', 'daily_rate' => 115, 'asset_value' => 2650, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-073', 'name' => 'Tocha AD600 pro II', 'category' => 'lighting', 'daily_rate' => 220, 'asset_value' => 6200, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-074', 'name' => 'Tocha SL 200 III Bi', 'category' => 'lighting', 'daily_rate' => 105, 'asset_value' => 2350, 'total_qty' => 4, 'rate_unit' => 'diária'],
+            ['id' => 'eq-075', 'name' => 'Grua 8m', 'category' => 'accessories', 'daily_rate' => 450, 'asset_value' => 8500, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-076', 'name' => 'Grua 3,50m', 'category' => 'accessories', 'daily_rate' => 220, 'asset_value' => 3800, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-077', 'name' => 'Tripe de camera Tr 688v', 'category' => 'accessories', 'daily_rate' => 28, 'asset_value' => 320, 'total_qty' => 10, 'rate_unit' => 'diária'],
+            ['id' => 'eq-078', 'name' => 'tripe de camera nt777', 'category' => 'accessories', 'daily_rate' => 45, 'asset_value' => 720, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-079', 'name' => 'Tripe de camera Benro Kh26p', 'category' => 'accessories', 'daily_rate' => 70, 'asset_value' => 1450, 'total_qty' => 5, 'rate_unit' => 'diária'],
+            ['id' => 'eq-080', 'name' => 'Estabilizador Weebill 3s', 'category' => 'drones', 'daily_rate' => 135, 'asset_value' => 2550, 'total_qty' => 2, 'rate_unit' => 'diária'],
+            ['id' => 'eq-081', 'name' => 'Estabilizador Weebill S', 'category' => 'drones', 'daily_rate' => 85, 'asset_value' => 1550, 'total_qty' => 3, 'rate_unit' => 'diária'],
+            ['id' => 'eq-082', 'name' => 'Impressora termica de fotos', 'category' => 'accessories', 'daily_rate' => 350, 'asset_value' => 5600, 'total_qty' => 1, 'rate_unit' => 'evento/hora'],
+            ['id' => 'eq-083', 'name' => 'Comunicadores Hollyland 6s', 'category' => 'accessories', 'daily_rate' => 220, 'asset_value' => 4900, 'total_qty' => 1, 'rate_unit' => 'diária'],
+            ['id' => 'eq-084', 'name' => 'Tripe de Luz', 'category' => 'accessories', 'daily_rate' => 18, 'asset_value' => 120, 'total_qty' => 9, 'rate_unit' => 'diária'],
+            ['id' => 'eq-085', 'name' => 'Cabos de Hdmi 50m', 'category' => 'accessories', 'daily_rate' => 30, 'asset_value' => 220, 'total_qty' => 8, 'rate_unit' => 'diária'],
+            ['id' => 'eq-086', 'name' => 'Comunicadores Hollyland Solidcom C1', 'category' => 'accessories', 'daily_rate' => 240, 'asset_value' => 5400, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ];;
+
+    // 1.2 Migração de calibração para valores reais do mercado brasileiro (Reais R$)
+    $migrated = false;
+    try {
+        $res = $db->query("SELECT COUNT(*) FROM system_migrations WHERE migration_key = 'calibrate_market_rates_20261114_v3'")->fetchColumn();
+        $migrated = ($res > 0);
+    } catch (Exception $e) {}
+
+    if (!$migrated) {
+        $updateStmt = $db->prepare("UPDATE equipment SET daily_rate = ?, asset_value = ? WHERE id = ? OR name = ?");
+        foreach ($calibratedCatalog as $cItem) {
+            $updateStmt->execute([
+                $cItem['daily_rate'],
+                $cItem['asset_value'],
+                $cItem['id'],
+                $cItem['name']
+            ]);
+        }
+        try {
+            $db->prepare("INSERT IGNORE INTO system_migrations (migration_key) VALUES ('calibrate_market_rates_20261114_v3')")->execute();
+        } catch (Exception $e) {}
+    }
+
     // Seed inicial dos 86 equipamentos se tabela estiver vazia
     $count = $db->query("SELECT COUNT(*) FROM equipment")->fetchColumn();
     if ($count == 0) {
-        $initialEquipment = [
-            // Câmeras (14 itens)
-            ['name' => 'Sony a7III', 'category' => 'cameras', 'daily_rate' => 300, 'total_qty' => 8, 'rate_unit' => 'diária'],
-            ['name' => 'Sony Fx30', 'category' => 'cameras', 'daily_rate' => 400, 'total_qty' => 6, 'rate_unit' => 'diária'],
-            ['name' => 'Sony a7IV', 'category' => 'cameras', 'daily_rate' => 400, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['name' => 'Sony 6600', 'category' => 'cameras', 'daily_rate' => 200, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Canon eos RP', 'category' => 'cameras', 'daily_rate' => 200, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Canon eos 5D mark III', 'category' => 'cameras', 'daily_rate' => 100, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Sony HXR-NX5', 'category' => 'cameras', 'daily_rate' => 300, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'Sony NX5 R', 'category' => 'cameras', 'daily_rate' => 300, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['name' => 'Sony PMW-EX3', 'category' => 'cameras', 'daily_rate' => 300, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Sony HXR-NX3', 'category' => 'cameras', 'daily_rate' => 300, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Sony PMW-EX1', 'category' => 'cameras', 'daily_rate' => 300, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'GoPro 11 Black', 'category' => 'cameras', 'daily_rate' => 180, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'GoPro 360', 'category' => 'cameras', 'daily_rate' => 400, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'GoPro 8 Black', 'category' => 'cameras', 'daily_rate' => 150, 'total_qty' => 1, 'rate_unit' => 'diária'],
-
-            // Lentes (10 itens)
-            ['name' => 'Sony 24/70 f4', 'category' => 'lenses', 'daily_rate' => 200, 'total_qty' => 5, 'rate_unit' => 'diária'],
-            ['name' => 'Sony 50mm 1.8', 'category' => 'lenses', 'daily_rate' => 180, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'Sony 35mm 1.8', 'category' => 'lenses', 'daily_rate' => 250, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['name' => 'Sony 70/200 2.8', 'category' => 'lenses', 'daily_rate' => 350, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['name' => 'Sony 18/105 f4', 'category' => 'lenses', 'daily_rate' => 200, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['name' => 'Sony 85mm 1.8', 'category' => 'lenses', 'daily_rate' => 200, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Sigma 16mm 1.4', 'category' => 'lenses', 'daily_rate' => 200, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Sony 24/70 2.8', 'category' => 'lenses', 'daily_rate' => 350, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Canon 24/70 2.8', 'category' => 'lenses', 'daily_rate' => 200, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Canon 35mm 1.4', 'category' => 'lenses', 'daily_rate' => 150, 'total_qty' => 1, 'rate_unit' => 'diária'],
-
-            // Vídeo (13 itens)
-            ['name' => 'Monitor Feelworld 5.5 POL', 'category' => 'video', 'daily_rate' => 150, 'total_qty' => 5, 'rate_unit' => 'diária'],
-            ['name' => 'Monitor Feelworld 7.0 POL', 'category' => 'video', 'daily_rate' => 200, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'Transmissor Cosmo C1 Hollyland', 'category' => 'video', 'daily_rate' => 300, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Transmissor Mars 300 Pro Hollyland', 'category' => 'video', 'daily_rate' => 200, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'Mesa de corte Switcher Estúdio 6+', 'category' => 'video', 'daily_rate' => 400, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Mesa de corte Blackmagic Mini Extreme Live', 'category' => 'video', 'daily_rate' => 600, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Mesa de corte Blackmagic ATEM Mini Pro', 'category' => 'video', 'daily_rate' => 400, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Mesa de corte NeoID Estúdio 4+', 'category' => 'video', 'daily_rate' => 400, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Mesa de corte ATEM 2 Blackmagic', 'category' => 'video', 'daily_rate' => 1200, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Placa de captura de vídeos HDMI', 'category' => 'video', 'daily_rate' => 150, 'total_qty' => 5, 'rate_unit' => 'diária'],
-            ['name' => 'NeoID Tally', 'category' => 'video', 'daily_rate' => 250, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Teleprompter Profissional', 'category' => 'video', 'daily_rate' => 600, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Teleprompter Câmera Vídeo', 'category' => 'video', 'daily_rate' => 300, 'total_qty' => 1, 'rate_unit' => 'diária'],
-
-            // Áudio (15 itens)
-            ['name' => 'Microfone Takstar para câmera', 'category' => 'audio', 'daily_rate' => 50, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Microfone YOGA AT81', 'category' => 'audio', 'daily_rate' => 150, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Microfone Sennheiser MKH 600', 'category' => 'audio', 'daily_rate' => 500, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Microfone Boya', 'category' => 'audio', 'daily_rate' => 150, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Vara BOOM + Cápsula (Pricila)', 'category' => 'audio', 'daily_rate' => 150, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Gravador Zoom H5', 'category' => 'audio', 'daily_rate' => 200, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['name' => 'Mixer de Áudio Rode Caster Pro', 'category' => 'audio', 'daily_rate' => 400, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Lapela Hollyland Lark M2 Duo', 'category' => 'audio', 'daily_rate' => 200, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Lapela Hollyland Lark M2s', 'category' => 'audio', 'daily_rate' => 250, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Microfone Hollyland Lark 150 Duplo', 'category' => 'audio', 'daily_rate' => 150, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Mesa de som Digital Soundcraft Ui24R', 'category' => 'audio', 'daily_rate' => 600, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Caixa de som JBL EON615', 'category' => 'audio', 'daily_rate' => 300, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'Interface de Áudio USB Behringer 4 canais', 'category' => 'audio', 'daily_rate' => 200, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Interface de áudio Behringer UMC204HD 2 canais', 'category' => 'audio', 'daily_rate' => 150, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Interface de áudio Behringer UM2 USB 1 canal', 'category' => 'audio', 'daily_rate' => 100, 'total_qty' => 1, 'rate_unit' => 'diária'],
-
-            // Luz / Iluminação (22 itens)
-            ['name' => 'LED Soleste 1700 de câmera', 'category' => 'lighting', 'daily_rate' => 150, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['name' => 'LED Yongnuo YN600L II', 'category' => 'lighting', 'daily_rate' => 200, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'LED VL 49', 'category' => 'lighting', 'daily_rate' => 40, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['name' => 'LED Yongnuo YN300-II', 'category' => 'lighting', 'daily_rate' => 150, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Flash Godox V860 IIIC Bateria para Sony', 'category' => 'lighting', 'daily_rate' => 300, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'Flash Godox V350s Bateria para Sony', 'category' => 'lighting', 'daily_rate' => 100, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'Flash Godox TT350s Pilha para Sony', 'category' => 'lighting', 'daily_rate' => 50, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['name' => 'Flash Godox TT600s Pilha para Sony', 'category' => 'lighting', 'daily_rate' => 100, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Flash Canon 580EX II', 'category' => 'lighting', 'daily_rate' => 100, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Rádio Flash Godox Xpro S', 'category' => 'lighting', 'daily_rate' => 150, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'Rádio Flash Godox X3 S', 'category' => 'lighting', 'daily_rate' => 200, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'LED RGB Sokani X25', 'category' => 'lighting', 'daily_rate' => 50, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Softbox QR-P120', 'category' => 'lighting', 'daily_rate' => 200, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Rebatedor', 'category' => 'lighting', 'daily_rate' => 80, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'Softbox Triopo 90cm', 'category' => 'lighting', 'daily_rate' => 100, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['name' => 'Softbox Godox 90cm', 'category' => 'lighting', 'daily_rate' => 100, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'Softbox Godox 120cm', 'category' => 'lighting', 'daily_rate' => 120, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Softbox Globo Balão Chinês', 'category' => 'lighting', 'daily_rate' => 150, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Tocha SZ200 Bi', 'category' => 'lighting', 'daily_rate' => 300, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Tocha Godox FV200', 'category' => 'lighting', 'daily_rate' => 300, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['name' => 'Tocha AD600 Pro II', 'category' => 'lighting', 'daily_rate' => 600, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Tocha SL 200 III Bi', 'category' => 'lighting', 'daily_rate' => 300, 'total_qty' => 4, 'rate_unit' => 'diária'],
-
-            // Acessórios (12 itens)
-            ['name' => 'Grua 8m', 'category' => 'accessories', 'daily_rate' => 1200, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Grua 3,50m', 'category' => 'accessories', 'daily_rate' => 600, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Tripé de câmera TR 688V', 'category' => 'accessories', 'daily_rate' => 100, 'total_qty' => 10, 'rate_unit' => 'diária'],
-            ['name' => 'Tripé de câmera NT777', 'category' => 'accessories', 'daily_rate' => 150, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Tripé de câmera Benro KH26P', 'category' => 'accessories', 'daily_rate' => 150, 'total_qty' => 5, 'rate_unit' => 'diária'],
-            ['name' => 'Estabilizador Weebill 3S', 'category' => 'accessories', 'daily_rate' => 350, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['name' => 'Estabilizador Weebill S', 'category' => 'accessories', 'daily_rate' => 150, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['name' => 'Impressora térmica de fotos', 'category' => 'accessories', 'daily_rate' => 900, 'total_qty' => 1, 'rate_unit' => 'evento/hora'],
-            ['name' => 'Comunicadores Hollyland 6S', 'category' => 'accessories', 'daily_rate' => 600, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['name' => 'Tripé de Luz', 'category' => 'accessories', 'daily_rate' => 150, 'total_qty' => 9, 'rate_unit' => 'diária'],
-            ['name' => 'Cabos HDMI 50m', 'category' => 'accessories', 'daily_rate' => 150, 'total_qty' => 8, 'rate_unit' => 'diária'],
-            ['name' => 'Comunicadores Hollyland Solidcom C1', 'category' => 'accessories', 'daily_rate' => 600, 'total_qty' => 1, 'rate_unit' => 'diária'],
-        ];
-
         $stmt = $db->prepare("
-            INSERT INTO equipment (id, name, category, daily_rate, rate_unit, total_qty, available_qty, serial_number, description, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, '', '', 'available')
+            INSERT INTO equipment (id, name, category, daily_rate, asset_value, rate_unit, total_qty, available_qty, serial_number, description, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, '', '', 'available')
         ");
 
-        $i = 1;
-        foreach ($initialEquipment as $item) {
-            $id = 'eq-' . str_pad($i++, 3, '0', STR_PAD_LEFT);
-            $assetVal = getBenchmarkAssetValue($item['name'], $item['category'], $item['daily_rate']);
+        foreach ($calibratedCatalog as $item) {
             $stmt->execute([
-                $id,
+                $item['id'],
                 $item['name'],
                 $item['category'],
                 $item['daily_rate'],
+                $item['asset_value'],
                 $item['rate_unit'],
                 $item['total_qty'],
                 $item['total_qty'],
             ]);
-            try {
-                $db->prepare("UPDATE equipment SET asset_value = ? WHERE id = ?")->execute([$assetVal, $id]);
-            } catch (Exception $e) {}
         }
     }
 
@@ -260,89 +274,92 @@ function getBenchmarkAssetValue($name, $category, $dailyRate = 0) {
     $n = mb_strtolower(trim($name), 'UTF-8');
 
     // Câmeras
-    if (strpos($n, 'a7iv') !== false || strpos($n, 'a7 iv') !== false) return 16500.00;
-    if (strpos($n, 'fx30') !== false) return 12500.00;
-    if (strpos($n, 'a7iii') !== false || strpos($n, 'a7 iii') !== false) return 11000.00;
-    if (strpos($n, '6600') !== false) return 6500.00;
-    if (strpos($n, 'eos rp') !== false) return 5500.00;
-    if (strpos($n, '5d mark iii') !== false) return 4500.00;
-    if (strpos($n, 'nx5') !== false || strpos($n, 'nx3') !== false) return 5500.00;
-    if (strpos($n, 'pmw-ex') !== false) return 6500.00;
-    if (strpos($n, 'gopro 11') !== false) return 2400.00;
-    if (strpos($n, 'gopro 360') !== false) return 3200.00;
-    if (strpos($n, 'gopro 8') !== false) return 1800.00;
+    if (strpos($n, 'a7iv') !== false || strpos($n, 'a7 iv') !== false) return 13900.00;
+    if (strpos($n, 'fx30') !== false) return 10800.00;
+    if (strpos($n, 'a7iii') !== false || strpos($n, 'a7 iii') !== false) return 8900.00;
+    if (strpos($n, '6600') !== false) return 5400.00;
+    if (strpos($n, 'eos rp') !== false) return 4700.00;
+    if (strpos($n, '5d mark iii') !== false) return 2800.00;
+    if (strpos($n, 'nx5') !== false) return 3200.00;
+    if (strpos($n, 'nx3') !== false) return 3400.00;
+    if (strpos($n, 'pmw-ex3') !== false) return 3900.00;
+    if (strpos($n, 'pmw-ex1') !== false) return 3500.00;
+    if (strpos($n, 'gopro 11') !== false) return 1950.00;
+    if (strpos($n, 'gopro 360') !== false) return 2450.00;
+    if (strpos($n, 'gopro 8') !== false) return 1350.00;
 
     // Lentes
-    if (strpos($n, '70/200') !== false || strpos($n, '70-200') !== false) return 14000.00;
-    if (strpos($n, '24/70 2.8') !== false || strpos($n, '24-70 2.8') !== false) return 12000.00;
-    if (strpos($n, '24/70 f4') !== false || strpos($n, '24-70 f4') !== false) return 3800.00;
-    if (strpos($n, '50mm 1.8') !== false) return 1500.00;
-    if (strpos($n, '35mm 1.8') !== false) return 3200.00;
-    if (strpos($n, '35mm 1.4') !== false) return 4500.00;
-    if (strpos($n, '85mm 1.8') !== false) return 3200.00;
-    if (strpos($n, '18/105') !== false || strpos($n, '18-105') !== false) return 3200.00;
-    if (strpos($n, 'sigma 16mm') !== false) return 2600.00;
-    if (strpos($n, 'canon 24/70') !== false) return 6000.00;
+    if (strpos($n, '70/200') !== false || strpos($n, '70-200') !== false) return 11800.00;
+    if (strpos($n, '24/70 2.8') !== false || strpos($n, '24-70 2.8') !== false) return 10200.00;
+    if (strpos($n, 'canon 24/70') !== false) return 4600.00;
+    if (strpos($n, '24/70 f4') !== false || strpos($n, '24-70 f4') !== false) return 2650.00;
+    if (strpos($n, '50mm 1.8') !== false) return 1250.00;
+    if (strpos($n, '35mm 1.8') !== false) return 2750.00;
+    if (strpos($n, '35mm 1.4') !== false) return 3800.00;
+    if (strpos($n, '85mm 1.8') !== false) return 2650.00;
+    if (strpos($n, '18/105') !== false || strpos($n, '18-105') !== false) return 2550.00;
+    if (strpos($n, 'sigma 16mm') !== false) return 2150.00;
 
     // Vídeo
-    if (strpos($n, 'atem 2') !== false) return 18000.00;
-    if (strpos($n, 'switcher') !== false) return 8000.00;
-    if (strpos($n, 'extreme live') !== false) return 7500.00;
-    if (strpos($n, 'neoid') !== false) return 6000.00;
-    if (strpos($n, 'atem mini') !== false) return 3800.00;
-    if (strpos($n, 'cosmo c1') !== false) return 6500.00;
-    if (strpos($n, 'mars 300') !== false) return 3200.00;
-    if (strpos($n, 'feelworld 7') !== false) return 1800.00;
-    if (strpos($n, 'feelworld 5') !== false) return 1200.00;
-    if (strpos($n, 'teleprompter profissional') !== false) return 4500.00;
-    if (strpos($n, 'teleprompter') !== false) return 2500.00;
-    if (strpos($n, 'placa de captura') !== false) return 800.00;
+    if (strpos($n, 'atem 2') !== false) return 13800.00;
+    if (strpos($n, 'switcher') !== false) return 5900.00;
+    if (strpos($n, 'extreme live') !== false) return 5400.00;
+    if (strpos($n, 'neoid') !== false) return 4800.00;
+    if (strpos($n, 'atem mini') !== false) return 2150.00;
+    if (strpos($n, 'cosmo c1') !== false) return 4650.00;
+    if (strpos($n, 'mars 300') !== false) return 2150.00;
+    if (strpos($n, 'feelworld 7') !== false) return 1350.00;
+    if (strpos($n, 'feelworld 5') !== false) return 890.00;
+    if (strpos($n, 'teleprompter profissional') !== false) return 2650.00;
+    if (strpos($n, 'teleprompter') !== false) return 1450.00;
+    if (strpos($n, 'placa de captura') !== false) return 650.00;
 
     // Áudio
-    if (strpos($n, 'soundcraft') !== false || strpos($n, 'ui24r') !== false) return 7500.00;
-    if (strpos($n, 'rodecaster') !== false || strpos($n, 'rode caster') !== false) return 5500.00;
-    if (strpos($n, 'eon615') !== false || strpos($n, 'jbl') !== false) return 3800.00;
-    if (strpos($n, 'mkh 600') !== false || strpos($n, 'sennheiser') !== false) return 3500.00;
-    if (strpos($n, 'zoom h5') !== false) return 2200.00;
-    if (strpos($n, 'lark m2s') !== false) return 1400.00;
-    if (strpos($n, 'lark m2') !== false || strpos($n, 'lark 150') !== false) return 1200.00;
-    if (strpos($n, 'vara boom') !== false) return 1800.00;
-    if (strpos($n, 'behringer') !== false) return 950.00;
-    if (strpos($n, 'takstar') !== false || strpos($n, 'boya') !== false) return 450.00;
+    if (strpos($n, 'soundcraft') !== false || strpos($n, 'ui24r') !== false) return 5900.00;
+    if (strpos($n, 'rodecaster') !== false || strpos($n, 'rode caster') !== false) return 4350.00;
+    if (strpos($n, 'eon615') !== false || strpos($n, 'jbl') !== false) return 2650.00;
+    if (strpos($n, 'mkh 600') !== false || strpos($n, 'sennheiser') !== false) return 2850.00;
+    if (strpos($n, 'zoom h5') !== false) return 1650.00;
+    if (strpos($n, 'lark m2s') !== false) return 1150.00;
+    if (strpos($n, 'lark m2') !== false || strpos($n, 'lark 150') !== false) return 980.00;
+    if (strpos($n, 'vara boom') !== false) return 1100.00;
+    if (strpos($n, 'behringer') !== false) return 750.00;
+    if (strpos($n, 'takstar') !== false || strpos($n, 'boya') !== false) return 320.00;
 
     // Iluminação
-    if (strpos($n, 'ad600') !== false) return 6500.00;
-    if (strpos($n, 'sl 200') !== false || strpos($n, 'sz200') !== false) return 3200.00;
-    if (strpos($n, 'fv200') !== false) return 2800.00;
-    if (strpos($n, 'v860') !== false) return 1800.00;
-    if (strpos($n, 'v350') !== false) return 1100.00;
-    if (strpos($n, 'tt350') !== false || strpos($n, 'tt600') !== false) return 650.00;
-    if (strpos($n, 'xpro') !== false || strpos($n, 'x3 s') !== false) return 650.00;
-    if (strpos($n, 'yn600') !== false || strpos($n, 'soleste') !== false) return 1200.00;
-    if (strpos($n, 'softbox') !== false) return 700.00;
-    if (strpos($n, 'rebatedor') !== false) return 350.00;
+    if (strpos($n, 'ad600') !== false) return 5400.00;
+    if (strpos($n, 'sl 200') !== false || strpos($n, 'sz200') !== false) return 2250.00;
+    if (strpos($n, 'fv200') !== false) return 1950.00;
+    if (strpos($n, 'v860') !== false) return 1350.00;
+    if (strpos($n, 'v350') !== false) return 780.00;
+    if (strpos($n, 'tt350') !== false || strpos($n, 'tt600') !== false) return 480.00;
+    if (strpos($n, 'xpro') !== false || strpos($n, 'x3 s') !== false) return 480.00;
+    if (strpos($n, 'yn600') !== false || strpos($n, 'soleste') !== false) return 850.00;
+    if (strpos($n, 'softbox') !== false) return 450.00;
+    if (strpos($n, 'rebatedor') !== false) return 190.00;
 
     // Acessórios
-    if (strpos($n, 'grua 8m') !== false) return 12000.00;
-    if (strpos($n, 'grua 3') !== false) return 6000.00;
-    if (strpos($n, 'solidcom') !== false || strpos($n, '6s') !== false) return 7500.00;
-    if (strpos($n, 'impressora') !== false) return 6500.00;
-    if (strpos($n, 'weebill 3s') !== false) return 3200.00;
-    if (strpos($n, 'weebill s') !== false) return 2200.00;
-    if (strpos($n, 'benro') !== false) return 1800.00;
-    if (strpos($n, 'tr 688v') !== false || strpos($n, 'nt777') !== false) return 750.00;
-    if (strpos($n, 'tripé de luz') !== false) return 350.00;
-    if (strpos($n, 'hdmi 50m') !== false) return 600.00;
+    if (strpos($n, 'grua 8m') !== false) return 8500.00;
+    if (strpos($n, 'grua 3') !== false) return 4200.00;
+    if (strpos($n, 'solidcom c1') !== false) return 5400.00;
+    if (strpos($n, 'hollyland 6s') !== false) return 4900.00;
+    if (strpos($n, 'impressora') !== false) return 4900.00;
+    if (strpos($n, 'weebill 3s') !== false) return 2550.00;
+    if (strpos($n, 'weebill s') !== false) return 1550.00;
+    if (strpos($n, 'benro') !== false) return 1250.00;
+    if (strpos($n, 'tr 688v') !== false || strpos($n, 'nt777') !== false) return 480.00;
+    if (strpos($n, 'tripé de luz') !== false) return 120.00;
+    if (strpos($n, 'hdmi 50m') !== false) return 220.00;
 
     // Fallbacks inteligentes por categoria ou múltiplo da diária
-    if ($dailyRate > 0) return max(500.00, round($dailyRate * 25, 2));
+    if ($dailyRate > 0) return max(200.00, round($dailyRate * 18, 2));
     switch ($category) {
-        case 'cameras': return 6500.00;
-        case 'lenses': return 3200.00;
-        case 'video': return 3500.00;
-        case 'audio': return 1600.00;
-        case 'lighting': return 1200.00;
-        default: return 800.00;
+        case 'cameras': return 4500.00;
+        case 'lenses': return 2500.00;
+        case 'video': return 2500.00;
+        case 'audio': return 1200.00;
+        case 'lighting': return 800.00;
+        default: return 500.00;
     }
 }
 }

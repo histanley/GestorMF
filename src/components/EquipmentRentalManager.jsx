@@ -64,7 +64,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   // Dados do Catálogo e Locações
   const [equipmentList, setEquipmentList] = useState(() => {
     try {
-      const saved = localStorage.getItem('gestormf_equipment_cache');
+      const saved = localStorage.getItem('gestormf_equipment_cache_v3');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -145,7 +145,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             photoUrl: eq.photoUrl || `/images/equipment/${eq.id}.jpg`,
           }));
           setEquipmentList(enriched);
-          localStorage.setItem('gestormf_equipment_cache', JSON.stringify(enriched));
+          localStorage.setItem('gestormf_equipment_cache_v3', JSON.stringify(enriched));
         }
         if (Array.isArray(data.rentals)) {
           setRentalsList(data.rentals);
@@ -166,7 +166,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   // Salva no cache local sempre que houver alteração
   useEffect(() => {
     try {
-      localStorage.setItem('gestormf_equipment_cache', JSON.stringify(equipmentList));
+      localStorage.setItem('gestormf_equipment_cache_v3', JSON.stringify(equipmentList));
       localStorage.setItem('gestormf_rentals_cache', JSON.stringify(rentalsList));
     } catch { }
   }, [equipmentList, rentalsList]);
@@ -189,14 +189,22 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     const rentedUnits = Math.max(0, totalUnits - availableUnits);
 
     const totalAssetValue = equipmentList.reduce((acc, it) => {
-      const unitVal = Number(it.assetValue) > 0 ? Number(it.assetValue) : ((Number(it.dailyRate) || 0) * 25);
+      let unitVal = Number(it.assetValue) > 0 ? Number(it.assetValue) : 0;
+      if (unitVal <= 0) {
+        const fallbackItem = INITIAL_EQUIPMENT_CATALOG.find((x) => x.id === it.id || x.name?.trim().toLowerCase() === it.name?.trim().toLowerCase());
+        unitVal = fallbackItem?.assetValue || ((Number(it.dailyRate) || 0) * 18);
+      }
       return acc + (unitVal * (Number(it.totalQty) || 1));
     }, 0);
 
     const categoryPatrimony = {};
     equipmentList.forEach((it) => {
       const cat = it.category || 'accessories';
-      const unitVal = Number(it.assetValue) > 0 ? Number(it.assetValue) : ((Number(it.dailyRate) || 0) * 25);
+      let unitVal = Number(it.assetValue) > 0 ? Number(it.assetValue) : 0;
+      if (unitVal <= 0) {
+        const fallbackItem = INITIAL_EQUIPMENT_CATALOG.find((x) => x.id === it.id || x.name?.trim().toLowerCase() === it.name?.trim().toLowerCase());
+        unitVal = fallbackItem?.assetValue || ((Number(it.dailyRate) || 0) * 18);
+      }
       const totalItemVal = unitVal * (Number(it.totalQty) || 1);
       if (!categoryPatrimony[cat]) {
         categoryPatrimony[cat] = { totalValue: 0, units: 0, itemsCount: 0 };
