@@ -275,4 +275,105 @@ export function checkAndNotifyPendingPostProductions(missions = [], currentUser 
   });
 }
 
+// Intervalo de repetição de alerta de locação vencendo/atrasada: 2 horas
+export const RENTAL_NOTIFY_INTERVAL_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * Monitora e notifica o Administrador/Gestor sobre locações com devolução vencendo hoje,
+ * devolução atrasada ou saldo pendente de quitação.
+ */
+export function checkAndNotifyPendingRentals(rentals = [], currentUser = null) {
+  if (!currentUser || typeof window === 'undefined') return [];
+
+  const roleStr = String(currentUser.role || '').toLowerCase().trim();
+  const isAdminOrManager =
+    roleStr === 'admin' ||
+    roleStr === 'administrador' ||
+    roleStr === 'gestor' ||
+    roleStr === 'gerente';
+
+  if (!isAdminOrManager) return [];
+  if (!Array.isArray(rentals) || rentals.length === 0) return [];
+
+  const now = Date.now();
+  const todayStr = new Date().toISOString().split('T')[0];
+  const tomorrowDate = new Date(Date.now() + 86400000);
+  const tomorrowStr = tomorrowDate.toISOString().split('T')[0];
+
+  const generatedNotifications = [];
+
+  rentals.forEach((r) => {
+    if (!r) return;
+    const isReturned = r.status === 'returned' || r.status === 'cancelled';
+    if (isReturned) return;
+
+    const isOverdue = r.status === 'overdue' || (r.endDate && r.endDate < todayStr);
+    const isDueToday = r.endDate === todayStr;
+    const isDueTomorrow = r.endDate === tomorrowStr;
+
+    if (!isOverdue && !isDueToday && !isDueTomorrow) return;
+
+    const notifKey = `gestormf_rental_notify_${r.id}_${isOverdue ? 'overdue' : (isDueToday ? 'today' : 'tomorrow')}`;
+    let lastNotified = 0;
+    try {
+      const val = localStorage.getItem(notifKey);
+      if (val) lastNotified = Number(val);
+    } catch (e) {}
+
+    let notifTitle = '';
+    let notifBody = '';
+    let priority = 'normal';
+
+    const itemsSummary = Array.isArray(r.items) && r.items.length > 0
+      ? r.items.map((it) => it.name).slice(0, 2).join(', ') + (r.items.length > 2 ? ` +${r.items.length - 2} itens` : '')
+      : 'Equipamentos alugados';
+
+    if (isOverdue) {
+      notifTitle = `🚨 Aluguel Atrasado: ${r.code}`;
+      notifBody = `Cliente ${r.clientName} está com ${itemsSummary} em atraso (prazo expirou em ${r.endDate}). Contate o cliente para devolução.`;
+      priority = 'high';
+    } else if (isDueToday) {
+      notifTitle = `⚠️ Aluguel Vence Hoje: ${r.code}`;
+      notifBody = `A devolução de ${itemsSummary} pelo cliente ${r.clientName} está prevista para hoje até às ${r.endTime || '18:00'}.`;
+      priority = 'high';
+    } else if (isDueTomorrow) {
+      notifTitle = `⏰ Aluguel Vence Amanhã: ${r.code}`;
+      notifBody = `Lembrete: devolução agendada para amanhã (${r.endDate}) às ${r.endTime || '18:00'} - ${r.clientName}.`;
+      priority = 'normal';
+    }
+
+    const notifItem = {
+      id: `rental-${r.id}-${isOverdue ? 'overdue' : (isDueToday ? 'today' : 'tomorrow')}`,
+      type: 'rental',
+      rentalId: r.id,
+      rentalCode: r.code,
+      title: notifTitle,
+      message: notifBody,
+      priority,
+      read: false,
+      timestamp: Date.now(),
+      status: isOverdue ? 'Atrasado' : (isDueToday ? 'Vence Hoje' : 'Vence Amanhã'),
+      clientName: r.clientName,
+    };
+
+    generatedNotifications.push(notifItem);
+
+    // Dispara push notification e som a cada RENTAL_NOTIFY_INTERVAL_MS
+    if (!lastNotified || (now - lastNotified >= RENTAL_NOTIFY_INTERVAL_MS)) {
+      sendPushNotification(notifTitle, {
+        body: notifBody,
+        tag: `rental-${r.id}`,
+        data: { rentalId: r.id, type: 'rental_alert' },
+      });
+      playNotificationSound();
+
+      try {
+        localStorage.setItem(notifKey, String(now));
+      } catch (e) {}
+    }
+  });
+
+  return generatedNotifications;
+}
+
 

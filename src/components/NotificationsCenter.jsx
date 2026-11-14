@@ -18,6 +18,7 @@ import {
   Users,
   User,
   Flame,
+  Package,
 } from 'lucide-react';
 
 export default function NotificationsCenter({
@@ -32,7 +33,7 @@ export default function NotificationsCenter({
   canSendMessage = false,
   onOpenSendMessage,
 }) {
-  const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'messages' | 'mission' | 'fuel'
+  const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'messages' | 'mission' | 'fuel' | 'rental'
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read).length,
@@ -54,12 +55,18 @@ export default function NotificationsCenter({
     [notifications]
   );
 
+  const rentalsCount = useMemo(
+    () => notifications.filter((n) => n.type === 'rental').length,
+    [notifications]
+  );
+
   const filteredNotifications = useMemo(() => {
     return notifications.filter((n) => {
       if (filter === 'unread') return !n.read;
       if (filter === 'messages') return n.type === 'system_message' || n.type === 'message';
       if (filter === 'mission') return n.type === 'mission';
       if (filter === 'fuel') return n.type === 'fuel';
+      if (filter === 'rental') return n.type === 'rental';
       return true;
     });
   }, [notifications, filter]);
@@ -87,6 +94,8 @@ export default function NotificationsCenter({
         return <Mail size={18} className="notif-type-icon message" />;
       case 'fuel':
         return <Fuel size={18} className="notif-type-icon fuel" />;
+      case 'rental':
+        return <Package size={18} className="notif-type-icon rental" />;
       case 'mission':
         return <MapPin size={18} className="notif-type-icon mission" />;
       case 'warning':
@@ -224,6 +233,18 @@ export default function NotificationsCenter({
             <Fuel size={12} className="tab-icon" />
             <span>Frota</span>
             <span className="notif-tab-badge fuel">{fuelCount}</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filter === 'rental'}
+            className={`notif-seg-tab ${filter === 'rental' ? 'is-active' : ''}`}
+            onClick={() => setFilter('rental')}
+          >
+            <Package size={12} className="tab-icon" />
+            <span>Aluguéis</span>
+            {rentalsCount > 0 && <span className="notif-tab-badge rental">{rentalsCount}</span>}
           </button>
         </div>
       </div>

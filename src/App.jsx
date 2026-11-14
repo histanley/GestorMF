@@ -76,6 +76,7 @@ import {
   INITIAL_MISSIONS,
 } from './utils/initialData';
 import {
+  apiRequest,
   apiGetMissions,
   apiSaveMission,
   apiDeleteMission,
@@ -106,6 +107,7 @@ import {
   requestNotificationPermission,
   playNotificationSound,
   checkAndNotifyPendingPostProductions,
+  checkAndNotifyPendingRentals,
   clearPostProductionNotification,
 } from './utils/notifications';
 import {
@@ -518,6 +520,43 @@ export default function App() {
     return () => clearInterval(ppCheckInterval);
   }, [missions, currentUser]);
 
+  // Monitora continuamente locações/aluguéis que vencem hoje, amanhã ou estão em atraso
+  // Alerta o Administrador/Gestor com push notification, som e registra na central de notificações
+  useEffect(() => {
+    if (!currentUser || !canManageFleetAndTeams) return;
+
+    let isMounted = true;
+    const checkRentals = async () => {
+      try {
+        const res = await apiRequest('/rentals.php');
+        if (!isMounted) return;
+        if (res && res.success && Array.isArray(res.rentals)) {
+          const rentalAlerts = checkAndNotifyPendingRentals(res.rentals, currentUser);
+          if (rentalAlerts.length > 0) {
+            setNotifications((prev) => {
+              const prevMap = new Map(prev.map((n) => [n.id, n]));
+              rentalAlerts.forEach((a) => {
+                if (!prevMap.has(a.id)) {
+                  prevMap.set(a.id, a);
+                }
+              });
+              return Array.from(prevMap.values());
+            });
+          }
+        }
+      } catch (e) {
+        // silencioso
+      }
+    };
+
+    checkRentals();
+    const rentalInterval = setInterval(checkRentals, 60000);
+    return () => {
+      isMounted = false;
+      clearInterval(rentalInterval);
+    };
+  }, [currentUser, canManageFleetAndTeams]);
+
   // Verifica com precisão se o usuário faz parte da missão (motorista, equipe ou editor)
   const isUserInMission = useCallback((mis, user) => {
     if (!mis || !user) return false;
@@ -706,6 +745,11 @@ export default function App() {
   };
 
   const handleSelectNotification = (notif) => {
+    if (notif.rentalId || notif.type === 'rental') {
+      setIsNotificationsOpen(false);
+      setActiveTab('rentals');
+      return;
+    }
     if (notif.missionId) {
       setSelectedMissionId(notif.missionId);
       setActiveTab('map');

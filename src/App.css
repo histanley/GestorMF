@@ -20044,6 +20044,25 @@ body.light-theme .notif-segmented-bar-wrapper {
   color: #ffffff;
 }
 
+.notif-tab-badge.rental {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.notif-seg-tab.is-active .notif-tab-badge.rental {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.notif-type-icon.rental {
+  color: #fbbf24;
+}
+
+.notif-icon-circle.type-rental {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+}
+
 /* Light Theme para a barra segmentada */
 body.light-theme .notif-segmented-bar {
   background: #f1f5f9;
