@@ -740,31 +740,34 @@ if ($method === 'POST' && $action === 'save_equipment') {
         jsonResponse(['success' => false, 'error' => 'O nome do equipamento é obrigatório.'], 400);
     }
 
-    // Processa upload de foto em base64 e salva como arquivo físico no servidor
+    // Processa upload de foto em base64 e salva como arquivo físico no servidor em pasta protegida contra deploy
     if (!empty($photoUrl) && strpos($photoUrl, 'data:image/') === 0) {
         $parts = explode(',', $photoUrl, 2);
         if (count($parts) === 2) {
             $imageData = base64_decode($parts[1]);
             if ($imageData !== false && strlen($imageData) > 0) {
-                // Tenta múltiplos caminhos possíveis na hospedagem para garantir gravação física
+                // Pasta de uploads protegida contra sobrescrita de deploy
                 $possibleDirs = [
+                    __DIR__ . '/../images/uploads/equipment',
+                    dirname(__DIR__) . '/images/uploads/equipment',
+                    dirname(__DIR__, 2) . '/images/uploads/equipment',
+                    ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/images/uploads/equipment',
                     __DIR__ . '/../images/equipment',
                     dirname(__DIR__) . '/images/equipment',
-                    dirname(__DIR__, 2) . '/images/equipment',
-                    ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/images/equipment',
                 ];
                 $saved = false;
+                $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '', $id);
+                $uniqueFilename = 'custom_' . $cleanId . '_' . time() . '.jpg';
+
                 foreach ($possibleDirs as $equipDir) {
                     if (empty($equipDir)) continue;
                     if (!is_dir($equipDir)) {
                         @mkdir($equipDir, 0777, true);
                     }
                     if (is_dir($equipDir)) {
-                        $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '', $id);
-                        $filename = $cleanId . '.jpg';
-                        $filePath = $equipDir . '/' . $filename;
+                        $filePath = $equipDir . '/' . $uniqueFilename;
                         if (@file_put_contents($filePath, $imageData)) {
-                            $photoUrl = '/images/equipment/' . $filename . '?t=' . time();
+                            $photoUrl = '/images/uploads/equipment/' . $uniqueFilename . '?t=' . time();
                             $saved = true;
                             break;
                         }
@@ -772,7 +775,7 @@ if ($method === 'POST' && $action === 'save_equipment') {
                 }
                 // Se o arquivo físico falhar por permissão de pasta no servidor,
                 // $photoUrl permanece o dataUrl (base64) e é salvo no LONGTEXT do banco,
-                // garantindo que a foto NUNCA seja perdida!
+                // garantindo que a foto NUNCA seja perdida mesmo se a pasta de disco falhar!
             }
         }
     }
@@ -822,6 +825,66 @@ if ($method === 'POST' && $action === 'save_equipment') {
         'photoUrl' => $photoUrl,
         'message'  => 'Equipamento salvo com sucesso.'
     ]);
+}
+
+// ==============================================================================
+// 2.1 ATUALIZAR APENAS A FOTO DO EQUIPAMENTO (POST action=update_equipment_photo)
+// ==============================================================================
+if ($method === 'POST' && $action === 'update_equipment_photo') {
+    $id = trim($data['id'] ?? '');
+    $photoUrl = trim($data['photoUrl'] ?? $data['photo_url'] ?? '');
+
+    if (empty($id)) {
+        jsonResponse(['success' => false, 'error' => 'ID do equipamento não informado.'], 400);
+    }
+    if (empty($photoUrl)) {
+        jsonResponse(['success' => false, 'error' => 'Foto não informada.'], 400);
+    }
+
+    if (strpos($photoUrl, 'data:image/') === 0) {
+        $parts = explode(',', $photoUrl, 2);
+        if (count($parts) === 2) {
+            $imageData = base64_decode($parts[1]);
+            if ($imageData !== false && strlen($imageData) > 0) {
+                $possibleDirs = [
+                    __DIR__ . '/../images/uploads/equipment',
+                    dirname(__DIR__) . '/images/uploads/equipment',
+                    dirname(__DIR__, 2) . '/images/uploads/equipment',
+                    ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/images/uploads/equipment',
+                    __DIR__ . '/../images/equipment',
+                ];
+                $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '', $id);
+                $uniqueFilename = 'custom_' . $cleanId . '_' . time() . '.jpg';
+                foreach ($possibleDirs as $equipDir) {
+                    if (empty($equipDir)) continue;
+                    if (!is_dir($equipDir)) {
+                        @mkdir($equipDir, 0777, true);
+                    }
+                    if (is_dir($equipDir)) {
+                        $filePath = $equipDir . '/' . $uniqueFilename;
+                        if (@file_put_contents($filePath, $imageData)) {
+                            $photoUrl = '/images/uploads/equipment/' . $uniqueFilename . '?t=' . time();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    try {
+        $stmtPhoto = $db->prepare("UPDATE equipment SET photo_url = ? WHERE id = ?");
+        $stmtPhoto->execute([$photoUrl, $id]);
+        bumpSyncVersion('update_equipment_photo');
+
+        jsonResponse([
+            'success'  => true,
+            'message'  => 'Foto do equipamento atualizada com sucesso.',
+            'photoUrl' => $photoUrl
+        ]);
+    } catch (Throwable $e) {
+        jsonResponse(['success' => false, 'error' => $e->getMessage()], 400);
+    }
 }
 
 // ==============================================================================
@@ -1301,55 +1364,67 @@ if (($method === 'DELETE' || ($method === 'POST' && $action === 'delete_rental')
     $rentalId = trim($_GET['id'] ?? $data['rentalId'] ?? $data['id'] ?? '');
 
     if (empty($rentalId)) {
-        jsonResponse(['success' => false, 'error' => 'ID do registro não informado.'], 400);
+        jsonResponse(['success' => false, 'error' => 'ID ou Código do registro não informado.'], 400);
     }
 
-    $db->beginTransaction();
     try {
-        $stmt = $db->prepare("SELECT * FROM rentals WHERE id = ? FOR UPDATE");
-        $stmt->execute([$rentalId]);
+        // Busca o registro por ID ou por Código de Locação (ex: RES-202611-004)
+        $stmt = $db->prepare("SELECT * FROM rentals WHERE id = ? OR code = ?");
+        $stmt->execute([$rentalId, $rentalId]);
         $rental = $stmt->fetch();
 
         if (!$rental) {
-            throw new Exception("Registro não encontrado ou já excluído.");
+            jsonResponse(['success' => false, 'error' => 'Registro não encontrado ou já excluído anteriormente.'], 404);
         }
 
         // Se ainda estiver ativa ou reservada, devolve os itens de volta ao estoque disponível
         if ($rental['status'] === 'reserved' || $rental['status'] === 'active' || $rental['status'] === 'overdue') {
             $items = !empty($rental['items_json']) ? json_decode($rental['items_json'], true) : [];
-            foreach ($items as $it) {
-                $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
-                $qty = (int)($it['quantity'] ?? 1);
+            if (is_array($items)) {
+                foreach ($items as $it) {
+                    $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
+                    $qty = (int)($it['quantity'] ?? 1);
 
-                $stmtEq = $db->prepare("SELECT total_qty, available_qty FROM equipment WHERE id = ? FOR UPDATE");
-                $stmtEq->execute([$eqId]);
-                $eq = $stmtEq->fetch();
+                    if (!empty($eqId)) {
+                        $stmtEq = $db->prepare("SELECT total_qty, available_qty FROM equipment WHERE id = ?");
+                        $stmtEq->execute([$eqId]);
+                        $eq = $stmtEq->fetch();
 
-                if ($eq) {
-                    $newAvailable = min((int)$eq['total_qty'], (int)$eq['available_qty'] + $qty);
-                    $status = $newAvailable > 0 ? 'available' : 'rented';
+                        if ($eq) {
+                            $newAvailable = min((int)$eq['total_qty'], (int)$eq['available_qty'] + $qty);
+                            $status = $newAvailable > 0 ? 'available' : 'rented';
 
-                    $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
-                       ->execute([$newAvailable, $status, $eqId]);
+                            $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
+                               ->execute([$newAvailable, $status, $eqId]);
+                        }
+                    }
                 }
             }
         }
 
-        // Exclui o registro da tabela rentals
-        $stmtDel = $db->prepare("DELETE FROM rentals WHERE id = ?");
-        $stmtDel->execute([$rentalId]);
+        // Exclui o registro da tabela rentals (pelo id e pelo code)
+        $stmtDel = $db->prepare("DELETE FROM rentals WHERE id = ? OR code = ?");
+        $stmtDel->execute([$rental['id'], $rental['code']]);
 
-        $db->commit();
-        logAudit('DELETE_RENTAL', 'RENTALS', $rentalId, "Reserva/Locação {$rental['code']} ({$rental['client_name']}) excluída permanentemente por {$user['name']}.", $user['id'], $user['name']);
-        bumpSyncVersion('delete_rental');
+        try {
+            $adminName = $user['name'] ?? 'Administrador';
+            $adminId = $user['id'] ?? 'admin';
+            logAudit('DELETE_RENTAL', 'RENTALS', $rental['id'], "Reserva/Locação {$rental['code']} ({$rental['client_name']}) excluída permanentemente por {$adminName}.", $adminId, $adminName);
+            bumpSyncVersion('delete_rental');
+        } catch (Throwable $tAudit) {
+            error_log('[GestorMF Audit Warning] ' . $tAudit->getMessage());
+        }
 
         jsonResponse([
             'success' => true,
             'message' => "Registro {$rental['code']} excluído permanentemente do histórico com sucesso."
         ]);
-    } catch (Exception $e) {
-        $db->rollBack();
-        jsonResponse(['success' => false, 'error' => $e->getMessage()], 400);
+    } catch (Throwable $e) {
+        if ($db && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        error_log('[GestorMF Delete Rental Error] ' . $e->getMessage());
+        jsonResponse(['success' => false, 'error' => 'Falha ao processar exclusão: ' . $e->getMessage()], 400);
     }
 }
 

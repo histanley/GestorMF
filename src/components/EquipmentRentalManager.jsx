@@ -640,12 +640,12 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     try {
       const res = await apiRequest('/rentals.php?action=delete_rental', {
         method: 'POST',
-        body: JSON.stringify({ rentalId: rental.id }),
+        body: JSON.stringify({ rentalId: rental.id, code: rental.code }),
       });
 
       if (res && res.success) {
-        setRentalsList((prev) => prev.filter((r) => r.id !== rental.id));
-        loadRentalsData();
+        setRentalsList((prev) => prev.filter((r) => r.id !== rental.id && r.code !== rental.code));
+        await fetchRentalsData();
         alertDialog({
           title: 'Registro Excluído!',
           message: res.message || `Registro ${rental.code} excluído com sucesso do histórico.`,
@@ -740,8 +740,29 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   const handleUpdateEquipmentPhoto = async (equipmentId, photoUrl) => {
     const equip = equipmentList.find((e) => e.id === equipmentId);
     if (!equip) return;
-    const updated = { ...equip, photoUrl };
-    await handleSaveEquipment(updated);
+
+    try {
+      const res = await apiRequest('/rentals.php?action=update_equipment_photo', {
+        method: 'POST',
+        body: JSON.stringify({ id: equipmentId, photoUrl }),
+      });
+      const finalUrl = (res && res.success && res.photoUrl) ? res.photoUrl : photoUrl;
+      const updated = { ...equip, photoUrl: finalUrl };
+      setEquipmentList((prev) => prev.map((e) => (e.id === equipmentId ? updated : e)));
+      if (selectedDetailEquipment && selectedDetailEquipment.id === equipmentId) {
+        setSelectedDetailEquipment(updated);
+      }
+      await fetchRentalsData();
+      alertDialog({
+        title: 'Foto Atualizada!',
+        message: 'A foto do equipamento foi salva e protegida com sucesso no servidor.',
+        variant: 'success',
+      });
+    } catch (e) {
+      console.warn('Fallback para salvamento completo de equipamento:', e);
+      const updated = { ...equip, photoUrl };
+      await handleSaveEquipment(updated);
+    }
   };
 
   // Check-in / Devolução de Equipamentos
