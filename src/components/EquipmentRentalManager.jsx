@@ -29,6 +29,7 @@ import {
   Eye,
   Upload,
   Zap,
+  ShoppingCart,
 } from 'lucide-react';
 import {
   CATEGORY_LABELS,
@@ -780,15 +781,34 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
           </button>
         </div>
 
-        {activeTab === 'catalog' && (
-          <button
-            type="button"
-            className="btn-primary erm-btn-add-equip"
-            onClick={() => setIsNewEquipModalOpen(true)}
-          >
-            <Plus size={15} /> Novo Equipamento
-          </button>
-        )}
+        <div className="erm-top-actions-right">
+          {cartItems.length > 0 && (
+            <button
+              type="button"
+              className="btn-cart-active-pulse"
+              onClick={() => setActiveTab('new_rental')}
+              title="Abrir cesta da locação e preencher dados do cliente"
+            >
+              <ShoppingCart size={17} className="cart-pulse-icon" />
+              <div className="bcap-content">
+                <span className="bcap-text">Locação saindo...</span>
+                <span className="bcap-meta">
+                  <strong>{cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'}</strong> • {formatCurrency(cartTotalAmount)}
+                </span>
+              </div>
+            </button>
+          )}
+
+          {activeTab === 'catalog' && (
+            <button
+              type="button"
+              className="btn-primary erm-btn-add-equip"
+              onClick={() => setIsNewEquipModalOpen(true)}
+            >
+              <Plus size={15} /> Novo Equipamento
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 3. CONTEÚDO DA ABA SELECIONADA */}
@@ -1529,6 +1549,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       {selectedRentalForContract && (
         <RentalContractModal
           rental={selectedRentalForContract}
+          currentUser={currentUser}
           onClose={() => setSelectedRentalForContract(null)}
         />
       )}

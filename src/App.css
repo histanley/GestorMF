@@ -36105,6 +36105,18 @@ body.light-theme .kpi-card.kpi-red {
   background: rgba(34, 197, 94, 0.35) !important;
 }
 
+.rc-btn-download {
+  background: rgba(14, 165, 233, 0.18) !important;
+  border-color: rgba(14, 165, 233, 0.45) !important;
+  color: #38bdf8 !important;
+  font-weight: 700;
+}
+
+.rc-btn-download:hover {
+  background: rgba(14, 165, 233, 0.35) !important;
+  color: #ffffff !important;
+}
+
 .rc-close-btn {
   background: rgba(239, 68, 68, 0.2) !important;
   border: 1.5px solid rgba(239, 68, 68, 0.6) !important;
@@ -36114,14 +36126,185 @@ body.light-theme .kpi-card.kpi-red {
   height: 36px !important;
 }
 
-/* Folha A4 do Contrato */
+/* Botão em destaque: Locação saindo... (Cesta de Compras) */
+.erm-top-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-cart-active-pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0f172a !important;
+  border: 1px solid rgba(251, 191, 36, 0.8);
+  padding: 8px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.45);
+  animation: cart-glow-pulse 2s infinite ease-in-out;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 700;
+}
+
+.btn-cart-active-pulse:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 22px rgba(245, 158, 11, 0.65);
+  filter: brightness(1.1);
+}
+
+@keyframes cart-glow-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.cart-pulse-icon {
+  animation: cart-bounce 1.5s infinite ease-in-out;
+  color: #0f172a;
+}
+
+@keyframes cart-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.bcap-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.bcap-text {
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: 0.2px;
+}
+
+.bcap-meta {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+/* Folha A4 do Contrato Profissional */
 .rc-document-sheet {
   background: #ffffff;
   color: #1e293b;
-  padding: 36px 44px;
+  padding: 24px 32px;
   overflow-y: auto;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.45;
+  line-height: 1.35;
+}
+
+.rc-doc-header-official {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+  gap: 16px;
+}
+
+.rc-header-brand-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.rc-header-banner-img {
+  max-height: 48px;
+  max-width: 170px;
+  object-fit: contain;
+}
+
+.rc-company-info-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.rc-company-legal {
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.rc-company-details {
+  font-size: 0.65rem;
+  color: #475569;
+  line-height: 1.25;
+}
+
+.rc-header-meta-side {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.rc-contract-meta-card {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.rc-meta-type-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #d97706;
+  letter-spacing: 0.5px;
+}
+
+.rc-meta-code-val {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+}
+
+.rc-meta-legal-ref {
+  font-size: 0.58rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.rc-meta-issue-date {
+  font-size: 0.62rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.rc-title-bar {
+  text-align: center;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+
+.rc-title-bar h2 {
+  font-size: 0.74rem;
+  font-weight: 900;
+  margin: 0;
+  letter-spacing: 0.4px;
+  color: #ffffff;
 }
 
 .rc-doc-header {
@@ -36382,44 +36565,138 @@ body.light-theme .kpi-card.kpi-red {
   margin-bottom: 6px;
 }
 
-.rc-signatures-grid {
+/* Assinatura Sistêmica com QR Code */
+.rc-signatures-grid-v2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 36px;
-  margin-top: 36px;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 20px;
+  margin-top: 14px;
   padding-top: 10px;
+  border-top: 1.5px solid #cbd5e1;
+  align-items: center;
 }
 
-.rc-sig-box {
+.rc-sig-client-box {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  padding: 6px;
 }
 
-.rc-sig-line {
-  width: 80%;
+.rc-sig-client-box .rc-sig-line {
+  width: 85%;
   height: 1px;
-  background: #475569;
-  margin-bottom: 8px;
+  background: #334155;
+  margin-bottom: 6px;
 }
 
-.rc-sig-name {
+.rc-sig-client-box .rc-sig-name {
   font-size: 0.8rem;
   font-weight: 800;
   color: #0f172a;
 }
 
-.rc-sig-role {
-  font-size: 0.68rem;
+.rc-sig-client-box .rc-sig-role {
+  font-size: 0.65rem;
   color: #64748b;
   font-weight: 700;
 }
 
-.rc-sig-doc {
-  font-size: 0.68rem;
+.rc-sig-client-box .rc-sig-doc {
+  font-size: 0.65rem;
+  color: #475569;
+  margin-top: 1px;
+}
+
+.rc-sig-subtext {
+  font-size: 0.58rem;
   color: #94a3b8;
   margin-top: 2px;
+}
+
+.rc-sig-systemic-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.rc-qrcode-wrap {
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 2px;
+}
+
+.rc-qrcode-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.rc-qrcode-placeholder {
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rc-systemic-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.rc-systemic-badge {
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #15803d;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.3px;
+}
+
+.rc-systemic-authorizer {
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.rc-systemic-role {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.rc-systemic-hash {
+  font-size: 0.6rem;
+  color: #64748b;
+}
+
+.rc-systemic-hash code {
+  font-family: monospace;
+  font-weight: 700;
+  color: #d97706;
+}
+
+.rc-systemic-validity {
+  font-size: 0.56rem;
+  color: #94a3b8;
+  font-style: italic;
+  margin-top: 1px;
 }
 
 /* Modais de Check-in e Edição */
@@ -36454,8 +36731,15 @@ body.light-theme .kpi-card.kpi-red {
   border-radius: 6px;
 }
 
-/* REGRAS DE IMPRESSÃO / PDF DO TERMO */
+/* REGRAS DE IMPRESSÃO / PDF DO TERMO EM 1 PÁGINA A4 */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 5mm 8mm;
+  }
+  body {
+    background: #ffffff !important;
+  }
   body * {
     visibility: hidden;
   }
@@ -36471,7 +36755,7 @@ body.light-theme .kpi-card.kpi-red {
     top: 0 !important;
     width: 100% !important;
     height: auto !important;
-    background: transparent !important;
+    background: #ffffff !important;
     padding: 0 !important;
   }
   .rental-contract-modal {
@@ -36480,14 +36764,82 @@ body.light-theme .kpi-card.kpi-red {
     max-width: 100% !important;
     max-height: none !important;
     border-radius: 0 !important;
+    background: #ffffff !important;
   }
   .no-print {
     display: none !important;
   }
   .rc-document-sheet {
-    padding: 20mm !important;
+    padding: 0 !important;
     width: 100% !important;
-    height: auto !important;
+    max-width: 100% !important;
+    font-size: 10.5px !important;
+    line-height: 1.2 !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    overflow: hidden !important;
+  }
+  .rc-doc-header-official {
+    padding-bottom: 6px !important;
+    margin-bottom: 6px !important;
+  }
+  .rc-header-banner-img {
+    max-height: 38px !important;
+  }
+  .rc-title-bar {
+    padding: 3px 6px !important;
+    margin-bottom: 6px !important;
+  }
+  .rc-parties-grid {
+    margin-bottom: 6px !important;
+    gap: 8px !important;
+  }
+  .rc-party-card {
+    padding: 5px 8px !important;
+  }
+  .rc-party-card p {
+    font-size: 9.5px !important;
+    margin: 2px 0 !important;
+  }
+  .rc-schedule-strip {
+    margin-bottom: 6px !important;
+    padding: 4px 8px !important;
+  }
+  .rc-items-section {
+    margin-bottom: 6px !important;
+  }
+  .rc-items-table th, .rc-items-table td {
+    padding: 3px 6px !important;
+    font-size: 9.5px !important;
+  }
+  .rc-financial-summary {
+    margin-bottom: 6px !important;
+    padding: 4px 8px !important;
+  }
+  .rc-fin-row {
+    font-size: 10px !important;
+  }
+  .rc-clauses-box {
+    margin-bottom: 6px !important;
+    padding: 5px 8px !important;
+  }
+  .rc-clauses-title {
+    font-size: 9.5px !important;
+    margin-bottom: 3px !important;
+  }
+  .rc-clauses-list li {
+    margin-bottom: 2px !important;
+    font-size: 8.5px !important;
+    line-height: 1.15 !important;
+  }
+  .rc-signatures-grid-v2 {
+    margin-top: 6px !important;
+    padding-top: 4px !important;
+    page-break-inside: avoid !important;
+  }
+  .rc-qrcode-wrap {
+    width: 65px !important;
+    height: 65px !important;
   }
 }
 
