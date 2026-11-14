@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X,
   Printer,
@@ -41,6 +41,13 @@ export default function RentalContractModal({ rental, currentUser = null, onClos
   }, [rental, authorizerName]);
 
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const sheetRef = useRef(null);
+
+  useEffect(() => {
+    if (sheetRef.current) {
+      sheetRef.current.scrollTop = 0;
+    }
+  }, [rental]);
 
   useEffect(() => {
     if (!rental) return;
@@ -143,71 +150,73 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
   return (
     <div className="modal-overlay rental-contract-overlay" onClick={onClose}>
       <div className="rental-contract-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Barra Superior de Ações (Oculta na Impressão) */}
+        {/* Barra Superior de Ações — Limpa, Moderna e Sem Quebras de Linha */}
         <div className="rc-modal-topbar no-print">
-          <div className="rc-topbar-title">
-            <FileText size={18} className="text-gold" />
-            <span>{isReserved ? 'Comprovante de Agendamento & Reserva de Equipamentos' : 'Contrato de Locação & Termo de Responsabilidade'}</span>
-            <span className="rc-code-badge">{rental.code}</span>
+          <div className="rc-topbar-left">
+            <div className="rc-topbar-brand-badge">
+              <FileText size={16} className="text-gold" />
+              <span>Termo Oficial</span>
+            </div>
+            <span className="rc-topbar-status-chip">
+              {isReserved ? 'Reserva & Agendamento' : 'Locação Ativa'}
+            </span>
           </div>
 
           <div className="rc-topbar-actions">
             <button
               type="button"
-              className="btn-secondary rc-btn-whatsapp"
+              className="rc-action-btn rc-action-whatsapp"
               onClick={handleCopyWhatsApp}
-              title="Copiar resumo formatado e abrir WhatsApp"
+              title="Copiar resumo oficial e abrir WhatsApp"
             >
-              <Share2 size={15} /> WhatsApp
+              <Share2 size={15} />
+              <span>WhatsApp</span>
             </button>
             <button
               type="button"
-              className="btn-secondary rc-btn-download"
+              className="rc-action-btn rc-action-download"
               onClick={handleDownloadPdf}
               title="Baixar / Salvar Contrato em PDF"
             >
-              <Download size={15} /> Baixar PDF
+              <Download size={15} />
+              <span>Baixar PDF</span>
             </button>
             <button
               type="button"
-              className="btn-primary rc-btn-print"
+              className="rc-action-btn rc-action-print"
               onClick={handlePrint}
               title="Imprimir Contrato (A4)"
             >
-              <Printer size={15} /> Imprimir
+              <Printer size={15} />
+              <span>Imprimir</span>
             </button>
             <button
               type="button"
-              className="modal-close rc-close-btn"
+              className="rc-action-btn rc-action-close"
               onClick={onClose}
               title="Fechar Janela"
               aria-label="Fechar"
             >
-              <X size={18} />
+              <X size={16} />
+              <span>Fechar</span>
             </button>
           </div>
         </div>
 
         {/* Folha do Documento (Pronta para Visualização e Impressão A4 - 1 Página) */}
-        <div className="rc-document-sheet">
-          {/* Cabeçalho Corporativo Oficial Timbrado */}
+        <div className="rc-document-sheet" ref={sheetRef}>
+          {/* Cabeçalho Corporativo Oficial Timbrado — Fiel ao Modelo Print 2 */}
           <div className="rc-doc-header-official">
             <div className="rc-header-brand-side">
               <img
                 src="/images/contract/header-banner.png"
-                alt="MegaFilmes Produções Audiovisuais"
+                alt="Mega Filmes e Fotografia"
                 className="rc-header-banner-img"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = '/logo.png';
                 }}
               />
-              <div className="rc-company-info-block">
-                <span className="rc-company-legal">MEGAFILMES PRODUÇÕES AUDIOVISUAIS</span>
-                <span className="rc-company-details">
-                  R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR • Tel/WhatsApp: (95) 99112-0000
-                </span>
-              </div>
             </div>
 
             <div className="rc-header-meta-side">
@@ -234,8 +243,8 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
               <h3 className="rc-card-title">
                 <ShieldCheck size={13} /> LOCADORA
               </h3>
-              <p><strong>Razão:</strong> MegaFilmes Produções Audiovisuais</p>
-              <p><strong>Sede:</strong> R. Sardinha, 1061 - Boa Vista, RR</p>
+              <p><strong>Razão:</strong> RG DA SILVA - ME (Mega Filmes e Fotografia)</p>
+              <p><strong>Sede:</strong> Alameda dos Tatus, 155 - Dr. Silvio Leite - Boa Vista, RR</p>
               <p><strong>Resp. Sistêmico:</strong> {authorizerName} ({authorizerRole})</p>
             </div>
 
