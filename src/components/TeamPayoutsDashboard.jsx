@@ -262,6 +262,8 @@ export default function TeamPayoutsDashboard({
 
           let itemAmount = 0;
           let daysCount = 1;
+          const effectiveBaseCall = blockRate > 0 ? blockRate : 200;
+          let extraFormulaText = '';
 
           // Regra mandatória: se for mais de um dia OU configurada como Diária, calcula por Diária
           const isDailyRemuneration = Boolean(isMDay || m.remunerationType === 'daily');
@@ -286,9 +288,6 @@ export default function TeamPayoutsDashboard({
             // - A partir da 4ª hora (5ª hora em diante), soma hora a hora pelo valor da taxa individual (R$ 50/h).
             const extraApproved = Number(m.extraHoursApproved) || 0;
             const totalMissionOffHours = offHoursWorked + extraApproved;
-
-            let extraFormulaText = '';
-            const effectiveBaseCall = blockRate > 0 ? blockRate : 200;
 
             if (totalMissionOffHours > 0) {
               const extraRemun = calculateExtraHoursRemuneration(

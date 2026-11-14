@@ -362,7 +362,6 @@ function getBenchmarkAssetValue($name, $category, $dailyRate = 0) {
         default: return 500.00;
     }
 }
-}
 
 // Inicializa tabelas e seeds se necessário
 ensureRentalsTables($db);
