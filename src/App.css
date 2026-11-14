@@ -29551,7 +29551,8 @@ body.light-theme .ach-kpi-num {
   align-items: center;
   justify-content: flex-start;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.85rem;
+  margin-bottom: 1.5rem;
 }
 
 [data-theme="light"] .admin-center-tabs-bar,
@@ -29560,13 +29561,14 @@ body.light-theme .admin-center-tabs-bar {
 }
 
 .admin-center-tabs-group {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(15, 23, 42, 0.6);
-  padding: 4px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 5px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
@@ -29580,54 +29582,118 @@ body.light-theme .admin-center-tabs-bar {
 [data-theme="light"] .admin-center-tabs-group,
 body.light-theme .admin-center-tabs-group {
   background: #f1f5f9 !important;
-  border-color: rgba(15, 23, 42, 0.08) !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
 }
 
 .ac-tab-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #94a3b8;
-  font-size: 0.84rem;
-  font-weight: 600;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
   flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.ac-tab-btn svg {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
 .ac-tab-btn:hover {
-  color: #f8fafc;
-  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
 }
 
-[data-theme="light"] .ac-tab-btn:hover {
+.ac-tab-btn:hover svg {
+  transform: scale(1.1);
+}
+
+[data-theme="light"] .ac-tab-btn,
+body.light-theme .ac-tab-btn {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] .ac-tab-btn:hover,
+body.light-theme .ac-tab-btn:hover {
   color: #0f172a !important;
-  background: rgba(0, 0, 0, 0.04) !important;
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  transform: translateY(-1px);
 }
 
 .ac-tab-btn.is-active {
-  background: #f59e0b;
-  color: #0f172a;
-  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #111827 !important;
+  font-weight: 800 !important;
+  border: 1px solid rgba(245, 158, 11, 0.8) !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4) !important;
+}
+
+.ac-tab-btn.is-active svg {
+  color: #111827 !important;
+}
+
+[data-theme="light"] .ac-tab-btn.is-active,
+body.light-theme .ac-tab-btn.is-active {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #ffffff !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
+}
+
+[data-theme="light"] .ac-tab-btn.is-active svg,
+body.light-theme .ac-tab-btn.is-active svg {
+  color: #ffffff !important;
 }
 
 .ac-tab-count-badge {
-  font-size: 0.65rem;
-  padding: 1px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
   border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
   background: rgba(0, 0, 0, 0.25);
   color: inherit;
-  font-weight: 700;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.ac-tab-btn.is-active .ac-tab-count-badge {
+  background: #111827 !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(251, 191, 36, 0.4) !important;
 }
 
 .ac-tab-count-badge.badge-pending {
   background: #ef4444;
   color: #ffffff;
+}
+
+.ac-tab-count-badge.badge-pending-pulse {
+  background: #ef4444;
+  color: #ffffff;
+  animation: pendingPulse 1.8s infinite;
 }
 
 /* Toolbar de Aprovações */
