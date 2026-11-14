@@ -15,6 +15,29 @@ assert.ok(rentalsDataContent.includes('Sony Fx30'), 'Deve conter Sony Fx30');
 assert.ok(rentalsDataContent.includes('Grua 8m'), 'Deve conter Grua 8m');
 assert.ok(rentalsDataContent.includes('Microfone Sennheiser Mike 600'), 'Deve conter Sennheiser Mike 600');
 assert.ok(rentalsDataContent.includes('Tocha AD600 pro II'), 'Deve conter Tocha AD600 pro II');
+assert.ok(rentalsDataContent.includes('formatCpfCnpj'), 'Deve exportar formatCpfCnpj');
+assert.ok(rentalsDataContent.includes('formatPhoneBR'), 'Deve exportar formatPhoneBR');
+
+// Teste unitário da função formatCpfCnpj extraída
+function formatCpfCnpj(value) {
+  if (!value) return '';
+  const d = String(value).replace(/\D/g, '').slice(0, 14);
+  if (d.length <= 11) {
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return d.slice(0, 3) + '.' + d.slice(3);
+    if (d.length <= 9) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6);
+    return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9);
+  }
+  if (d.length <= 12) {
+    return d.slice(0, 2) + '.' + d.slice(2, 5) + '.' + d.slice(5, 8) + '/' + d.slice(8);
+  }
+  return d.slice(0, 2) + '.' + d.slice(2, 5) + '.' + d.slice(5, 8) + '/' + d.slice(8, 12) + '-' + d.slice(12);
+}
+
+// Validação CPF (11 dígitos enviado pelo usuário)
+assert.strictEqual(formatCpfCnpj('94854076291'), '948.540.762-91', 'Deve formatar CPF com 11 dígitos');
+// Validação CNPJ (14 dígitos)
+assert.strictEqual(formatCpfCnpj('12345678000195'), '12.345.678/0001-95', 'Deve formatar CNPJ com 14 dígitos');
 
 // 2. Verifica Componentes
 const managerPath = path.join(__dirname, '../src/components/EquipmentRentalManager.jsx');

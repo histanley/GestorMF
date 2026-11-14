@@ -34,6 +34,8 @@ import {
   INITIAL_EQUIPMENT_CATALOG,
   formatCurrency,
   formatDateBR,
+  formatCpfCnpj,
+  formatPhoneBR,
 } from '../utils/rentalsData';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import RentalContractModal from './RentalContractModal';
@@ -849,9 +851,15 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     <label>CPF ou CNPJ</label>
                     <input
                       type="text"
-                      placeholder="000.000.000-00"
+                      placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                      maxLength={18}
                       value={rentalForm.clientDocument}
-                      onChange={(e) => setRentalForm({ ...rentalForm, clientDocument: e.target.value })}
+                      onChange={(e) =>
+                        setRentalForm({
+                          ...rentalForm,
+                          clientDocument: formatCpfCnpj(e.target.value),
+                        })
+                      }
                     />
                   </div>
 
@@ -860,8 +868,14 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     <input
                       type="text"
                       placeholder="(95) 99111-2233"
+                      maxLength={15}
                       value={rentalForm.clientPhone}
-                      onChange={(e) => setRentalForm({ ...rentalForm, clientPhone: e.target.value })}
+                      onChange={(e) =>
+                        setRentalForm({
+                          ...rentalForm,
+                          clientPhone: formatPhoneBR(e.target.value),
+                        })
+                      }
                     />
                   </div>
 
