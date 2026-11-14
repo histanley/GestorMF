@@ -8,7 +8,8 @@ $method = $_SERVER['REQUEST_METHOD'];
 $db = getDB();
 
 // 1. Garantir tabelas de Aluguel e Equipamentos
-function ensureRentalsTables($db) {
+function ensureRentalsTables($db)
+{
     $db->exec("
         CREATE TABLE IF NOT EXISTS equipment (
             id VARCHAR(64) PRIMARY KEY,
@@ -32,13 +33,16 @@ function ensureRentalsTables($db) {
 
     try {
         $db->exec("ALTER TABLE equipment ADD COLUMN photo_url LONGTEXT NULL");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
     try {
         $db->exec("ALTER TABLE equipment MODIFY photo_url LONGTEXT NULL");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
     try {
         $db->exec("ALTER TABLE equipment ADD COLUMN asset_value DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
 
     $db->exec("
         CREATE TABLE IF NOT EXISTS rentals (
@@ -85,36 +89,46 @@ function ensureRentalsTables($db) {
 
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN pickup_photos_json LONGTEXT NULL");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN return_photos_json LONGTEXT NULL");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN pickup_notes TEXT NULL");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN inspection_notes TEXT NULL");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN has_damage TINYINT(1) NOT NULL DEFAULT 0");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN paid_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN remaining_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN remaining_due_terms VARCHAR(191) NULL DEFAULT ''");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN remaining_due_date DATE NULL");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN security_deposit DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
 
-        // 1.1 Tabela de migrações internas
+    // 1.1 Tabela de migrações internas
     $db->exec("
         CREATE TABLE IF NOT EXISTS system_migrations (
             migration_key VARCHAR(191) PRIMARY KEY,
@@ -123,100 +137,101 @@ function ensureRentalsTables($db) {
     ");
 
     $calibratedCatalog = [
-            ['id' => 'eq-001', 'name' => 'Sony a7III', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 8900, 'total_qty' => 8, 'rate_unit' => 'diária'],
-            ['id' => 'eq-002', 'name' => 'Sony Fx30', 'category' => 'cameras', 'daily_rate' => 400, 'asset_value' => 10800, 'total_qty' => 6, 'rate_unit' => 'diária'],
-            ['id' => 'eq-003', 'name' => 'Sony a7IV', 'category' => 'cameras', 'daily_rate' => 400, 'asset_value' => 13900, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['id' => 'eq-004', 'name' => 'Sony 6600', 'category' => 'cameras', 'daily_rate' => 200, 'asset_value' => 5400, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-005', 'name' => 'Canon eos RP', 'category' => 'cameras', 'daily_rate' => 200, 'asset_value' => 4700, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-006', 'name' => 'Canon eos 5D mark III', 'category' => 'cameras', 'daily_rate' => 100, 'asset_value' => 2800, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-007', 'name' => 'Sony HXR- NX5', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 3200, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-008', 'name' => 'Sony NX5 R', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 3600, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['id' => 'eq-009', 'name' => 'Sony PMW- EX3', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 3900, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-010', 'name' => 'Sony HXR- NX3', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 3400, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-011', 'name' => 'Sony PMW- EX1', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 3500, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-012', 'name' => 'GoPro 11 Black', 'category' => 'cameras', 'daily_rate' => 180, 'asset_value' => 1950, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-013', 'name' => 'GoPro 360', 'category' => 'cameras', 'daily_rate' => 400, 'asset_value' => 2450, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-014', 'name' => 'GoPro 8 Black', 'category' => 'cameras', 'daily_rate' => 150, 'asset_value' => 1150, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-015', 'name' => 'Sony 24/70 f4', 'category' => 'lenses', 'daily_rate' => 200, 'asset_value' => 2700, 'total_qty' => 5, 'rate_unit' => 'diária'],
-            ['id' => 'eq-016', 'name' => 'Sony 50mm 1.8', 'category' => 'lenses', 'daily_rate' => 180, 'asset_value' => 1150, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-017', 'name' => 'Sony 35mm 1.8', 'category' => 'lenses', 'daily_rate' => 250, 'asset_value' => 2900, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['id' => 'eq-018', 'name' => 'Sony 70/200 2.8', 'category' => 'lenses', 'daily_rate' => 350, 'asset_value' => 12000, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['id' => 'eq-019', 'name' => 'Sony 18/105 f4', 'category' => 'lenses', 'daily_rate' => 200, 'asset_value' => 2500, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['id' => 'eq-020', 'name' => 'Sony 85mm 1.8', 'category' => 'lenses', 'daily_rate' => 200, 'asset_value' => 2800, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-021', 'name' => 'Sigma 16mm 1.4', 'category' => 'lenses', 'daily_rate' => 200, 'asset_value' => 2100, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-022', 'name' => 'Sony 24/70 2.8', 'category' => 'lenses', 'daily_rate' => 350, 'asset_value' => 9800, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-023', 'name' => 'Canon 24/70 2.8', 'category' => 'lenses', 'daily_rate' => 200, 'asset_value' => 4800, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-024', 'name' => 'Canon 35mm 1.4', 'category' => 'lenses', 'daily_rate' => 150, 'asset_value' => 3900, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-025', 'name' => 'Monitor Feelworld 5.5 POL', 'category' => 'video', 'daily_rate' => 150, 'asset_value' => 950, 'total_qty' => 5, 'rate_unit' => 'diária'],
-            ['id' => 'eq-026', 'name' => 'Monitor Feelworld 7.0 POL', 'category' => 'video', 'daily_rate' => 200, 'asset_value' => 1450, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-027', 'name' => 'Transmissor cosmo c1 Hollyland', 'category' => 'video', 'daily_rate' => 300, 'asset_value' => 5100, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-028', 'name' => 'Transmissor mars 300 pro Hollyland', 'category' => 'video', 'daily_rate' => 200, 'asset_value' => 2350, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-029', 'name' => 'Mesa de corte switcher estudio 6+', 'category' => 'video', 'daily_rate' => 400, 'asset_value' => 4800, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-030', 'name' => 'Mesa de corte Blackmagic mini extreme live', 'category' => 'video', 'daily_rate' => 600, 'asset_value' => 6200, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-031', 'name' => 'Mesa de corte Blackmagic Atem mini Pro', 'category' => 'video', 'daily_rate' => 400, 'asset_value' => 2450, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-032', 'name' => 'Mesa de corte Neo iD Estudio 4+', 'category' => 'video', 'daily_rate' => 400, 'asset_value' => 3900, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-033', 'name' => 'Mesa de corte Atem 2 Blackmagic', 'category' => 'video', 'daily_rate' => 1200, 'asset_value' => 13500, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-034', 'name' => 'Placa de captura de videos HDMI', 'category' => 'video', 'daily_rate' => 150, 'asset_value' => 180, 'total_qty' => 5, 'rate_unit' => 'diária'],
-            ['id' => 'eq-035', 'name' => 'NEO id tally', 'category' => 'video', 'daily_rate' => 250, 'asset_value' => 2400, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-036', 'name' => 'Teleprompter profissional', 'category' => 'video', 'daily_rate' => 600, 'asset_value' => 2700, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-037', 'name' => 'Teleprompter camera vídeo', 'category' => 'video', 'daily_rate' => 300, 'asset_value' => 950, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-038', 'name' => 'Microfone Takstar para camera', 'category' => 'audio', 'daily_rate' => 50, 'asset_value' => 180, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-039', 'name' => 'Microfone YOGA AT81', 'category' => 'audio', 'daily_rate' => 150, 'asset_value' => 290, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-040', 'name' => 'Microfone Sennheiser Mike 600', 'category' => 'audio', 'daily_rate' => 500, 'asset_value' => 2650, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-041', 'name' => 'Microfone Boya', 'category' => 'audio', 'daily_rate' => 150, 'asset_value' => 220, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-042', 'name' => 'Pricila + capsula BOOM', 'category' => 'audio', 'daily_rate' => 150, 'asset_value' => 780, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-043', 'name' => 'Zoom H5', 'category' => 'audio', 'daily_rate' => 200, 'asset_value' => 1750, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['id' => 'eq-044', 'name' => 'Mix de Áudio Rode Caster pro', 'category' => 'audio', 'daily_rate' => 400, 'asset_value' => 4500, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-045', 'name' => 'Lapela Hollyland lark m2 duo', 'category' => 'audio', 'daily_rate' => 200, 'asset_value' => 1050, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-046', 'name' => 'Lapela Hollayland Lark M2s', 'category' => 'audio', 'daily_rate' => 250, 'asset_value' => 1200, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-047', 'name' => 'Microfone Hollayland Lark 150 Duplo', 'category' => 'audio', 'daily_rate' => 150, 'asset_value' => 950, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-048', 'name' => 'Mesa de som Digital Soundcraft Ui24R', 'category' => 'audio', 'daily_rate' => 600, 'asset_value' => 5900, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-049', 'name' => 'Caixa de som JBL EON615', 'category' => 'audio', 'daily_rate' => 300, 'asset_value' => 3100, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-050', 'name' => 'Interface de Áudio Usb Behringer 4 canais', 'category' => 'audio', 'daily_rate' => 200, 'asset_value' => 1050, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-051', 'name' => 'Interface de áudio Behringer UMC204HD 2 canais', 'category' => 'audio', 'daily_rate' => 150, 'asset_value' => 750, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-052', 'name' => 'Interface de audio Behriger UM2 USB 1 CANAL', 'category' => 'audio', 'daily_rate' => 100, 'asset_value' => 380, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-053', 'name' => 'LED Soleste 1700 de camera', 'category' => 'lighting', 'daily_rate' => 150, 'asset_value' => 320, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['id' => 'eq-054', 'name' => 'LED Yongnuo YN600L II', 'category' => 'lighting', 'daily_rate' => 200, 'asset_value' => 750, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-055', 'name' => 'LED VL 49', 'category' => 'lighting', 'daily_rate' => 40, 'asset_value' => 75, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['id' => 'eq-056', 'name' => 'Yongnuo YN300- II', 'category' => 'lighting', 'daily_rate' => 150, 'asset_value' => 360, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-057', 'name' => 'Flash Godox V860 IIIC Bateria para sony', 'category' => 'lighting', 'daily_rate' => 300, 'asset_value' => 1450, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-058', 'name' => 'Flash Godox V350s Bateria para sony', 'category' => 'lighting', 'daily_rate' => 100, 'asset_value' => 920, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-059', 'name' => 'Flash Godox TT350s pilha para Sony', 'category' => 'lighting', 'daily_rate' => 50, 'asset_value' => 520, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['id' => 'eq-060', 'name' => 'Flash Godox TT600s pilha para Sony', 'category' => 'lighting', 'daily_rate' => 100, 'asset_value' => 460, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-061', 'name' => 'Flash Canon 580EXII', 'category' => 'lighting', 'daily_rate' => 100, 'asset_value' => 720, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-062', 'name' => 'Rádio Flash Godox Xpro S', 'category' => 'lighting', 'daily_rate' => 150, 'asset_value' => 460, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-063', 'name' => 'Rádio Flash Godox X3 S', 'category' => 'lighting', 'daily_rate' => 200, 'asset_value' => 620, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-064', 'name' => 'Led Rgb Sokani X25', 'category' => 'lighting', 'daily_rate' => 50, 'asset_value' => 420, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-065', 'name' => 'Softbox QR- P120', 'category' => 'lighting', 'daily_rate' => 200, 'asset_value' => 750, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-066', 'name' => 'Rebatedor', 'category' => 'lighting', 'daily_rate' => 80, 'asset_value' => 95, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-067', 'name' => 'Softbox Triopo 90cm', 'category' => 'lighting', 'daily_rate' => 100, 'asset_value' => 240, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['id' => 'eq-068', 'name' => 'Softbox Godox 90cm', 'category' => 'lighting', 'daily_rate' => 100, 'asset_value' => 420, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-069', 'name' => 'Softbox Godox 120cm', 'category' => 'lighting', 'daily_rate' => 120, 'asset_value' => 540, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-070', 'name' => 'Softbox Globo Balão Chines', 'category' => 'lighting', 'daily_rate' => 150, 'asset_value' => 420, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-071', 'name' => 'Tocha Sz200 Bi', 'category' => 'lighting', 'daily_rate' => 300, 'asset_value' => 2950, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-072', 'name' => 'Tocha Godox Fv200', 'category' => 'lighting', 'daily_rate' => 300, 'asset_value' => 2650, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-073', 'name' => 'Tocha AD600 pro II', 'category' => 'lighting', 'daily_rate' => 600, 'asset_value' => 6200, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-074', 'name' => 'Tocha SL 200 III Bi', 'category' => 'lighting', 'daily_rate' => 300, 'asset_value' => 2350, 'total_qty' => 4, 'rate_unit' => 'diária'],
-            ['id' => 'eq-075', 'name' => 'Grua 8m', 'category' => 'accessories', 'daily_rate' => 1200, 'asset_value' => 8500, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-076', 'name' => 'Grua 3,50m', 'category' => 'accessories', 'daily_rate' => 600, 'asset_value' => 3800, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-077', 'name' => 'Tripe de camera Tr 688v', 'category' => 'accessories', 'daily_rate' => 100, 'asset_value' => 320, 'total_qty' => 10, 'rate_unit' => 'diária'],
-            ['id' => 'eq-078', 'name' => 'tripe de camera nt777', 'category' => 'accessories', 'daily_rate' => 150, 'asset_value' => 720, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-079', 'name' => 'Tripe de camera Benro Kh26p', 'category' => 'accessories', 'daily_rate' => 150, 'asset_value' => 1450, 'total_qty' => 5, 'rate_unit' => 'diária'],
-            ['id' => 'eq-080', 'name' => 'Estabilizador Weebill 3s', 'category' => 'drones', 'daily_rate' => 350, 'asset_value' => 2550, 'total_qty' => 2, 'rate_unit' => 'diária'],
-            ['id' => 'eq-081', 'name' => 'Estabilizador Weebill S', 'category' => 'drones', 'daily_rate' => 150, 'asset_value' => 1550, 'total_qty' => 3, 'rate_unit' => 'diária'],
-            ['id' => 'eq-082', 'name' => 'Impressora termica de fotos', 'category' => 'accessories', 'daily_rate' => 900, 'asset_value' => 5600, 'total_qty' => 1, 'rate_unit' => 'evento/hora'],
-            ['id' => 'eq-083', 'name' => 'Comunicadores Hollyland 6s', 'category' => 'accessories', 'daily_rate' => 600, 'asset_value' => 4900, 'total_qty' => 1, 'rate_unit' => 'diária'],
-            ['id' => 'eq-084', 'name' => 'Tripe de Luz', 'category' => 'accessories', 'daily_rate' => 150, 'asset_value' => 120, 'total_qty' => 9, 'rate_unit' => 'diária'],
-            ['id' => 'eq-085', 'name' => 'Cabos de Hdmi 50m', 'category' => 'accessories', 'daily_rate' => 150, 'asset_value' => 220, 'total_qty' => 8, 'rate_unit' => 'diária'],
-            ['id' => 'eq-086', 'name' => 'Comunicadores Hollyland Solidcom C1', 'category' => 'accessories', 'daily_rate' => 600, 'asset_value' => 5400, 'total_qty' => 1, 'rate_unit' => 'diária'],
-        ];
+        ['id' => 'eq-001', 'name' => 'Sony a7III', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 8900, 'total_qty' => 8, 'rate_unit' => 'diária'],
+        ['id' => 'eq-002', 'name' => 'Sony Fx30', 'category' => 'cameras', 'daily_rate' => 400, 'asset_value' => 10800, 'total_qty' => 6, 'rate_unit' => 'diária'],
+        ['id' => 'eq-003', 'name' => 'Sony a7IV', 'category' => 'cameras', 'daily_rate' => 400, 'asset_value' => 13900, 'total_qty' => 3, 'rate_unit' => 'diária'],
+        ['id' => 'eq-004', 'name' => 'Sony 6600', 'category' => 'cameras', 'daily_rate' => 200, 'asset_value' => 5400, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-005', 'name' => 'Canon eos RP', 'category' => 'cameras', 'daily_rate' => 200, 'asset_value' => 4700, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-006', 'name' => 'Canon eos 5D mark III', 'category' => 'cameras', 'daily_rate' => 100, 'asset_value' => 2800, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-007', 'name' => 'Sony HXR- NX5', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 3200, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-008', 'name' => 'Sony NX5 R', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 3600, 'total_qty' => 3, 'rate_unit' => 'diária'],
+        ['id' => 'eq-009', 'name' => 'Sony PMW- EX3', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 3900, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-010', 'name' => 'Sony HXR- NX3', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 3400, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-011', 'name' => 'Sony PMW- EX1', 'category' => 'cameras', 'daily_rate' => 300, 'asset_value' => 3500, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-012', 'name' => 'GoPro 11 Black', 'category' => 'cameras', 'daily_rate' => 180, 'asset_value' => 1950, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-013', 'name' => 'GoPro 360', 'category' => 'cameras', 'daily_rate' => 400, 'asset_value' => 2450, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-014', 'name' => 'GoPro 8 Black', 'category' => 'cameras', 'daily_rate' => 150, 'asset_value' => 1150, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-015', 'name' => 'Sony 24/70 f4', 'category' => 'lenses', 'daily_rate' => 200, 'asset_value' => 2700, 'total_qty' => 5, 'rate_unit' => 'diária'],
+        ['id' => 'eq-016', 'name' => 'Sony 50mm 1.8', 'category' => 'lenses', 'daily_rate' => 180, 'asset_value' => 1150, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-017', 'name' => 'Sony 35mm 1.8', 'category' => 'lenses', 'daily_rate' => 250, 'asset_value' => 2900, 'total_qty' => 3, 'rate_unit' => 'diária'],
+        ['id' => 'eq-018', 'name' => 'Sony 70/200 2.8', 'category' => 'lenses', 'daily_rate' => 350, 'asset_value' => 12000, 'total_qty' => 3, 'rate_unit' => 'diária'],
+        ['id' => 'eq-019', 'name' => 'Sony 18/105 f4', 'category' => 'lenses', 'daily_rate' => 200, 'asset_value' => 2500, 'total_qty' => 3, 'rate_unit' => 'diária'],
+        ['id' => 'eq-020', 'name' => 'Sony 85mm 1.8', 'category' => 'lenses', 'daily_rate' => 200, 'asset_value' => 2800, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-021', 'name' => 'Sigma 16mm 1.4', 'category' => 'lenses', 'daily_rate' => 200, 'asset_value' => 2100, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-022', 'name' => 'Sony 24/70 2.8', 'category' => 'lenses', 'daily_rate' => 350, 'asset_value' => 9800, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-023', 'name' => 'Canon 24/70 2.8', 'category' => 'lenses', 'daily_rate' => 200, 'asset_value' => 4800, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-024', 'name' => 'Canon 35mm 1.4', 'category' => 'lenses', 'daily_rate' => 150, 'asset_value' => 3900, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-025', 'name' => 'Monitor Feelworld 5.5 POL', 'category' => 'video', 'daily_rate' => 150, 'asset_value' => 950, 'total_qty' => 5, 'rate_unit' => 'diária'],
+        ['id' => 'eq-026', 'name' => 'Monitor Feelworld 7.0 POL', 'category' => 'video', 'daily_rate' => 200, 'asset_value' => 1450, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-027', 'name' => 'Transmissor cosmo c1 Hollyland', 'category' => 'video', 'daily_rate' => 300, 'asset_value' => 5100, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-028', 'name' => 'Transmissor mars 300 pro Hollyland', 'category' => 'video', 'daily_rate' => 200, 'asset_value' => 2350, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-029', 'name' => 'Mesa de corte switcher estudio 6+', 'category' => 'video', 'daily_rate' => 400, 'asset_value' => 4800, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-030', 'name' => 'Mesa de corte Blackmagic mini extreme live', 'category' => 'video', 'daily_rate' => 600, 'asset_value' => 6200, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-031', 'name' => 'Mesa de corte Blackmagic Atem mini Pro', 'category' => 'video', 'daily_rate' => 400, 'asset_value' => 2450, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-032', 'name' => 'Mesa de corte Neo iD Estudio 4+', 'category' => 'video', 'daily_rate' => 400, 'asset_value' => 3900, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-033', 'name' => 'Mesa de corte Atem 2 Blackmagic', 'category' => 'video', 'daily_rate' => 1200, 'asset_value' => 13500, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-034', 'name' => 'Placa de captura de videos HDMI', 'category' => 'video', 'daily_rate' => 150, 'asset_value' => 180, 'total_qty' => 5, 'rate_unit' => 'diária'],
+        ['id' => 'eq-035', 'name' => 'NEO id tally', 'category' => 'video', 'daily_rate' => 250, 'asset_value' => 2400, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-036', 'name' => 'Teleprompter profissional', 'category' => 'video', 'daily_rate' => 600, 'asset_value' => 2700, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-037', 'name' => 'Teleprompter camera vídeo', 'category' => 'video', 'daily_rate' => 300, 'asset_value' => 950, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-038', 'name' => 'Microfone Takstar para camera', 'category' => 'audio', 'daily_rate' => 50, 'asset_value' => 180, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-039', 'name' => 'Microfone YOGA AT81', 'category' => 'audio', 'daily_rate' => 150, 'asset_value' => 290, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-040', 'name' => 'Microfone Sennheiser Mike 600', 'category' => 'audio', 'daily_rate' => 500, 'asset_value' => 2650, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-041', 'name' => 'Microfone Boya', 'category' => 'audio', 'daily_rate' => 150, 'asset_value' => 220, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-042', 'name' => 'Pricila + capsula BOOM', 'category' => 'audio', 'daily_rate' => 150, 'asset_value' => 780, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-043', 'name' => 'Zoom H5', 'category' => 'audio', 'daily_rate' => 200, 'asset_value' => 1750, 'total_qty' => 3, 'rate_unit' => 'diária'],
+        ['id' => 'eq-044', 'name' => 'Mix de Áudio Rode Caster pro', 'category' => 'audio', 'daily_rate' => 400, 'asset_value' => 4500, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-045', 'name' => 'Lapela Hollyland lark m2 duo', 'category' => 'audio', 'daily_rate' => 200, 'asset_value' => 1050, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-046', 'name' => 'Lapela Hollayland Lark M2s', 'category' => 'audio', 'daily_rate' => 250, 'asset_value' => 1200, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-047', 'name' => 'Microfone Hollayland Lark 150 Duplo', 'category' => 'audio', 'daily_rate' => 150, 'asset_value' => 950, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-048', 'name' => 'Mesa de som Digital Soundcraft Ui24R', 'category' => 'audio', 'daily_rate' => 600, 'asset_value' => 5900, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-049', 'name' => 'Caixa de som JBL EON615', 'category' => 'audio', 'daily_rate' => 300, 'asset_value' => 3100, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-050', 'name' => 'Interface de Áudio Usb Behringer 4 canais', 'category' => 'audio', 'daily_rate' => 200, 'asset_value' => 1050, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-051', 'name' => 'Interface de áudio Behringer UMC204HD 2 canais', 'category' => 'audio', 'daily_rate' => 150, 'asset_value' => 750, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-052', 'name' => 'Interface de audio Behriger UM2 USB 1 CANAL', 'category' => 'audio', 'daily_rate' => 100, 'asset_value' => 380, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-053', 'name' => 'LED Soleste 1700 de camera', 'category' => 'lighting', 'daily_rate' => 150, 'asset_value' => 320, 'total_qty' => 3, 'rate_unit' => 'diária'],
+        ['id' => 'eq-054', 'name' => 'LED Yongnuo YN600L II', 'category' => 'lighting', 'daily_rate' => 200, 'asset_value' => 750, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-055', 'name' => 'LED VL 49', 'category' => 'lighting', 'daily_rate' => 40, 'asset_value' => 75, 'total_qty' => 3, 'rate_unit' => 'diária'],
+        ['id' => 'eq-056', 'name' => 'Yongnuo YN300- II', 'category' => 'lighting', 'daily_rate' => 150, 'asset_value' => 360, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-057', 'name' => 'Flash Godox V860 IIIC Bateria para sony', 'category' => 'lighting', 'daily_rate' => 300, 'asset_value' => 1450, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-058', 'name' => 'Flash Godox V350s Bateria para sony', 'category' => 'lighting', 'daily_rate' => 100, 'asset_value' => 920, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-059', 'name' => 'Flash Godox TT350s pilha para Sony', 'category' => 'lighting', 'daily_rate' => 50, 'asset_value' => 520, 'total_qty' => 3, 'rate_unit' => 'diária'],
+        ['id' => 'eq-060', 'name' => 'Flash Godox TT600s pilha para Sony', 'category' => 'lighting', 'daily_rate' => 100, 'asset_value' => 460, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-061', 'name' => 'Flash Canon 580EXII', 'category' => 'lighting', 'daily_rate' => 100, 'asset_value' => 720, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-062', 'name' => 'Rádio Flash Godox Xpro S', 'category' => 'lighting', 'daily_rate' => 150, 'asset_value' => 460, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-063', 'name' => 'Rádio Flash Godox X3 S', 'category' => 'lighting', 'daily_rate' => 200, 'asset_value' => 620, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-064', 'name' => 'Led Rgb Sokani X25', 'category' => 'lighting', 'daily_rate' => 50, 'asset_value' => 420, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-065', 'name' => 'Softbox QR- P120', 'category' => 'lighting', 'daily_rate' => 200, 'asset_value' => 750, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-066', 'name' => 'Rebatedor', 'category' => 'lighting', 'daily_rate' => 80, 'asset_value' => 95, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-067', 'name' => 'Softbox Triopo 90cm', 'category' => 'lighting', 'daily_rate' => 100, 'asset_value' => 240, 'total_qty' => 3, 'rate_unit' => 'diária'],
+        ['id' => 'eq-068', 'name' => 'Softbox Godox 90cm', 'category' => 'lighting', 'daily_rate' => 100, 'asset_value' => 420, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-069', 'name' => 'Softbox Godox 120cm', 'category' => 'lighting', 'daily_rate' => 120, 'asset_value' => 540, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-070', 'name' => 'Softbox Globo Balão Chines', 'category' => 'lighting', 'daily_rate' => 150, 'asset_value' => 420, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-071', 'name' => 'Tocha Sz200 Bi', 'category' => 'lighting', 'daily_rate' => 300, 'asset_value' => 2950, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-072', 'name' => 'Tocha Godox Fv200', 'category' => 'lighting', 'daily_rate' => 300, 'asset_value' => 2650, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-073', 'name' => 'Tocha AD600 pro II', 'category' => 'lighting', 'daily_rate' => 600, 'asset_value' => 6200, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-074', 'name' => 'Tocha SL 200 III Bi', 'category' => 'lighting', 'daily_rate' => 300, 'asset_value' => 2350, 'total_qty' => 4, 'rate_unit' => 'diária'],
+        ['id' => 'eq-075', 'name' => 'Grua 8m', 'category' => 'accessories', 'daily_rate' => 1200, 'asset_value' => 8500, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-076', 'name' => 'Grua 3,50m', 'category' => 'accessories', 'daily_rate' => 600, 'asset_value' => 3800, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-077', 'name' => 'Tripe de camera Tr 688v', 'category' => 'accessories', 'daily_rate' => 100, 'asset_value' => 320, 'total_qty' => 10, 'rate_unit' => 'diária'],
+        ['id' => 'eq-078', 'name' => 'tripe de camera nt777', 'category' => 'accessories', 'daily_rate' => 150, 'asset_value' => 720, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-079', 'name' => 'Tripe de camera Benro Kh26p', 'category' => 'accessories', 'daily_rate' => 150, 'asset_value' => 1450, 'total_qty' => 5, 'rate_unit' => 'diária'],
+        ['id' => 'eq-080', 'name' => 'Estabilizador Weebill 3s', 'category' => 'drones', 'daily_rate' => 350, 'asset_value' => 2550, 'total_qty' => 2, 'rate_unit' => 'diária'],
+        ['id' => 'eq-081', 'name' => 'Estabilizador Weebill S', 'category' => 'drones', 'daily_rate' => 150, 'asset_value' => 1550, 'total_qty' => 3, 'rate_unit' => 'diária'],
+        ['id' => 'eq-082', 'name' => 'Impressora termica de fotos', 'category' => 'accessories', 'daily_rate' => 900, 'asset_value' => 5600, 'total_qty' => 1, 'rate_unit' => 'evento/hora'],
+        ['id' => 'eq-083', 'name' => 'Comunicadores Hollyland 6s', 'category' => 'accessories', 'daily_rate' => 600, 'asset_value' => 4900, 'total_qty' => 1, 'rate_unit' => 'diária'],
+        ['id' => 'eq-084', 'name' => 'Tripe de Luz', 'category' => 'accessories', 'daily_rate' => 150, 'asset_value' => 120, 'total_qty' => 9, 'rate_unit' => 'diária'],
+        ['id' => 'eq-085', 'name' => 'Cabos de Hdmi 50m', 'category' => 'accessories', 'daily_rate' => 150, 'asset_value' => 220, 'total_qty' => 8, 'rate_unit' => 'diária'],
+        ['id' => 'eq-086', 'name' => 'Comunicadores Hollyland Solidcom C1', 'category' => 'accessories', 'daily_rate' => 600, 'asset_value' => 5400, 'total_qty' => 1, 'rate_unit' => 'diária'],
+    ];
 
     // 1.2 Migração: Sincronizar diárias exatas da tabela oficial MegaFilmes mantendo os valores patrimoniais dos produtos
     $migratedV4 = false;
     try {
         $resV4 = $db->query("SELECT COUNT(*) FROM system_migrations WHERE migration_key = 'sync_exact_daily_rates_20261114_v4'")->fetchColumn();
         $migratedV4 = ($resV4 > 0);
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
 
     if (!$migratedV4) {
         $updateStmt = $db->prepare("UPDATE equipment SET daily_rate = ?, asset_value = ? WHERE id = ? OR name = ?");
@@ -230,7 +245,8 @@ function ensureRentalsTables($db) {
         }
         try {
             $db->prepare("INSERT IGNORE INTO system_migrations (migration_key) VALUES ('sync_exact_daily_rates_20261114_v4')")->execute();
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
     }
 
     // Seed inicial dos 86 equipamentos se tabela estiver vazia
@@ -262,104 +278,179 @@ function ensureRentalsTables($db) {
             $zeroItems = $stmtZero->fetchAll();
             $upStmt = $db->prepare("UPDATE equipment SET asset_value = ? WHERE id = ?");
             foreach ($zeroItems as $zi) {
-                $benchmark = getBenchmarkAssetValue($zi['name'], $zi['category'], (float)$zi['daily_rate']);
+                $benchmark = getBenchmarkAssetValue($zi['name'], $zi['category'], (float) $zi['daily_rate']);
                 $upStmt->execute([$benchmark, $zi['id']]);
             }
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
 }
 
 // Retorna valor patrimonial sugerido de mercado/reposição baseado em benchmark
-function getBenchmarkAssetValue($name, $category, $dailyRate = 0) {
+function getBenchmarkAssetValue($name, $category, $dailyRate = 0)
+{
     $n = mb_strtolower(trim($name), 'UTF-8');
 
     // Câmeras
-    if (strpos($n, 'a7iv') !== false || strpos($n, 'a7 iv') !== false) return 13900.00;
-    if (strpos($n, 'fx30') !== false) return 10800.00;
-    if (strpos($n, 'a7iii') !== false || strpos($n, 'a7 iii') !== false) return 8900.00;
-    if (strpos($n, '6600') !== false) return 5400.00;
-    if (strpos($n, 'eos rp') !== false) return 4700.00;
-    if (strpos($n, '5d mark iii') !== false) return 2800.00;
-    if (strpos($n, 'nx5') !== false) return 3200.00;
-    if (strpos($n, 'nx3') !== false) return 3400.00;
-    if (strpos($n, 'pmw-ex3') !== false) return 3900.00;
-    if (strpos($n, 'pmw-ex1') !== false) return 3500.00;
-    if (strpos($n, 'gopro 11') !== false) return 1950.00;
-    if (strpos($n, 'gopro 360') !== false) return 2450.00;
-    if (strpos($n, 'gopro 8') !== false) return 1350.00;
+    if (strpos($n, 'a7iv') !== false || strpos($n, 'a7 iv') !== false)
+        return 13900.00;
+    if (strpos($n, 'fx30') !== false)
+        return 10800.00;
+    if (strpos($n, 'a7iii') !== false || strpos($n, 'a7 iii') !== false)
+        return 8900.00;
+    if (strpos($n, '6600') !== false)
+        return 5400.00;
+    if (strpos($n, 'eos rp') !== false)
+        return 4700.00;
+    if (strpos($n, '5d mark iii') !== false)
+        return 2800.00;
+    if (strpos($n, 'nx5') !== false)
+        return 3200.00;
+    if (strpos($n, 'nx3') !== false)
+        return 3400.00;
+    if (strpos($n, 'pmw-ex3') !== false)
+        return 3900.00;
+    if (strpos($n, 'pmw-ex1') !== false)
+        return 3500.00;
+    if (strpos($n, 'gopro 11') !== false)
+        return 1950.00;
+    if (strpos($n, 'gopro 360') !== false)
+        return 2450.00;
+    if (strpos($n, 'gopro 8') !== false)
+        return 1350.00;
 
     // Lentes
-    if (strpos($n, '70/200') !== false || strpos($n, '70-200') !== false) return 11800.00;
-    if (strpos($n, '24/70 2.8') !== false || strpos($n, '24-70 2.8') !== false) return 10200.00;
-    if (strpos($n, 'canon 24/70') !== false) return 4600.00;
-    if (strpos($n, '24/70 f4') !== false || strpos($n, '24-70 f4') !== false) return 2650.00;
-    if (strpos($n, '50mm 1.8') !== false) return 1250.00;
-    if (strpos($n, '35mm 1.8') !== false) return 2750.00;
-    if (strpos($n, '35mm 1.4') !== false) return 3800.00;
-    if (strpos($n, '85mm 1.8') !== false) return 2650.00;
-    if (strpos($n, '18/105') !== false || strpos($n, '18-105') !== false) return 2550.00;
-    if (strpos($n, 'sigma 16mm') !== false) return 2150.00;
+    if (strpos($n, '70/200') !== false || strpos($n, '70-200') !== false)
+        return 11800.00;
+    if (strpos($n, '24/70 2.8') !== false || strpos($n, '24-70 2.8') !== false)
+        return 10200.00;
+    if (strpos($n, 'canon 24/70') !== false)
+        return 4600.00;
+    if (strpos($n, '24/70 f4') !== false || strpos($n, '24-70 f4') !== false)
+        return 2650.00;
+    if (strpos($n, '50mm 1.8') !== false)
+        return 1250.00;
+    if (strpos($n, '35mm 1.8') !== false)
+        return 2750.00;
+    if (strpos($n, '35mm 1.4') !== false)
+        return 3800.00;
+    if (strpos($n, '85mm 1.8') !== false)
+        return 2650.00;
+    if (strpos($n, '18/105') !== false || strpos($n, '18-105') !== false)
+        return 2550.00;
+    if (strpos($n, 'sigma 16mm') !== false)
+        return 2150.00;
 
     // Vídeo
-    if (strpos($n, 'atem 2') !== false) return 13800.00;
-    if (strpos($n, 'switcher') !== false) return 5900.00;
-    if (strpos($n, 'extreme live') !== false) return 5400.00;
-    if (strpos($n, 'neoid') !== false) return 4800.00;
-    if (strpos($n, 'atem mini') !== false) return 2150.00;
-    if (strpos($n, 'cosmo c1') !== false) return 4650.00;
-    if (strpos($n, 'mars 300') !== false) return 2150.00;
-    if (strpos($n, 'feelworld 7') !== false) return 1350.00;
-    if (strpos($n, 'feelworld 5') !== false) return 890.00;
-    if (strpos($n, 'teleprompter profissional') !== false) return 2650.00;
-    if (strpos($n, 'teleprompter') !== false) return 1450.00;
-    if (strpos($n, 'placa de captura') !== false) return 650.00;
+    if (strpos($n, 'atem 2') !== false)
+        return 13800.00;
+    if (strpos($n, 'switcher') !== false)
+        return 5900.00;
+    if (strpos($n, 'extreme live') !== false)
+        return 5400.00;
+    if (strpos($n, 'neoid') !== false)
+        return 4800.00;
+    if (strpos($n, 'atem mini') !== false)
+        return 2150.00;
+    if (strpos($n, 'cosmo c1') !== false)
+        return 4650.00;
+    if (strpos($n, 'mars 300') !== false)
+        return 2150.00;
+    if (strpos($n, 'feelworld 7') !== false)
+        return 1350.00;
+    if (strpos($n, 'feelworld 5') !== false)
+        return 890.00;
+    if (strpos($n, 'teleprompter profissional') !== false)
+        return 2650.00;
+    if (strpos($n, 'teleprompter') !== false)
+        return 1450.00;
+    if (strpos($n, 'placa de captura') !== false)
+        return 650.00;
 
     // Áudio
-    if (strpos($n, 'soundcraft') !== false || strpos($n, 'ui24r') !== false) return 5900.00;
-    if (strpos($n, 'rodecaster') !== false || strpos($n, 'rode caster') !== false) return 4350.00;
-    if (strpos($n, 'eon615') !== false || strpos($n, 'jbl') !== false) return 2650.00;
-    if (strpos($n, 'mkh 600') !== false || strpos($n, 'sennheiser') !== false) return 2850.00;
-    if (strpos($n, 'zoom h5') !== false) return 1650.00;
-    if (strpos($n, 'lark m2s') !== false) return 1150.00;
-    if (strpos($n, 'lark m2') !== false || strpos($n, 'lark 150') !== false) return 980.00;
-    if (strpos($n, 'vara boom') !== false) return 1100.00;
-    if (strpos($n, 'behringer') !== false) return 750.00;
-    if (strpos($n, 'takstar') !== false || strpos($n, 'boya') !== false) return 320.00;
+    if (strpos($n, 'soundcraft') !== false || strpos($n, 'ui24r') !== false)
+        return 5900.00;
+    if (strpos($n, 'rodecaster') !== false || strpos($n, 'rode caster') !== false)
+        return 4350.00;
+    if (strpos($n, 'eon615') !== false || strpos($n, 'jbl') !== false)
+        return 2650.00;
+    if (strpos($n, 'mkh 600') !== false || strpos($n, 'sennheiser') !== false)
+        return 2850.00;
+    if (strpos($n, 'zoom h5') !== false)
+        return 1650.00;
+    if (strpos($n, 'lark m2s') !== false)
+        return 1150.00;
+    if (strpos($n, 'lark m2') !== false || strpos($n, 'lark 150') !== false)
+        return 980.00;
+    if (strpos($n, 'vara boom') !== false)
+        return 1100.00;
+    if (strpos($n, 'behringer') !== false)
+        return 750.00;
+    if (strpos($n, 'takstar') !== false || strpos($n, 'boya') !== false)
+        return 320.00;
 
     // Iluminação
-    if (strpos($n, 'ad600') !== false) return 5400.00;
-    if (strpos($n, 'sl 200') !== false || strpos($n, 'sz200') !== false) return 2250.00;
-    if (strpos($n, 'fv200') !== false) return 1950.00;
-    if (strpos($n, 'v860') !== false) return 1350.00;
-    if (strpos($n, 'v350') !== false) return 780.00;
-    if (strpos($n, 'tt350') !== false || strpos($n, 'tt600') !== false) return 480.00;
-    if (strpos($n, 'xpro') !== false || strpos($n, 'x3 s') !== false) return 480.00;
-    if (strpos($n, 'yn600') !== false || strpos($n, 'soleste') !== false) return 850.00;
-    if (strpos($n, 'softbox') !== false) return 450.00;
-    if (strpos($n, 'rebatedor') !== false) return 190.00;
+    if (strpos($n, 'ad600') !== false)
+        return 5400.00;
+    if (strpos($n, 'sl 200') !== false || strpos($n, 'sz200') !== false)
+        return 2250.00;
+    if (strpos($n, 'fv200') !== false)
+        return 1950.00;
+    if (strpos($n, 'v860') !== false)
+        return 1350.00;
+    if (strpos($n, 'v350') !== false)
+        return 780.00;
+    if (strpos($n, 'tt350') !== false || strpos($n, 'tt600') !== false)
+        return 480.00;
+    if (strpos($n, 'xpro') !== false || strpos($n, 'x3 s') !== false)
+        return 480.00;
+    if (strpos($n, 'yn600') !== false || strpos($n, 'soleste') !== false)
+        return 850.00;
+    if (strpos($n, 'softbox') !== false)
+        return 450.00;
+    if (strpos($n, 'rebatedor') !== false)
+        return 190.00;
 
     // Acessórios
-    if (strpos($n, 'grua 8m') !== false) return 8500.00;
-    if (strpos($n, 'grua 3') !== false) return 4200.00;
-    if (strpos($n, 'solidcom c1') !== false) return 5400.00;
-    if (strpos($n, 'hollyland 6s') !== false) return 4900.00;
-    if (strpos($n, 'impressora') !== false) return 4900.00;
-    if (strpos($n, 'weebill 3s') !== false) return 2550.00;
-    if (strpos($n, 'weebill s') !== false) return 1550.00;
-    if (strpos($n, 'benro') !== false) return 1250.00;
-    if (strpos($n, 'tr 688v') !== false || strpos($n, 'nt777') !== false) return 480.00;
-    if (strpos($n, 'tripé de luz') !== false) return 120.00;
-    if (strpos($n, 'hdmi 50m') !== false) return 220.00;
+    if (strpos($n, 'grua 8m') !== false)
+        return 8500.00;
+    if (strpos($n, 'grua 3') !== false)
+        return 4200.00;
+    if (strpos($n, 'solidcom c1') !== false)
+        return 5400.00;
+    if (strpos($n, 'hollyland 6s') !== false)
+        return 4900.00;
+    if (strpos($n, 'impressora') !== false)
+        return 4900.00;
+    if (strpos($n, 'weebill 3s') !== false)
+        return 2550.00;
+    if (strpos($n, 'weebill s') !== false)
+        return 1550.00;
+    if (strpos($n, 'benro') !== false)
+        return 1250.00;
+    if (strpos($n, 'tr 688v') !== false || strpos($n, 'nt777') !== false)
+        return 480.00;
+    if (strpos($n, 'tripé de luz') !== false)
+        return 120.00;
+    if (strpos($n, 'hdmi 50m') !== false)
+        return 220.00;
 
     // Fallbacks inteligentes por categoria ou múltiplo da diária
-    if ($dailyRate > 0) return max(200.00, round($dailyRate * 18, 2));
+    if ($dailyRate > 0)
+        return max(200.00, round($dailyRate * 18, 2));
     switch ($category) {
-        case 'cameras': return 4500.00;
-        case 'lenses': return 2500.00;
-        case 'video': return 2500.00;
-        case 'audio': return 1200.00;
-        case 'lighting': return 800.00;
-        default: return 500.00;
+        case 'cameras':
+            return 4500.00;
+        case 'lenses':
+            return 2500.00;
+        case 'video':
+            return 2500.00;
+        case 'audio':
+            return 1200.00;
+        case 'lighting':
+            return 800.00;
+        default:
+            return 500.00;
     }
 }
 
@@ -367,8 +458,10 @@ function getBenchmarkAssetValue($name, $category, $dailyRate = 0) {
 ensureRentalsTables($db);
 
 // Processa fotos de vistoria (salva em disco se base64, ou preserva base64)
-function processRentalPhotos($photos, $rentalCode, $type) {
-    if (!is_array($photos)) return [];
+function processRentalPhotos($photos, $rentalCode, $type)
+{
+    if (!is_array($photos))
+        return [];
     $processed = [];
     $possibleDirs = [
         __DIR__ . '/../images/rentals',
@@ -388,7 +481,8 @@ function processRentalPhotos($photos, $rentalCode, $type) {
                     $cleanId = !empty($p['id']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $p['id']) : ('p' . ($idx + 1));
                     $filename = $cleanCode . '_' . $type . '_' . $cleanId . '_' . time() . '.jpg';
                     foreach ($possibleDirs as $rDir) {
-                        if (empty($rDir)) continue;
+                        if (empty($rDir))
+                            continue;
                         if (!is_dir($rDir)) {
                             @mkdir($rDir, 0777, true);
                         }
@@ -405,13 +499,13 @@ function processRentalPhotos($photos, $rentalCode, $type) {
         }
 
         $processed[] = [
-            'id'            => $p['id'] ?? ('photo-' . bin2hex(random_bytes(4))),
-            'url'           => $url,
-            'caption'       => trim($p['caption'] ?? ''),
+            'id' => $p['id'] ?? ('photo-' . bin2hex(random_bytes(4))),
+            'url' => $url,
+            'caption' => trim($p['caption'] ?? ''),
             'equipmentName' => trim($p['equipmentName'] ?? ''),
-            'condition'     => trim($p['condition'] ?? 'ok'), // 'ok' ou 'damage'
-            'timestamp'     => $p['timestamp'] ?? date('Y-m-d H:i:s'),
-            'registeredBy'  => trim($p['registeredBy'] ?? 'Operador')
+            'condition' => trim($p['condition'] ?? 'ok'), // 'ok' ou 'damage'
+            'timestamp' => $p['timestamp'] ?? date('Y-m-d H:i:s'),
+            'registeredBy' => trim($p['registeredBy'] ?? 'Operador')
         ];
     }
     return $processed;
@@ -428,7 +522,7 @@ if ($method === 'GET' && $action === 'verify') {
     if (empty($code)) {
         jsonResponse([
             'success' => false,
-            'valid'   => false,
+            'valid' => false,
             'message' => 'Código de verificação do documento não fornecido.'
         ], 400);
     }
@@ -440,17 +534,17 @@ if ($method === 'GET' && $action === 'verify') {
     if (!$rental) {
         jsonResponse([
             'success' => true,
-            'valid'   => false,
+            'valid' => false,
             'message' => 'Documento não localizado na base oficial de locações da MegaFilmes.'
         ], 200);
     }
 
     $items = !empty($rental['items_json']) ? json_decode($rental['items_json'], true) : [];
-    $safeItems = array_map(function($it) {
+    $safeItems = array_map(function ($it) {
         return [
-            'name'         => $it['name'] ?? 'Equipamento',
-            'quantity'     => (int)($it['quantity'] ?? 1),
-            'dailyRate'    => (float)($it['dailyRate'] ?? 0),
+            'name' => $it['name'] ?? 'Equipamento',
+            'quantity' => (int) ($it['quantity'] ?? 1),
+            'dailyRate' => (float) ($it['dailyRate'] ?? 0),
             'serialNumber' => $it['serialNumber'] ?? ''
         ];
     }, is_array($items) ? $items : []);
@@ -484,33 +578,33 @@ if ($method === 'GET' && $action === 'verify') {
     $authSignature = 'AUTH-MF-' . strtoupper(str_pad(dechex($hash), 8, '0', STR_PAD_LEFT));
 
     jsonResponse([
-        'success'  => true,
-        'valid'    => true,
+        'success' => true,
+        'valid' => true,
         'document' => [
-            'code'                 => $rental['code'],
-            'type'                 => $isReserved ? 'Comprovante de Agendamento & Reserva' : 'Contrato de Locação & Termo de Responsabilidade',
-            'status'               => $rental['status'],
-            'clientName'           => $rental['client_name'],
+            'code' => $rental['code'],
+            'type' => $isReserved ? 'Comprovante de Agendamento & Reserva' : 'Contrato de Locação & Termo de Responsabilidade',
+            'status' => $rental['status'],
+            'clientName' => $rental['client_name'],
             'clientDocumentMasked' => $maskedDoc,
-            'clientPhoneMasked'    => $maskedPhone,
-            'startDate'            => $rental['start_date'],
-            'startTime'            => $rental['start_time'] ?? '08:00',
-            'endDate'              => $rental['end_date'],
-            'endTime'              => $rental['end_time'] ?? '18:00',
-            'totalDays'            => (int)$rental['total_days'],
-            'totalAmount'          => (float)$rental['total_amount'],
-            'paymentStatus'        => $rental['payment_status'] ?? 'Pendente',
-            'paymentMethod'        => $rental['payment_method'] ?? 'PIX',
-            'authorizedBy'         => $authorizer,
-            'authSignature'        => $authSignature,
-            'issuedAt'             => $rental['created_at'],
-            'items'                => $safeItems,
-            'legalFramework'       => 'Lei Federal nº 10.406/2002 (Código Civil) e Lei Federal nº 14.063/2020',
-            'issuer'               => [
-                'name'    => 'Mega Filmes e Fotografia (RG DA SILVA - ME)',
-                'cnpj'    => '21.973.641/0001-00',
+            'clientPhoneMasked' => $maskedPhone,
+            'startDate' => $rental['start_date'],
+            'startTime' => $rental['start_time'] ?? '08:00',
+            'endDate' => $rental['end_date'],
+            'endTime' => $rental['end_time'] ?? '18:00',
+            'totalDays' => (int) $rental['total_days'],
+            'totalAmount' => (float) $rental['total_amount'],
+            'paymentStatus' => $rental['payment_status'] ?? 'Pendente',
+            'paymentMethod' => $rental['payment_method'] ?? 'PIX',
+            'authorizedBy' => $authorizer,
+            'authSignature' => $authSignature,
+            'issuedAt' => $rental['created_at'],
+            'items' => $safeItems,
+            'legalFramework' => 'Lei Federal nº 10.406/2002 (Código Civil) e Lei Federal nº 14.063/2020',
+            'issuer' => [
+                'name' => 'Mega Filmes e Fotografia (RG DA SILVA - ME)',
+                'cnpj' => '21.973.641/0001-00',
                 'address' => 'Alameda dos Tatus, 155 - Dr. Silvio Leite, Boa Vista - RR',
-                'system'  => 'GestorMF'
+                'system' => 'GestorMF'
             ]
         ]
     ]);
@@ -561,16 +655,16 @@ if ($method === 'GET') {
                                         $missionAllocationsByEquipId[$eqId] = [];
                                     }
                                     $missionAllocationsByEquipId[$eqId][] = [
-                                        'type'             => 'mission',
-                                        'missionId'        => $am['id'],
-                                        'missionCode'      => $am['code'] ?? ('#' . $am['id']),
-                                        'description'      => $am['description'],
-                                        'date'             => $am['date'],
-                                        'endDate'          => $am['end_date'] ?? $am['date'],
-                                        'departureTime'    => $am['departure_time'],
-                                        'returnTime'       => $am['return_time_estimated'],
+                                        'type' => 'mission',
+                                        'missionId' => $am['id'],
+                                        'missionCode' => $am['code'] ?? ('#' . $am['id']),
+                                        'description' => $am['description'],
+                                        'date' => $am['date'],
+                                        'endDate' => $am['end_date'] ?? $am['date'],
+                                        'departureTime' => $am['departure_time'],
+                                        'returnTime' => $am['return_time_estimated'],
                                         'collaboratorName' => $collabName,
-                                        'quantity'         => (int)($it['quantity'] ?? 1)
+                                        'quantity' => (int) ($it['quantity'] ?? 1)
                                     ];
                                 }
                             }
@@ -579,30 +673,31 @@ if ($method === 'GET') {
                 }
             }
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
 
-    $equipment = array_map(function($e) use ($missionAllocationsByEquipId) {
+    $equipment = array_map(function ($e) use ($missionAllocationsByEquipId) {
         $eqId = $e['id'];
-        $assetVal = (float)($e['asset_value'] ?? 0);
+        $assetVal = (float) ($e['asset_value'] ?? 0);
         if ($assetVal <= 0) {
-            $assetVal = getBenchmarkAssetValue($e['name'], $e['category'], (float)$e['daily_rate']);
+            $assetVal = getBenchmarkAssetValue($e['name'], $e['category'], (float) $e['daily_rate']);
         }
         return [
-            'id'           => $eqId,
-            'name'         => $e['name'],
-            'category'     => $e['category'],
-            'dailyRate'    => (float)$e['daily_rate'],
-            'rateUnit'     => $e['rate_unit'] ?? 'diária',
-            'assetValue'   => $assetVal,
-            'totalQty'     => (int)$e['total_qty'],
-            'availableQty' => (int)$e['available_qty'],
+            'id' => $eqId,
+            'name' => $e['name'],
+            'category' => $e['category'],
+            'dailyRate' => (float) $e['daily_rate'],
+            'rateUnit' => $e['rate_unit'] ?? 'diária',
+            'assetValue' => $assetVal,
+            'totalQty' => (int) $e['total_qty'],
+            'availableQty' => (int) $e['available_qty'],
             'serialNumber' => $e['serial_number'] ?? '',
-            'photoUrl'     => $e['photo_url'] ?? '',
-            'description'  => $e['description'] ?? '',
-            'status'       => $e['status'] ?? 'available',
+            'photoUrl' => $e['photo_url'] ?? '',
+            'description' => $e['description'] ?? '',
+            'status' => $e['status'] ?? 'available',
             'missionAllocations' => $missionAllocationsByEquipId[$eqId] ?? [],
-            'createdAt'    => $e['created_at'],
-            'updatedAt'    => $e['updated_at']
+            'createdAt' => $e['created_at'],
+            'updatedAt' => $e['updated_at']
         ];
     }, $rawEq);
 
@@ -610,44 +705,44 @@ if ($method === 'GET') {
     $stmtRent = $db->query("SELECT * FROM rentals ORDER BY created_at DESC");
     $rawRent = $stmtRent->fetchAll();
 
-    $rentals = array_map(function($r) {
+    $rentals = array_map(function ($r) {
         $items = !empty($r['items_json']) ? json_decode($r['items_json'], true) : [];
         return [
-            'id'             => $r['id'],
-            'code'           => $r['code'],
-            'clientName'     => $r['client_name'],
+            'id' => $r['id'],
+            'code' => $r['code'],
+            'clientName' => $r['client_name'],
             'clientDocument' => $r['client_document'] ?? '',
-            'clientPhone'    => $r['client_phone'] ?? '',
-            'clientEmail'    => $r['client_email'] ?? '',
-            'clientAddress'  => $r['client_address'] ?? '',
-            'startDate'      => $r['start_date'],
-            'startTime'      => $r['start_time'] ?? '08:00',
-            'endDate'        => $r['end_date'],
-            'endTime'        => $r['end_time'] ?? '18:00',
-            'totalDays'      => (int)$r['total_days'],
-            'subtotal'       => (float)$r['subtotal'],
-            'discount'       => (float)$r['discount'],
-            'totalAmount'    => (float)$r['total_amount'],
-            'paymentMethod'  => $r['payment_method'] ?? 'PIX',
-            'paymentStatus'  => $r['payment_status'] ?? 'Pendente',
-            'status'         => $r['status'] ?? 'active',
-            'notes'          => $r['notes'] ?? '',
-            'items'          => is_array($items) ? $items : [],
-            'pickupPhotos'   => !empty($r['pickup_photos_json']) ? json_decode($r['pickup_photos_json'], true) : [],
-            'returnPhotos'   => !empty($r['return_photos_json']) ? json_decode($r['return_photos_json'], true) : [],
-            'pickupNotes'    => $r['pickup_notes'] ?? '',
-            'inspectionNotes'=> $r['inspection_notes'] ?? '',
-            'hasDamage'      => !empty($r['has_damage']),
-            'paidAmount'        => (float)($r['paid_amount'] ?? 0),
-            'remainingAmount'   => (float)($r['remaining_amount'] ?? 0),
+            'clientPhone' => $r['client_phone'] ?? '',
+            'clientEmail' => $r['client_email'] ?? '',
+            'clientAddress' => $r['client_address'] ?? '',
+            'startDate' => $r['start_date'],
+            'startTime' => $r['start_time'] ?? '08:00',
+            'endDate' => $r['end_date'],
+            'endTime' => $r['end_time'] ?? '18:00',
+            'totalDays' => (int) $r['total_days'],
+            'subtotal' => (float) $r['subtotal'],
+            'discount' => (float) $r['discount'],
+            'totalAmount' => (float) $r['total_amount'],
+            'paymentMethod' => $r['payment_method'] ?? 'PIX',
+            'paymentStatus' => $r['payment_status'] ?? 'Pendente',
+            'status' => $r['status'] ?? 'active',
+            'notes' => $r['notes'] ?? '',
+            'items' => is_array($items) ? $items : [],
+            'pickupPhotos' => !empty($r['pickup_photos_json']) ? json_decode($r['pickup_photos_json'], true) : [],
+            'returnPhotos' => !empty($r['return_photos_json']) ? json_decode($r['return_photos_json'], true) : [],
+            'pickupNotes' => $r['pickup_notes'] ?? '',
+            'inspectionNotes' => $r['inspection_notes'] ?? '',
+            'hasDamage' => !empty($r['has_damage']),
+            'paidAmount' => (float) ($r['paid_amount'] ?? 0),
+            'remainingAmount' => (float) ($r['remaining_amount'] ?? 0),
             'remainingDueTerms' => $r['remaining_due_terms'] ?? '',
-            'remainingDueDate'  => $r['remaining_due_date'] ?? null,
-            'securityDeposit'   => (float)($r['security_deposit'] ?? 0),
-            'createdBy'      => $r['created_by'] ?? 'Sistema',
-            'createdAt'      => $r['created_at'],
-            'updatedAt'      => $r['updated_at'],
-            'returnedAt'     => $r['returned_at'],
-            'returnNotes'    => $r['return_notes'] ?? ''
+            'remainingDueDate' => $r['remaining_due_date'] ?? null,
+            'securityDeposit' => (float) ($r['security_deposit'] ?? 0),
+            'createdBy' => $r['created_by'] ?? 'Sistema',
+            'createdAt' => $r['created_at'],
+            'updatedAt' => $r['updated_at'],
+            'returnedAt' => $r['returned_at'],
+            'returnNotes' => $r['return_notes'] ?? ''
         ];
     }, $rawRent);
 
@@ -660,19 +755,19 @@ if ($method === 'GET') {
     $patrimonyByCategory = [];
     foreach ($equipment as $eq) {
         $cat = $eq['category'] ?: 'accessories';
-        $val = ((float)$eq['assetValue']) * ((int)$eq['totalQty']);
+        $val = ((float) $eq['assetValue']) * ((int) $eq['totalQty']);
         $totalAssetValue += $val;
 
         if (!isset($patrimonyByCategory[$cat])) {
             $patrimonyByCategory[$cat] = [
-                'category'        => $cat,
+                'category' => $cat,
                 'totalAssetValue' => 0.0,
-                'totalUnits'      => 0,
-                'itemsCount'      => 0
+                'totalUnits' => 0,
+                'itemsCount' => 0
             ];
         }
         $patrimonyByCategory[$cat]['totalAssetValue'] += $val;
-        $patrimonyByCategory[$cat]['totalUnits'] += (int)$eq['totalQty'];
+        $patrimonyByCategory[$cat]['totalUnits'] += (int) $eq['totalQty'];
         $patrimonyByCategory[$cat]['itemsCount'] += 1;
     }
 
@@ -682,29 +777,29 @@ if ($method === 'GET') {
     // Alertas de Devoluções Próximas (vence hoje ou amanhã)
     $todayStr = date('Y-m-d');
     $tomorrowStr = date('Y-m-d', strtotime('+1 day'));
-    $dueSoonRentals = array_values(array_filter($rentals, function($r) use ($todayStr, $tomorrowStr) {
-        return ($r['status'] === 'active' || $r['status'] === 'overdue') && 
-               ($r['endDate'] <= $tomorrowStr);
+    $dueSoonRentals = array_values(array_filter($rentals, function ($r) use ($todayStr, $tomorrowStr) {
+        return ($r['status'] === 'active' || $r['status'] === 'overdue') &&
+            ($r['endDate'] <= $tomorrowStr);
     }));
 
     jsonResponse([
-        'success'   => true,
+        'success' => true,
         'equipment' => $equipment,
-        'rentals'   => $rentals,
+        'rentals' => $rentals,
         'patrimony' => [
             'totalAssetValue' => $totalAssetValue,
-            'totalUnits'      => $totalEquipments,
-            'totalItems'      => count($equipment),
-            'byCategory'      => array_values($patrimonyByCategory)
+            'totalUnits' => $totalEquipments,
+            'totalItems' => count($equipment),
+            'byCategory' => array_values($patrimonyByCategory)
         ],
-        'summary'   => [
-            'totalEquipments'     => $totalEquipments,
+        'summary' => [
+            'totalEquipments' => $totalEquipments,
             'availableEquipments' => $availableEquipments,
-            'rentedEquipments'    => $rentedEquipments,
-            'totalAssetValue'     => $totalAssetValue,
-            'activeRentals'       => $activeRentals,
-            'overdueRentals'      => $overdueRentals,
-            'dueSoonCount'        => count($dueSoonRentals)
+            'rentedEquipments' => $rentedEquipments,
+            'totalAssetValue' => $totalAssetValue,
+            'activeRentals' => $activeRentals,
+            'overdueRentals' => $overdueRentals,
+            'dueSoonCount' => count($dueSoonRentals)
         ]
     ]);
 }
@@ -723,14 +818,14 @@ if ($method === 'POST' && $action === 'save_equipment') {
 
     $name = trim($data['name'] ?? '');
     $category = trim($data['category'] ?? 'accessories');
-    $dailyRate = (float)($data['dailyRate'] ?? $data['daily_rate'] ?? 0);
-    $assetValue = (float)($data['assetValue'] ?? $data['asset_value'] ?? 0);
+    $dailyRate = (float) ($data['dailyRate'] ?? $data['daily_rate'] ?? 0);
+    $assetValue = (float) ($data['assetValue'] ?? $data['asset_value'] ?? 0);
     if ($assetValue <= 0) {
         $benchmark = getBenchmarkAssetValue($name, $category, $dailyRate);
         $assetValue = $benchmark;
     }
     $rateUnit = trim($data['rateUnit'] ?? 'diária');
-    $totalQty = max(1, (int)($data['totalQty'] ?? 1));
+    $totalQty = max(1, (int) ($data['totalQty'] ?? 1));
     $serialNumber = trim($data['serialNumber'] ?? '');
     $photoUrl = trim($data['photoUrl'] ?? $data['photo_url'] ?? '');
     $description = trim($data['description'] ?? '');
@@ -759,7 +854,8 @@ if ($method === 'POST' && $action === 'save_equipment') {
                 $uniqueFilename = 'custom_' . $cleanId . '_' . time() . '.jpg';
 
                 foreach ($possibleDirs as $equipDir) {
-                    if (empty($equipDir)) continue;
+                    if (empty($equipDir))
+                        continue;
                     if (!is_dir($equipDir)) {
                         @mkdir($equipDir, 0777, true);
                     }
@@ -790,8 +886,8 @@ if ($method === 'POST' && $action === 'save_equipment') {
 
     try {
         if ($existing) {
-            $diff = $totalQty - (int)$existing['total_qty'];
-            $newAvailable = max(0, (int)$existing['available_qty'] + $diff);
+            $diff = $totalQty - (int) $existing['total_qty'];
+            $newAvailable = max(0, (int) $existing['available_qty'] + $diff);
             $status = $newAvailable > 0 ? 'available' : 'rented';
 
             $stmtUp = $db->prepare("
@@ -800,7 +896,18 @@ if ($method === 'POST' && $action === 'save_equipment') {
                 WHERE id = ?
             ");
             $stmtUp->execute([
-                $name, $category, $dailyRate, $rateUnit, $assetValue, $totalQty, $newAvailable, $serialNumber, $photoUrl, $description, $status, $id
+                $name,
+                $category,
+                $dailyRate,
+                $rateUnit,
+                $assetValue,
+                $totalQty,
+                $newAvailable,
+                $serialNumber,
+                $photoUrl,
+                $description,
+                $status,
+                $id
             ]);
         } else {
             $stmtIns = $db->prepare("
@@ -808,7 +915,17 @@ if ($method === 'POST' && $action === 'save_equipment') {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
             ");
             $stmtIns->execute([
-                $id, $name, $category, $dailyRate, $rateUnit, $assetValue, $totalQty, $totalQty, $serialNumber, $photoUrl, $description
+                $id,
+                $name,
+                $category,
+                $dailyRate,
+                $rateUnit,
+                $assetValue,
+                $totalQty,
+                $totalQty,
+                $serialNumber,
+                $photoUrl,
+                $description
             ]);
         }
     } catch (Exception $e) {
@@ -819,10 +936,10 @@ if ($method === 'POST' && $action === 'save_equipment') {
     bumpSyncVersion('save_equipment');
 
     jsonResponse([
-        'success'  => true,
-        'id'       => $id,
+        'success' => true,
+        'id' => $id,
         'photoUrl' => $photoUrl,
-        'message'  => 'Equipamento salvo com sucesso.'
+        'message' => 'Equipamento salvo com sucesso.'
     ]);
 }
 
@@ -855,7 +972,8 @@ if ($method === 'POST' && $action === 'update_equipment_photo') {
                 $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '', $id);
                 $uniqueFilename = 'custom_' . $cleanId . '_' . time() . '.jpg';
                 foreach ($possibleDirs as $equipDir) {
-                    if (empty($equipDir)) continue;
+                    if (empty($equipDir))
+                        continue;
                     if (!is_dir($equipDir)) {
                         @mkdir($equipDir, 0777, true);
                     }
@@ -877,8 +995,8 @@ if ($method === 'POST' && $action === 'update_equipment_photo') {
         bumpSyncVersion('update_equipment_photo');
 
         jsonResponse([
-            'success'  => true,
-            'message'  => 'Foto do equipamento atualizada com sucesso.',
+            'success' => true,
+            'message' => 'Foto do equipamento atualizada com sucesso.',
             'photoUrl' => $photoUrl
         ]);
     } catch (Throwable $e) {
@@ -900,9 +1018,9 @@ if (($method === 'DELETE' || ($method === 'POST' && $action === 'delete_equipmen
     $stmtEq->execute([$id]);
     $eq = $stmtEq->fetch();
 
-    if ($eq && (int)$eq['available_qty'] < (int)$eq['total_qty']) {
+    if ($eq && (int) $eq['available_qty'] < (int) $eq['total_qty']) {
         jsonResponse([
-            'success' => false, 
+            'success' => false,
             'error' => "Não é possível excluir '{$eq['name']}' pois existem unidades atualmente alugadas. Faça o check-in de devolução primeiro."
         ], 400);
     }
@@ -945,8 +1063,9 @@ if ($method === 'POST' && $action === 'create_rental') {
     // Calcula dias de locação
     $startTs = strtotime($startDate);
     $endTs = strtotime($endDate);
-    $diffDays = max(1, (int)round(($endTs - $startTs) / 86400));
-    if ($diffDays < 1) $diffDays = 1;
+    $diffDays = max(1, (int) round(($endTs - $startTs) / 86400));
+    if ($diffDays < 1)
+        $diffDays = 1;
 
     // Valida disponibilidade de cada item e calcula subtotal
     $subtotal = 0;
@@ -957,7 +1076,7 @@ if ($method === 'POST' && $action === 'create_rental') {
     try {
         foreach ($items as $it) {
             $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
-            $qty = max(1, (int)($it['quantity'] ?? 1));
+            $qty = max(1, (int) ($it['quantity'] ?? 1));
 
             $stmtCheck = $db->prepare("SELECT * FROM equipment WHERE id = ? FOR UPDATE");
             $stmtCheck->execute([$eqId]);
@@ -967,44 +1086,44 @@ if ($method === 'POST' && $action === 'create_rental') {
                 throw new Exception("Equipamento não encontrado: " . ($it['name'] ?? $eqId));
             }
 
-            if ((int)$eq['available_qty'] < $qty) {
+            if ((int) $eq['available_qty'] < $qty) {
                 throw new Exception("Estoque insuficiente para '{$eq['name']}'. Disponível: {$eq['available_qty']} un, Solicitado: {$qty} un.");
             }
 
-            $rate = (float)($it['dailyRate'] ?? $eq['daily_rate']);
+            $rate = (float) ($it['dailyRate'] ?? $eq['daily_rate']);
             $itemTotal = $rate * $qty * $diffDays;
             $subtotal += $itemTotal;
 
             // Baixa estoque disponível
-            $newAvailable = (int)$eq['available_qty'] - $qty;
+            $newAvailable = (int) $eq['available_qty'] - $qty;
             $newStatus = $newAvailable == 0 ? 'rented' : 'available';
 
             $stmtUp = $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?");
             $stmtUp->execute([$newAvailable, $newStatus, $eqId]);
 
             $validatedItems[] = [
-                'equipmentId'  => $eqId,
-                'name'         => $eq['name'],
-                'category'     => $eq['category'],
+                'equipmentId' => $eqId,
+                'name' => $eq['name'],
+                'category' => $eq['category'],
                 'serialNumber' => $eq['serial_number'] ?? '',
-                'quantity'     => $qty,
-                'dailyRate'    => $rate,
-                'rateUnit'     => $eq['rate_unit'] ?? 'diária',
-                'itemTotal'    => $itemTotal
+                'quantity' => $qty,
+                'dailyRate' => $rate,
+                'rateUnit' => $eq['rate_unit'] ?? 'diária',
+                'itemTotal' => $itemTotal
             ];
         }
 
-        $discount = (float)($data['discount'] ?? 0);
+        $discount = (float) ($data['discount'] ?? 0);
         $totalAmount = max(0, $subtotal - $discount);
         $paymentMethod = trim($data['paymentMethod'] ?? 'PIX');
         $paymentStatus = trim($data['paymentStatus'] ?? 'Pendente');
         $notes = trim($data['notes'] ?? '');
 
-        $paidAmount = max(0, (float)($data['paidAmount'] ?? 0));
-        $remainingAmount = max(0, (float)($data['remainingAmount'] ?? ($totalAmount - $paidAmount)));
+        $paidAmount = max(0, (float) ($data['paidAmount'] ?? 0));
+        $remainingAmount = max(0, (float) ($data['remainingAmount'] ?? ($totalAmount - $paidAmount)));
         $remainingDueTerms = trim($data['remainingDueTerms'] ?? '');
         $remainingDueDate = !empty($data['remainingDueDate']) ? trim($data['remainingDueDate']) : null;
-        $securityDeposit = max(0, (float)($data['securityDeposit'] ?? 0));
+        $securityDeposit = max(0, (float) ($data['securityDeposit'] ?? 0));
 
         if ($paymentStatus === 'Pago' && $paidAmount == 0) {
             $paidAmount = $totalAmount;
@@ -1020,7 +1139,7 @@ if ($method === 'POST' && $action === 'create_rental') {
         // Prefixo do código: RES- para reservas/agendamentos, LOC- para locações diretas
         $prefix = ($status === 'reserved') ? ('RES-' . date('Ym') . '-') : ('LOC-' . date('Ym') . '-');
         $stmtSeq = $db->query("SELECT COUNT(*) FROM rentals WHERE code LIKE '{$prefix}%'");
-        $seq = (int)$stmtSeq->fetchColumn() + 1;
+        $seq = (int) $stmtSeq->fetchColumn() + 1;
         $code = $prefix . str_pad($seq, 3, '0', STR_PAD_LEFT);
 
         $rentalId = 'rent-' . bin2hex(random_bytes(8));
@@ -1040,11 +1159,31 @@ if ($method === 'POST' && $action === 'create_rental') {
         ");
 
         $stmtRent->execute([
-            $rentalId, $code, $clientName, $clientDocument, $clientPhone, $clientEmail, $clientAddress,
-            $startDate, $startTime, $endDate, $endTime, $diffDays,
-            $subtotal, $discount, $totalAmount, $paymentMethod, $paymentStatus, $status,
-            $notes, json_encode($validatedItems, JSON_UNESCAPED_UNICODE),
-            $paidAmount, $remainingAmount, $remainingDueTerms, $remainingDueDate, $securityDeposit,
+            $rentalId,
+            $code,
+            $clientName,
+            $clientDocument,
+            $clientPhone,
+            $clientEmail,
+            $clientAddress,
+            $startDate,
+            $startTime,
+            $endDate,
+            $endTime,
+            $diffDays,
+            $subtotal,
+            $discount,
+            $totalAmount,
+            $paymentMethod,
+            $paymentStatus,
+            $status,
+            $notes,
+            json_encode($validatedItems, JSON_UNESCAPED_UNICODE),
+            $paidAmount,
+            $remainingAmount,
+            $remainingDueTerms,
+            $remainingDueDate,
+            $securityDeposit,
             $user['name']
         ]);
 
@@ -1055,11 +1194,11 @@ if ($method === 'POST' && $action === 'create_rental') {
         bumpSyncVersion('create_rental');
 
         jsonResponse([
-            'success'   => true,
-            'rentalId'  => $rentalId,
-            'code'      => $code,
-            'status'    => $status,
-            'message'   => "{$actionLabel} {$code} gerada com sucesso!"
+            'success' => true,
+            'rentalId' => $rentalId,
+            'code' => $code,
+            'status' => $status,
+            'message' => "{$actionLabel} {$code} gerada com sucesso!"
         ]);
 
     } catch (Exception $e) {
@@ -1099,18 +1238,18 @@ if ($method === 'POST' && $action === 'return_rental') {
         // Devolve cada item ao estoque
         foreach ($items as $it) {
             $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
-            $qty = (int)($it['quantity'] ?? 1);
+            $qty = (int) ($it['quantity'] ?? 1);
 
             $stmtEq = $db->prepare("SELECT total_qty, available_qty FROM equipment WHERE id = ? FOR UPDATE");
             $stmtEq->execute([$eqId]);
             $eq = $stmtEq->fetch();
 
             if ($eq) {
-                $newAvailable = min((int)$eq['total_qty'], (int)$eq['available_qty'] + $qty);
+                $newAvailable = min((int) $eq['total_qty'], (int) $eq['available_qty'] + $qty);
                 $status = $newAvailable > 0 ? 'available' : 'rented';
 
                 $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
-                   ->execute([$newAvailable, $status, $eqId]);
+                    ->execute([$newAvailable, $status, $eqId]);
             }
         }
 
@@ -1248,14 +1387,14 @@ if ($method === 'POST' && $action === 'save_inspection') {
     $updated = $stmtUp->fetch();
 
     jsonResponse([
-        'success'         => true,
-        'message'         => 'Vistoria e fotos de equipamentos salvas com sucesso!',
-        'pickupPhotos'    => !empty($updated['pickup_photos_json']) ? json_decode($updated['pickup_photos_json'], true) : [],
-        'returnPhotos'    => !empty($updated['return_photos_json']) ? json_decode($updated['return_photos_json'], true) : [],
-        'pickupNotes'     => $updated['pickup_notes'] ?? '',
-        'returnNotes'     => $updated['return_notes'] ?? '',
+        'success' => true,
+        'message' => 'Vistoria e fotos de equipamentos salvas com sucesso!',
+        'pickupPhotos' => !empty($updated['pickup_photos_json']) ? json_decode($updated['pickup_photos_json'], true) : [],
+        'returnPhotos' => !empty($updated['return_photos_json']) ? json_decode($updated['return_photos_json'], true) : [],
+        'pickupNotes' => $updated['pickup_notes'] ?? '',
+        'returnNotes' => $updated['return_notes'] ?? '',
         'inspectionNotes' => $updated['inspection_notes'] ?? '',
-        'hasDamage'       => !empty($updated['has_damage'])
+        'hasDamage' => !empty($updated['has_damage'])
     ]);
 }
 
@@ -1321,18 +1460,18 @@ if ($method === 'POST' && $action === 'cancel_rental') {
             $items = !empty($rental['items_json']) ? json_decode($rental['items_json'], true) : [];
             foreach ($items as $it) {
                 $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
-                $qty = (int)($it['quantity'] ?? 1);
+                $qty = (int) ($it['quantity'] ?? 1);
 
                 $stmtEq = $db->prepare("SELECT total_qty, available_qty FROM equipment WHERE id = ? FOR UPDATE");
                 $stmtEq->execute([$eqId]);
                 $eq = $stmtEq->fetch();
 
                 if ($eq) {
-                    $newAvailable = min((int)$eq['total_qty'], (int)$eq['available_qty'] + $qty);
+                    $newAvailable = min((int) $eq['total_qty'], (int) $eq['available_qty'] + $qty);
                     $status = $newAvailable > 0 ? 'available' : 'rented';
 
                     $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
-                       ->execute([$newAvailable, $status, $eqId]);
+                        ->execute([$newAvailable, $status, $eqId]);
                 }
             }
         }
@@ -1382,7 +1521,7 @@ if (($method === 'DELETE' || ($method === 'POST' && $action === 'delete_rental')
             if (is_array($items)) {
                 foreach ($items as $it) {
                     $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
-                    $qty = (int)($it['quantity'] ?? 1);
+                    $qty = (int) ($it['quantity'] ?? 1);
 
                     if (!empty($eqId)) {
                         $stmtEq = $db->prepare("SELECT total_qty, available_qty FROM equipment WHERE id = ?");
@@ -1390,11 +1529,11 @@ if (($method === 'DELETE' || ($method === 'POST' && $action === 'delete_rental')
                         $eq = $stmtEq->fetch();
 
                         if ($eq) {
-                            $newAvailable = min((int)$eq['total_qty'], (int)$eq['available_qty'] + $qty);
+                            $newAvailable = min((int) $eq['total_qty'], (int) $eq['available_qty'] + $qty);
                             $status = $newAvailable > 0 ? 'available' : 'rented';
 
                             $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
-                               ->execute([$newAvailable, $status, $eqId]);
+                                ->execute([$newAvailable, $status, $eqId]);
                         }
                     }
                 }

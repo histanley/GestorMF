@@ -73,11 +73,124 @@ export default function RentalContractModal({ rental, currentUser = null, onClos
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   const handlePrint = () => {
-    document.body.classList.add('printing-rental-contract');
-    window.print();
-    setTimeout(() => {
-      document.body.classList.remove('printing-rental-contract');
-    }, 1500);
+    if (!sheetRef.current) return;
+
+    // Criar um iframe invisível para isolar a folha A4 e garantir impressão direta sem tela em branco
+    const existingFrame = document.getElementById('rc-print-frame');
+    if (existingFrame) existingFrame.remove();
+
+    const iframe = document.createElement('iframe');
+    iframe.id = 'rc-print-frame';
+    iframe.style.position = 'fixed';
+    iframe.style.top = '-10000px';
+    iframe.style.left = '-10000px';
+    iframe.style.width = '210mm';
+    iframe.style.height = '297mm';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+
+    // Coleta todos os estilos da aplicação
+    let stylesHtml = '';
+    document.querySelectorAll('style, link[rel="stylesheet"]').forEach((el) => {
+      stylesHtml += el.outerHTML;
+    });
+
+    const sheetHtml = sheetRef.current.outerHTML;
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>${isReserved ? 'Reserva' : 'Contrato'}_${rental.code}</title>
+          ${stylesHtml}
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 4mm 6mm;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              box-sizing: border-box !important;
+            }
+            html, body {
+              background: #ffffff !important;
+              color: #0f172a !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            }
+            .rc-document-sheet {
+              display: block !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 auto !important;
+              padding: 0 !important;
+              background: #ffffff !important;
+              color: #0f172a !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+          </style>
+        </head>
+        <body>
+          ${sheetHtml}
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    const triggerPrint = () => {
+      setTimeout(() => {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch (e) {
+          console.warn('Fallback para window.print():', e);
+          document.body.classList.add('printing-rental-contract');
+          window.print();
+          setTimeout(() => {
+            document.body.classList.remove('printing-rental-contract');
+          }, 1500);
+        } finally {
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              iframe.remove();
+            }
+          }, 4000);
+        }
+      }, 350);
+    };
+
+    // Aguardar imagens carregarem no iframe
+    const imgs = Array.from(doc.images);
+    if (imgs.length === 0) {
+      triggerPrint();
+    } else {
+      let loaded = 0;
+      const checkLoaded = () => {
+        loaded++;
+        if (loaded >= imgs.length) triggerPrint();
+      };
+      imgs.forEach((img) => {
+        if (img.complete) {
+          loaded++;
+        } else {
+          img.onload = checkLoaded;
+          img.onerror = checkLoaded;
+        }
+      });
+      if (loaded >= imgs.length) {
+        triggerPrint();
+      } else {
+        setTimeout(triggerPrint, 700);
+      }
+    }
   };
 
     const handleDownloadPdf = async () => {
@@ -284,7 +397,7 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
           <div className="rc-document-sheet" ref={sheetRef}>
             {/* Cabeçalho Corporativo Oficial Timbrado — Fiel ao Modelo Print 2 / 4 / 5 */}
             <div className="rc-doc-header-official">
-              <div className="rc-header-brand-side">
+              <div className="rc-header-logo-col">
                 <img
                   src="/images/contract/header-logo.png?v=2"
                   alt="Mega Filmes e Fotografia"
@@ -294,17 +407,19 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
                     e.currentTarget.src = '/logo.png';
                   }}
                 />
-                <img
-                  src="/images/contract/header-banner.png?v=2"
-                  alt="RG DA SILVA - ME"
-                  className="rc-header-text-img"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
               </div>
 
-              <div className="rc-header-meta-side">
+              <div className="rc-header-center-info">
+                <div className="rc-header-company-text">
+                  <div className="rc-ci-row rc-ci-main">RG DA SILVA - ME : CNPJ: 21.973.641/0001-00</div>
+                  <div className="rc-ci-row">Endereço: Alameda dos Tatus 155 Dr. Silvio Leite</div>
+                  <div className="rc-ci-row">Cep: 69314318 - Boa Vista Roraima</div>
+                  <div className="rc-ci-row">Fone: 95 99815-1738</div>
+                  <div className="rc-ci-row rc-ci-email">megafilmeseftografia@gmail.com</div>
+                </div>
+              </div>
+
+              <div className="rc-header-meta-col">
                 <div className="rc-contract-meta-card">
                   <span className="rc-meta-type-tag">
                     {isReserved ? 'AGENDAMENTO & RESERVA' : 'CONTRATO DE LOCAÇÃO'}
@@ -312,7 +427,7 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
                   <strong className="rc-meta-code-val">{rental.code}</strong>
                   <span className="rc-meta-legal-ref">Lei Federal nº 10.406 (Código Civil)</span>
                   <span className="rc-meta-issue-date">
-                    Emissão: {formatDateBR(rental.createdAt ? rental.createdAt.split('T')[0] : rental.startDate)}
+                    Emissão: {formatDateBR((rental.createdAt || rental.startDate || '').split(/[T ]/)[0])}
                   </span>
                 </div>
               </div>

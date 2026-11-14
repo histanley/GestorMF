@@ -451,60 +451,60 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
           createdAt: new Date().toISOString(),
         };
 
-          // Baixa localmente estoque disponível (itens ficam reservados)
-          setEquipmentList((prev) =>
-            prev.map((eq) => {
-              const inCart = cartItems.find((c) => c.equipmentId === eq.id);
-              if (inCart) {
-                const newAvail = Math.max(0, eq.availableQty - inCart.quantity);
-                return { ...eq, availableQty: newAvail, status: newAvail > 0 ? 'available' : 'rented' };
-              }
-              return eq;
-            })
-          );
+        // Baixa localmente estoque disponível (itens ficam reservados)
+        setEquipmentList((prev) =>
+          prev.map((eq) => {
+            const inCart = cartItems.find((c) => c.equipmentId === eq.id);
+            if (inCart) {
+              const newAvail = Math.max(0, eq.availableQty - inCart.quantity);
+              return { ...eq, availableQty: newAvail, status: newAvail > 0 ? 'available' : 'rented' };
+            }
+            return eq;
+          })
+        );
 
-          setRentalsList((prev) => [newRentalObj, ...prev]);
+        setRentalsList((prev) => [newRentalObj, ...prev]);
 
-          // Limpa carrinho e formulário
-          setCartItems([]);
-          setRentalForm({
-            clientName: '',
-            clientDocument: '',
-            clientPhone: '',
-            clientEmail: '',
-            clientAddress: '',
-            startDate: new Date().toISOString().split('T')[0],
-            startTime: '08:00',
-            endDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-            endTime: '18:00',
-            discount: 0,
-            paymentMethod: 'PIX',
-            paymentStatus: 'Pendente',
-            notes: '',
+        // Limpa carrinho e formulário
+        setCartItems([]);
+        setRentalForm({
+          clientName: '',
+          clientDocument: '',
+          clientPhone: '',
+          clientEmail: '',
+          clientAddress: '',
+          startDate: new Date().toISOString().split('T')[0],
+          startTime: '08:00',
+          endDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+          endTime: '18:00',
+          discount: 0,
+          paymentMethod: 'PIX',
+          paymentStatus: 'Pendente',
+          notes: '',
+        });
+
+        // Abre imediatamente o Termo/Comprovante para impressão/envio
+        setSelectedRentalForContract(newRentalObj);
+        setActiveTab('rentals');
+
+        if (isReservation) {
+          alertDialog({
+            title: '📅 Agendamento & Reserva Concluídos!',
+            message: `Reserva ${newCode} registrada com sucesso! Os equipamentos foram bloqueados no estoque para o cliente. O comprovante está pronto na tela.`,
+            variant: 'success',
           });
-
-          // Abre imediatamente o Termo/Comprovante para impressão/envio
-          setSelectedRentalForContract(newRentalObj);
-          setActiveTab('rentals');
-
-          if (isReservation) {
-            alertDialog({
-              title: '📅 Agendamento & Reserva Concluídos!',
-              message: `Reserva ${newCode} registrada com sucesso! Os equipamentos foram bloqueados no estoque para o cliente. O comprovante está pronto na tela.`,
-              variant: 'success',
-            });
-          } else {
-            alertDialog({
-              title: '🎉 Locação Criada com Sucesso!',
-              message: `Contrato ${newCode} registrado. O termo de responsabilidade está pronto na tela para impressão ou compartilhamento.`,
-              variant: 'success',
-            });
-          }
-          return;
         } else {
-          throw new Error(data?.error || 'Erro ao salvar registro no servidor.');
+          alertDialog({
+            title: '🎉 Locação Criada com Sucesso!',
+            message: `Contrato ${newCode} registrado. O termo de responsabilidade está pronto na tela para impressão ou compartilhamento.`,
+            variant: 'success',
+          });
         }
-      } catch (err) {
+        return;
+      } else {
+        throw new Error(data?.error || 'Erro ao salvar registro no servidor.');
+      }
+    } catch (err) {
       console.warn('Fallback offline para locação/reserva:', err);
       const prefix = isReservation ? 'RES-' : 'LOC-';
       const newCode = `${prefix}${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${String(rentalsList.length + 1).padStart(3, '0')}`;

@@ -36891,60 +36891,65 @@ body.light-theme .kpi-card.kpi-red {
   border-bottom: 2px solid #0f172a;
   padding-bottom: 12px;
   margin-bottom: 10px;
-  gap: 20px;
+  gap: 16px;
 }
 
-.rc-header-brand-side {
+.rc-header-logo-col {
+  width: 195px;
   display: flex;
   align-items: center;
-  gap: 20px;
-  flex: 1;
+  justify-content: flex-start;
+  flex-shrink: 0;
 }
 
 .rc-header-logo-img {
-  max-height: 86px;
+  max-height: 84px;
   width: auto;
-  max-width: 220px;
+  max-width: 195px;
   object-fit: contain;
   display: block;
 }
 
-.rc-header-text-img {
-  max-height: 80px;
-  width: auto;
-  max-width: 440px;
-  object-fit: contain;
-  display: block;
-}
-
-.rc-header-banner-img {
-  max-height: 80px;
-  max-width: 480px;
-  width: auto;
-  object-fit: contain;
-  display: block;
-}
-
-.rc-company-info-block {
+.rc-header-center-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 10px;
 }
 
-.rc-company-legal {
-  font-size: 0.9rem;
-  font-weight: 900;
-  color: #0f172a;
-  letter-spacing: -0.01em;
+.rc-header-company-text {
+  text-align: center;
+  font-style: italic;
+  font-weight: 700;
+  color: #52525b;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
 }
 
-.rc-company-details {
-  font-size: 0.65rem;
-  color: #475569;
-  line-height: 1.25;
+.rc-header-company-text .rc-ci-row {
+  margin: 1px 0;
 }
 
-.rc-header-meta-side {
-  text-align: right;
+.rc-header-company-text .rc-ci-main {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #3f3f46;
+  margin-bottom: 2px;
+}
+
+.rc-header-company-text .rc-ci-email {
+  color: #52525b;
+}
+
+.rc-header-meta-col {
+  width: 195px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   flex-shrink: 0;
 }
 
@@ -37430,25 +37435,40 @@ body.light-theme .kpi-card.kpi-red {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 5mm 8mm;
+    margin: 4mm 6mm;
   }
 
-  /* Oculta toda a interface de fundo, deixando ESTRITAMENTE o contrato ativo */
-  .app-container,
+  /* Oculta apenas os elementos externos à folha, preservando a árvore DOM ativa */
   .app-header,
-  .service-board-container,
   .global-fuel-reserve-bar,
+  .admin-header,
+  .ac-tabs-bar,
+  .erm-main-header,
+  .erm-tab-nav,
+  .erm-kpi-grid,
+  .erm-category-breakdown,
+  .erm-rentals-toolbar,
+  .erm-rentals-list,
+  .erm-catalog-view,
+  .erm-new-rental-view,
+  .service-board-container,
   .board-header,
   .board-kpi-strip,
   .board-filter-toolbar,
   .modal-overlay:not(.rental-contract-overlay),
-  .no-print {
+  .no-print,
+  .rc-modal-topbar {
     display: none !important;
   }
 
   body,
   html,
-  #root {
+  #root,
+  .app-container,
+  .app-shell,
+  .app-main,
+  .admin-center-container,
+  .ac-rentals-view {
     background: #ffffff !important;
     color: #0f172a !important;
     width: 100% !important;
@@ -37456,6 +37476,8 @@ body.light-theme .kpi-card.kpi-red {
     min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
     overflow: visible !important;
   }
 
@@ -37494,7 +37516,7 @@ body.light-theme .kpi-card.kpi-red {
     background: #ffffff !important;
     color: #0f172a !important;
     padding: 0 !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     width: 100% !important;
     max-width: 100% !important;
     font-size: 10px !important;
@@ -37502,35 +37524,67 @@ body.light-theme .kpi-card.kpi-red {
     page-break-inside: avoid !important;
     page-break-after: avoid !important;
     overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   .rc-doc-header-official {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 2px solid #0f172a !important;
     padding-bottom: 6px !important;
     margin-bottom: 6px !important;
-  }
-
-  .rc-header-brand-side {
     gap: 12px !important;
   }
 
+  .rc-header-logo-col {
+    width: 180px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-shrink: 0 !important;
+  }
+
   .rc-header-logo-img {
-    max-height: 64px !important;
+    max-height: 60px !important;
     width: auto !important;
-    max-width: 190px !important;
+    max-width: 180px !important;
     object-fit: contain !important;
     display: block !important;
   }
 
-  .rc-header-text-img {
-    max-height: 60px !important;
-    width: auto !important;
-    max-width: 380px !important;
-    object-fit: contain !important;
-    display: block !important;
+  .rc-header-center-info {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 0 6px !important;
   }
 
-  .rc-header-banner-img {
-    max-height: 60px !important;
+  .rc-header-company-text {
+    text-align: center !important;
+    font-style: italic !important;
+    font-weight: 700 !important;
+    color: #3f3f46 !important;
+    font-size: 9.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  .rc-header-company-text .rc-ci-main {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: #18181b !important;
+  }
+
+  .rc-header-meta-col {
+    width: 180px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-shrink: 0 !important;
   }
 
   .rc-title-bar {

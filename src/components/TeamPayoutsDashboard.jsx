@@ -208,9 +208,9 @@ export default function TeamPayoutsDashboard({
         const allocations = Array.isArray(m.vehicleAllocations) ? m.vehicleAllocations : [];
         const isDriver = allocations.some(
           (a) => (a.driverId && String(a.driverId) === memIdStr) ||
-                 (a.driverName && a.driverName.trim().toLowerCase() === memNameNorm)
+            (a.driverName && a.driverName.trim().toLowerCase() === memNameNorm)
         ) || (m.driverId && String(m.driverId) === memIdStr) ||
-             (m.driverName && m.driverName.trim().toLowerCase() === memNameNorm);
+          (m.driverName && m.driverName.trim().toLowerCase() === memNameNorm);
 
         const teamIds = Array.isArray(m.teamIds) ? m.teamIds.map(String) : [];
         const inTeamIds = teamIds.includes(memIdStr);
@@ -1273,10 +1273,10 @@ export default function TeamPayoutsDashboard({
                         {statementFilter === 'extra_hours'
                           ? 'Este colaborador não possui missões que geraram horas extras neste mês. Todas as missões registradas ocorreram dentro do expediente comercial normal (08h às 18h).'
                           : statementFilter === 'daily'
-                          ? 'Nenhuma missão de viagem ou na modalidade diária registrada para este colaborador neste mês.'
-                          : statementFilter === 'commercial'
-                          ? 'Todas as missões realizadas neste mês geraram horas extras ou foram por diária.'
-                          : 'Nenhuma missão registrada para este colaborador neste mês.'}
+                            ? 'Nenhuma missão de viagem ou na modalidade diária registrada para este colaborador neste mês.'
+                            : statementFilter === 'commercial'
+                              ? 'Todas as missões realizadas neste mês geraram horas extras ou foram por diária.'
+                              : 'Nenhuma missão registrada para este colaborador neste mês.'}
                       </p>
                     </div>
                   ) : (
