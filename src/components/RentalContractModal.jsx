@@ -73,7 +73,11 @@ export default function RentalContractModal({ rental, currentUser = null, onClos
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   const handlePrint = () => {
+    document.body.classList.add('printing-rental-contract');
     window.print();
+    setTimeout(() => {
+      document.body.classList.remove('printing-rental-contract');
+    }, 1500);
   };
 
     const handleDownloadPdf = async () => {

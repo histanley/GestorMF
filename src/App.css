@@ -6255,7 +6255,7 @@ body.light-theme .marker-label {
   .board-filter-toolbar,
   .table-responsive-wrapper,
   .board-pagination-bar,
-  .modal-overlay,
+  .modal-overlay:not(.rental-contract-overlay),
   .screen-only-block {
     display: none !important;
   }
@@ -36818,53 +36818,75 @@ body.light-theme .kpi-card.kpi-red {
     margin: 5mm 8mm;
   }
 
-  body {
-    background: #ffffff !important;
-  }
-
-  body * {
-    visibility: hidden;
-  }
-
-  .rental-contract-overlay,
-  .rental-contract-modal,
-  .rc-document-sheet,
-  .rc-document-sheet * {
-    visibility: visible;
-  }
-
-  .rental-contract-overlay {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    background: #ffffff !important;
-    padding: 0 !important;
-  }
-
-  .rental-contract-modal {
-    border: none !important;
-    box-shadow: none !important;
-    max-width: 100% !important;
-    max-height: none !important;
-    border-radius: 0 !important;
-    background: #ffffff !important;
-  }
-
+  /* Oculta toda a interface de fundo, deixando ESTRITAMENTE o contrato ativo */
+  .app-container,
+  .app-header,
+  .service-board-container,
+  .global-fuel-reserve-bar,
+  .board-header,
+  .board-kpi-strip,
+  .board-filter-toolbar,
+  .modal-overlay:not(.rental-contract-overlay),
   .no-print {
     display: none !important;
   }
 
-  .rc-document-sheet {
+  body,
+  html,
+  #root {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
     padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .rental-contract-overlay {
+    display: block !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: auto !important;
+    overflow: visible !important;
+  }
+
+  .rental-contract-modal {
+    display: block !important;
+    position: static !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    animation: none !important;
+  }
+
+  .rc-document-sheet {
+    display: block !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    margin: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
-    font-size: 10.5px !important;
-    line-height: 1.2 !important;
+    font-size: 10px !important;
+    line-height: 1.25 !important;
     page-break-inside: avoid !important;
     page-break-after: avoid !important;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
 
   .rc-doc-header-official {

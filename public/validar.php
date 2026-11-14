@@ -545,3 +545,4 @@ $docTitle = $isReserved ? 'Comprovante de Agendamento & Reserva' : 'Contrato de 
 
 </body>
 </html>
+
