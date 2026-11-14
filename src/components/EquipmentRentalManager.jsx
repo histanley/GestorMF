@@ -318,6 +318,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
           category: equip.category,
           dailyRate: equip.dailyRate,
           rateUnit: equip.rateUnit || 'diária',
+          photoUrl: equip.photoUrl || `/images/equipment/${equip.id}.jpg`,
           quantity: 1,
           availableQty: equip.availableQty,
           serialNumber: equip.serialNumber || '',
@@ -1195,24 +1196,33 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
               {/* Coluna Esquerda: Dados do Cliente & Prazos */}
               <div className="rental-form-pane">
                 <div className="pane-section-header">
-                  <User size={16} className="text-gold" />
-                  <h2>1. Dados do Locatário / Cliente</h2>
+                  <div className="pane-section-step">1</div>
+                  <div className="pane-section-title-box">
+                    <h2>Dados do Locatário / Cliente</h2>
+                    <span className="pane-section-sub">Informações cadastrais e contato oficial para emissão do contrato</span>
+                  </div>
                 </div>
 
                 <div className="form-group-grid">
                   <div className="form-group span-2">
-                    <label>Nome Completo do Cliente / Empresa *</label>
+                    <label>
+                      <User size={13} className="text-gold" />
+                      <span>Nome Completo do Cliente / Empresa *</span>
+                    </label>
                     <input
                       type="text"
                       required
-                      placeholder="Ex: João da Silva / Produtora X"
+                      placeholder="Ex: João da Silva / Produtora Aurora Ltda"
                       value={rentalForm.clientName}
                       onChange={(e) => setRentalForm({ ...rentalForm, clientName: e.target.value })}
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>CPF ou CNPJ *</label>
+                    <label>
+                      <ShieldCheck size={13} className="text-gold" />
+                      <span>CPF ou CNPJ *</span>
+                    </label>
                     <input
                       type="text"
                       required
@@ -1229,7 +1239,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   </div>
 
                   <div className="form-group">
-                    <label>Telefone / WhatsApp *</label>
+                    <label>
+                      <Phone size={13} className="text-gold" />
+                      <span>Telefone / WhatsApp *</span>
+                    </label>
                     <input
                       type="text"
                       placeholder="(95) 99111-2233"
@@ -1245,34 +1258,46 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   </div>
 
                   <div className="form-group">
-                    <label>E-mail do Cliente</label>
+                    <label>
+                      <Mail size={13} className="text-gold" />
+                      <span>E-mail do Cliente</span>
+                    </label>
                     <input
                       type="email"
-                      placeholder="cliente@email.com"
+                      placeholder="cliente@produtora.com.br"
                       value={rentalForm.clientEmail}
                       onChange={(e) => setRentalForm({ ...rentalForm, clientEmail: e.target.value })}
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Endereço / Cidade</label>
+                    <label>
+                      <MapPin size={13} className="text-gold" />
+                      <span>Endereço / Cidade</span>
+                    </label>
                     <input
                       type="text"
-                      placeholder="Rua, Bairro, Cidade"
+                      placeholder="Rua, Bairro, Cidade - UF"
                       value={rentalForm.clientAddress}
                       onChange={(e) => setRentalForm({ ...rentalForm, clientAddress: e.target.value })}
                     />
                   </div>
                 </div>
 
-                <div className="pane-section-header" style={{ marginTop: '24px' }}>
-                  <Calendar size={16} className="text-gold" />
-                  <h2>2. Período da Locação &amp; Prazos</h2>
+                <div className="pane-section-header" style={{ marginTop: '28px' }}>
+                  <div className="pane-section-step">2</div>
+                  <div className="pane-section-title-box">
+                    <h2>Período da Locação &amp; Prazos</h2>
+                    <span className="pane-section-sub">Cronograma de retirada e devolução para apuração de diárias</span>
+                  </div>
                 </div>
 
                 <div className="form-group-grid">
                   <div className="form-group">
-                    <label>Data de Retirada</label>
+                    <label>
+                      <Calendar size={13} className="text-gold" />
+                      <span>Data de Retirada *</span>
+                    </label>
                     <input
                       type="date"
                       required
@@ -1282,7 +1307,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   </div>
 
                   <div className="form-group">
-                    <label>Horário de Retirada</label>
+                    <label>
+                      <Clock size={13} className="text-gold" />
+                      <span>Horário de Retirada</span>
+                    </label>
                     <input
                       type="time"
                       value={rentalForm.startTime}
@@ -1291,7 +1319,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   </div>
 
                   <div className="form-group">
-                    <label>Data Limite de Devolução *</label>
+                    <label>
+                      <Calendar size={13} className="text-gold" />
+                      <span>Data Limite de Devolução *</span>
+                    </label>
                     <input
                       type="date"
                       required
@@ -1301,7 +1332,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   </div>
 
                   <div className="form-group">
-                    <label>Horário Limite de Devolução</label>
+                    <label>
+                      <Clock size={13} className="text-gold" />
+                      <span>Horário Limite de Devolução</span>
+                    </label>
                     <input
                       type="time"
                       value={rentalForm.endTime}
@@ -1311,18 +1345,29 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                 </div>
 
                 <div className="rental-duration-banner">
-                  <Clock size={16} className="text-gold" />
-                  <span>Duração Total Estimada: <strong>{rentalDays} diária(s)</strong></span>
+                  <div className="rdb-left">
+                    <Clock size={16} className="text-gold" />
+                    <span>Duração Total Estimada:</span>
+                  </div>
+                  <div className="rdb-badge">
+                    {rentalDays} {rentalDays === 1 ? 'diária' : 'diárias'}
+                  </div>
                 </div>
 
-                <div className="pane-section-header" style={{ marginTop: '24px' }}>
-                  <DollarSign size={16} className="text-gold" />
-                  <h2>3. Pagamento &amp; Observações</h2>
+                <div className="pane-section-header" style={{ marginTop: '28px' }}>
+                  <div className="pane-section-step">3</div>
+                  <div className="pane-section-title-box">
+                    <h2>Pagamento &amp; Observações</h2>
+                    <span className="pane-section-sub">Condições comerciais, forma de quitação e caução retido</span>
+                  </div>
                 </div>
 
                 <div className="form-group-grid">
                   <div className="form-group">
-                    <label>Forma de Pagamento</label>
+                    <label>
+                      <DollarSign size={13} className="text-gold" />
+                      <span>Forma de Pagamento</span>
+                    </label>
                     <select
                       value={rentalForm.paymentMethod}
                       onChange={(e) => setRentalForm({ ...rentalForm, paymentMethod: e.target.value })}
@@ -1330,181 +1375,211 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                       <option value="PIX">PIX (À Vista)</option>
                       <option value="Cartão de Crédito">Cartão de Crédito</option>
                       <option value="Cartão de Débito">Cartão de Débito</option>
-                      <option value="Dinheiro">Dinheiro</option>
+                      <option value="Dinheiro">Dinheiro em Espécie</option>
                       <option value="Transferência / DOC">Transferência Bancária</option>
-                      <option value="Faturado / Boleto">Faturado / Boleto</option>
+                      <option value="Faturado / Boleto">Faturado / Boleto Bancário</option>
                     </select>
                   </div>
 
                   <div className="form-group span-2">
-                    <label>Status do Pagamento</label>
+                    <label>
+                      <Layers size={13} className="text-gold" />
+                      <span>Status do Pagamento</span>
+                    </label>
                     <select
                       value={rentalForm.paymentStatus}
                       onChange={(e) => setRentalForm({ ...rentalForm, paymentStatus: e.target.value })}
                     >
-                      <option value="Pendente">Pendente (Não Pago)</option>
+                      <option value="Pendente">Pendente (Não Pago / A Faturar)</option>
                       <option value="Pago">Pago (Quitado Total)</option>
-                      <option value="Caução Recebido">Caução / Parcial (Pagamento Parcial ou Sinal)</option>
+                      <option value="Caução Recebido">Caução / Parcial (Sinal de Entrada + Saldo)</option>
                     </select>
 
                     {rentalForm.paymentStatus === 'Pendente' && (
                       <div className="payment-status-alert alert-pending">
-                        <Calendar size={15} />
+                        <Calendar size={16} />
                         <span>
-                          <strong>Pagamento não realizado:</strong> Você pode <u>Agendar / Reservar</u> para garantir o equipamento bloqueado para a data desejada, ou iniciar a locação direta.
+                          <strong>Pagamento não realizado:</strong> Você pode <u>Agendar / Reservar</u> para assegurar os equipamentos bloqueados para a data desejada, ou iniciar a locação imediatamente.
                         </span>
                       </div>
                     )}
 
                     {rentalForm.paymentStatus === 'Pago' && (
                       <div className="payment-status-alert alert-paid">
-                        <CheckCircle2 size={15} />
+                        <CheckCircle2 size={16} />
                         <span>
-                          <strong>Pagamento confirmado:</strong> O termo oficial de locação será emitido com quitação integral registrada.
+                          <strong>Pagamento confirmado:</strong> O termo oficial de locação será emitido com quitação integral registrada no comprovante.
                         </span>
                       </div>
                     )}
                   </div>
 
                   {/* Detalhamento Dinâmico de Pagamento Parcial & Caução */}
-                  {rentalForm.paymentStatus === 'Caução Recebido' && (
-                    <div className="partial-payment-card span-2">
-                      <div className="ppc-header">
-                        <DollarSign size={18} className="text-gold" />
-                        <div>
-                          <strong>Detalhamento de Pagamento Parcial &amp; Caução</strong>
-                          <p>
-                            Especifique o valor pago de entrada, o saldo que falta, o prazo de quitação e o valor do caução de garantia se exigido.
-                          </p>
-                        </div>
-                      </div>
+                  {rentalForm.paymentStatus === 'Caução Recebido' && (() => {
+                    const remainingBalance = Math.max(
+                      0,
+                      cartTotalAmount - (parseFloat(rentalForm.paidAmount) || 0)
+                    );
+                    const isFullySettled = remainingBalance === 0;
 
-                      <div className="ppc-grid">
-                        <div className="form-group">
-                          <label>Valor Pago / Entrada (R$) *</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max={cartTotalAmount}
-                            placeholder="Ex: 100.00"
-                            value={rentalForm.paidAmount}
-                            onChange={(e) =>
-                              setRentalForm({ ...rentalForm, paidAmount: e.target.value })
-                            }
-                          />
-                          <small className="form-tip">Valor recebido de entrada.</small>
-                        </div>
-
-                        <div className="form-group">
-                          <label>Saldo Faltante a Pagar</label>
-                          <div className="ppc-remaining-box">
-                            <span className="ppc-remaining-val">
-                              {formatCurrency(
-                                Math.max(
-                                  0,
-                                  cartTotalAmount - (parseFloat(rentalForm.paidAmount) || 0)
-                                )
-                              )}
-                            </span>
+                    return (
+                      <div className="partial-payment-card span-2">
+                        <div className="ppc-header">
+                          <div className="ppc-icon-badge">
+                            <DollarSign size={20} />
                           </div>
-                          <small className="form-tip">Calculado automaticamente (Total - Pago).</small>
+                          <div className="ppc-title-box">
+                            <strong>Detalhamento de Pagamento Parcial &amp; Caução</strong>
+                            <p>
+                              Especifique o valor pago de entrada, o saldo que falta, o prazo de quitação e o valor do caução de garantia se exigido.
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="form-group">
-                          <label>Prazo para Quitar o Valor Faltante *</label>
-                          <select
-                            value={rentalForm.remainingDueTerms}
-                            onChange={(e) =>
-                              setRentalForm({
-                                ...rentalForm,
-                                remainingDueTerms: e.target.value,
-                              })
-                            }
-                          >
-                            <option value="Na Devolução dos Equipamentos">Na Devolução dos Equipamentos</option>
-                            <option value="Na Retirada dos Equipamentos">Na Retirada dos Equipamentos</option>
-                            <option value="Em até 7 dias">Em até 7 dias</option>
-                            <option value="Em até 15 dias">Em até 15 dias</option>
-                            <option value="Em até 30 dias">Em até 30 dias</option>
-                            <option value="Data Específica">Data Específica</option>
-                          </select>
-                        </div>
-
-                        {rentalForm.remainingDueTerms === 'Data Específica' && (
+                        <div className="ppc-grid">
                           <div className="form-group">
-                            <label>Data Limite para Quitação *</label>
-                            <input
-                              type="date"
-                              value={rentalForm.remainingDueDate}
+                            <label>Valor Pago / Entrada (R$) *</label>
+                            <div className="input-with-affix">
+                              <span className="input-affix">R$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max={cartTotalAmount}
+                                placeholder="0,00"
+                                value={rentalForm.paidAmount}
+                                onChange={(e) =>
+                                  setRentalForm({ ...rentalForm, paidAmount: e.target.value })
+                                }
+                              />
+                            </div>
+                            <small className="form-tip">Valor recebido de entrada do cliente.</small>
+                          </div>
+
+                          <div className="form-group">
+                            <label>Saldo Faltante a Pagar</label>
+                            <div className={`ppc-remaining-box ${isFullySettled ? 'is-settled' : 'is-pending'}`}>
+                              <div className="ppc-remaining-info">
+                                <span className="ppc-remaining-val">
+                                  {formatCurrency(remainingBalance)}
+                                </span>
+                                <span className="ppc-remaining-tag">
+                                  {isFullySettled ? 'Quitado' : 'A Receber'}
+                                </span>
+                              </div>
+                            </div>
+                            <small className="form-tip">Calculado automaticamente (Total - Pago).</small>
+                          </div>
+
+                          <div className="form-group">
+                            <label>Prazo para Quitar o Valor Faltante *</label>
+                            <select
+                              value={rentalForm.remainingDueTerms}
                               onChange={(e) =>
                                 setRentalForm({
                                   ...rentalForm,
-                                  remainingDueDate: e.target.value,
+                                  remainingDueTerms: e.target.value,
                                 })
                               }
-                            />
+                            >
+                              <option value="Na Devolução dos Equipamentos">Na Devolução dos Equipamentos</option>
+                              <option value="Na Retirada dos Equipamentos">Na Retirada dos Equipamentos</option>
+                              <option value="Em até 7 dias">Em até 7 dias</option>
+                              <option value="Em até 15 dias">Em até 15 dias</option>
+                              <option value="Em até 30 dias">Em até 30 dias</option>
+                              <option value="Data Específica">Data Específica</option>
+                            </select>
+                            <small className="form-tip">Condição acordada para quitação do restante.</small>
                           </div>
-                        )}
 
-                        <div className="form-group">
-                          <label>Valor do Caução de Garantia (R$)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="Ex: 500.00 (Caso o item precise de caução)"
-                            value={rentalForm.securityDeposit}
-                            onChange={(e) =>
-                              setRentalForm({
-                                ...rentalForm,
-                                securityDeposit: e.target.value,
-                              })
-                            }
-                          />
-                          <small className="form-tip">
-                            Depósito retido em garantia (restituído após devolução sem avarias).
-                          </small>
+                          {rentalForm.remainingDueTerms === 'Data Específica' && (
+                            <div className="form-group">
+                              <label>Data Limite para Quitação *</label>
+                              <input
+                                type="date"
+                                value={rentalForm.remainingDueDate}
+                                onChange={(e) =>
+                                  setRentalForm({
+                                    ...rentalForm,
+                                    remainingDueDate: e.target.value,
+                                  })
+                                }
+                              />
+                              <small className="form-tip">Data máxima estipulada em contrato.</small>
+                            </div>
+                          )}
+
+                          <div className="form-group">
+                            <label>Valor do Caução de Garantia (R$)</label>
+                            <div className="input-with-affix">
+                              <span className="input-affix">R$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0,00"
+                                value={rentalForm.securityDeposit}
+                                onChange={(e) =>
+                                  setRentalForm({
+                                    ...rentalForm,
+                                    securityDeposit: e.target.value,
+                                  })
+                                }
+                              />
+                            </div>
+                            <small className="form-tip">
+                              Depósito retido em garantia (restituído após devolução sem avarias).
+                            </small>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Campo de Caução de Garantia se for Pago ou Pendente */}
                   {rentalForm.paymentStatus !== 'Caução Recebido' && (
                     <div className="form-group">
                       <label>Caução de Garantia (R$) (Opcional)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="Ex: 500.00 (Caso exija caução)"
-                        value={rentalForm.securityDeposit}
-                        onChange={(e) => setRentalForm({ ...rentalForm, securityDeposit: e.target.value })}
-                      />
-                      <small className="form-tip">Caso o item/locação exija depósito em garantia.</small>
+                      <div className="input-with-affix">
+                        <span className="input-affix">R$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0,00"
+                          value={rentalForm.securityDeposit}
+                          onChange={(e) => setRentalForm({ ...rentalForm, securityDeposit: e.target.value })}
+                        />
+                      </div>
+                      <small className="form-tip">Caso a locação exija depósito em garantia.</small>
                     </div>
                   )}
 
                   <div className="form-group">
                     <label>Desconto Concedido (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={rentalForm.discount}
-                      onChange={(e) => setRentalForm({ ...rentalForm, discount: e.target.value })}
-                    />
+                    <div className="input-with-affix">
+                      <span className="input-affix">R$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0,00"
+                        value={rentalForm.discount}
+                        onChange={(e) => setRentalForm({ ...rentalForm, discount: e.target.value })}
+                      />
+                    </div>
+                    <small className="form-tip">Abatimento aplicado sobre o subtotal.</small>
                   </div>
 
-                  <div className="form-group">
+                  <div className="form-group span-2">
                     <label>Observações / Acessórios Adicionais</label>
                     <input
                       type="text"
-                      placeholder="Ex: Acompanha 2 baterias extras e carregador..."
+                      placeholder="Ex: Acompanha 2 baterias extras, cabos HDMI e case rígido..."
                       value={rentalForm.notes}
                       onChange={(e) => setRentalForm({ ...rentalForm, notes: e.target.value })}
                     />
+                    <small className="form-tip">Itens extras inclusos ou instruções especiais.</small>
                   </div>
                 </div>
               </div>
@@ -1513,32 +1588,60 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
               <div className="rental-cart-pane">
                 <div className="cart-header">
                   <div className="cart-title">
-                    <Package size={18} className="text-gold" />
-                    <h2>Equipamentos Selecionados ({cartItems.length})</h2>
+                    <div className="cart-icon-badge">
+                      <Package size={18} />
+                    </div>
+                    <div>
+                      <h2>Equipamentos Selecionados</h2>
+                      <span className="cart-count-pill">
+                        {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} no pedido
+                      </span>
+                    </div>
                   </div>
                   <button
                     type="button"
-                    className="btn-secondary btn-sm"
+                    className="btn-explore-catalog"
                     onClick={() => setActiveTab('catalog')}
                   >
-                    + Explorar Catálogo
+                    <Plus size={14} /> Explorar Catálogo
                   </button>
                 </div>
 
                 {cartItems.length === 0 ? (
                   <div className="cart-empty-box">
-                    <Package size={36} className="text-muted" />
-                    <p>Nenhum equipamento adicionado ainda.</p>
-                    <small>Escolha os equipamentos no catálogo ou selecione abaixo.</small>
+                    <div className="ce-icon-circle">
+                      <Package size={36} className="text-muted" />
+                    </div>
+                    <p>Nenhum equipamento adicionado ainda</p>
+                    <small>Escolha os equipamentos no catálogo ou adicione rapidamente abaixo.</small>
                   </div>
                 ) : (
                   <div className="cart-items-list">
                     {cartItems.map((item) => (
                       <div key={item.equipmentId} className="cart-item-row">
+                        <div className="cir-thumb">
+                          {item.photoUrl ? (
+                            <img
+                              src={item.photoUrl}
+                              alt={item.name}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <Package size={18} className="text-muted" />
+                          )}
+                        </div>
+
                         <div className="cir-info">
                           <strong className="cir-name">{item.name}</strong>
                           <span className="cir-meta">
-                            {formatCurrency(item.dailyRate)}/{item.rateUnit || 'dia'} • {CATEGORY_LABELS[item.category] || item.category}
+                            <span className="cir-cat-badge">
+                              {CATEGORY_LABELS[item.category] || item.category}
+                            </span>
+                            <span className="cir-rate">
+                              {formatCurrency(item.dailyRate)}/{item.rateUnit || 'dia'}
+                            </span>
                           </span>
                         </div>
 
@@ -1547,6 +1650,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                             type="button"
                             className="cir-btn-qty"
                             onClick={() => handleUpdateCartQuantity(item.equipmentId, -1)}
+                            title="Diminuir quantidade"
                           >
                             -
                           </button>
@@ -1555,6 +1659,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                             type="button"
                             className="cir-btn-qty"
                             onClick={() => handleUpdateCartQuantity(item.equipmentId, 1)}
+                            title="Aumentar quantidade"
                           >
                             +
                           </button>
@@ -1579,7 +1684,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
 
                 {/* Seleção Rápida de Adição de Itens */}
                 <div className="quick-add-section">
-                  <label>Adicionar Rápido do Estoque:</label>
+                  <label>
+                    <Plus size={13} className="text-gold" />
+                    <span>Adicionar Rápido do Estoque:</span>
+                  </label>
                   <select
                     onChange={(e) => {
                       const id = e.target.value;
@@ -1591,7 +1699,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     defaultValue=""
                   >
                     <option value="" disabled>
-                      -- Selecione um equipamento disponível --
+                      -- Selecione um equipamento disponível no acervo --
                     </option>
                     {equipmentList
                       .filter((e) => e.availableQty > 0)
@@ -1605,21 +1713,33 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
 
                 {/* Resumo Financeiro & Botão de Criação */}
                 <div className="cart-summary-box">
+                  <div className="cs-header-title">
+                    <FileText size={16} className="text-gold" />
+                    <span>Resumo Financeiro da Locação</span>
+                  </div>
+
                   <div className="cs-row">
-                    <span>Subtotal ({rentalDays} diárias):</span>
-                    <span>{formatCurrency(cartSubtotal)}</span>
+                    <span>Subtotal ({rentalDays} {rentalDays === 1 ? 'diária' : 'diárias'}):</span>
+                    <span className="cs-val">{formatCurrency(cartSubtotal)}</span>
                   </div>
 
                   {Number(rentalForm.discount) > 0 && (
                     <div className="cs-row discount">
-                      <span>Desconto:</span>
-                      <span>- {formatCurrency(rentalForm.discount)}</span>
+                      <span>Desconto Especial Concedido:</span>
+                      <span className="cs-val">- {formatCurrency(rentalForm.discount)}</span>
+                    </div>
+                  )}
+
+                  {Number(rentalForm.securityDeposit) > 0 && (
+                    <div className="cs-row cs-deposit">
+                      <span>Caução Retido em Garantia:</span>
+                      <span className="cs-val">{formatCurrency(rentalForm.securityDeposit)}</span>
                     </div>
                   )}
 
                   <div className="cs-row cs-total">
                     <span>VALOR TOTAL:</span>
-                    <span>{formatCurrency(cartTotalAmount)}</span>
+                    <span className="cs-total-val">{formatCurrency(cartTotalAmount)}</span>
                   </div>
 
                   {rentalForm.paymentStatus !== 'Pago' ? (
@@ -1631,7 +1751,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                         onClick={(e) => handleCreateRental(e, 'reserved')}
                       >
                         <Calendar size={17} />
-                        <span>📅 Agendar / Reservar Equipamentos</span>
+                        <span>Agendar / Reservar Equipamentos</span>
                       </button>
                       <button
                         type="button"
@@ -1641,7 +1761,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                         title="Inicia a locação imediatamente mesmo com pagamento pendente"
                       >
                         <Zap size={15} />
-                        <span>⚡ Iniciar Locação Imediata (Pendente)</span>
+                        <span>Iniciar Locação Imediata (Pendente)</span>
                       </button>
                     </div>
                   ) : (
@@ -1652,7 +1772,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                       onClick={(e) => handleCreateRental(e, 'active')}
                     >
                       <FileText size={18} />
-                      <span>🚀 Gerar Locação &amp; Emitir Termo</span>
+                      <span>Gerar Locação &amp; Emitir Termo</span>
                     </button>
                   )}
                 </div>
