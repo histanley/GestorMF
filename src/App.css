@@ -36274,36 +36274,36 @@ body.light-theme .kpi-card.kpi-red {
   justify-content: space-between;
   align-items: center;
   border-bottom: 2px solid #0f172a;
-  padding-bottom: 10px;
-  margin-bottom: 8px;
-  gap: 16px;
+  padding-bottom: 12px;
+  margin-bottom: 10px;
+  gap: 20px;
 }
 
 .rc-header-brand-side {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   flex: 1;
 }
 
 .rc-header-logo-img {
-  max-height: 56px;
+  max-height: 86px;
   width: auto;
-  max-width: 170px;
+  max-width: 220px;
   object-fit: contain;
   display: block;
 }
 
 .rc-header-text-img {
-  max-height: 52px;
+  max-height: 80px;
   width: auto;
-  max-width: 380px;
+  max-width: 440px;
   object-fit: contain;
   display: block;
 }
 
 .rc-header-banner-img {
-  max-height: 56px;
+  max-height: 80px;
   max-width: 480px;
   width: auto;
   object-fit: contain;
@@ -36877,21 +36877,23 @@ body.light-theme .kpi-card.kpi-red {
   }
 
   .rc-header-logo-img {
-    max-height: 42px !important;
+    max-height: 64px !important;
     width: auto !important;
+    max-width: 190px !important;
     object-fit: contain !important;
     display: block !important;
   }
 
   .rc-header-text-img {
-    max-height: 40px !important;
+    max-height: 60px !important;
     width: auto !important;
+    max-width: 380px !important;
     object-fit: contain !important;
     display: block !important;
   }
 
   .rc-header-banner-img {
-    max-height: 40px !important;
+    max-height: 60px !important;
   }
 
   .rc-title-bar {
