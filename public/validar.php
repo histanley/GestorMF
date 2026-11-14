@@ -108,19 +108,19 @@ $docTitle = $isReserved ? 'Comprovante de Agendamento & Reserva' : 'Contrato de 
     }
 
     .brand-logo {
-      height: 48px;
+      height: 84px;
       width: auto;
-      max-width: 220px;
+      max-width: 380px;
       object-fit: contain;
-      margin-bottom: 10px;
-      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+      margin-bottom: 14px;
+      filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.55));
     }
 
     .brand-system {
-      font-size: 0.82rem;
+      font-size: 0.92rem;
       font-weight: 700;
       color: #94a3b8;
-      letter-spacing: 1.2px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
     }
 

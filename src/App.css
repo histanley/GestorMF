@@ -40719,3 +40719,17 @@ body.light-theme .megc-item-name,
   color: #ffffff !important;
   transform: translateY(-1px);
 }
+
+
+/* Destaque e Aumento da Logo do Sistema na Validação Pública */
+.pv-logo {
+  height: 84px !important;
+  max-width: 380px !important;
+  margin-bottom: 14px !important;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.55)) !important;
+}
+
+.pv-brand-tag {
+  font-size: 0.92rem !important;
+  letter-spacing: 1.5px !important;
+}
