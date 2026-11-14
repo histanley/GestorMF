@@ -49,9 +49,20 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   const [equipmentList, setEquipmentList] = useState(() => {
     try {
       const saved = localStorage.getItem('gestormf_equipment_cache');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((eq) => ({
+            ...eq,
+            photoUrl: eq.photoUrl || `/images/equipment/${eq.id}.jpg`,
+          }));
+        }
+      }
     } catch {}
-    return INITIAL_EQUIPMENT_CATALOG;
+    return INITIAL_EQUIPMENT_CATALOG.map((eq) => ({
+      ...eq,
+      photoUrl: eq.photoUrl || `/images/equipment/${eq.id}.jpg`,
+    }));
   });
 
   const [rentalsList, setRentalsList] = useState(() => {
@@ -108,8 +119,12 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
         const data = await res.json();
         if (data.success) {
           if (Array.isArray(data.equipment) && data.equipment.length > 0) {
-            setEquipmentList(data.equipment);
-            localStorage.setItem('gestormf_equipment_cache', JSON.stringify(data.equipment));
+            const enriched = data.equipment.map((eq) => ({
+              ...eq,
+              photoUrl: eq.photoUrl || `/images/equipment/${eq.id}.jpg`,
+            }));
+            setEquipmentList(enriched);
+            localStorage.setItem('gestormf_equipment_cache', JSON.stringify(enriched));
           }
           if (Array.isArray(data.rentals)) {
             setRentalsList(data.rentals);

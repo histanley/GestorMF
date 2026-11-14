@@ -17,6 +17,9 @@ assert.ok(rentalsDataContent.includes('Microfone Sennheiser Mike 600'), 'Deve co
 assert.ok(rentalsDataContent.includes('Tocha AD600 pro II'), 'Deve conter Tocha AD600 pro II');
 assert.ok(rentalsDataContent.includes('formatCpfCnpj'), 'Deve exportar formatCpfCnpj');
 assert.ok(rentalsDataContent.includes('formatPhoneBR'), 'Deve exportar formatPhoneBR');
+assert.ok(rentalsDataContent.includes('/images/equipment/eq-001.jpg'), 'Catálogo deve mapear photoUrl para os equipamentos');
+assert.ok(fs.existsSync(path.join(__dirname, '../public/images/equipment/eq-001.jpg')), 'Foto eq-001.jpg deve existir');
+assert.ok(fs.existsSync(path.join(__dirname, '../public/images/equipment/eq-086.jpg')), 'Foto eq-086.jpg deve existir');
 
 // Teste unitário da função formatCpfCnpj extraída
 function formatCpfCnpj(value) {
