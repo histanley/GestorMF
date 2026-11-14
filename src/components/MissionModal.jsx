@@ -35,7 +35,7 @@ import {
   ROLE_ICONS_MAP,
   normalizeToOfficialRole,
 } from '../utils/companyRoles';
-import { calculateMissionOffHours, checkMemberExtraHoursAvailability } from '../utils/workHours';
+import { calculateMissionOffHours, calculateExtraHoursRemuneration, checkMemberExtraHoursAvailability } from '../utils/workHours';
 import {
   RECURRENCE_DAYS,
   getDayOfWeekFromDate,
@@ -3154,9 +3154,14 @@ export default function MissionModal({
                             : (isDailyMode ? defaultDailyRate : defaultHourlyRate);
 
                           const travelDays = isMultiDay ? calculateDaysBetween(formData.date, formData.endDate) : 1;
+                          const extraRemun = calculateExtraHoursRemuneration(
+                            missionOffHours.offHours,
+                            effectiveRate,
+                            mem.blockRate ?? mem.block_rate ?? 200
+                          );
                           const estimatedSubtotal = isDailyMode
                             ? (effectiveRate * travelDays).toFixed(2)
-                            : (missionOffHours.isOffHours ? (effectiveRate * missionOffHours.offHours).toFixed(2) : '0.00');
+                            : (missionOffHours.isOffHours ? extraRemun.amount.toFixed(2) : '0.00');
 
                           const selectedRole = formData.memberRoles?.[mId] || normalizeToOfficialRole(mem.role);
 
@@ -3267,7 +3272,9 @@ export default function MissionModal({
                                     {isDailyMode
                                       ? `Total (${travelDays} diária${travelDays !== 1 ? 's' : ''}):`
                                       : missionOffHours.isOffHours
-                                      ? `Total (${missionOffHours.offHours}h):`
+                                      ? (missionOffHours.offHours <= 4
+                                          ? `Total (Pacote até 4h):`
+                                          : `Total (Base 4h + ${(missionOffHours.offHours - 4).toFixed(1)}h):`)
                                       : 'Expediente Normal:'}
                                   </span>
                                   <strong className="rcf-subtotal-val">R$ {estimatedSubtotal}</strong>

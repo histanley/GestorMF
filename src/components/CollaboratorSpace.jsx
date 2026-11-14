@@ -40,7 +40,7 @@ import {
 } from '../utils/companyRoles';
 import { apiRequestExtraHours, apiExtendMissionReturnTime, apiUpdatePixKey } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
-import { calculateMissionOffHours, evaluateMissionExtension, isOffHoursTime } from '../utils/workHours';
+import { calculateMissionOffHours, calculateExtraHoursRemuneration, evaluateMissionExtension, isOffHoursTime } from '../utils/workHours';
 import { sortMissionsByStatusPriority, getMissionLiveProgress } from '../utils/geo';
 import { sendPushNotification, requestNotificationPermission } from '../utils/notifications';
 
@@ -357,8 +357,12 @@ export default function CollaboratorSpace({
         const approvedExtra = Number(m.extraHoursApproved) || 0;
         const offHoursTotal = (offHoursInfo.offHours || 0) + approvedExtra;
         totalHours += offHoursTotal;
-        const rate = customRate !== null ? customRate : hourlyRate;
-        totalHoursVal += offHoursTotal * rate;
+        if (offHoursTotal > 0) {
+          const rate = customRate !== null ? customRate : hourlyRate;
+          const baseCall = Number(myMember.blockRate ?? myMember.block_rate ?? 200);
+          const remun = calculateExtraHoursRemuneration(offHoursTotal, rate, baseCall);
+          totalHoursVal += remun.amount;
+        }
       }
     });
 
@@ -711,8 +715,8 @@ export default function CollaboratorSpace({
             <strong className="cs-card-val text-amber">
               {formatBRL(financialSummary.totalHoursVal)}
             </strong>
-            <span className="cs-card-sub">
-              Taxa base: {formatBRL(myMember.hourlyRate || 50)}/h
+            <span className="cs-card-sub" title="Pacote de chamada R$ 200 até 4h + hora adicional a partir da 5ª hora">
+              Base: {formatBRL(myMember.blockRate || 200)} (até 4h) + {formatBRL(myMember.hourlyRate || 50)}/h
             </span>
           </div>
 

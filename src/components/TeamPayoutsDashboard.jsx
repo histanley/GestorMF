@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { apiGetPayouts, apiSavePayout } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
-import { calculateMissionOffHours } from '../utils/workHours';
+import { calculateMissionOffHours, calculateExtraHoursRemuneration } from '../utils/workHours';
 
 // Formata data ISO para PT-BR (dd/mm/aaaa)
 function formatDateBR(dateStr) {
@@ -281,16 +281,23 @@ export default function TeamPayoutsDashboard({
             }
           } else {
             // Banco de Horas: Horas fora do expediente + Horas extras aprovadas pela gestão
+            // REGRA OFICIAL MEGAFILMES:
+            // - Chamada fora do expediente fecha pacote base de até 4h (R$ 200,00).
+            // - A partir da 4ª hora (5ª hora em diante), soma hora a hora pelo valor da taxa individual (R$ 50/h).
             const extraApproved = Number(m.extraHoursApproved) || 0;
             const totalMissionOffHours = offHoursWorked + extraApproved;
 
+            let extraFormulaText = '';
+            const effectiveBaseCall = blockRate > 0 ? blockRate : 200;
+
             if (totalMissionOffHours > 0) {
-              if (rateModel === 'block_4h') {
-                const ratePerHour = customRate !== null ? customRate : ((blockRate > 0 ? blockRate : 200) / 4);
-                itemAmount = totalMissionOffHours * ratePerHour;
-              } else {
-                itemAmount = totalMissionOffHours * effectiveHourlyRate;
-              }
+              const extraRemun = calculateExtraHoursRemuneration(
+                totalMissionOffHours,
+                effectiveHourlyRate,
+                effectiveBaseCall
+              );
+              itemAmount = extraRemun.amount;
+              extraFormulaText = extraRemun.formulaText;
             } else {
               itemAmount = 0;
             }
@@ -328,6 +335,8 @@ export default function TeamPayoutsDashboard({
             offHoursSegments: offHoursInfo.offHoursSegments || [],
             effectiveHourlyRate,
             effectiveDailyRate,
+            baseCallPackage: effectiveBaseCall,
+            formulaText: extraFormulaText,
             isCustomRate: customRate !== null,
             itemAmount,
             roleInMission: isDriver ? 'Motorista / Condutor' : (inEditorIds || inEditorDisplay) ? 'Editor / Pós-Produção' : 'Equipe de Campo',
@@ -768,15 +777,13 @@ export default function TeamPayoutsDashboard({
 
                   {/* Configuração de Remuneração Atual */}
                   <div className="pmc-col-rates">
-                    <div className="pmc-rate-box" title="Regra de pagamento cadastrada para este colaborador">
+                    <div className="pmc-rate-box" title="Regra de hora extra e diárias cadastrada para este colaborador">
                       <span className="pmc-rate-lbl">Taxa Individual:</span>
                       <strong className="pmc-rate-val">
-                        {member.rateModel === 'block_4h'
-                          ? `${formatBRL(member.blockRate)} / 4h (R$ ${(member.blockRate / 4).toFixed(0)}/h)`
-                          : `${formatBRL(member.hourlyRate)} / hora`}
+                        {formatBRL(member.hourlyRate || 50)} / hora
                       </strong>
-                      <small className="pmc-rate-sub">
-                        Viagem: {formatBRL(member.dailyRate)} / dia
+                      <small className="pmc-rate-sub" title="Pacote fechado de até 4h de hora extra / Diária de viagem de campo">
+                        Base: {formatBRL(member.blockRate || 200)} (até 4h) • Viagem: {formatBRL(member.dailyRate || 200)}/dia
                       </small>
                     </div>
                     <button
@@ -956,64 +963,48 @@ export default function TeamPayoutsDashboard({
             </div>
 
             <div className="modal-form">
-              <p className="modal-form-explainer">
-                Defina o valor da hora e das diárias de viagens para <strong>{editingRatesMember.name}</strong>. Os cálculos de fechamento do dia 05 utilizarão estes valores automaticamente.
-              </p>
-
-              {/* Modelo de Cobrança */}
-              <div className="form-group">
-                <label>Modelo de Pagamento em Eventos Locais</label>
-                <div className="rate-model-segmented">
-                  <button
-                    type="button"
-                    className={`rm-seg-btn ${ratesForm.rateModel === 'hourly' ? 'is-active' : ''}`}
-                    onClick={() => setRatesForm({ ...ratesForm, rateModel: 'hourly' })}
-                  >
-                    Por Hora Exata (R$/h)
-                  </button>
-                  <button
-                    type="button"
-                    className={`rm-seg-btn ${ratesForm.rateModel === 'block_4h' ? 'is-active' : ''}`}
-                    onClick={() => setRatesForm({ ...ratesForm, rateModel: 'block_4h' })}
-                  >
-                    Por Bloco de 4 Horas (Pacote)
-                  </button>
+              <div className="xray-banner-context extras" style={{ marginBottom: 16 }}>
+                <Zap size={18} className="text-amber" />
+                <div style={{ fontSize: '0.82rem' }}>
+                  <strong>Regra MegaFilmes:</strong> O colaborador chamado para hora extra fecha automaticamente o <strong>pacote base de até 4h</strong>. A partir da 4ª hora (5ª hora em diante), soma-se hora a hora o valor da taxa horária. Em viagens de campo, vigora a <strong>diária integral</strong>.
                 </div>
               </div>
 
-              {ratesForm.rateModel === 'hourly' ? (
-                <div className="form-group">
-                  <label>Valor por Hora (R$)</label>
-                  <input
-                    type="number"
-                    step="5"
-                    min="0"
-                    value={ratesForm.hourlyRate}
-                    onChange={(e) => setRatesForm({ ...ratesForm, hourlyRate: e.target.value })}
-                    placeholder="Ex: 50.00"
-                  />
-                  <small className="field-hint-sub">Ex: Gabriel e Cauan R$ 25/h; Cinegrafistas sênior R$ 50/h.</small>
-                </div>
-              ) : (
-                <div className="form-group">
-                  <label>Valor a cada 4 Horas de Evento (R$)</label>
-                  <input
-                    type="number"
-                    step="10"
-                    min="0"
-                    value={ratesForm.blockRate}
-                    onChange={(e) => setRatesForm({ ...ratesForm, blockRate: e.target.value })}
-                    placeholder="Ex: 200.00"
-                  />
-                  <small className="field-hint-sub">
-                    Ex: R$ 200 a cada 4h equivale a R$ {(Number(ratesForm.blockRate) / 4 || 50).toFixed(2)} por hora.
-                  </small>
-                </div>
-              )}
+              {/* Pacote Base de Chamada */}
+              <div className="form-group">
+                <label>Pacote de Chamada / Base até 4h de Hora Extra (R$)</label>
+                <input
+                  type="number"
+                  step="10"
+                  min="0"
+                  value={ratesForm.blockRate}
+                  onChange={(e) => setRatesForm({ ...ratesForm, blockRate: e.target.value })}
+                  placeholder="Ex: 200.00"
+                />
+                <small className="field-hint-sub">
+                  Valor fixo garantido pago ao colaborador mesmo que permaneça de 1h a 4h no evento (Padrão: R$ 200,00).
+                </small>
+              </div>
+
+              {/* Valor por Hora Adicional */}
+              <div className="form-group">
+                <label>Valor por Hora Adicional a partir da 5ª hora (R$/h)</label>
+                <input
+                  type="number"
+                  step="5"
+                  min="0"
+                  value={ratesForm.hourlyRate}
+                  onChange={(e) => setRatesForm({ ...ratesForm, hourlyRate: e.target.value })}
+                  placeholder="Ex: 50.00"
+                />
+                <small className="field-hint-sub">
+                  Acrescido hora a hora além da 4ª hora (Ex: 5h = Base + 1h; 6h = Base + 2h). Padrão: R$ 50,00/h.
+                </small>
+              </div>
 
               {/* Valor da Diária de Viagem de Longa Duração */}
               <div className="form-group">
-                <label>Valor da Diária de Viagem de Campo (+1 Dia) (R$)</label>
+                <label>Valor da Diária de Viagem de Campo (R$/dia)</label>
                 <input
                   type="number"
                   step="10"
@@ -1023,7 +1014,7 @@ export default function TeamPayoutsDashboard({
                   placeholder="Ex: 200.00"
                 />
                 <small className="field-hint-sub">
-                  Aplicado por cada dia de operação em viagens para o interior ou gravações de mais de um dia.
+                  Remuneração de 24h para o dia todo em viagens de campo para o interior (Padrão: R$ 200,00/dia).
                 </small>
               </div>
 
@@ -1365,7 +1356,11 @@ export default function TeamPayoutsDashboard({
                                     </div>
                                   )}
                                   <div className="sxb-calc">
-                                    Cálculo: {totalExtraHours}h × {formatBRL(item.effectiveHourlyRate)}/h {item.isCustomRate ? '(Taxa personalizada na pauta)' : '(Taxa padrão do perfil)'} = <strong>{formatBRL(item.itemAmount)}</strong>
+                                    {item.formulaText ? (
+                                      <span>{item.formulaText} {item.isCustomRate ? '(com taxa personalizada na pauta)' : ''}</span>
+                                    ) : (
+                                      <span>Cálculo: {totalExtraHours}h × {formatBRL(item.effectiveHourlyRate)}/h = <strong>{formatBRL(item.itemAmount)}</strong></span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
