@@ -416,7 +416,6 @@ export default function AdminCenter({
           >
             <DollarSign size={16} />
             <span>Diárias &amp; Fechamento Financeiro</span>
-            <span className="ac-tab-count-badge">FOLHA</span>
           </button>
 
           <button
@@ -426,7 +425,6 @@ export default function AdminCenter({
           >
             <Trophy size={16} />
             <span>Inteligência &amp; Ranking</span>
-            <span className="ac-tab-count-badge">PERFORMANCE</span>
           </button>
 
           <button
@@ -436,7 +434,6 @@ export default function AdminCenter({
           >
             <Camera size={16} />
             <span>Aluguel &amp; Equipamentos</span>
-            <span className="ac-tab-count-badge">ESTOQUE</span>
           </button>
         </div>
       </div>

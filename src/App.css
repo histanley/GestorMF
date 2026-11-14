@@ -29561,12 +29561,19 @@ body.light-theme .admin-center-tabs-bar {
 .admin-center-tabs-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: rgba(15, 23, 42, 0.6);
   padding: 4px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-center-tabs-group::-webkit-scrollbar {
+  display: none;
 }
 
 [data-theme="light"] .admin-center-tabs-group,
@@ -29578,16 +29585,18 @@ body.light-theme .admin-center-tabs-group {
 .ac-tab-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
+  gap: 6px;
+  padding: 8px 14px;
   border-radius: 8px;
   border: none;
   background: transparent;
   color: #94a3b8;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .ac-tab-btn:hover {
