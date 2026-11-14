@@ -27,6 +27,8 @@ import {
   ShieldCheck,
   Lock,
   Ban,
+  Package,
+  Camera,
 } from 'lucide-react';
 import {
   OFFICIAL_COMPANY_ROLES,
@@ -64,6 +66,8 @@ import {
   hasMissionPostProduction,
 } from '../utils/geo';
 import { alertDialog, confirmDialog } from '../utils/dialog';
+import { apiRequest } from '../utils/api';
+import { CATEGORY_LABELS, formatCurrency } from '../utils/rentalsData';
 
 // Calcula a quantidade de dias (diárias) entre a data de início e a data final (intervalo operacional inclusivo)
 export function calculateDaysBetween(startDateStr, endDateStr) {
@@ -251,6 +255,7 @@ export default function MissionModal({
     missionStatus: 'Agendada',
     isRoundTrip: true,
     notes: '',
+    equipmentAllocations: [],
     isMultiDay: false,
     endDate: '',
     remunerationType: 'off_hours',
@@ -283,6 +288,136 @@ export default function MissionModal({
   const [recurrenceWeeks, setRecurrenceWeeks] = useState(4); // 4 semanas (1 mês) por padrão
   const [recurrenceEndDate, setRecurrenceEndDate] = useState(() => addWeeksToDate(getLocalTodayStr(), 4));
   const [updateSeries, setUpdateSeries] = useState(false);
+
+  // Estado e Carregamento do Acervo de Equipamentos da Produtora
+  const [equipmentList, setEquipmentList] = useState([]);
+  const [selectedEquipByPerson, setSelectedEquipByPerson] = useState({});
+
+  useEffect(() => {
+    if (isOpen) {
+      apiRequest('/rentals.php')
+        .then((res) => {
+          if (res && res.success && Array.isArray(res.equipment)) {
+            setEquipmentList(res.equipment);
+          }
+        })
+        .catch((err) => console.error('Erro ao carregar equipamentos no modal de missão:', err));
+    }
+  }, [isOpen]);
+
+  const handleAddEquipmentToPerson = (collaboratorId, collaboratorName, role, equipId) => {
+    if (!equipId) return;
+    const equip = equipmentList.find((e) => e.id === equipId);
+    if (!equip) return;
+
+    setFormData((prev) => {
+      const currentAllocations = Array.isArray(prev.equipmentAllocations)
+        ? JSON.parse(JSON.stringify(prev.equipmentAllocations))
+        : [];
+      let personGroup = currentAllocations.find((g) => g.collaboratorId === collaboratorId);
+
+      if (!personGroup) {
+        personGroup = {
+          collaboratorId,
+          collaboratorName,
+          role,
+          items: []
+        };
+        currentAllocations.push(personGroup);
+      }
+
+      const existingItem = personGroup.items.find((it) => it.equipmentId === equip.id);
+      if (existingItem) {
+        existingItem.quantity = (Number(existingItem.quantity) || 1) + 1;
+      } else {
+        personGroup.items.push({
+          equipmentId: equip.id,
+          name: equip.name,
+          category: equip.category,
+          dailyRate: equip.dailyRate,
+          assetValue: equip.assetValue || (equip.dailyRate * 25),
+          quantity: 1,
+          serialNumber: equip.serialNumber || '',
+          notes: ''
+        });
+      }
+
+      return {
+        ...prev,
+        equipmentAllocations: currentAllocations
+      };
+    });
+
+    setSelectedEquipByPerson((prev) => ({ ...prev, [collaboratorId]: '' }));
+  };
+
+  const handleRemoveEquipmentFromPerson = (collaboratorId, equipId) => {
+    setFormData((prev) => {
+      const currentAllocations = (prev.equipmentAllocations || []).map((g) => {
+        if (g.collaboratorId === collaboratorId) {
+          return {
+            ...g,
+            items: (g.items || []).filter((it) => it.equipmentId !== equipId)
+          };
+        }
+        return g;
+      }).filter((g) => (g.items && g.items.length > 0) || g.collaboratorId === 'general');
+
+      return {
+        ...prev,
+        equipmentAllocations: currentAllocations
+      };
+    });
+  };
+
+  const handleUpdateEquipmentQuantity = (collaboratorId, equipId, delta) => {
+    setFormData((prev) => {
+      const currentAllocations = (prev.equipmentAllocations || []).map((g) => {
+        if (g.collaboratorId === collaboratorId) {
+          return {
+            ...g,
+            items: (g.items || []).map((it) => {
+              if (it.equipmentId === equipId) {
+                const nextQ = Math.max(1, (Number(it.quantity) || 1) + delta);
+                return { ...it, quantity: nextQ };
+              }
+              return it;
+            })
+          };
+        }
+        return g;
+      });
+
+      return {
+        ...prev,
+        equipmentAllocations: currentAllocations
+      };
+    });
+  };
+
+  const handleUpdateEquipmentNote = (collaboratorId, equipId, note) => {
+    setFormData((prev) => {
+      const currentAllocations = (prev.equipmentAllocations || []).map((g) => {
+        if (g.collaboratorId === collaboratorId) {
+          return {
+            ...g,
+            items: (g.items || []).map((it) => {
+              if (it.equipmentId === equipId) {
+                return { ...it, notes: note };
+              }
+              return it;
+            })
+          };
+        }
+        return g;
+      });
+
+      return {
+        ...prev,
+        equipmentAllocations: currentAllocations
+      };
+    });
+  };
 
   // Filtros rápidos e busca da Equipe de Campo (Passo 5)
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
@@ -347,6 +482,7 @@ export default function MissionModal({
         isOverdue: editingMission.isOverdue || 0,
         reopenReason: editingMission.reopenReason || '',
         isRoundTrip: true,
+        equipmentAllocations: Array.isArray(editingMission.equipmentAllocations) ? editingMission.equipmentAllocations : [],
         isMultiDay: Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date)),
         endDate: editingMission.endDate || '',
         remunerationType: Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date))
@@ -436,6 +572,7 @@ export default function MissionModal({
         missionStatus: 'Agendada',
         isRoundTrip: true,
         notes: '',
+        equipmentAllocations: [],
         isMultiDay: false,
         endDate: '',
         remunerationType: 'off_hours',
@@ -1199,6 +1336,7 @@ export default function MissionModal({
       offHours: isMultiDay ? 0 : (missionOffHours.offHours || 0),
       remunerationType: isMultiDay ? 'daily' : (formData.remunerationType || 'off_hours'),
       memberRoles: formData.memberRoles || {},
+      equipmentAllocations: formData.equipmentAllocations || [],
       extraHoursPlanned: isMultiDay ? 0 : (missionOffHours.offHours || 0),
       extraHoursApproved: editingMission?.extraHoursApproved || 0,
       extraHoursRequests: editingMission?.extraHoursRequests || [],
@@ -3220,24 +3358,310 @@ export default function MissionModal({
           })()}
 
           {/* ============================================================== */}
-          {/* PASSO 6: BRIEFING & OBSERVAÇÕES                                */}
+          {/* PASSO 6: BRIEFING, ROTEIRO & INSTRUÇÕES DE GRAVAÇÃO            */}
           {/* ============================================================== */}
           <div className="mm-card-panel">
             <div className="mm-card-header">
               <span className="mm-step-pill">6</span>
               <div>
-                <h3 className="mm-card-title">Briefing &amp; Observações</h3>
-                <p className="mm-card-subtitle">Instruções aos cinegrafistas, equipamentos a levar ou avisos gerais</p>
+                <h3 className="mm-card-title">Briefing, Roteiro &amp; Instruções de Gravação</h3>
+                <p className="mm-card-subtitle">Diretrizes da pauta, roteiro, recomendações do cliente e observações gerais de campo</p>
               </div>
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
               <textarea
                 rows="2"
-                placeholder="Ex: Levar lentes 50mm e 24-70mm, kit de baterias extras, autorização de entrada..."
+                placeholder="Ex: Foco em depoimentos na primeira hora; atenção ao áudio de lapela no palestrante; traje esporte fino..."
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               ></textarea>
+            </div>
+          </div>
+
+          {/* ============================================================== */}
+          {/* PASSO 7: EQUIPAMENTOS & KITS DE PRODUÇÃO (POR PESSOA)          */}
+          {/* ============================================================== */}
+          <div className="mm-card-panel mm-equip-allocation-panel">
+            <div className="mm-card-header">
+              <span className="mm-step-pill">7</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <h3 className="mm-card-title">Equipamentos &amp; Kit de Produção (Por Pessoa Escalada)</h3>
+                  <span className="mm-equip-count-chip">
+                    <Package size={13} />{' '}
+                    {(formData.equipmentAllocations || []).reduce((acc, g) => acc + (g.items || []).reduce((sum, it) => sum + (Number(it.quantity) || 1), 0), 0)} un. escaladas
+                  </span>
+                </div>
+                <p className="mm-card-subtitle">
+                  Especifique os equipamentos de campo que cada colaborador levará sob sua responsabilidade, além dos itens coletivos da van.
+                </p>
+              </div>
+            </div>
+
+            {/* Aviso se nenhum colaborador foi escalado no passo 5 */}
+            {formData.teamIds.length === 0 && (
+              <div className="mm-equip-empty-team-alert">
+                <Users size={16} className="text-amber" />
+                <div>
+                  <strong>Nenhum profissional escalado na Equipe de Campo ainda.</strong>
+                  <p>Retorne ao Passo 5 para selecionar cinegrafistas, fotógrafos ou operadores para vincular seus respectivos kits de equipamentos.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Blocos Individuais de Equipamentos por Pessoa Escalada */}
+            <div className="mm-equip-persons-container">
+              {formData.teamIds.map((mId) => {
+                const mem = members.find((x) => x.id === mId);
+                const roleName = formData.memberRoles?.[mId] || mem?.role || 'Membro de Campo';
+                const personGroup = (formData.equipmentAllocations || []).find((g) => g.collaboratorId === mId) || { items: [] };
+                const itemsCount = (personGroup.items || []).reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
+                const selectedEquipId = selectedEquipByPerson[mId] || '';
+
+                return (
+                  <div key={mId} className="mm-equip-person-card">
+                    <div className="mepc-header">
+                      <div className="mepc-user-info">
+                        <div className="mepc-avatar">
+                          {mem?.name ? mem.name.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                        <div>
+                          <strong className="mepc-name">{mem?.name || 'Colaborador'}</strong>
+                          <span className="mepc-role-badge">{roleName}</span>
+                        </div>
+                      </div>
+
+                      <span className={`mepc-items-badge ${itemsCount > 0 ? 'has-items' : ''}`}>
+                        {itemsCount === 0 ? 'Nenhum equipamento' : `${itemsCount} ${itemsCount === 1 ? 'equipamento' : 'equipamentos'}`}
+                      </span>
+                    </div>
+
+                    {/* Lista de Itens do Colaborador */}
+                    {(!personGroup.items || personGroup.items.length === 0) ? (
+                      <div className="mepc-empty-list">
+                        <span>Nenhum equipamento associado a este colaborador. Selecione abaixo para montar o kit.</span>
+                      </div>
+                    ) : (
+                      <div className="mepc-items-list">
+                        {personGroup.items.map((it) => (
+                          <div key={it.equipmentId} className="mepc-item-row">
+                            <div className="mepc-item-left">
+                              <span className="mepc-item-icon"><Camera size={14} /></span>
+                              <div className="mepc-item-titles">
+                                <strong>{it.name}</strong>
+                                <span className="mepc-item-cat">
+                                  {CATEGORY_LABELS[it.category] || it.category}
+                                  {it.serialNumber ? ` • Nº: ${it.serialNumber}` : ''}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mepc-item-controls">
+                              <div className="mepc-qty-selector">
+                                <button
+                                  type="button"
+                                  className="mepc-qty-btn"
+                                  onClick={() => handleUpdateEquipmentQuantity(mId, it.equipmentId, -1)}
+                                  title="Diminuir quantidade"
+                                >
+                                  -
+                                </button>
+                                <span className="mepc-qty-display">{it.quantity || 1}</span>
+                                <button
+                                  type="button"
+                                  className="mepc-qty-btn"
+                                  onClick={() => handleUpdateEquipmentQuantity(mId, it.equipmentId, 1)}
+                                  title="Aumentar quantidade"
+                                >
+                                  +
+                                </button>
+                              </div>
+
+                              <input
+                                type="text"
+                                className="mepc-item-notes-input"
+                                placeholder="Acessórios (ex: 2 baterias, na maleta preta)..."
+                                value={it.notes || ''}
+                                onChange={(e) => handleUpdateEquipmentNote(mId, it.equipmentId, e.target.value)}
+                              />
+
+                              <button
+                                type="button"
+                                className="mepc-remove-btn"
+                                onClick={() => handleRemoveEquipmentFromPerson(mId, it.equipmentId)}
+                                title="Remover item do kit deste colaborador"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Seletor para Adicionar Equipamento ao Kit deste Colaborador */}
+                    <div className="mepc-add-bar">
+                      <select
+                        className="mepc-select"
+                        value={selectedEquipId}
+                        onChange={(e) => setSelectedEquipByPerson((prev) => ({ ...prev, [mId]: e.target.value }))}
+                      >
+                        <option value="">Selecione um equipamento do acervo para adicionar ao kit...</option>
+                        {['cameras', 'lenses', 'lighting', 'audio', 'video', 'accessories'].map((catKey) => {
+                          const catEquips = equipmentList.filter((e) => e.category === catKey);
+                          if (catEquips.length === 0) return null;
+                          return (
+                            <optgroup key={catKey} label={CATEGORY_LABELS[catKey] || catKey}>
+                              {catEquips.map((eq) => {
+                                const isOut = Number(eq.availableQty) <= 0;
+                                return (
+                                  <option key={eq.id} value={eq.id}>
+                                    {eq.name} {isOut ? '(🔴 Alugado / Esgotado)' : `(Disp: ${eq.availableQty} un.)`}
+                                  </option>
+                                );
+                              })}
+                            </optgroup>
+                          );
+                        })}
+                      </select>
+
+                      <button
+                        type="button"
+                        className="btn-secondary mepc-add-btn"
+                        disabled={!selectedEquipId}
+                        onClick={() => handleAddEquipmentToPerson(mId, mem?.name || 'Colaborador', roleName, selectedEquipId)}
+                      >
+                        <Plus size={14} /> Adicionar ao Kit
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Bloco Coletivo: Equipamentos Gerais / Kit Compartilhado da Missão */}
+              {(() => {
+                const generalGroup = (formData.equipmentAllocations || []).find((g) => g.collaboratorId === 'general') || { items: [] };
+                const generalCount = (generalGroup.items || []).reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
+                const generalEquipId = selectedEquipByPerson['general'] || '';
+
+                return (
+                  <div className="mm-equip-person-card mepc-general-card">
+                    <div className="mepc-header">
+                      <div className="mepc-user-info">
+                        <div className="mepc-avatar general-avatar">
+                          <Package size={17} />
+                        </div>
+                        <div>
+                          <strong className="mepc-name">Kit Geral &amp; Itens Coletivos da Missão</strong>
+                          <span className="mepc-role-badge general-badge">Uso Compartilhado / Van</span>
+                        </div>
+                      </div>
+
+                      <span className={`mepc-items-badge ${generalCount > 0 ? 'has-items' : ''}`}>
+                        {generalCount === 0 ? 'Nenhum equipamento' : `${generalCount} ${generalCount === 1 ? 'equipamento' : 'equipamentos'}`}
+                      </span>
+                    </div>
+
+                    {(!generalGroup.items || generalGroup.items.length === 0) ? (
+                      <div className="mepc-empty-list">
+                        <span>Nenhum equipamento coletivo alocado (ex: tripés de luz, cabos HDMI 50m, gerador, tenda, rebatedores).</span>
+                      </div>
+                    ) : (
+                      <div className="mepc-items-list">
+                        {generalGroup.items.map((it) => (
+                          <div key={it.equipmentId} className="mepc-item-row">
+                            <div className="mepc-item-left">
+                              <span className="mepc-item-icon"><Package size={14} /></span>
+                              <div className="mepc-item-titles">
+                                <strong>{it.name}</strong>
+                                <span className="mepc-item-cat">
+                                  {CATEGORY_LABELS[it.category] || it.category}
+                                  {it.serialNumber ? ` • Nº: ${it.serialNumber}` : ''}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mepc-item-controls">
+                              <div className="mepc-qty-selector">
+                                <button
+                                  type="button"
+                                  className="mepc-qty-btn"
+                                  onClick={() => handleUpdateEquipmentQuantity('general', it.equipmentId, -1)}
+                                  title="Diminuir quantidade"
+                                >
+                                  -
+                                </button>
+                                <span className="mepc-qty-display">{it.quantity || 1}</span>
+                                <button
+                                  type="button"
+                                  className="mepc-qty-btn"
+                                  onClick={() => handleUpdateEquipmentQuantity('general', it.equipmentId, 1)}
+                                  title="Aumentar quantidade"
+                                >
+                                  +
+                                </button>
+                              </div>
+
+                              <input
+                                type="text"
+                                className="mepc-item-notes-input"
+                                placeholder="Notas (ex: no porta-malas, kit reserva)..."
+                                value={it.notes || ''}
+                                onChange={(e) => handleUpdateEquipmentNote('general', it.equipmentId, e.target.value)}
+                              />
+
+                              <button
+                                type="button"
+                                className="mepc-remove-btn"
+                                onClick={() => handleRemoveEquipmentFromPerson('general', it.equipmentId)}
+                                title="Remover item coletivo"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mepc-add-bar">
+                      <select
+                        className="mepc-select"
+                        value={generalEquipId}
+                        onChange={(e) => setSelectedEquipByPerson((prev) => ({ ...prev, general: e.target.value }))}
+                      >
+                        <option value="">Selecione um equipamento para o kit coletivo da missão...</option>
+                        {['accessories', 'lighting', 'audio', 'video', 'cameras', 'lenses'].map((catKey) => {
+                          const catEquips = equipmentList.filter((e) => e.category === catKey);
+                          if (catEquips.length === 0) return null;
+                          return (
+                            <optgroup key={catKey} label={CATEGORY_LABELS[catKey] || catKey}>
+                              {catEquips.map((eq) => {
+                                const isOut = Number(eq.availableQty) <= 0;
+                                return (
+                                  <option key={eq.id} value={eq.id}>
+                                    {eq.name} {isOut ? '(🔴 Alugado / Esgotado)' : `(Disp: ${eq.availableQty} un.)`}
+                                  </option>
+                                );
+                              })}
+                            </optgroup>
+                          );
+                        })}
+                      </select>
+
+                      <button
+                        type="button"
+                        className="btn-secondary mepc-add-btn"
+                        disabled={!generalEquipId}
+                        onClick={() => handleAddEquipmentToPerson('general', 'Kit Coletivo da Missão', 'Geral', generalEquipId)}
+                      >
+                        <Plus size={14} /> Adicionar Coletivo
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

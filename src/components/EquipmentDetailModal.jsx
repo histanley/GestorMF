@@ -208,13 +208,13 @@ export default function EquipmentDetailModal({
                   </div>
                 </div>
 
-                {/* 3. Número de Série & Patrimônio (Largura Total) */}
-                <div className="edm-spec-card highlight-serial edm-spec-serial-full">
+                {/* 3. Número de Série & Patrimônio */}
+                <div className="edm-spec-card highlight-serial">
                   <div className="edm-spec-icon">
                     <Hash size={17} className="text-gold" />
                   </div>
                   <div className="edm-spec-info">
-                    <span className="edm-spec-lbl">Nº DE SÉRIE / TAG DE PATRIMÔNIO</span>
+                    <span className="edm-spec-lbl">Nº DE SÉRIE / TAG</span>
                     <div className="edm-serial-row">
                       <strong className="edm-serial-val">
                         {equipment.serialNumber || 'Não cadastrado'}
@@ -232,21 +232,61 @@ export default function EquipmentDetailModal({
                     </div>
                   </div>
                 </div>
+
+                {/* 4. Valor Patrimonial do Bem (Custo de Mercado / Seguro) */}
+                <div className="edm-spec-card highlight-asset">
+                  <div className="edm-spec-icon">
+                    <Sparkles size={17} className="text-cyan" />
+                  </div>
+                  <div className="edm-spec-info">
+                    <span className="edm-spec-lbl">VALOR PATRIMONIAL DO BEM</span>
+                    <strong className="edm-price-val text-cyan">
+                      {formatCurrency(equipment.assetValue || (equipment.dailyRate * 25))}
+                    </strong>
+                    <small className="edm-asset-total-sub">
+                      Montante ({equipment.totalQty} un): {formatCurrency((equipment.assetValue || (equipment.dailyRate * 25)) * equipment.totalQty)}
+                    </small>
+                  </div>
+                </div>
               </div>
 
-              {/* Seção de Locações Ativas com este Item */}
+              {/* Seção de Locações Ativas & Missões com este Item */}
               <div className="edm-active-rentals-box">
                 <h4 className="edm-section-title">
-                  <Clock size={14} /> Locações Ativas deste Equipamento
+                  <Clock size={14} /> Paradeiro em Tempo Real (Locações &amp; Missões)
                 </h4>
 
-                {activeRentalsWithItem.length === 0 ? (
+                {activeRentalsWithItem.length === 0 && (!equipment.missionAllocations || equipment.missionAllocations.length === 0) ? (
                   <div className="edm-rentals-empty">
                     <CheckCircle2 size={15} className="text-emerald" />
-                    <span>Nenhuma unidade alugada no momento. Todas disponíveis na sede.</span>
+                    <span>Todas as unidades disponíveis na base da produtora. Nenhuma locação ou missão em andamento.</span>
                   </div>
                 ) : (
                   <div className="edm-rentals-list">
+                    {/* 1. Alocações em Missões da Produtora */}
+                    {(equipment.missionAllocations || []).map((mAlloc, mIdx) => (
+                      <div key={`m-${mIdx}`} className="edm-rental-item-card item-mission">
+                        <div className="eric-left">
+                          <div className="eric-client">
+                            <span className="badge-mission-pill">🎬 Missão Interna</span>
+                            <strong>{mAlloc.missionCode}: {mAlloc.description}</strong>
+                          </div>
+                          <div className="eric-dates">
+                            <User size={12} className="text-gold" />
+                            <span>Com: <strong>{mAlloc.collaboratorName}</strong></span>
+                            <span>•</span>
+                            <Calendar size={12} />
+                            <span>Data: <strong>{formatDateBR(mAlloc.date)}</strong></span>
+                          </div>
+                        </div>
+                        <div className="eric-right">
+                          <span className="eric-qty-badge">{mAlloc.quantity} un.</span>
+                          <span className="eric-mission-tag">Em Campo</span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* 2. Locações Externas para Clientes */}
                     {activeRentalsWithItem.map((r) => {
                       const it = (r.items || []).find((x) => x.equipmentId === equipment.id || x.name === equipment.name);
                       const isOverdue = r.status === 'overdue' || r.endDate < new Date().toISOString().split('T')[0];

@@ -178,6 +178,24 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     const availableUnits = equipmentList.reduce((acc, it) => acc + (Number(it.availableQty) || 0), 0);
     const rentedUnits = Math.max(0, totalUnits - availableUnits);
 
+    const totalAssetValue = equipmentList.reduce((acc, it) => {
+      const unitVal = Number(it.assetValue) > 0 ? Number(it.assetValue) : ((Number(it.dailyRate) || 0) * 25);
+      return acc + (unitVal * (Number(it.totalQty) || 1));
+    }, 0);
+
+    const categoryPatrimony = {};
+    equipmentList.forEach((it) => {
+      const cat = it.category || 'accessories';
+      const unitVal = Number(it.assetValue) > 0 ? Number(it.assetValue) : ((Number(it.dailyRate) || 0) * 25);
+      const totalItemVal = unitVal * (Number(it.totalQty) || 1);
+      if (!categoryPatrimony[cat]) {
+        categoryPatrimony[cat] = { totalValue: 0, units: 0, itemsCount: 0 };
+      }
+      categoryPatrimony[cat].totalValue += totalItemVal;
+      categoryPatrimony[cat].units += Number(it.totalQty) || 1;
+      categoryPatrimony[cat].itemsCount += 1;
+    });
+
     const todayStr = new Date().toISOString().split('T')[0];
 
     const activeRentals = rentalsList.filter((r) => r.status === 'active' || r.status === 'overdue');
@@ -194,6 +212,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       totalUnits,
       availableUnits,
       rentedUnits,
+      totalAssetValue,
+      categoryPatrimony,
       activeRentalsCount: activeRentals.length,
       reservedCount,
       overdueCount,
@@ -757,6 +777,17 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             <span className="erm-kpi-sub">prontos para locação</span>
           </div>
 
+          <div className="erm-kpi-card kpi-patrimony">
+            <div className="erm-kpi-top">
+              <div className="erm-kpi-icon-wrap icon-purple">
+                <Sparkles size={15} />
+              </div>
+              <span className="erm-kpi-lbl">Patrimônio Geral</span>
+            </div>
+            <div className="erm-kpi-val text-purple">{formatCurrency(kpiStats.totalAssetValue)}</div>
+            <span className="erm-kpi-sub">ativo total em acervo</span>
+          </div>
+
           <div className={`erm-kpi-card kpi-rented ${kpiStats.rentedUnits > 0 ? 'card-rented-highlight' : ''}`}>
             <div className="erm-kpi-top">
               <div className="erm-kpi-icon-wrap icon-cyan">
@@ -902,6 +933,48 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
               </div>
             </div>
 
+            {/* Painel Consolidado de Ativos & Patrimônio por Categoria */}
+            {kpiStats.categoryPatrimony && Object.keys(kpiStats.categoryPatrimony).length > 0 && (
+              <div className="erm-patrimony-dashboard-card">
+                <div className="epdc-header">
+                  <div className="epdc-title-group">
+                    <Sparkles size={16} className="text-purple" />
+                    <strong>Consolidação Patrimonial do Acervo</strong>
+                    <span className="epdc-total-tag">
+                      Montante Total: <strong>{formatCurrency(kpiStats.totalAssetValue)}</strong>
+                    </span>
+                  </div>
+                  <small className="epdc-subtitle">
+                    Valor total de reposição/mercado dos bens de propriedade da MegaFilmes
+                  </small>
+                </div>
+
+                <div className="epdc-categories-grid">
+                  {Object.entries(kpiStats.categoryPatrimony).map(([catKey, data]) => {
+                    const label = CATEGORY_LABELS[catKey] || catKey;
+                    const percent = kpiStats.totalAssetValue > 0
+                      ? Math.round((data.totalValue / kpiStats.totalAssetValue) * 100)
+                      : 0;
+                    return (
+                      <div key={catKey} className="epdc-cat-item">
+                        <div className="epdc-cat-top">
+                          <span className="epdc-cat-name">{label}</span>
+                          <span className="epdc-cat-val">{formatCurrency(data.totalValue)}</span>
+                        </div>
+                        <div className="epdc-cat-meta">
+                          <span>{data.itemsCount} itens • {data.units} un.</span>
+                          <span className="text-muted">{percent}%</span>
+                        </div>
+                        <div className="epdc-cat-progress">
+                          <div className="epdc-cat-bar" style={{ width: `${percent}%` }}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Grid de Equipamentos */}
             <div className="erm-equipment-grid">
               {filteredEquipment.length === 0 ? (
@@ -975,6 +1048,17 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                         <div className="equip-stock-info">
                           <span>Total: <strong>{equip.totalQty} un.</strong></span>
                         </div>
+                      </div>
+
+                      <div className="equip-asset-badge-bar">
+                        <span className="equip-asset-pill" title="Valor do Bem / Custo de Reposição">
+                          🛡️ Bem: {formatCurrency(equip.assetValue || (equip.dailyRate * 25))}
+                        </span>
+                        {equip.missionAllocations && equip.missionAllocations.length > 0 && (
+                          <span className="equip-in-mission-pill" title={`Alocado na Missão ${equip.missionAllocations[0].missionCode}`}>
+                            🎬 Em Missão ({equip.missionAllocations[0].collaboratorName})
+                          </span>
+                        )}
                       </div>
 
                       <div className="equip-card-actions">
@@ -1838,6 +1922,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   name: formData.get('name'),
                   category: formData.get('category'),
                   dailyRate: Number(formData.get('dailyRate')) || 0,
+                  assetValue: Number(formData.get('assetValue')) || 0,
                   rateUnit: editRateUnit || formData.get('rateUnit') || 'diária',
                   totalQty: Number(formData.get('totalQty')) || 1,
                   serialNumber: formData.get('serialNumber') || '',
@@ -1985,6 +2070,21 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     required
                     defaultValue={editingEquipment?.dailyRate || 100}
                   />
+                </div>
+
+                <div className="form-group">
+                  <label>Valor Patrimonial / Custo de Mercado do Bem (R$)</label>
+                  <input
+                    type="number"
+                    name="assetValue"
+                    step="0.01"
+                    min="0"
+                    defaultValue={editingEquipment?.assetValue || (editingEquipment?.dailyRate ? editingEquipment.dailyRate * 25 : '')}
+                    placeholder="Ex: 11000.00 (Valor de mercado / reposição do item)"
+                  />
+                  <small className="form-tip">
+                    Custo de reposição do bem no mercado. Alimenta a consolidação de ativos da produtora e o termo de garantia.
+                  </small>
                 </div>
 
                 <div className="form-group rate-unit-form-group">

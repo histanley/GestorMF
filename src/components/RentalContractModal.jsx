@@ -383,6 +383,11 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
                       <td>
                         <strong>{it.name}</strong>
                         {it.category && <span className="rc-table-cat"> • {it.category}</span>}
+                        {(Number(it.assetValue) > 0 || Number(it.dailyRate) > 0) && (
+                          <div className="rc-table-asset-sub">
+                            Reposição/Patrimônio: {formatCurrency(it.assetValue || (it.dailyRate * 25))} un.
+                          </div>
+                        )}
                       </td>
                       <td>{it.serialNumber || 'Conferido no ato'}</td>
                       <td style={{ textAlign: 'center' }}>{it.quantity} un</td>
@@ -491,7 +496,7 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
                       <li><strong>QUITAÇÃO DO SALDO:</strong> O saldo remanescente de {formatCurrency(rental.remainingAmount)} deverá ser impreterivelmente quitado pelo(a) LOCATÁRIO(A) conforme acordado ({rental.remainingDueDate ? `${rental.remainingDueTerms} em ${formatDateBR(rental.remainingDueDate)}` : (rental.remainingDueTerms || 'na devolução dos equipamentos')}).</li>
                     )}
                     <li><strong>GUARDA &amp; DESTINAÇÃO:</strong> O(A) LOCATÁRIO(A) responde integralmente pela guarda, zelo e conservação dos bens, utilizando-os para os fins a que se destinam, vedada sublocação, cessão ou empréstimo.</li>
-                    <li><strong>AVARIAS, DANOS E EXTRAVIO:</strong> Qualquer avaria estética, quebra mecânica, dano por líquido/queda, furto ou roubo será de inteira responsabilidade do(a) LOCATÁRIO(A), que arcará com o conserto em autorizada ou reposição de item novo similar, além das diárias paradas.</li>
+                    <li><strong>AVARIAS, DANOS E EXTRAVIO:</strong> Qualquer avaria estética, quebra mecânica, dano por líquido/queda, furto ou roubo será de inteira responsabilidade do(a) LOCATÁRIO(A), que arcará com o conserto em assistência autorizada ou com a imediata indenização pelo valor patrimonial de reposição indicado neste termo, além das diárias paradas.</li>
                     <li><strong>DEVOLUÇÃO &amp; MORA:</strong> Os equipamentos deverão ser devolvidos rigorosamente limpos e funcionais até a data e hora limites. Atrasos na entrega acarretarão cobrança de nova diária integral e penalidades do Art. 575 do Código Civil.</li>
                   </>
                 )}

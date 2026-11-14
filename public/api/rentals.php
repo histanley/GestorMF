@@ -22,6 +22,7 @@ function ensureRentalsTables($db) {
             photo_url LONGTEXT NULL,
             description TEXT NULL,
             status VARCHAR(32) NOT NULL DEFAULT 'available',
+            asset_value DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_equip_cat (category),
@@ -34,6 +35,9 @@ function ensureRentalsTables($db) {
     } catch (Exception $e) {}
     try {
         $db->exec("ALTER TABLE equipment MODIFY photo_url LONGTEXT NULL");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE equipment ADD COLUMN asset_value DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
     } catch (Exception $e) {}
 
     $db->exec("
@@ -221,6 +225,7 @@ function ensureRentalsTables($db) {
         $i = 1;
         foreach ($initialEquipment as $item) {
             $id = 'eq-' . str_pad($i++, 3, '0', STR_PAD_LEFT);
+            $assetVal = getBenchmarkAssetValue($item['name'], $item['category'], $item['daily_rate']);
             $stmt->execute([
                 $id,
                 $item['name'],
@@ -230,8 +235,116 @@ function ensureRentalsTables($db) {
                 $item['total_qty'],
                 $item['total_qty'],
             ]);
+            try {
+                $db->prepare("UPDATE equipment SET asset_value = ? WHERE id = ?")->execute([$assetVal, $id]);
+            } catch (Exception $e) {}
         }
     }
+
+    // Auto-população de asset_value para equipamentos com valor zerado/nulo
+    try {
+        $stmtZero = $db->query("SELECT id, name, category, daily_rate FROM equipment WHERE asset_value IS NULL OR asset_value <= 0");
+        if ($stmtZero) {
+            $zeroItems = $stmtZero->fetchAll();
+            $upStmt = $db->prepare("UPDATE equipment SET asset_value = ? WHERE id = ?");
+            foreach ($zeroItems as $zi) {
+                $benchmark = getBenchmarkAssetValue($zi['name'], $zi['category'], (float)$zi['daily_rate']);
+                $upStmt->execute([$benchmark, $zi['id']]);
+            }
+        }
+    } catch (Exception $e) {}
+}
+
+// Retorna valor patrimonial sugerido de mercado/reposição baseado em benchmark
+function getBenchmarkAssetValue($name, $category, $dailyRate = 0) {
+    $n = mb_strtolower(trim($name), 'UTF-8');
+
+    // Câmeras
+    if (strpos($n, 'a7iv') !== false || strpos($n, 'a7 iv') !== false) return 16500.00;
+    if (strpos($n, 'fx30') !== false) return 12500.00;
+    if (strpos($n, 'a7iii') !== false || strpos($n, 'a7 iii') !== false) return 11000.00;
+    if (strpos($n, '6600') !== false) return 6500.00;
+    if (strpos($n, 'eos rp') !== false) return 5500.00;
+    if (strpos($n, '5d mark iii') !== false) return 4500.00;
+    if (strpos($n, 'nx5') !== false || strpos($n, 'nx3') !== false) return 5500.00;
+    if (strpos($n, 'pmw-ex') !== false) return 6500.00;
+    if (strpos($n, 'gopro 11') !== false) return 2400.00;
+    if (strpos($n, 'gopro 360') !== false) return 3200.00;
+    if (strpos($n, 'gopro 8') !== false) return 1800.00;
+
+    // Lentes
+    if (strpos($n, '70/200') !== false || strpos($n, '70-200') !== false) return 14000.00;
+    if (strpos($n, '24/70 2.8') !== false || strpos($n, '24-70 2.8') !== false) return 12000.00;
+    if (strpos($n, '24/70 f4') !== false || strpos($n, '24-70 f4') !== false) return 3800.00;
+    if (strpos($n, '50mm 1.8') !== false) return 1500.00;
+    if (strpos($n, '35mm 1.8') !== false) return 3200.00;
+    if (strpos($n, '35mm 1.4') !== false) return 4500.00;
+    if (strpos($n, '85mm 1.8') !== false) return 3200.00;
+    if (strpos($n, '18/105') !== false || strpos($n, '18-105') !== false) return 3200.00;
+    if (strpos($n, 'sigma 16mm') !== false) return 2600.00;
+    if (strpos($n, 'canon 24/70') !== false) return 6000.00;
+
+    // Vídeo
+    if (strpos($n, 'atem 2') !== false) return 18000.00;
+    if (strpos($n, 'switcher') !== false) return 8000.00;
+    if (strpos($n, 'extreme live') !== false) return 7500.00;
+    if (strpos($n, 'neoid') !== false) return 6000.00;
+    if (strpos($n, 'atem mini') !== false) return 3800.00;
+    if (strpos($n, 'cosmo c1') !== false) return 6500.00;
+    if (strpos($n, 'mars 300') !== false) return 3200.00;
+    if (strpos($n, 'feelworld 7') !== false) return 1800.00;
+    if (strpos($n, 'feelworld 5') !== false) return 1200.00;
+    if (strpos($n, 'teleprompter profissional') !== false) return 4500.00;
+    if (strpos($n, 'teleprompter') !== false) return 2500.00;
+    if (strpos($n, 'placa de captura') !== false) return 800.00;
+
+    // Áudio
+    if (strpos($n, 'soundcraft') !== false || strpos($n, 'ui24r') !== false) return 7500.00;
+    if (strpos($n, 'rodecaster') !== false || strpos($n, 'rode caster') !== false) return 5500.00;
+    if (strpos($n, 'eon615') !== false || strpos($n, 'jbl') !== false) return 3800.00;
+    if (strpos($n, 'mkh 600') !== false || strpos($n, 'sennheiser') !== false) return 3500.00;
+    if (strpos($n, 'zoom h5') !== false) return 2200.00;
+    if (strpos($n, 'lark m2s') !== false) return 1400.00;
+    if (strpos($n, 'lark m2') !== false || strpos($n, 'lark 150') !== false) return 1200.00;
+    if (strpos($n, 'vara boom') !== false) return 1800.00;
+    if (strpos($n, 'behringer') !== false) return 950.00;
+    if (strpos($n, 'takstar') !== false || strpos($n, 'boya') !== false) return 450.00;
+
+    // Iluminação
+    if (strpos($n, 'ad600') !== false) return 6500.00;
+    if (strpos($n, 'sl 200') !== false || strpos($n, 'sz200') !== false) return 3200.00;
+    if (strpos($n, 'fv200') !== false) return 2800.00;
+    if (strpos($n, 'v860') !== false) return 1800.00;
+    if (strpos($n, 'v350') !== false) return 1100.00;
+    if (strpos($n, 'tt350') !== false || strpos($n, 'tt600') !== false) return 650.00;
+    if (strpos($n, 'xpro') !== false || strpos($n, 'x3 s') !== false) return 650.00;
+    if (strpos($n, 'yn600') !== false || strpos($n, 'soleste') !== false) return 1200.00;
+    if (strpos($n, 'softbox') !== false) return 700.00;
+    if (strpos($n, 'rebatedor') !== false) return 350.00;
+
+    // Acessórios
+    if (strpos($n, 'grua 8m') !== false) return 12000.00;
+    if (strpos($n, 'grua 3') !== false) return 6000.00;
+    if (strpos($n, 'solidcom') !== false || strpos($n, '6s') !== false) return 7500.00;
+    if (strpos($n, 'impressora') !== false) return 6500.00;
+    if (strpos($n, 'weebill 3s') !== false) return 3200.00;
+    if (strpos($n, 'weebill s') !== false) return 2200.00;
+    if (strpos($n, 'benro') !== false) return 1800.00;
+    if (strpos($n, 'tr 688v') !== false || strpos($n, 'nt777') !== false) return 750.00;
+    if (strpos($n, 'tripé de luz') !== false) return 350.00;
+    if (strpos($n, 'hdmi 50m') !== false) return 600.00;
+
+    // Fallbacks inteligentes por categoria ou múltiplo da diária
+    if ($dailyRate > 0) return max(500.00, round($dailyRate * 25, 2));
+    switch ($category) {
+        case 'cameras': return 6500.00;
+        case 'lenses': return 3200.00;
+        case 'video': return 3500.00;
+        case 'audio': return 1600.00;
+        case 'lighting': return 1200.00;
+        default: return 800.00;
+    }
+}
 }
 
 // Inicializa tabelas e seeds se necessário
@@ -406,19 +519,72 @@ if ($method === 'GET') {
     $stmtEq = $db->query("SELECT * FROM equipment ORDER BY category ASC, name ASC");
     $rawEq = $stmtEq->fetchAll();
 
-    $equipment = array_map(function($e) {
+    // Mapeamento de alocações ativas em missões para cruzar com o acervo
+    $missionAllocationsByEquipId = [];
+    try {
+        $stmtMissions = $db->query("
+            SELECT id, code, description, date, end_date, departure_time, return_time_estimated, mission_status, equipment_allocations 
+            FROM missions 
+            WHERE mission_status IN ('Agendada', 'Em Deslocamento', 'Em Execução', 'Pendente')
+              AND equipment_allocations IS NOT NULL 
+              AND equipment_allocations != ''
+        ");
+        if ($stmtMissions) {
+            $activeMissions = $stmtMissions->fetchAll();
+            foreach ($activeMissions as $am) {
+                $allocGroups = json_decode($am['equipment_allocations'], true);
+                if (is_array($allocGroups)) {
+                    foreach ($allocGroups as $grp) {
+                        $collabName = $grp['collaboratorName'] ?? 'Geral / Coletivo';
+                        $items = $grp['items'] ?? [];
+                        if (is_array($items)) {
+                            foreach ($items as $it) {
+                                $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
+                                if (!empty($eqId)) {
+                                    if (!isset($missionAllocationsByEquipId[$eqId])) {
+                                        $missionAllocationsByEquipId[$eqId] = [];
+                                    }
+                                    $missionAllocationsByEquipId[$eqId][] = [
+                                        'type'             => 'mission',
+                                        'missionId'        => $am['id'],
+                                        'missionCode'      => $am['code'] ?? ('#' . $am['id']),
+                                        'description'      => $am['description'],
+                                        'date'             => $am['date'],
+                                        'endDate'          => $am['end_date'] ?? $am['date'],
+                                        'departureTime'    => $am['departure_time'],
+                                        'returnTime'       => $am['return_time_estimated'],
+                                        'collaboratorName' => $collabName,
+                                        'quantity'         => (int)($it['quantity'] ?? 1)
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } catch (Exception $e) {}
+
+    $equipment = array_map(function($e) use ($missionAllocationsByEquipId) {
+        $eqId = $e['id'];
+        $assetVal = (float)($e['asset_value'] ?? 0);
+        if ($assetVal <= 0) {
+            $assetVal = getBenchmarkAssetValue($e['name'], $e['category'], (float)$e['daily_rate']);
+        }
         return [
-            'id'           => $e['id'],
+            'id'           => $eqId,
             'name'         => $e['name'],
             'category'     => $e['category'],
             'dailyRate'    => (float)$e['daily_rate'],
             'rateUnit'     => $e['rate_unit'] ?? 'diária',
+            'assetValue'   => $assetVal,
             'totalQty'     => (int)$e['total_qty'],
             'availableQty' => (int)$e['available_qty'],
             'serialNumber' => $e['serial_number'] ?? '',
             'photoUrl'     => $e['photo_url'] ?? '',
             'description'  => $e['description'] ?? '',
             'status'       => $e['status'] ?? 'available',
+            'missionAllocations' => $missionAllocationsByEquipId[$eqId] ?? [],
             'createdAt'    => $e['created_at'],
             'updatedAt'    => $e['updated_at']
         ];
@@ -469,10 +635,30 @@ if ($method === 'GET') {
         ];
     }, $rawRent);
 
-    // Métricas para Dashboard
+    // Métricas para Dashboard & Consolidação Patrimonial
     $totalEquipments = array_sum(array_column($equipment, 'totalQty'));
     $availableEquipments = array_sum(array_column($equipment, 'availableQty'));
     $rentedEquipments = $totalEquipments - $availableEquipments;
+
+    $totalAssetValue = 0.0;
+    $patrimonyByCategory = [];
+    foreach ($equipment as $eq) {
+        $cat = $eq['category'] ?: 'accessories';
+        $val = ((float)$eq['assetValue']) * ((int)$eq['totalQty']);
+        $totalAssetValue += $val;
+
+        if (!isset($patrimonyByCategory[$cat])) {
+            $patrimonyByCategory[$cat] = [
+                'category'        => $cat,
+                'totalAssetValue' => 0.0,
+                'totalUnits'      => 0,
+                'itemsCount'      => 0
+            ];
+        }
+        $patrimonyByCategory[$cat]['totalAssetValue'] += $val;
+        $patrimonyByCategory[$cat]['totalUnits'] += (int)$eq['totalQty'];
+        $patrimonyByCategory[$cat]['itemsCount'] += 1;
+    }
 
     $activeRentals = count(array_filter($rentals, fn($r) => $r['status'] === 'active'));
     $overdueRentals = count(array_filter($rentals, fn($r) => $r['status'] === 'overdue'));
@@ -489,10 +675,17 @@ if ($method === 'GET') {
         'success'   => true,
         'equipment' => $equipment,
         'rentals'   => $rentals,
+        'patrimony' => [
+            'totalAssetValue' => $totalAssetValue,
+            'totalUnits'      => $totalEquipments,
+            'totalItems'      => count($equipment),
+            'byCategory'      => array_values($patrimonyByCategory)
+        ],
         'summary'   => [
             'totalEquipments'     => $totalEquipments,
             'availableEquipments' => $availableEquipments,
             'rentedEquipments'    => $rentedEquipments,
+            'totalAssetValue'     => $totalAssetValue,
             'activeRentals'       => $activeRentals,
             'overdueRentals'      => $overdueRentals,
             'dueSoonCount'        => count($dueSoonRentals)
@@ -515,6 +708,11 @@ if ($method === 'POST' && $action === 'save_equipment') {
     $name = trim($data['name'] ?? '');
     $category = trim($data['category'] ?? 'accessories');
     $dailyRate = (float)($data['dailyRate'] ?? $data['daily_rate'] ?? 0);
+    $assetValue = (float)($data['assetValue'] ?? $data['asset_value'] ?? 0);
+    if ($assetValue <= 0) {
+        $benchmark = getBenchmarkAssetValue($name, $category, $dailyRate);
+        $assetValue = $benchmark;
+    }
     $rateUnit = trim($data['rateUnit'] ?? 'diária');
     $totalQty = max(1, (int)($data['totalQty'] ?? 1));
     $serialNumber = trim($data['serialNumber'] ?? '');
@@ -579,19 +777,19 @@ if ($method === 'POST' && $action === 'save_equipment') {
 
             $stmtUp = $db->prepare("
                 UPDATE equipment 
-                SET name = ?, category = ?, daily_rate = ?, rate_unit = ?, total_qty = ?, available_qty = ?, serial_number = ?, photo_url = ?, description = ?, status = ?
+                SET name = ?, category = ?, daily_rate = ?, rate_unit = ?, asset_value = ?, total_qty = ?, available_qty = ?, serial_number = ?, photo_url = ?, description = ?, status = ?
                 WHERE id = ?
             ");
             $stmtUp->execute([
-                $name, $category, $dailyRate, $rateUnit, $totalQty, $newAvailable, $serialNumber, $photoUrl, $description, $status, $id
+                $name, $category, $dailyRate, $rateUnit, $assetValue, $totalQty, $newAvailable, $serialNumber, $photoUrl, $description, $status, $id
             ]);
         } else {
             $stmtIns = $db->prepare("
-                INSERT INTO equipment (id, name, category, daily_rate, rate_unit, total_qty, available_qty, serial_number, photo_url, description, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
+                INSERT INTO equipment (id, name, category, daily_rate, rate_unit, asset_value, total_qty, available_qty, serial_number, photo_url, description, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
             ");
             $stmtIns->execute([
-                $id, $name, $category, $dailyRate, $rateUnit, $totalQty, $totalQty, $serialNumber, $photoUrl, $description
+                $id, $name, $category, $dailyRate, $rateUnit, $assetValue, $totalQty, $totalQty, $serialNumber, $photoUrl, $description
             ]);
         }
     } catch (Exception $e) {

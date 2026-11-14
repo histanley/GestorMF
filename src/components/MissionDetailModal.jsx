@@ -27,6 +27,8 @@ import {
   Zap,
   Lock,
   Folder,
+  Package,
+  Camera,
 } from 'lucide-react';
 import {
   getMissionTotalKm,
@@ -737,20 +739,58 @@ export default function MissionDetailModal({
               )}
             </div>
 
-            {/* 5. BRIEFING / EQUIPAMENTOS / OBSERVAÇÕES & STATUS DE EDIÇÃO */}
+            {/* 5. BRIEFING, ROTEIRO & EQUIPAMENTOS DE CAMPO */}
             <div className="mdm-section">
               <div className="mdm-section-title">
                 <FileText size={15} />
-                <span>Briefing, Equipamentos &amp; Observações da Pauta</span>
+                <span>Briefing, Roteiro &amp; Instruções da Pauta</span>
               </div>
 
               <div className="mdm-notes-box">
                 {mission.notes ? (
                   <p>{mission.notes}</p>
                 ) : (
-                  <p className="text-muted">Nenhuma observação ou lista de equipamentos registrada para esta missão.</p>
+                  <p className="text-muted">Nenhuma instrução ou briefing específico cadastrado para esta missão.</p>
                 )}
               </div>
+
+              {/* Kits de Equipamentos Escalados por Pessoa */}
+              {Array.isArray(mission.equipmentAllocations) && mission.equipmentAllocations.length > 0 && (
+                <div className="mdm-equip-section">
+                  <div className="mdm-equip-header">
+                    <Package size={15} className="text-purple" />
+                    <strong>Equipamentos &amp; Kits de Campo Vinculados</strong>
+                  </div>
+
+                  <div className="mdm-equip-groups-grid">
+                    {mission.equipmentAllocations.map((grp, gIdx) => {
+                      const items = grp.items || [];
+                      if (items.length === 0) return null;
+                      const isGeneral = grp.collaboratorId === 'general';
+
+                      return (
+                        <div key={gIdx} className={`mdm-equip-group-card ${isGeneral ? 'card-general' : ''}`}>
+                          <div className="megc-top">
+                            <strong>{grp.collaboratorName}</strong>
+                            <span className="megc-role">{grp.role || (isGeneral ? 'Geral' : 'Equipe')}</span>
+                          </div>
+
+                          <div className="megc-items-list">
+                            {items.map((it, iIdx) => (
+                              <div key={iIdx} className="megc-item-row">
+                                <span className="megc-item-name">
+                                  {it.quantity > 1 ? `(${it.quantity}x) ` : ''}{it.name}
+                                </span>
+                                {it.notes && <small className="megc-item-notes">{it.notes}</small>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 6. PÓS-PRODUÇÃO, EDIÇÃO & PRAZOS DE ENTREGA */}
