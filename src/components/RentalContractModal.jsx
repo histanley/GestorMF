@@ -55,18 +55,11 @@ export default function RentalContractModal({ rental, currentUser = null, onClos
   useEffect(() => {
     if (!rental) return;
 
-    const qrData = `MEGAFILMES PRODUÇÕES AUDIOVISUAIS
-DOCUMENTO: ${isReserved ? 'RESERVA/AGENDAMENTO' : 'CONTRATO DE LOCACAO'}
-NUMERO: ${rental.code}
-CLIENTE: ${rental.clientName}
-TOTAL: ${formatCurrency(rental.totalAmount)}
-STATUS: ${isReserved ? 'RESERVA AGENDADA' : 'LOCACAO ATIVA'}
-AUTENTICADO POR: ${authorizerName} (${authorizerRole})
-REGISTRO SISTEMICO: ${contractHash}
-VERIFICACAO: https://gestormf.shop/api/rentals.php?action=verify&code=${rental.code}`;
+    // URL pública direta para escaneamento via smartphone (abre no navegador sem exigir login)
+    const verifyUrl = `https://gestormf.shop/validar.php?code=${encodeURIComponent(rental.code)}`;
 
-    QRCode.toDataURL(qrData, {
-      width: 180,
+    QRCode.toDataURL(verifyUrl, {
+      width: 200,
       margin: 1,
       color: {
         dark: '#0f172a',
@@ -75,7 +68,7 @@ VERIFICACAO: https://gestormf.shop/api/rentals.php?action=verify&code=${rental.c
     })
       .then((url) => setQrCodeDataUrl(url))
       .catch((e) => console.warn('Erro ao gerar QRCode:', e));
-  }, [rental, authorizerName, authorizerRole, contractHash, isReserved]);
+  }, [rental]);
 
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 

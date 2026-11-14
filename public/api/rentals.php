@@ -196,6 +196,105 @@ function ensureRentalsTables($db) {
 // Inicializa tabelas e seeds se necessário
 ensureRentalsTables($db);
 
+$action = $_GET['action'] ?? '';
+
+// ==============================================================================
+// VERIFICAÇÃO PÚBLICA DE AUTENTICIDADE DE DOCUMENTOS (SEM EXIGÊNCIA DE LOGIN)
+// Qualquer pessoa pode apontar a câmera para o QR Code do documento e validar
+// ==============================================================================
+if ($method === 'GET' && $action === 'verify') {
+    $code = trim($_GET['code'] ?? '');
+    if (empty($code)) {
+        jsonResponse([
+            'success' => false,
+            'valid'   => false,
+            'message' => 'Código de verificação do documento não fornecido.'
+        ], 400);
+    }
+
+    $stmt = $db->prepare("SELECT * FROM rentals WHERE code = ? LIMIT 1");
+    $stmt->execute([$code]);
+    $rental = $stmt->fetch();
+
+    if (!$rental) {
+        jsonResponse([
+            'success' => true,
+            'valid'   => false,
+            'message' => 'Documento não localizado na base oficial de locações da MegaFilmes.'
+        ], 200);
+    }
+
+    $items = !empty($rental['items_json']) ? json_decode($rental['items_json'], true) : [];
+    $safeItems = array_map(function($it) {
+        return [
+            'name'         => $it['name'] ?? 'Equipamento',
+            'quantity'     => (int)($it['quantity'] ?? 1),
+            'dailyRate'    => (float)($it['dailyRate'] ?? 0),
+            'serialNumber' => $it['serialNumber'] ?? ''
+        ];
+    }, is_array($items) ? $items : []);
+
+    // Mascaramento de dados sensíveis para conformidade com a LGPD
+    $rawDoc = $rental['client_document'] ?? '';
+    $maskedDoc = $rawDoc;
+    $digits = preg_replace('/\D/', '', $rawDoc);
+    if (strlen($digits) === 11) {
+        $maskedDoc = '***.' . substr($digits, 3, 3) . '.' . substr($digits, 6, 3) . '-**';
+    } elseif (strlen($digits) === 14) {
+        $maskedDoc = substr($digits, 0, 2) . '.***.***/' . substr($digits, 8, 4) . '-**';
+    }
+
+    $rawPhone = $rental['client_phone'] ?? '';
+    $phoneDigits = preg_replace('/\D/', '', $rawPhone);
+    $maskedPhone = '';
+    if (strlen($phoneDigits) >= 10) {
+        $maskedPhone = '(' . substr($phoneDigits, 0, 2) . ') *****-' . substr($phoneDigits, -4);
+    }
+
+    $authorizer = !empty($rental['created_by']) ? $rental['created_by'] : 'Gestão MegaFilmes';
+    $isReserved = ($rental['status'] === 'reserved');
+
+    // Hash determinístico de autenticidade
+    $strForHash = $rental['code'] . '-' . $rental['total_amount'] . '-' . $rental['start_date'] . '-' . $authorizer;
+    $hash = 0;
+    for ($i = 0; $i < strlen($strForHash); $i++) {
+        $hash = ($hash * 31 + ord($strForHash[$i])) % 4294967296;
+    }
+    $authSignature = 'AUTH-MF-' . strtoupper(str_pad(dechex($hash), 8, '0', STR_PAD_LEFT));
+
+    jsonResponse([
+        'success'  => true,
+        'valid'    => true,
+        'document' => [
+            'code'                 => $rental['code'],
+            'type'                 => $isReserved ? 'Comprovante de Agendamento & Reserva' : 'Contrato de Locação & Termo de Responsabilidade',
+            'status'               => $rental['status'],
+            'clientName'           => $rental['client_name'],
+            'clientDocumentMasked' => $maskedDoc,
+            'clientPhoneMasked'    => $maskedPhone,
+            'startDate'            => $rental['start_date'],
+            'startTime'            => $rental['start_time'] ?? '08:00',
+            'endDate'              => $rental['end_date'],
+            'endTime'              => $rental['end_time'] ?? '18:00',
+            'totalDays'            => (int)$rental['total_days'],
+            'totalAmount'          => (float)$rental['total_amount'],
+            'paymentStatus'        => $rental['payment_status'] ?? 'Pendente',
+            'paymentMethod'        => $rental['payment_method'] ?? 'PIX',
+            'authorizedBy'         => $authorizer,
+            'authSignature'        => $authSignature,
+            'issuedAt'             => $rental['created_at'],
+            'items'                => $safeItems,
+            'legalFramework'       => 'Lei Federal nº 10.406/2002 (Código Civil) e Lei Federal nº 14.063/2020',
+            'issuer'               => [
+                'name'    => 'Mega Filmes e Fotografia (RG DA SILVA - ME)',
+                'cnpj'    => '21.973.641/0001-00',
+                'address' => 'Alameda dos Tatus, 155 - Dr. Silvio Leite, Boa Vista - RR',
+                'system'  => 'GestorMF'
+            ]
+        ]
+    ]);
+}
+
 // Auth: apenas ADMIN e MANAGER têm acesso ao módulo de aluguel
 $user = requireAuth(['ADMIN', 'MANAGER']);
 

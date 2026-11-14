@@ -49,6 +49,7 @@ import MissionModal from './components/MissionModal';
 import MissionDetailModal from './components/MissionDetailModal';
 import SettingsModal from './components/SettingsModal';
 import LoginScreen from './components/LoginScreen';
+import PublicDocumentVerifier from './components/PublicDocumentVerifier';
 import UserMenu from './components/UserMenu';
 import UserProfileModal from './components/UserProfileModal';
 import PermissionsModal from './components/PermissionsModal';
@@ -2371,6 +2372,15 @@ export default function App() {
   };
 
   const currentLogo = settings?.logoUrl || (theme === 'light' ? logoLight : logoDark);
+
+  // Verificação pública de documentos via QR Code (acessível sem necessidade de login)
+  const urlParams = new URLSearchParams(window.location.search);
+  const verifyCode = urlParams.get('code') || urlParams.get('verify');
+  const isVerifierRoute = window.location.pathname.includes('/validar') || !!verifyCode;
+
+  if (isVerifierRoute && verifyCode) {
+    return <PublicDocumentVerifier code={verifyCode} />;
+  }
 
   // Se nenhum usuário estiver logado, exibe a tela de login moderna com autenticação
   if (!currentUser) {
