@@ -324,6 +324,16 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       return;
     }
 
+    const cleanDoc = (rentalForm.clientDocument || '').replace(/\D/g, '');
+    if (!cleanDoc || (cleanDoc.length !== 11 && cleanDoc.length !== 14)) {
+      alertDialog({
+        title: 'CPF ou CNPJ Obrigatório',
+        message: 'Por favor, informe um CPF válido (11 dígitos) ou CNPJ válido (14 dígitos) do cliente / empresa. Este campo é obrigatório para a emissão do termo e autenticidade jurídica.',
+        variant: 'warning',
+      });
+      return;
+    }
+
     if (cartItems.length === 0) {
       alertDialog({
         title: 'Carrinho Vazio',
@@ -999,9 +1009,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   </div>
 
                   <div className="form-group">
-                    <label>CPF ou CNPJ</label>
+                    <label>CPF ou CNPJ *</label>
                     <input
                       type="text"
+                      required
                       placeholder="000.000.000-00 ou 00.000.000/0000-00"
                       maxLength={18}
                       value={rentalForm.clientDocument}

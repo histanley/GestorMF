@@ -632,6 +632,10 @@ if ($method === 'POST' && $action === 'create_rental') {
     if (empty($clientName)) {
         jsonResponse(['success' => false, 'error' => 'O nome do cliente/locatário é obrigatório.'], 400);
     }
+    $cleanDoc = preg_replace('/\D/', '', $clientDocument);
+    if (empty($cleanDoc) || (strlen($cleanDoc) !== 11 && strlen($cleanDoc) !== 14)) {
+        jsonResponse(['success' => false, 'error' => 'O CPF ou CNPJ do cliente é obrigatório para emissão do contrato (informe 11 dígitos para CPF ou 14 dígitos para CNPJ).'], 400);
+    }
     if (empty($items)) {
         jsonResponse(['success' => false, 'error' => 'Selecione ao menos um equipamento para locação.'], 400);
     }
