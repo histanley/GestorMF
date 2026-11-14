@@ -2514,17 +2514,17 @@ export default function App() {
             </>
           )}
 
-          {/* Se for ADMINISTRADOR: Exibe a Central do Admin e NÃO exibe Meu Espaço */}
+          {/* Se for ADMINISTRADOR: Exibe a Central ADM e NÃO exibe Meu Espaço */}
           {isAdminUser ? (
             <button
               className={`tab-btn tab-btn-admin ${activeTab === 'admin' ? 'active' : ''}`}
               onClick={() => setActiveTab('admin')}
-              title="Central do Administrador: Aprovações, Diárias & Fechamento, Inteligência & Ranking"
+              title="Central ADM: Aprovações, Diárias & Fechamento, Inteligência & Ranking"
             >
               <span className="tab-icon-box">
                 <ShieldCheck size={15} />
               </span>
-              <span className="tab-label">Central do Admin</span>
+              <span className="tab-label">Central ADM</span>
               {pendingExtraHoursRequests.length > 0 && (
                 <span className="tab-badge badge-danger-pulse">
                   ⏱️ {pendingExtraHoursRequests.length}
@@ -2753,7 +2753,7 @@ export default function App() {
                   onClick={() => { setActiveTab('admin'); setIsMobileDrawerOpen(false); }}
                 >
                   <ShieldCheck size={18} />
-                  <span>Central do Admin</span>
+                  <span>Central ADM</span>
                   {pendingExtraHoursRequests.length > 0 && (
                     <span className="md-nav-badge danger">⏱️ {pendingExtraHoursRequests.length}</span>
                   )}
