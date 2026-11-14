@@ -18160,7 +18160,8 @@ body.light-theme .mbn-center-action {
     justify-content: center !important;
     background: rgba(0, 0, 0, 0.72) !important;
     backdrop-filter: blur(10px) !important;
-    z-index: 10002 !important; /* Sempre acima do app-header (z-index 1000) e abaixo do mobile-bottom-nav (10005) */
+    z-index: 10002 !important;
+    /* Sempre acima do app-header (z-index 1000) e abaixo do mobile-bottom-nav (10005) */
     box-sizing: border-box !important;
   }
 
@@ -34985,8 +34986,17 @@ body.light-theme .kpi-card.kpi-red {
 }
 
 @keyframes pulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.85); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
 }
 
 .erm-title {
@@ -36202,9 +36212,11 @@ body.light-theme .kpi-card.kpi-red {
   0% {
     box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
   }
@@ -36216,8 +36228,15 @@ body.light-theme .kpi-card.kpi-red {
 }
 
 @keyframes cart-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
 }
 
 .bcap-content {
@@ -36263,8 +36282,24 @@ body.light-theme .kpi-card.kpi-red {
 .rc-header-brand-side {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   flex: 1;
+}
+
+.rc-header-logo-img {
+  max-height: 56px;
+  width: auto;
+  max-width: 170px;
+  object-fit: contain;
+  display: block;
+}
+
+.rc-header-text-img {
+  max-height: 52px;
+  width: auto;
+  max-width: 380px;
+  object-fit: contain;
+  display: block;
 }
 
 .rc-header-banner-img {
@@ -36782,18 +36817,22 @@ body.light-theme .kpi-card.kpi-red {
     size: A4 portrait;
     margin: 5mm 8mm;
   }
+
   body {
     background: #ffffff !important;
   }
+
   body * {
     visibility: hidden;
   }
+
   .rental-contract-overlay,
   .rental-contract-modal,
   .rc-document-sheet,
   .rc-document-sheet * {
     visibility: visible;
   }
+
   .rental-contract-overlay {
     position: absolute !important;
     left: 0 !important;
@@ -36803,6 +36842,7 @@ body.light-theme .kpi-card.kpi-red {
     background: #ffffff !important;
     padding: 0 !important;
   }
+
   .rental-contract-modal {
     border: none !important;
     box-shadow: none !important;
@@ -36811,9 +36851,11 @@ body.light-theme .kpi-card.kpi-red {
     border-radius: 0 !important;
     background: #ffffff !important;
   }
+
   .no-print {
     display: none !important;
   }
+
   .rc-document-sheet {
     padding: 0 !important;
     width: 100% !important;
@@ -36824,64 +36866,99 @@ body.light-theme .kpi-card.kpi-red {
     page-break-after: avoid !important;
     overflow: hidden !important;
   }
+
   .rc-doc-header-official {
     padding-bottom: 6px !important;
     margin-bottom: 6px !important;
   }
-  .rc-header-banner-img {
-    max-height: 38px !important;
+
+  .rc-header-brand-side {
+    gap: 12px !important;
   }
+
+  .rc-header-logo-img {
+    max-height: 42px !important;
+    width: auto !important;
+    object-fit: contain !important;
+    display: block !important;
+  }
+
+  .rc-header-text-img {
+    max-height: 40px !important;
+    width: auto !important;
+    object-fit: contain !important;
+    display: block !important;
+  }
+
+  .rc-header-banner-img {
+    max-height: 40px !important;
+  }
+
   .rc-title-bar {
     padding: 3px 6px !important;
     margin-bottom: 6px !important;
   }
+
   .rc-parties-grid {
     margin-bottom: 6px !important;
     gap: 8px !important;
   }
+
   .rc-party-card {
     padding: 5px 8px !important;
   }
+
   .rc-party-card p {
     font-size: 9.5px !important;
     margin: 2px 0 !important;
   }
+
   .rc-schedule-strip {
     margin-bottom: 6px !important;
     padding: 4px 8px !important;
   }
+
   .rc-items-section {
     margin-bottom: 6px !important;
   }
-  .rc-items-table th, .rc-items-table td {
+
+  .rc-items-table th,
+  .rc-items-table td {
     padding: 3px 6px !important;
     font-size: 9.5px !important;
   }
+
   .rc-financial-summary {
     margin-bottom: 6px !important;
     padding: 4px 8px !important;
   }
+
   .rc-fin-row {
     font-size: 10px !important;
   }
+
   .rc-clauses-box {
     margin-bottom: 6px !important;
     padding: 5px 8px !important;
   }
+
   .rc-clauses-title {
     font-size: 9.5px !important;
     margin-bottom: 3px !important;
   }
+
   .rc-clauses-list li {
     margin-bottom: 2px !important;
     font-size: 8.5px !important;
     line-height: 1.15 !important;
   }
+
   .rc-signatures-grid-v2 {
     margin-top: 6px !important;
     padding-top: 4px !important;
     page-break-inside: avoid !important;
   }
+
   .rc-qrcode-wrap {
     width: 65px !important;
     height: 65px !important;
@@ -37722,9 +37799,17 @@ body.light-theme .edm-progress-track,
   transition: width 0.3s ease;
 }
 
-.bg-emerald { background: #10b981; }
-.bg-amber { background: #f59e0b; }
-.bg-red { background: #ef4444; }
+.bg-emerald {
+  background: #10b981;
+}
+
+.bg-amber {
+  background: #f59e0b;
+}
+
+.bg-red {
+  background: #ef4444;
+}
 
 .edm-serial-row {
   display: flex;
@@ -37937,13 +38022,16 @@ body.light-theme .edm-footer,
     max-height: 94vh !important;
     width: 96% !important;
   }
+
   .edm-main-grid {
     grid-template-columns: 1fr;
     gap: 14px;
   }
+
   .edm-photo-box {
     height: 200px;
   }
+
   .edm-specs-grid {
     grid-template-columns: 1fr;
   }

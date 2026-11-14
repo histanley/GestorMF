@@ -12,8 +12,11 @@ import {
   Package,
   QrCode as QrIcon,
   Sparkles,
+  Loader,
 } from 'lucide-react';
 import QRCode from 'qrcode';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { formatCurrency, formatDateBR } from '../utils/rentalsData';
 import { alertDialog } from '../utils/dialog';
 
@@ -74,12 +77,70 @@ VERIFICACAO: https://gestormf.shop/api/rentals.php?action=verify&code=${rental.c
       .catch((e) => console.warn('Erro ao gerar QRCode:', e));
   }, [rental, authorizerName, authorizerRole, contractHash, isReserved]);
 
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
   const handlePrint = () => {
     window.print();
   };
 
-  const handleDownloadPdf = () => {
-    window.print();
+  const handleDownloadPdf = async () => {
+    if (!sheetRef.current || isDownloadingPdf) return;
+    setIsDownloadingPdf(true);
+
+    try {
+      const element = sheetRef.current;
+
+      // Garantir carregamento das imagens antes da captura
+      const images = Array.from(element.querySelectorAll('img'));
+      await Promise.all(
+        images.map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        })
+      );
+
+      const canvas = await html2canvas(element, {
+        scale: 2.2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, Math.min(pdfHeight, 297));
+
+      const cleanCode = (rental.code || 'DOC').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = isReserved
+        ? `Reserva_${cleanCode}.pdf`
+        : `Contrato_Locacao_${cleanCode}.pdf`;
+
+      pdf.save(filename);
+
+      alertDialog({
+        title: 'PDF Baixado com Sucesso!',
+        message: `O arquivo ${filename} foi gerado e baixado no seu dispositivo.`,
+        variant: 'success',
+      });
+    } catch (err) {
+      console.error('Erro na exportação para PDF:', err);
+      // Fallback para impressão se o canvas falhar
+      window.print();
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   const handleCopyWhatsApp = async () => {
@@ -176,10 +237,20 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
               type="button"
               className="rc-action-btn rc-action-download"
               onClick={handleDownloadPdf}
-              title="Baixar / Salvar Contrato em PDF"
+              disabled={isDownloadingPdf}
+              title="Baixar / Salvar Contrato em PDF diretamente"
             >
-              <Download size={15} />
-              <span>Baixar PDF</span>
+              {isDownloadingPdf ? (
+                <>
+                  <Loader size={15} className="spinner" />
+                  <span>Baixando PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={15} />
+                  <span>Baixar PDF</span>
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -205,16 +276,24 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
 
         {/* Folha do Documento (Pronta para Visualização e Impressão A4 - 1 Página) */}
         <div className="rc-document-sheet" ref={sheetRef}>
-          {/* Cabeçalho Corporativo Oficial Timbrado — Fiel ao Modelo Print 2 */}
+          {/* Cabeçalho Corporativo Oficial Timbrado — Fiel ao Modelo Print 2 / 4 / 5 */}
           <div className="rc-doc-header-official">
             <div className="rc-header-brand-side">
               <img
-                src="/images/contract/header-banner.png"
+                src="/images/contract/header-logo.png"
                 alt="Mega Filmes e Fotografia"
-                className="rc-header-banner-img"
+                className="rc-header-logo-img"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = '/logo.png';
+                }}
+              />
+              <img
+                src="/images/contract/header-banner.png"
+                alt="RG DA SILVA - ME"
+                className="rc-header-text-img"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
                 }}
               />
             </div>
