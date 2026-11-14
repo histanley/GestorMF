@@ -45,6 +45,7 @@ import { apiRequest } from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import RentalContractModal from './RentalContractModal';
 import EquipmentDetailModal from './EquipmentDetailModal';
+import RentalInspectionModal from './RentalInspectionModal';
 
 export default function EquipmentRentalManager({ currentUser, onClose = null }) {
   // Abas do Módulo: 'catalog' (Estoque), 'new_rental' (Nova Locação), 'rentals' (Locações Ativas & Histórico)
@@ -89,6 +90,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
 
   // Modais
   const [selectedRentalForContract, setSelectedRentalForContract] = useState(null);
+  const [selectedRentalForInspection, setSelectedRentalForInspection] = useState(null); // Vistoria & Fotos de Avarias
   const [selectedDetailEquipment, setSelectedDetailEquipment] = useState(null); // Detalhes completos do equipamento
   const [editingEquipment, setEditingEquipment] = useState(null); // null ou objeto
   const [isNewEquipModalOpen, setIsNewEquipModalOpen] = useState(false);
@@ -1471,8 +1473,75 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                         </div>
                       )}
 
+                      {/* Faixa Visual da Vistoria Fotográfica de Avarias */}
+                      {((rental.pickupPhotos && rental.pickupPhotos.length > 0) || (rental.returnPhotos && rental.returnPhotos.length > 0)) && (
+                        <div
+                          className="erc-inspection-strip"
+                          onClick={() => setSelectedRentalForInspection(rental)}
+                          title="Clique para abrir o comparativo visual de avarias"
+                        >
+                          <div className="erc-is-left">
+                            <div className="erc-is-badge">
+                              <Camera size={13} />
+                              <span>Vistoria Fotográfica:</span>
+                            </div>
+                            <div className="erc-is-thumbs">
+                              {(rental.pickupPhotos || []).slice(0, 3).map((p, idx) => (
+                                <img
+                                  key={`p-${idx}`}
+                                  src={p.url}
+                                  alt="Saída"
+                                  className="erc-mini-thumb pickup-thumb"
+                                  title={`Saída: ${p.caption || p.equipmentName}`}
+                                />
+                              ))}
+                              {(rental.returnPhotos || []).slice(0, 3).map((p, idx) => (
+                                <img
+                                  key={`r-${idx}`}
+                                  src={p.url}
+                                  alt="Retorno"
+                                  className={`erc-mini-thumb return-thumb ${p.condition === 'damage' ? 'damaged-thumb' : ''}`}
+                                  title={`Retorno: ${p.caption || p.equipmentName}`}
+                                />
+                              ))}
+                              {((rental.pickupPhotos?.length || 0) + (rental.returnPhotos?.length || 0)) > 6 && (
+                                <span className="erc-thumb-more">
+                                  +{((rental.pickupPhotos?.length || 0) + (rental.returnPhotos?.length || 0)) - 6}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="erc-is-right">
+                            {rental.hasDamage ? (
+                              <span className="erc-damage-alert">
+                                <AlertTriangle size={12} /> Avaria Registrada
+                              </span>
+                            ) : (
+                              <span className="erc-ok-alert">
+                                <CheckCircle2 size={12} /> Sem Avarias
+                              </span>
+                            )}
+                            <span className="erc-compare-pill">Comparar Fotos ➜</span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Ações da Locação */}
                       <div className="erc-actions-bar">
+                        {/* Botão de Vistoria e Fotos (Sempre acessível para inspeção) */}
+                        <button
+                          type="button"
+                          className={`btn-secondary btn-sm btn-inspection-trigger ${rental.hasDamage ? 'btn-has-damage' : ''}`}
+                          onClick={() => setSelectedRentalForInspection(rental)}
+                          title="Registrar fotos de saída e devolução e auditar avarias"
+                        >
+                          <Camera size={14} className={rental.hasDamage ? 'text-red' : 'text-gold'} />
+                          <span>
+                            📸 Vistoria &amp; Fotos ({(rental.pickupPhotos?.length || 0)} / {(rental.returnPhotos?.length || 0)})
+                          </span>
+                          {rental.hasDamage && <span className="erc-damage-badge">🚨 AVARIA</span>}
+                        </button>
+
                         {isReserved ? (
                           <>
                             <button
@@ -1856,6 +1925,28 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                 ))}
               </div>
 
+              {/* Acesso Direto à Vistoria Fotográfica no Check-in */}
+              <div className="checkin-inspection-card">
+                <div className="cic-left">
+                  <Camera size={20} className="text-gold" />
+                  <div>
+                    <strong>Vistoria Fotográfica &amp; Auditoria de Avarias</strong>
+                    <p>
+                      {returningRental.pickupPhotos?.length > 0
+                        ? `${returningRental.pickupPhotos.length} foto(s) de saída registradas para comparar com a devolução.`
+                        : 'Fotografe os equipamentos devolvidos para registrar no histórico permanente.'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm btn-open-inspection"
+                  onClick={() => setSelectedRentalForInspection(returningRental)}
+                >
+                  <Camera size={14} /> Abrir Vistoria &amp; Comparativo
+                </button>
+              </div>
+
               <div className="form-group">
                 <label>Observações da Devolução (Avarias, Falta de Cabos ou Inspeção OK):</label>
                 <textarea
@@ -1901,6 +1992,23 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             setActiveTab('new_rental');
           }}
           onUpdatePhoto={handleUpdateEquipmentPhoto}
+        />
+      )}
+
+      {/* ==================================================================== */}
+      {/* MODAL 5: VISTORIA & FOTOS DE RETIRADA / DEVOLUÇÃO                   */}
+      {/* ==================================================================== */}
+      {selectedRentalForInspection && (
+        <RentalInspectionModal
+          rental={selectedRentalForInspection}
+          currentUser={currentUser}
+          onClose={() => setSelectedRentalForInspection(null)}
+          onUpdated={(updatedRental) => {
+            setRentalsList((prev) =>
+              prev.map((r) => (r.id === updatedRental.id ? updatedRental : r))
+            );
+            setSelectedRentalForInspection(updatedRental);
+          }}
         />
       )}
     </div>

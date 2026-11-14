@@ -58,6 +58,11 @@ function ensureRentalsTables($db) {
             status VARCHAR(32) DEFAULT 'active',
             notes TEXT NULL,
             items_json LONGTEXT NOT NULL,
+            pickup_photos_json LONGTEXT NULL,
+            return_photos_json LONGTEXT NULL,
+            pickup_notes TEXT NULL,
+            inspection_notes TEXT NULL,
+            has_damage TINYINT(1) NOT NULL DEFAULT 0,
             created_by VARCHAR(150) NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -68,6 +73,22 @@ function ensureRentalsTables($db) {
             INDEX idx_rent_dates (start_date, end_date)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
+
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN pickup_photos_json LONGTEXT NULL");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN return_photos_json LONGTEXT NULL");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN pickup_notes TEXT NULL");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN inspection_notes TEXT NULL");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN has_damage TINYINT(1) NOT NULL DEFAULT 0");
+    } catch (Exception $e) {}
 
     // Seed inicial dos 86 equipamentos se tabela estiver vazia
     $count = $db->query("SELECT COUNT(*) FROM equipment")->fetchColumn();
@@ -195,6 +216,57 @@ function ensureRentalsTables($db) {
 
 // Inicializa tabelas e seeds se necessário
 ensureRentalsTables($db);
+
+// Processa fotos de vistoria (salva em disco se base64, ou preserva base64)
+function processRentalPhotos($photos, $rentalCode, $type) {
+    if (!is_array($photos)) return [];
+    $processed = [];
+    $possibleDirs = [
+        __DIR__ . '/../images/rentals',
+        dirname(__DIR__) . '/images/rentals',
+        dirname(__DIR__, 2) . '/images/rentals',
+        ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/images/rentals',
+    ];
+
+    foreach ($photos as $idx => $p) {
+        $url = $p['url'] ?? '';
+        if (!empty($url) && strpos($url, 'data:image/') === 0) {
+            $parts = explode(',', $url, 2);
+            if (count($parts) === 2) {
+                $imageData = base64_decode($parts[1]);
+                if ($imageData !== false && strlen($imageData) > 0) {
+                    $cleanCode = preg_replace('/[^a-zA-Z0-9_-]/', '', $rentalCode);
+                    $cleanId = !empty($p['id']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $p['id']) : ('p' . ($idx + 1));
+                    $filename = $cleanCode . '_' . $type . '_' . $cleanId . '_' . time() . '.jpg';
+                    foreach ($possibleDirs as $rDir) {
+                        if (empty($rDir)) continue;
+                        if (!is_dir($rDir)) {
+                            @mkdir($rDir, 0777, true);
+                        }
+                        if (is_dir($rDir)) {
+                            $filePath = $rDir . '/' . $filename;
+                            if (@file_put_contents($filePath, $imageData)) {
+                                $url = '/images/rentals/' . $filename . '?t=' . time();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        $processed[] = [
+            'id'            => $p['id'] ?? ('photo-' . bin2hex(random_bytes(4))),
+            'url'           => $url,
+            'caption'       => trim($p['caption'] ?? ''),
+            'equipmentName' => trim($p['equipmentName'] ?? ''),
+            'condition'     => trim($p['condition'] ?? 'ok'), // 'ok' ou 'damage'
+            'timestamp'     => $p['timestamp'] ?? date('Y-m-d H:i:s'),
+            'registeredBy'  => trim($p['registeredBy'] ?? 'Operador')
+        ];
+    }
+    return $processed;
+}
 
 $action = $_GET['action'] ?? '';
 
@@ -359,6 +431,11 @@ if ($method === 'GET') {
             'status'         => $r['status'] ?? 'active',
             'notes'          => $r['notes'] ?? '',
             'items'          => is_array($items) ? $items : [],
+            'pickupPhotos'   => !empty($r['pickup_photos_json']) ? json_decode($r['pickup_photos_json'], true) : [],
+            'returnPhotos'   => !empty($r['return_photos_json']) ? json_decode($r['return_photos_json'], true) : [],
+            'pickupNotes'    => $r['pickup_notes'] ?? '',
+            'inspectionNotes'=> $r['inspection_notes'] ?? '',
+            'hasDamage'      => !empty($r['has_damage']),
             'createdBy'      => $r['created_by'] ?? 'Sistema',
             'createdAt'      => $r['created_at'],
             'updatedAt'      => $r['updated_at'],
@@ -720,11 +797,37 @@ if ($method === 'POST' && $action === 'return_rental') {
 
         // Atualiza locação para returned
         $now = date('Y-m-d H:i:s');
-        $db->prepare("
-            UPDATE rentals 
-            SET status = 'returned', returned_at = ?, return_notes = ?
-            WHERE id = ?
-        ")->execute([$now, $returnNotes, $rentalId]);
+        $returnPhotosInput = is_array($data['returnPhotos'] ?? null) ? $data['returnPhotos'] : null;
+        $hasDamage = !empty($data['hasDamage']) ? 1 : 0;
+        $inspectionNotes = trim($data['inspectionNotes'] ?? '');
+
+        $sqlReturn = "UPDATE rentals SET status = 'returned', returned_at = ?, return_notes = ?";
+        $paramsReturn = [$now, $returnNotes];
+
+        if ($returnPhotosInput !== null) {
+            $processedReturnPhotos = processRentalPhotos($returnPhotosInput, $rental['code'], 'retorno');
+            $sqlReturn .= ", return_photos_json = ?";
+            $paramsReturn[] = json_encode($processedReturnPhotos, JSON_UNESCAPED_UNICODE);
+            foreach ($processedReturnPhotos as $rp) {
+                if (($rp['condition'] ?? '') === 'damage') {
+                    $hasDamage = 1;
+                    break;
+                }
+            }
+        }
+
+        if (!empty($inspectionNotes)) {
+            $sqlReturn .= ", inspection_notes = ?";
+            $paramsReturn[] = $inspectionNotes;
+        }
+
+        $sqlReturn .= ", has_damage = ?";
+        $paramsReturn[] = $hasDamage;
+
+        $sqlReturn .= " WHERE id = ?";
+        $paramsReturn[] = $rentalId;
+
+        $db->prepare($sqlReturn)->execute($paramsReturn);
 
         $db->commit();
 
@@ -740,6 +843,101 @@ if ($method === 'POST' && $action === 'return_rental') {
         $db->rollBack();
         jsonResponse(['success' => false, 'error' => $e->getMessage()], 400);
     }
+}
+
+// ==============================================================================
+// 5.1 SALVAR VISTORIA & FOTOS DE EQUIPAMENTOS (POST action=save_inspection)
+// ==============================================================================
+if ($method === 'POST' && $action === 'save_inspection') {
+    $rentalId = trim($data['rentalId'] ?? $data['id'] ?? '');
+    if (empty($rentalId)) {
+        jsonResponse(['success' => false, 'error' => 'ID da locação não informado.'], 400);
+    }
+
+    $stmt = $db->prepare("SELECT * FROM rentals WHERE id = ?");
+    $stmt->execute([$rentalId]);
+    $rental = $stmt->fetch();
+    if (!$rental) {
+        jsonResponse(['success' => false, 'error' => 'Locação não encontrada.'], 404);
+    }
+
+    $rentalCode = $rental['code'];
+
+    $pickupPhotos = null;
+    if (isset($data['pickupPhotos']) && is_array($data['pickupPhotos'])) {
+        $pickupPhotos = processRentalPhotos($data['pickupPhotos'], $rentalCode, 'saida');
+    }
+
+    $returnPhotos = null;
+    if (isset($data['returnPhotos']) && is_array($data['returnPhotos'])) {
+        $returnPhotos = processRentalPhotos($data['returnPhotos'], $rentalCode, 'retorno');
+    }
+
+    $pickupNotes = isset($data['pickupNotes']) ? trim($data['pickupNotes']) : null;
+    $returnNotes = isset($data['returnNotes']) ? trim($data['returnNotes']) : null;
+    $inspectionNotes = isset($data['inspectionNotes']) ? trim($data['inspectionNotes']) : null;
+    $hasDamage = isset($data['hasDamage']) ? ($data['hasDamage'] ? 1 : 0) : null;
+
+    if ($returnPhotos) {
+        foreach ($returnPhotos as $rp) {
+            if (($rp['condition'] ?? '') === 'damage') {
+                $hasDamage = 1;
+                break;
+            }
+        }
+    }
+
+    $fields = [];
+    $params = [];
+
+    if ($pickupPhotos !== null) {
+        $fields[] = "pickup_photos_json = ?";
+        $params[] = json_encode($pickupPhotos, JSON_UNESCAPED_UNICODE);
+    }
+    if ($returnPhotos !== null) {
+        $fields[] = "return_photos_json = ?";
+        $params[] = json_encode($returnPhotos, JSON_UNESCAPED_UNICODE);
+    }
+    if ($pickupNotes !== null) {
+        $fields[] = "pickup_notes = ?";
+        $params[] = $pickupNotes;
+    }
+    if ($returnNotes !== null) {
+        $fields[] = "return_notes = ?";
+        $params[] = $returnNotes;
+    }
+    if ($inspectionNotes !== null) {
+        $fields[] = "inspection_notes = ?";
+        $params[] = $inspectionNotes;
+    }
+    if ($hasDamage !== null) {
+        $fields[] = "has_damage = ?";
+        $params[] = $hasDamage;
+    }
+
+    if (!empty($fields)) {
+        $params[] = $rentalId;
+        $sql = "UPDATE rentals SET " . implode(", ", $fields) . " WHERE id = ?";
+        $db->prepare($sql)->execute($params);
+    }
+
+    logAudit('SAVE_INSPECTION', 'RENTALS', $rentalId, "Vistoria e fotos atualizadas na locação {$rentalCode} por {$user['name']}.", $user['id'], $user['name']);
+    bumpSyncVersion('save_inspection');
+
+    $stmtUp = $db->prepare("SELECT * FROM rentals WHERE id = ?");
+    $stmtUp->execute([$rentalId]);
+    $updated = $stmtUp->fetch();
+
+    jsonResponse([
+        'success'         => true,
+        'message'         => 'Vistoria e fotos de equipamentos salvas com sucesso!',
+        'pickupPhotos'    => !empty($updated['pickup_photos_json']) ? json_decode($updated['pickup_photos_json'], true) : [],
+        'returnPhotos'    => !empty($updated['return_photos_json']) ? json_decode($updated['return_photos_json'], true) : [],
+        'pickupNotes'     => $updated['pickup_notes'] ?? '',
+        'returnNotes'     => $updated['return_notes'] ?? '',
+        'inspectionNotes' => $updated['inspection_notes'] ?? '',
+        'hasDamage'       => !empty($updated['has_damage'])
+    ]);
 }
 
 // ==============================================================================
