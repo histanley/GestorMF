@@ -44,7 +44,7 @@ export function getCsrfToken() {
   return currentCsrfToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('gestormf_csrf_token') : '') || getCsrfFromCookie();
 }
 
-async function apiRequest(endpoint, options = {}) {
+export async function apiRequest(endpoint, options = {}) {
   // Adiciona timestamp único para quebrar qualquer cache de disco de navegadores móveis (Safari/Chrome Mobile)
   const sep = endpoint.includes('?') ? '&' : '?';
   const url = `${API_BASE}${endpoint}${sep}_t=${Date.now()}`;

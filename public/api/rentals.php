@@ -32,6 +32,9 @@ function ensureRentalsTables($db) {
     try {
         $db->exec("ALTER TABLE equipment ADD COLUMN photo_url LONGTEXT NULL");
     } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE equipment MODIFY photo_url LONGTEXT NULL");
+    } catch (Exception $e) {}
 
     $db->exec("
         CREATE TABLE IF NOT EXISTS rentals (
@@ -327,15 +330,33 @@ if ($method === 'POST' && $action === 'save_equipment') {
         if (count($parts) === 2) {
             $imageData = base64_decode($parts[1]);
             if ($imageData !== false && strlen($imageData) > 0) {
-                $equipDir = __DIR__ . '/../images/equipment';
-                if (!is_dir($equipDir)) {
-                    @mkdir($equipDir, 0755, true);
+                // Tenta múltiplos caminhos possíveis na hospedagem para garantir gravação física
+                $possibleDirs = [
+                    __DIR__ . '/../images/equipment',
+                    dirname(__DIR__) . '/images/equipment',
+                    dirname(__DIR__, 2) . '/images/equipment',
+                    ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/images/equipment',
+                ];
+                $saved = false;
+                foreach ($possibleDirs as $equipDir) {
+                    if (empty($equipDir)) continue;
+                    if (!is_dir($equipDir)) {
+                        @mkdir($equipDir, 0777, true);
+                    }
+                    if (is_dir($equipDir)) {
+                        $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '', $id);
+                        $filename = $cleanId . '.jpg';
+                        $filePath = $equipDir . '/' . $filename;
+                        if (@file_put_contents($filePath, $imageData)) {
+                            $photoUrl = '/images/equipment/' . $filename . '?t=' . time();
+                            $saved = true;
+                            break;
+                        }
+                    }
                 }
-                $filename = $id . '.jpg';
-                $filePath = $equipDir . '/' . $filename;
-                if (@file_put_contents($filePath, $imageData)) {
-                    $photoUrl = '/images/equipment/' . $filename . '?t=' . time();
-                }
+                // Se o arquivo físico falhar por permissão de pasta no servidor,
+                // $photoUrl permanece o dataUrl (base64) e é salvo no LONGTEXT do banco,
+                // garantindo que a foto NUNCA seja perdida!
             }
         }
     }
@@ -349,27 +370,31 @@ if ($method === 'POST' && $action === 'save_equipment') {
         $photoUrl = $existing['photo_url'];
     }
 
-    if ($existing) {
-        $diff = $totalQty - (int)$existing['total_qty'];
-        $newAvailable = max(0, (int)$existing['available_qty'] + $diff);
-        $status = $newAvailable > 0 ? 'available' : 'rented';
+    try {
+        if ($existing) {
+            $diff = $totalQty - (int)$existing['total_qty'];
+            $newAvailable = max(0, (int)$existing['available_qty'] + $diff);
+            $status = $newAvailable > 0 ? 'available' : 'rented';
 
-        $stmtUp = $db->prepare("
-            UPDATE equipment 
-            SET name = ?, category = ?, daily_rate = ?, rate_unit = ?, total_qty = ?, available_qty = ?, serial_number = ?, photo_url = ?, description = ?, status = ?
-            WHERE id = ?
-        ");
-        $stmtUp->execute([
-            $name, $category, $dailyRate, $rateUnit, $totalQty, $newAvailable, $serialNumber, $photoUrl, $description, $status, $id
-        ]);
-    } else {
-        $stmtIns = $db->prepare("
-            INSERT INTO equipment (id, name, category, daily_rate, rate_unit, total_qty, available_qty, serial_number, photo_url, description, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
-        ");
-        $stmtIns->execute([
-            $id, $name, $category, $dailyRate, $rateUnit, $totalQty, $totalQty, $serialNumber, $photoUrl, $description
-        ]);
+            $stmtUp = $db->prepare("
+                UPDATE equipment 
+                SET name = ?, category = ?, daily_rate = ?, rate_unit = ?, total_qty = ?, available_qty = ?, serial_number = ?, photo_url = ?, description = ?, status = ?
+                WHERE id = ?
+            ");
+            $stmtUp->execute([
+                $name, $category, $dailyRate, $rateUnit, $totalQty, $newAvailable, $serialNumber, $photoUrl, $description, $status, $id
+            ]);
+        } else {
+            $stmtIns = $db->prepare("
+                INSERT INTO equipment (id, name, category, daily_rate, rate_unit, total_qty, available_qty, serial_number, photo_url, description, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
+            ");
+            $stmtIns->execute([
+                $id, $name, $category, $dailyRate, $rateUnit, $totalQty, $totalQty, $serialNumber, $photoUrl, $description
+            ]);
+        }
+    } catch (Exception $e) {
+        jsonResponse(['success' => false, 'error' => 'Erro ao salvar no banco de dados: ' . $e->getMessage()], 500);
     }
 
     logAudit('SAVE_EQUIPMENT', 'EQUIPMENT', $id, "Equipamento {$name} salvo por {$user['name']}.", $user['id'], $user['name']);

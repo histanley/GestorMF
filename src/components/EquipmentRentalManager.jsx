@@ -40,6 +40,7 @@ import {
   getEquipPhotoUrl,
   compressImageFile,
 } from '../utils/rentalsData';
+import { apiRequest } from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import RentalContractModal from './RentalContractModal';
 import EquipmentDetailModal from './EquipmentDetailModal';
@@ -91,6 +92,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   const [editingEquipment, setEditingEquipment] = useState(null); // null ou objeto
   const [isNewEquipModalOpen, setIsNewEquipModalOpen] = useState(false);
   const [editEquipPhoto, setEditEquipPhoto] = useState('');
+  const [editRateUnit, setEditRateUnit] = useState('diária');
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const [returningRental, setReturningRental] = useState(null); // null ou objeto
   const [returnNotes, setReturnNotes] = useState('');
 
@@ -117,22 +120,19 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   const fetchRentalsData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/rentals.php', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          if (Array.isArray(data.equipment) && data.equipment.length > 0) {
-            const enriched = data.equipment.map((eq) => ({
-              ...eq,
-              photoUrl: eq.photoUrl || `/images/equipment/${eq.id}.jpg`,
-            }));
-            setEquipmentList(enriched);
-            localStorage.setItem('gestormf_equipment_cache', JSON.stringify(enriched));
-          }
-          if (Array.isArray(data.rentals)) {
-            setRentalsList(data.rentals);
-            localStorage.setItem('gestormf_rentals_cache', JSON.stringify(data.rentals));
-          }
+      const data = await apiRequest('/rentals.php');
+      if (data && data.success) {
+        if (Array.isArray(data.equipment) && data.equipment.length > 0) {
+          const enriched = data.equipment.map((eq) => ({
+            ...eq,
+            photoUrl: eq.photoUrl || `/images/equipment/${eq.id}.jpg`,
+          }));
+          setEquipmentList(enriched);
+          localStorage.setItem('gestormf_equipment_cache', JSON.stringify(enriched));
+        }
+        if (Array.isArray(data.rentals)) {
+          setRentalsList(data.rentals);
+          localStorage.setItem('gestormf_rentals_cache', JSON.stringify(data.rentals));
         }
       }
     } catch (e) {
@@ -154,12 +154,14 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     } catch { }
   }, [equipmentList, rentalsList]);
 
-  // Sincroniza foto ao abrir modal de edição
+  // Sincroniza foto e unidade de cobrança ao abrir modal de edição
   useEffect(() => {
     if (editingEquipment) {
       setEditEquipPhoto(editingEquipment.photoUrl || '');
+      setEditRateUnit(editingEquipment.rateUnit || 'diária');
     } else {
       setEditEquipPhoto('');
+      setEditRateUnit('diária');
     }
   }, [editingEquipment, isNewEquipModalOpen]);
 
@@ -347,25 +349,21 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     };
 
     try {
-      const res = await fetch('/api/rentals.php?action=create_rental', {
+      const data = await apiRequest('/rentals.php?action=create_rental', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          const prefix = isReservation ? 'RES-' : 'LOC-';
-          const newCode = data.code || `${prefix}${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${String(rentalsList.length + 1).padStart(3, '0')}`;
-          const newRentalObj = {
-            id: data.rentalId || 'rent-' + Date.now(),
-            code: newCode,
-            ...payload,
-            status: statusToApply,
-            createdAt: new Date().toISOString(),
-          };
+      if (data && data.success) {
+        const prefix = isReservation ? 'RES-' : 'LOC-';
+        const newCode = data.code || `${prefix}${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${String(rentalsList.length + 1).padStart(3, '0')}`;
+        const newRentalObj = {
+          id: data.rentalId || 'rent-' + Date.now(),
+          code: newCode,
+          ...payload,
+          status: statusToApply,
+          createdAt: new Date().toISOString(),
+        };
 
           // Baixa localmente estoque disponível (itens ficam reservados)
           setEquipmentList((prev) =>
@@ -418,10 +416,9 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
           }
           return;
         } else {
-          throw new Error(data.error || 'Erro ao salvar registro no servidor.');
+          throw new Error(data?.error || 'Erro ao salvar registro no servidor.');
         }
-      }
-    } catch (err) {
+      } catch (err) {
       console.warn('Fallback offline para locação/reserva:', err);
       const prefix = isReservation ? 'RES-' : 'LOC-';
       const newCode = `${prefix}${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${String(rentalsList.length + 1).padStart(3, '0')}`;
@@ -469,13 +466,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     if (!confirmed) return;
 
     try {
-      const res = await fetch('/api/rentals.php?action=activate_reservation', {
+      const res = await apiRequest('/rentals.php?action=activate_reservation', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ rentalId: rental.id, markPaid: true }),
       });
-      if (res.ok) {
+      if (res && res.success) {
         fetchRentalsData();
       }
     } catch (e) {
@@ -506,13 +501,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     if (!confirmed) return;
 
     try {
-      const res = await fetch('/api/rentals.php?action=cancel_rental', {
+      const res = await apiRequest('/rentals.php?action=cancel_rental', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ rentalId: rental.id }),
       });
-      if (res.ok) {
+      if (res && res.success) {
         fetchRentalsData();
       }
     } catch (e) {
@@ -546,24 +539,35 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   // Salvar Equipamento (Editar ou Novo)
   const handleSaveEquipment = async (equipData) => {
     let finalPhotoUrl = equipData.photoUrl;
+
     try {
-      const res = await fetch('/api/rentals.php?action=save_equipment', {
+      const data = await apiRequest('/rentals.php?action=save_equipment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(equipData),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          if (data.photoUrl) {
-            finalPhotoUrl = data.photoUrl;
-          }
-          fetchRentalsData();
+
+      if (data && data.success) {
+        if (data.photoUrl) {
+          finalPhotoUrl = data.photoUrl;
         }
+        await fetchRentalsData();
+      } else {
+        const errorMsg = data?.error || 'Não foi possível salvar o equipamento no servidor.';
+        alertDialog({
+          title: 'Erro ao Salvar Equipamento',
+          message: errorMsg,
+          variant: 'danger',
+        });
+        return;
       }
     } catch (e) {
-      console.warn('Atualizando equipamento localmente:', e);
+      console.error('Erro ao conectar com api rentals:', e);
+      alertDialog({
+        title: 'Erro de Conexão',
+        message: 'Falha de comunicação com o servidor: ' + (e.message || 'Erro desconhecido'),
+        variant: 'danger',
+      });
+      return;
     }
 
     const payloadWithFinalPhoto = { ...equipData, photoUrl: finalPhotoUrl };
@@ -595,8 +599,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     setEditingEquipment(null);
     setIsNewEquipModalOpen(false);
     alertDialog({
-      title: 'Equipamento Salvo',
-      message: `Equipamento "${equipData.name}" atualizado no catálogo de locações.`,
+      title: 'Equipamento Salvo!',
+      message: `Equipamento "${equipData.name}" e foto atualizados com sucesso no catálogo.`,
       variant: 'success',
     });
   };
@@ -614,13 +618,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     if (!returningRental) return;
 
     try {
-      const res = await fetch('/api/rentals.php?action=return_rental', {
+      const res = await apiRequest('/rentals.php?action=return_rental', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ rentalId: returningRental.id, returnNotes }),
       });
-      if (res.ok) {
+      if (res && res.success) {
         fetchRentalsData();
       }
     } catch (e) {
@@ -1569,11 +1571,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   name: formData.get('name'),
                   category: formData.get('category'),
                   dailyRate: Number(formData.get('dailyRate')) || 0,
-                  rateUnit: formData.get('rateUnit') || 'diária',
+                  rateUnit: editRateUnit || formData.get('rateUnit') || 'diária',
                   totalQty: Number(formData.get('totalQty')) || 1,
                   serialNumber: formData.get('serialNumber') || '',
                   description: formData.get('description') || '',
-                  photoUrl: editEquipPhoto || (editingEquipment?.photoUrl || ''),
+                  photoUrl: editEquipPhoto,
                 };
                 handleSaveEquipment(equipData);
               }}
@@ -1581,54 +1583,91 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             >
               {/* Foto do Equipamento */}
               <div className="form-group equip-photo-group">
-                <label>Foto do Equipamento</label>
-                <div className="equip-photo-edit-row">
+                <div className="equip-photo-label-row">
+                  <label>Foto do Equipamento</label>
                   {editEquipPhoto ? (
-                    <div className="equip-photo-edit-preview">
-                      <img src={editEquipPhoto} alt="Prévia do Equipamento" />
-                      <button
-                        type="button"
-                        className="btn-danger btn-xs btn-remove-photo"
-                        onClick={() => setEditEquipPhoto('')}
-                        title="Remover foto"
-                      >
-                        Remover Foto
-                      </button>
-                    </div>
+                    <span className="photo-status-badge badge-active">
+                      <Sparkles size={12} /> {editEquipPhoto.startsWith('data:') ? 'Nova foto pronta para gravar' : 'Foto cadastrada'}
+                    </span>
                   ) : (
-                    <div className="equip-photo-empty-drop">
-                      <Camera size={26} className="text-muted" />
-                      <span>Sem foto cadastrada</span>
-                    </div>
+                    <span className="photo-status-badge badge-empty">Sem foto</span>
                   )}
+                </div>
 
-                  <div className="equip-photo-inputs">
-                    <label className="btn-secondary btn-sm upload-file-btn">
-                      <Upload size={14} /> Carregar Imagem
+                <div className="equip-photo-edit-card">
+                  {/* Prévia Visual */}
+                  <div className="equip-photo-preview-wrap">
+                    {editEquipPhoto ? (
+                      <div className="equip-photo-preview-inner">
+                        <img
+                          src={getEquipPhotoUrl(editEquipPhoto)}
+                          alt="Prévia do Equipamento"
+                          className="equip-photo-img-contain"
+                        />
+                        <button
+                          type="button"
+                          className="btn-danger-outline btn-xs photo-remove-btn"
+                          onClick={() => setEditEquipPhoto('')}
+                          title="Remover foto"
+                        >
+                          <Trash2 size={13} /> Remover Foto
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="equip-photo-placeholder">
+                        <Camera size={34} className="text-gold" />
+                        <span>Sem foto selecionada</span>
+                        <small>Clique ao lado para escolher</small>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Controles de Foto */}
+                  <div className="equip-photo-controls">
+                    <label className={`btn-primary btn-sm photo-picker-btn ${isPhotoLoading ? 'loading' : ''}`}>
+                      <Upload size={16} />
+                      <span>{isPhotoLoading ? 'Otimizando imagem...' : 'Escolher Foto do Computador / Celular'}</span>
                       <input
                         type="file"
                         accept="image/*"
                         style={{ display: 'none' }}
+                        disabled={isPhotoLoading}
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
                             try {
+                              setIsPhotoLoading(true);
                               const compressed = await compressImageFile(file, 1200, 0.85);
                               setEditEquipPhoto(compressed);
                             } catch (err) {
                               console.error('Erro ao processar imagem:', err);
+                              alertDialog({
+                                title: 'Erro ao carregar imagem',
+                                message: 'Não foi possível processar o arquivo de imagem selecionado.',
+                                variant: 'warning',
+                              });
+                            } finally {
+                              setIsPhotoLoading(false);
                             }
                           }
                         }}
                       />
                     </label>
-                    <input
-                      type="url"
-                      placeholder="Ou cole o link da foto (URL)..."
-                      value={editEquipPhoto}
-                      onChange={(e) => setEditEquipPhoto(e.target.value)}
-                      className="photo-url-input"
-                    />
+
+                    <div className="photo-url-wrap">
+                      <input
+                        type="url"
+                        placeholder="Ou cole o link direto da imagem (https://...)"
+                        value={editEquipPhoto.startsWith('data:') ? '' : editEquipPhoto}
+                        onChange={(e) => setEditEquipPhoto(e.target.value)}
+                        className="photo-url-input"
+                      />
+                    </div>
+
+                    <div className="photo-helper-text">
+                      <Sparkles size={12} className="text-gold" />
+                      <span>As imagens são comprimidas e preservadas em alta definição, sem cortes indesejados.</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1681,14 +1720,39 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Unidade de Cobrança</label>
-                  <input
-                    type="text"
+                <div className="form-group rate-unit-form-group">
+                  <label>Unidade de Cobrança *</label>
+                  <select
                     name="rateUnit"
-                    defaultValue={editingEquipment?.rateUnit || 'diária'}
-                    placeholder="diária / evento / hora"
-                  />
+                    value={editRateUnit}
+                    onChange={(e) => setEditRateUnit(e.target.value)}
+                    className="rate-unit-select"
+                  >
+                    <option value="diária">diária (padrão 24h)</option>
+                    <option value="hora">hora (por hora)</option>
+                    <option value="evento">evento / turno</option>
+                    <option value="semana">semana (7 dias)</option>
+                    <option value="mês">mês (30 dias)</option>
+                  </select>
+
+                  <div className="rate-unit-pills-row">
+                    {[
+                      { val: 'diária', label: '⚡ Diária' },
+                      { val: 'hora', label: '⏱️ Por Hora' },
+                      { val: 'evento', label: '🎬 Por Evento' },
+                      { val: 'semana', label: '📅 Semanal' },
+                      { val: 'mês', label: '🗓️ Mensal' },
+                    ].map((pill) => (
+                      <button
+                        key={pill.val}
+                        type="button"
+                        className={`rate-pill-choice ${editRateUnit === pill.val ? 'active' : ''}`}
+                        onClick={() => setEditRateUnit(pill.val)}
+                      >
+                        {pill.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

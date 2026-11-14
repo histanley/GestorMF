@@ -36644,90 +36644,262 @@ body.light-theme .checkin-modal label,
   display: block;
 }
 
-/* Upload de foto no modal de edição */
+/* Upload de foto e gerenciamento prático no modal de edição */
 .equip-photo-group {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
-.equip-photo-edit-row {
+.equip-photo-label-row {
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.15);
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
-body.light-theme .equip-photo-edit-row,
-[data-theme="light"] .equip-photo-edit-row {
+.equip-photo-label-row label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #f1f5f9;
+  margin-bottom: 0;
+}
+
+.photo-status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.photo-status-badge.badge-active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.photo-status-badge.badge-empty {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.equip-photo-edit-card {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+  background: rgba(15, 23, 42, 0.75);
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  align-items: center;
+}
+
+@media (max-width: 600px) {
+  .equip-photo-edit-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+body.light-theme .equip-photo-edit-card,
+[data-theme="light"] .equip-photo-edit-card {
   background: #f8fafc;
   border-color: #cbd5e1;
 }
 
-.equip-photo-edit-preview {
+.equip-photo-preview-wrap {
+  width: 100%;
+  height: 140px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  position: relative;
 }
 
-.equip-photo-edit-preview img {
-  width: 72px;
-  height: 72px;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 2px solid var(--accent-gold, #f59e0b);
+body.light-theme .equip-photo-preview-wrap,
+[data-theme="light"] .equip-photo-preview-wrap {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
 }
 
-.btn-remove-photo {
-  font-size: 0.68rem;
-  padding: 2px 6px;
-  background: #ef4444;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.equip-photo-empty-drop {
+.equip-photo-preview-inner {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  font-size: 0.65rem;
-  text-align: center;
-  color: #94a3b8;
-  padding: 4px;
+  position: relative;
+  padding: 6px;
 }
 
-body.light-theme .equip-photo-empty-drop,
-[data-theme="light"] .equip-photo-empty-drop {
-  background: #e2e8f0;
+.equip-photo-img-contain {
+  max-width: 100%;
+  max-height: 95px;
+  object-fit: contain !important;
+  border-radius: 8px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.4));
+}
+
+.photo-remove-btn {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.equip-photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  color: #94a3b8;
+  padding: 8px;
+}
+
+.equip-photo-placeholder span {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.equip-photo-placeholder small {
+  font-size: 0.68rem;
   color: #64748b;
 }
 
-.equip-photo-inputs {
+.equip-photo-controls {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  flex: 1;
+  gap: 10px;
 }
 
-.upload-file-btn {
+.photo-picker-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  border-radius: 10px;
   cursor: pointer;
-  align-self: flex-start;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #111827;
+  border: none;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+  transition: all 0.2s ease;
+  width: fit-content;
 }
 
-.photo-url-input {
+.photo-picker-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.photo-picker-btn.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.photo-url-wrap {
+  width: 100%;
+}
+
+.photo-url-wrap input {
+  width: 100%;
   font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #ffffff;
+}
+
+.photo-helper-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+/* Unidade de cobrança com select e pílulas rápidas */
+.rate-unit-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.rate-unit-select {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  margin-bottom: 6px;
+}
+
+body.light-theme .rate-unit-select,
+[data-theme="light"] .rate-unit-select {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.rate-unit-pills-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.rate-pill-choice {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rate-pill-choice:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.rate-pill-choice.active {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #fbbf24;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+}
+
+body.light-theme .rate-pill-choice,
+[data-theme="light"] .rate-pill-choice {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+body.light-theme .rate-pill-choice.active,
+[data-theme="light"] .rate-pill-choice.active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #d97706;
+  color: #b45309;
 }
 
 /* Thumbnail nos cards */
