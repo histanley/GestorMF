@@ -41061,3 +41061,263 @@ body.light-theme .statement-empty-xray {
   margin-left: auto !important;
   margin-right: auto !important;
 }
+
+
+/* ========================================================================== */
+/* LIGHTBOX: EXIBIÇÃO DA FOTO INTEIRA DO EQUIPAMENTO EM TELA CHEIA           */
+/* ========================================================================== */
+
+.edm-photo-box {
+  cursor: zoom-in !important;
+}
+
+.edm-photo-zoom-hint {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.edm-photo-box:hover .edm-photo-zoom-hint {
+  background: rgba(14, 165, 233, 0.95);
+  color: #ffffff;
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+}
+
+body.light-theme .edm-photo-zoom-hint {
+  background: rgba(255, 255, 255, 0.9);
+  color: #0284c7;
+  border-color: #bae6fd;
+}
+
+body.light-theme .edm-photo-box:hover .edm-photo-zoom-hint {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+/* Overlay Escuro com Blur Total */
+.edm-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: edmFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes edmFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.edm-lightbox-box {
+  background: #0b111e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  max-width: 94vw;
+  max-height: 92vh;
+  overflow: hidden;
+}
+
+body.light-theme .edm-lightbox-box {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.25);
+}
+
+.edm-lightbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.light-theme .edm-lightbox-header {
+  border-bottom-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.edm-lightbox-title-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edm-lightbox-category {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.edm-lightbox-item-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+body.light-theme .edm-lightbox-item-name {
+  color: #0f172a;
+}
+
+.edm-lightbox-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edm-lightbox-btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.edm-lightbox-btn-action:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+body.light-theme .edm-lightbox-btn-action {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+body.light-theme .edm-lightbox-btn-action:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.edm-lightbox-close-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edm-lightbox-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+  transform: rotate(90deg);
+}
+
+body.light-theme .edm-lightbox-close-btn {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+body.light-theme .edm-lightbox-close-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+/* Área da Foto Inteira */
+.edm-lightbox-img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at center, #172033 0%, #060911 100%);
+  cursor: zoom-out;
+  overflow: hidden;
+  max-height: 75vh;
+}
+
+body.light-theme .edm-lightbox-img-wrap {
+  background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
+}
+
+.edm-lightbox-img {
+  max-width: 86vw;
+  max-height: 70vh;
+  width: auto;
+  height: auto;
+  object-fit: contain !important;
+  display: block;
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  user-select: none;
+  transition: transform 0.2s ease;
+}
+
+.edm-lightbox-img:hover {
+  transform: scale(1.01);
+}
+
+.edm-lightbox-footer {
+  padding: 10px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  text-align: center;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+body.light-theme .edm-lightbox-footer {
+  border-top-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.edm-lightbox-footer strong {
+  color: #fbbf24;
+}

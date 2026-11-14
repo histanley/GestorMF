@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   X,
   Camera,
@@ -16,6 +16,9 @@ import {
   Upload,
   Calendar,
   Sparkles,
+  Maximize2,
+  ExternalLink,
+  ZoomIn,
 } from 'lucide-react';
 import { CATEGORY_LABELS, formatCurrency, formatDateBR, getEquipPhotoUrl, compressImageFile } from '../utils/rentalsData';
 import { alertDialog } from '../utils/dialog';
@@ -29,6 +32,18 @@ export default function EquipmentDetailModal({
   onUpdatePhoto,
 }) {
   const fileInputRef = useRef(null);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsLightboxOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen]);
 
   if (!equipment) return null;
 
@@ -124,16 +139,27 @@ export default function EquipmentDetailModal({
             {/* Coluna 1: Vitrine Visual (Foto 100% visível, NUNCA cortada) */}
             <div className="edm-photo-showcase">
               {equipment.photoUrl ? (
-                <div className="edm-photo-box">
+                <div
+                  className="edm-photo-box"
+                  onClick={() => setIsLightboxOpen(true)}
+                  title="Clique para ver a foto inteira ampliada em tela cheia"
+                >
                   <img
                     src={getEquipPhotoUrl(equipment.photoUrl)}
                     alt={equipment.name}
                     className="edm-photo-contain"
                   />
+                  <div className="edm-photo-zoom-hint">
+                    <Maximize2 size={12} />
+                    <span>Ver Foto Inteira</span>
+                  </div>
                   <button
                     type="button"
                     className="edm-btn-change-photo"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
                     title="Trocar Foto do Equipamento"
                   >
                     <Camera size={13} /> Trocar Foto
@@ -345,6 +371,61 @@ export default function EquipmentDetailModal({
           </button>
         </div>
       </div>
+
+      {/* ============================================================== */}
+      {/* MODAL / LIGHTBOX: EXIBIÇÃO DA IMAGEM INTEIRA EM TELA CHEIA     */}
+      {/* ============================================================== */}
+      {isLightboxOpen && equipment.photoUrl && (
+        <div
+          className="edm-lightbox-overlay"
+          onClick={() => setIsLightboxOpen(false)}
+          title="Clique fora para fechar"
+        >
+          <div className="edm-lightbox-box" onClick={(e) => e.stopPropagation()}>
+            <div className="edm-lightbox-header">
+              <div className="edm-lightbox-title-area">
+                <span className="edm-lightbox-category">
+                  {CATEGORY_LABELS[equipment.category] || equipment.category}
+                </span>
+                <h3 className="edm-lightbox-item-name">{equipment.name}</h3>
+              </div>
+              <div className="edm-lightbox-actions">
+                <a
+                  href={getEquipPhotoUrl(equipment.photoUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="edm-lightbox-btn-action"
+                  title="Abrir imagem original em nova aba"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink size={16} />
+                  <span>Original</span>
+                </a>
+                <button
+                  type="button"
+                  className="edm-lightbox-close-btn"
+                  onClick={() => setIsLightboxOpen(false)}
+                  title="Fechar visualização da imagem"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="edm-lightbox-img-wrap" onClick={() => setIsLightboxOpen(false)}>
+              <img
+                src={getEquipPhotoUrl(equipment.photoUrl)}
+                alt={equipment.name}
+                className="edm-lightbox-img"
+              />
+            </div>
+
+            <div className="edm-lightbox-footer">
+              <span>Pressione <strong>ESC</strong> ou clique fora da imagem para fechar</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
