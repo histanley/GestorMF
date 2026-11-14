@@ -35677,6 +35677,61 @@ body.light-theme .kpi-card.kpi-red {
   border-radius: 10px;
 }
 
+.reservation-action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.btn-reserve-contract {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-reserve-contract:hover:not(:disabled) {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.5);
+}
+
+.btn-direct-rental {
+  width: 100%;
+  padding: 9px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-direct-rental:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
 /* 7. Lista de Locações Ativas & Histórico */
 .erm-rentals-toolbar {
   margin-bottom: 16px;
@@ -35743,6 +35798,16 @@ body.light-theme .kpi-card.kpi-red {
   opacity: 0.85;
 }
 
+.erm-rental-card.card-reserved {
+  border-left-color: #38bdf8;
+  background: linear-gradient(180deg, rgba(14, 34, 56, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+}
+
+.erm-rental-card.card-cancelled {
+  border-left-color: #64748b;
+  opacity: 0.6;
+}
+
 .erc-header {
   display: flex;
   align-items: center;
@@ -35794,6 +35859,25 @@ body.light-theme .kpi-card.kpi-red {
   background: rgba(148, 163, 184, 0.15);
   color: #cbd5e1;
   border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.pill-reserved {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  font-weight: 800;
+}
+
+.pill-cancelled {
+  background: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.erm-pill-btn.pill-highlight-reserved {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #38bdf8;
 }
 
 .erc-price-box {
@@ -35900,6 +35984,61 @@ body.light-theme .kpi-card.kpi-red {
   background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
   color: #ffffff !important;
   font-weight: 700;
+}
+
+.btn-activate-reservation {
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.btn-activate-reservation:hover {
+  filter: brightness(1.15);
+}
+
+.btn-danger-outline {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.btn-danger-outline:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.payment-status-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.payment-status-alert.alert-pending {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #7dd3fc;
+}
+
+.payment-status-alert.alert-paid {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
 }
 
 /* 8. MODAL DO TERMO DE RESPONSABILIDADE & CONTRATO */

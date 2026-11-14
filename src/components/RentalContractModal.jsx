@@ -20,6 +20,8 @@ import { alertDialog } from '../utils/dialog';
 export default function RentalContractModal({ rental, onClose }) {
   if (!rental) return null;
 
+  const isReserved = rental.status === 'reserved';
+
   const handlePrint = () => {
     window.print();
   };
@@ -29,23 +31,31 @@ export default function RentalContractModal({ rental, onClose }) {
       .map((it, idx) => `  ${idx + 1}. *${it.name}* (${it.quantity}x) — ${formatCurrency(it.dailyRate)}/dia`)
       .join('\n');
 
-    const text = `🎬 *MEGAFILMES — COMPROVANTE & TERMO DE LOCAÇÃO*
-📄 *Contrato:* ${rental.code}
+    const headerTitle = isReserved
+      ? `🎬 *MEGAFILMES — COMPROVANTE DE AGENDAMENTO & RESERVA*`
+      : `🎬 *MEGAFILMES — COMPROVANTE & TERMO DE LOCAÇÃO*`;
+
+    const statusNote = isReserved
+      ? `⚠️ *Importante:* Agendamento confirmado com reserva de estoque. A liberação e retirada dos equipamentos fica condicionada à quitação do pagamento acordado.`
+      : `⚠️ *Importante:* A devolução deve ocorrer até o horário limite estipulado, com todos os cabos e acessórios em perfeito estado de conservação.`;
+
+    const text = `${headerTitle}
+📄 *Código:* ${rental.code}
 👤 *Cliente:* ${rental.clientName}
 📞 *Contato:* ${rental.clientPhone || 'Não informado'}
 
-📅 *Período da Locação:*
+📅 *Período Agendado:*
 • *Retirada:* ${formatDateBR(rental.startDate)} às ${rental.startTime || '08:00'}
 • *Devolução:* ${formatDateBR(rental.endDate)} às ${rental.endTime || '18:00'}
 • *Duração:* ${rental.totalDays} dia(s)
 
-📦 *Equipamentos Locados:*
+📦 *Equipamentos Reservados:*
 ${itemsList}
 
 💰 *Valor Total:* *${formatCurrency(rental.totalAmount)}*
 💳 *Pagamento:* ${rental.paymentMethod || 'PIX'} (${rental.paymentStatus || 'Pendente'})
 
-⚠️ *Importante:* A devolução deve ocorrer até o horário limite estipulado, com todos os cabos e acessórios em perfeito estado de conservação.
+${statusNote}
 
 _MegaFilmes Produções Audiovisuais_`;
 
@@ -53,7 +63,7 @@ _MegaFilmes Produções Audiovisuais_`;
       await navigator.clipboard.writeText(text);
       alertDialog({
         title: 'Copiado para o WhatsApp!',
-        message: 'O resumo formatado da locação foi copiado para a área de transferência. Basta colar na conversa com o cliente.',
+        message: 'O resumo formatado da locação/reserva foi copiado para a área de transferência. Basta colar na conversa com o cliente.',
         variant: 'success',
       });
     } catch {
@@ -72,7 +82,7 @@ _MegaFilmes Produções Audiovisuais_`;
         <div className="rc-modal-topbar no-print">
           <div className="rc-topbar-title">
             <FileText size={18} className="text-gold" />
-            <span>Termo de Responsabilidade &amp; Contrato de Locação</span>
+            <span>{isReserved ? 'Comprovante de Agendamento & Reserva de Equipamentos' : 'Termo de Responsabilidade & Contrato de Locação'}</span>
             <span className="rc-code-badge">{rental.code}</span>
           </div>
 
@@ -120,7 +130,7 @@ _MegaFilmes Produções Audiovisuais_`;
 
             <div className="rc-doc-meta">
               <div className="rc-meta-box">
-                <span className="rc-meta-lbl">TERMO DE LOCAÇÃO Nº</span>
+                <span className="rc-meta-lbl">{isReserved ? 'RESERVA / AGENDAMENTO Nº' : 'TERMO DE LOCAÇÃO Nº'}</span>
                 <span className="rc-meta-code">{rental.code}</span>
                 <span className="rc-meta-date">Emissão: {formatDateBR(rental.createdAt ? rental.createdAt.split('T')[0] : rental.startDate)}</span>
               </div>
@@ -242,20 +252,41 @@ _MegaFilmes Produções Audiovisuais_`;
 
           {/* Cláusulas e Termo de Responsabilidade */}
           <div className="rc-clauses-box">
-            <h4 className="rc-clauses-title">CLÁUSULAS CONTRATUAIS E TERMO DE RESPONSABILIDADE</h4>
+            <h4 className="rc-clauses-title">
+              {isReserved ? 'CONDIÇÕES GERAIS DE AGENDAMENTO E RESERVA DE EQUIPAMENTOS' : 'CLÁUSULAS CONTRATUAIS E TERMO DE RESPONSABILIDADE'}
+            </h4>
             <ol className="rc-clauses-list">
-              <li>
-                <strong>RECEBIMENTO E CONFERÊNCIA:</strong> O(A) LOCATÁRIO(A) declara haver inspecionado e testado previamente todos os equipamentos, cabos e acessórios relacionados neste termo, recebendo-os em perfeito estado de conservação, limpeza e pleno funcionamento técnico.
-              </li>
-              <li>
-                <strong>USO E GUARDA:</strong> O(A) LOCATÁRIO(A) assume a responsabilidade integral pela guarda, zelo e conservação dos bens, utilizando-os estritamente para os fins a que se destinam, sendo expressamente vedada a sublocação, cessão ou empréstimo a terceiros sem prévia anuência da LOCADORA.
-              </li>
-              <li>
-                <strong>AVARIAS, DANOS OU EXTRAVIO:</strong> Qualquer dano, avaria estética, quebra mecânica, dano por líquido/queda, furto ou roubo ocorrido durante o período de locação será de inteira e exclusiva responsabilidade do(a) LOCATÁRIO(A), que se obriga a arcar integralmente com os custos de reparo em assistência autorizada ou ressarcir o valor de reposição imediata de item novo similar, além de arcar com as diárias paradas durante a indisponibilidade do bem.
-              </li>
-              <li>
-                <strong>DEVOLUÇÃO E HORÁRIO LIMITE:</strong> Os equipamentos deverão ser devolvidos rigorosamente limpos e organizados até a data e hora limites estipuladas. Atrasos na entrega acarretarão a cobrança de nova diária integral por dia ou fração excedente.
-              </li>
+              {isReserved ? (
+                <>
+                  <li>
+                    <strong>BLOQUEIO E RESERVA DE ESTOQUE:</strong> A emissão deste comprovante garante a pré-reserva e o bloqueio físico dos equipamentos descritos durante o período acordado, impedindo a locação para terceiros.
+                  </li>
+                  <li>
+                    <strong>LIBERAÇÃO E RETIRADA:</strong> A liberação e entrega dos equipamentos na sede da LOCADORA fica estritamente condicionada à confirmação do pagamento e à assinatura do Termo Oficial de Responsabilidade no ato da retirada.
+                  </li>
+                  <li>
+                    <strong>CANCELAMENTO E REAGENDAMENTO:</strong> O cancelamento ou alteração de datas deve ser comunicado com antecedência mínima de 24 horas para desimpedimento dos itens no acervo.
+                  </li>
+                  <li>
+                    <strong>TOLERÂNCIA DE RETIRADA:</strong> Caso os equipamentos não sejam retirados dentro do prazo acordado sem aviso prévio, a reserva poderá ser cancelada e os itens liberados para nova locação.
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <strong>RECEBIMENTO E CONFERÊNCIA:</strong> O(A) LOCATÁRIO(A) declara haver inspecionado e testado previamente todos os equipamentos, cabos e acessórios relacionados neste termo, recebendo-os em perfeito estado de conservação, limpeza e pleno funcionamento técnico.
+                  </li>
+                  <li>
+                    <strong>USO E GUARDA:</strong> O(A) LOCATÁRIO(A) assume a responsabilidade integral pela guarda, zelo e conservação dos bens, utilizando-os estritamente para os fins a que se destinam, sendo expressamente vedada a sublocação, cessão ou empréstimo a terceiros sem prévia anuência da LOCADORA.
+                  </li>
+                  <li>
+                    <strong>AVARIAS, DANOS OU EXTRAVIO:</strong> Qualquer dano, avaria estética, quebra mecânica, dano por líquido/queda, furto ou roubo ocorrido durante o período de locação será de inteira e exclusiva responsabilidade do(a) LOCATÁRIO(A), que se obriga a arcar integralmente com os custos de reparo em assistência autorizada ou ressarcir o valor de reposição imediata de item novo similar, além de arcar com as diárias paradas durante a indisponibilidade do bem.
+                  </li>
+                  <li>
+                    <strong>DEVOLUÇÃO E HORÁRIO LIMITE:</strong> Os equipamentos deverão ser devolvidos rigorosamente limpos e organizados até a data e hora limites estipuladas. Atrasos na entrega acarretarão a cobrança de nova diária integral por dia ou fração excedente.
+                  </li>
+                </>
+              )}
             </ol>
           </div>
 
@@ -264,15 +295,15 @@ _MegaFilmes Produções Audiovisuais_`;
             <div className="rc-sig-box">
               <div className="rc-sig-line"></div>
               <span className="rc-sig-name">{rental.clientName}</span>
-              <span className="rc-sig-role">LOCATÁRIO(A) / RESPONSÁVEL</span>
+              <span className="rc-sig-role">{isReserved ? 'CLIENTE / SOLICITANTE DA RESERVA' : 'LOCATÁRIO(A) / RESPONSÁVEL'}</span>
               <span className="rc-sig-doc">CPF/CNPJ: {rental.clientDocument || '_______________'}</span>
             </div>
 
             <div className="rc-sig-box">
               <div className="rc-sig-line"></div>
               <span className="rc-sig-name">MegaFilmes Produções Audiovisuais</span>
-              <span className="rc-sig-role">LOCADORA / RESPONSÁVEL TÉCNICO</span>
-              <span className="rc-sig-doc">Visto de Entrega &amp; Liberação</span>
+              <span className="rc-sig-role">{isReserved ? 'RESPONSÁVEL PELO AGENDAMENTO' : 'LOCADORA / RESPONSÁVEL TÉCNICO'}</span>
+              <span className="rc-sig-doc">{isReserved ? 'Confirmação de Agendamento' : 'Visto de Entrega & Liberação'}</span>
             </div>
           </div>
         </div>

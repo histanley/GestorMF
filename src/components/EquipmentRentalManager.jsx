@@ -28,6 +28,7 @@ import {
   Sparkles,
   Eye,
   Upload,
+  Zap,
 } from 'lucide-react';
 import {
   CATEGORY_LABELS,
@@ -171,6 +172,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     const todayStr = new Date().toISOString().split('T')[0];
 
     const activeRentals = rentalsList.filter((r) => r.status === 'active' || r.status === 'overdue');
+    const reservedCount = rentalsList.filter((r) => r.status === 'reserved').length;
     const overdueCount = rentalsList.filter((r) => {
       return (r.status === 'active' || r.status === 'overdue') && r.endDate < todayStr;
     }).length;
@@ -184,6 +186,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       availableUnits,
       rentedUnits,
       activeRentalsCount: activeRentals.length,
+      reservedCount,
       overdueCount,
       dueTodayCount,
     };
@@ -207,6 +210,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   const filteredRentals = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     return rentalsList.filter((r) => {
+      if (rentalStatusFilter === 'reserved') return r.status === 'reserved';
       if (rentalStatusFilter === 'active') return r.status === 'active' && r.endDate >= todayStr;
       if (rentalStatusFilter === 'overdue') return (r.status === 'active' || r.status === 'overdue') && r.endDate < todayStr;
       if (rentalStatusFilter === 'due_soon') return (r.status === 'active' || r.status === 'overdue') && r.endDate === todayStr;
@@ -302,8 +306,9 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   };
 
   // Finalizar e Criar Locação
-  const handleCreateRental = async (e) => {
-    e.preventDefault();
+  // 4. Submeter Nova Locação ou Reserva/Agendamento
+  const handleCreateRental = async (e, intendedStatus = null) => {
+    if (e && e.preventDefault) e.preventDefault();
 
     if (!rentalForm.clientName.trim()) {
       alertDialog({
@@ -317,11 +322,15 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     if (cartItems.length === 0) {
       alertDialog({
         title: 'Carrinho Vazio',
-        message: 'Selecione ao menos um equipamento para criar a locação.',
+        message: 'Selecione ao menos um equipamento para criar a locação ou reserva.',
         variant: 'warning',
       });
       return;
     }
+
+    // Se o usuário selecionou status explicitamente ou se paymentStatus não for 'Pago', permite 'reserved' (Agendamento/Reserva)
+    const statusToApply = intendedStatus || (rentalForm.paymentStatus === 'Pago' ? 'active' : 'reserved');
+    const isReservation = statusToApply === 'reserved';
 
     const payload = {
       ...rentalForm,
@@ -329,6 +338,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       subtotal: cartSubtotal,
       discount: Number(rentalForm.discount) || 0,
       totalAmount: cartTotalAmount,
+      status: statusToApply,
       items: cartItems.map((it) => ({
         ...it,
         itemTotal: it.dailyRate * it.quantity * rentalDays,
@@ -347,17 +357,17 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          // Atualiza dados e abre contrato
-          const newCode = data.code || `LOC-${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${String(rentalsList.length + 1).padStart(3, '0')}`;
+          const prefix = isReservation ? 'RES-' : 'LOC-';
+          const newCode = data.code || `${prefix}${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${String(rentalsList.length + 1).padStart(3, '0')}`;
           const newRentalObj = {
             id: data.rentalId || 'rent-' + Date.now(),
             code: newCode,
             ...payload,
-            status: 'active',
+            status: statusToApply,
             createdAt: new Date().toISOString(),
           };
 
-          // Baixa localmente estoque disponível
+          // Baixa localmente estoque disponível (itens ficam reservados)
           setEquipmentList((prev) =>
             prev.map((eq) => {
               const inCart = cartItems.find((c) => c.equipmentId === eq.id);
@@ -389,29 +399,37 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             notes: '',
           });
 
-          // Abre imediatamente o Termo para impressão/envio
+          // Abre imediatamente o Termo/Comprovante para impressão/envio
           setSelectedRentalForContract(newRentalObj);
           setActiveTab('rentals');
 
-          alertDialog({
-            title: '🎉 Locação Criada com Sucesso!',
-            message: `Contrato ${newCode} registrado. O termo de responsabilidade está pronto na tela para impressão ou compartilhamento.`,
-            variant: 'success',
-          });
+          if (isReservation) {
+            alertDialog({
+              title: '📅 Agendamento & Reserva Concluídos!',
+              message: `Reserva ${newCode} registrada com sucesso! Os equipamentos foram bloqueados no estoque para o cliente. O comprovante está pronto na tela.`,
+              variant: 'success',
+            });
+          } else {
+            alertDialog({
+              title: '🎉 Locação Criada com Sucesso!',
+              message: `Contrato ${newCode} registrado. O termo de responsabilidade está pronto na tela para impressão ou compartilhamento.`,
+              variant: 'success',
+            });
+          }
           return;
         } else {
-          throw new Error(data.error || 'Erro ao salvar locação no servidor.');
+          throw new Error(data.error || 'Erro ao salvar registro no servidor.');
         }
       }
     } catch (err) {
-      // Fallback local se estiver offline
-      console.warn('Fallback offline para locação:', err);
-      const newCode = `LOC-${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${String(rentalsList.length + 1).padStart(3, '0')}`;
+      console.warn('Fallback offline para locação/reserva:', err);
+      const prefix = isReservation ? 'RES-' : 'LOC-';
+      const newCode = `${prefix}${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${String(rentalsList.length + 1).padStart(3, '0')}`;
       const newRentalObj = {
         id: 'rent-' + Date.now(),
         code: newCode,
         ...payload,
-        status: 'active',
+        status: statusToApply,
         createdAt: new Date().toISOString(),
       };
 
@@ -432,11 +450,97 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       setActiveTab('rentals');
 
       alertDialog({
-        title: 'Locação Registrada Localmente',
-        message: `Contrato ${newCode} gerado e salvo com sucesso!`,
+        title: isReservation ? '📅 Reserva Registrada' : 'Locação Registrada Localmente',
+        message: `${isReservation ? 'Reserva' : 'Contrato'} ${newCode} gerado e salvo com sucesso!`,
         variant: 'success',
       });
     }
+  };
+
+  // Ativar Reserva (Confirmar Pagamento e Iniciar Locação Oficial)
+  const handleActivateReservation = async (rental) => {
+    const confirmed = await confirmDialog({
+      title: 'Confirmar Pagamento & Iniciar Locação',
+      message: `Deseja ativar a reserva "${rental.code}" para o cliente "${rental.clientName}"? O status será alterado para Locação Ativa (Em Andamento) e o pagamento será marcado como "Pago".`,
+      confirmLabel: 'Sim, Iniciar Locação',
+      cancelLabel: 'Voltar',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch('/api/rentals.php?action=activate_reservation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ rentalId: rental.id, markPaid: true }),
+      });
+      if (res.ok) {
+        fetchRentalsData();
+      }
+    } catch (e) {
+      console.warn('Ativando reserva localmente:', e);
+    }
+
+    const updated = { ...rental, status: 'active', paymentStatus: 'Pago' };
+    setRentalsList((prev) => prev.map((r) => (r.id === rental.id ? updated : r)));
+    setSelectedRentalForContract(updated);
+
+    alertDialog({
+      title: '🚀 Locação Ativada com Sucesso!',
+      message: `Reserva ${rental.code} foi confirmada e iniciada. O termo oficial de responsabilidade está aberto para assinatura.`,
+      variant: 'success',
+    });
+  };
+
+  // Cancelar Reserva ou Locação (Devolve itens ao estoque)
+  const handleCancelRental = async (rental) => {
+    const isRes = rental.status === 'reserved';
+    const confirmed = await confirmDialog({
+      title: isRes ? 'Cancelar Agendamento / Reserva' : 'Cancelar Locação',
+      message: `Tem certeza que deseja cancelar ${isRes ? 'a reserva' : 'a locação'} "${rental.code}"? Todos os equipamentos retornarão imediatamente ao estoque disponível.`,
+      confirmLabel: 'Sim, Cancelar',
+      cancelLabel: 'Manter',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch('/api/rentals.php?action=cancel_rental', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ rentalId: rental.id }),
+      });
+      if (res.ok) {
+        fetchRentalsData();
+      }
+    } catch (e) {
+      console.warn('Cancelando localmente:', e);
+    }
+
+    // Libera os equipamentos de volta
+    const returnedItems = rental.items || [];
+    setEquipmentList((prev) =>
+      prev.map((eq) => {
+        const item = returnedItems.find((it) => it.equipmentId === eq.id);
+        if (item) {
+          const newAvail = Math.min(eq.totalQty, eq.availableQty + item.quantity);
+          return { ...eq, availableQty: newAvail, status: newAvail > 0 ? 'available' : 'rented' };
+        }
+        return eq;
+      })
+    );
+
+    setRentalsList((prev) =>
+      prev.map((r) => (r.id === rental.id ? { ...r, status: 'cancelled' } : r))
+    );
+
+    alertDialog({
+      title: 'Cancelamento Concluído',
+      message: `${isRes ? 'Reserva' : 'Locação'} ${rental.code} foi cancelada e os equipamentos estão disponíveis no acervo.`,
+      variant: 'info',
+    });
   };
 
   // Salvar Equipamento (Editar ou Novo)
@@ -1000,10 +1104,26 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                       value={rentalForm.paymentStatus}
                       onChange={(e) => setRentalForm({ ...rentalForm, paymentStatus: e.target.value })}
                     >
-                      <option value="Pendente">Pendente</option>
-                      <option value="Pago">Pago</option>
+                      <option value="Pendente">Pendente (Não Pago)</option>
+                      <option value="Pago">Pago (Quitado)</option>
                       <option value="Caução Recebido">Caução / Parcial</option>
                     </select>
+
+                    {rentalForm.paymentStatus !== 'Pago' ? (
+                      <div className="payment-status-alert alert-pending">
+                        <Calendar size={15} />
+                        <span>
+                          <strong>Pagamento não realizado:</strong> Você pode <u>Agendar / Reservar</u> para garantir o equipamento bloqueado para a data desejada, ou iniciar a locação direta.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="payment-status-alert alert-paid">
+                        <CheckCircle2 size={15} />
+                        <span>
+                          <strong>Pagamento confirmado:</strong> O termo oficial de locação será emitido com quitação registrada.
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="form-group">
@@ -1142,14 +1262,39 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     <span>{formatCurrency(cartTotalAmount)}</span>
                   </div>
 
-                  <button
-                    type="submit"
-                    className="btn-primary btn-generate-contract"
-                    disabled={cartItems.length === 0}
-                  >
-                    <FileText size={18} />
-                    <span>Gerar Locação &amp; Emitir Termo</span>
-                  </button>
+                  {rentalForm.paymentStatus !== 'Pago' ? (
+                    <div className="reservation-action-group">
+                      <button
+                        type="button"
+                        className="btn-primary btn-reserve-contract"
+                        disabled={cartItems.length === 0}
+                        onClick={(e) => handleCreateRental(e, 'reserved')}
+                      >
+                        <Calendar size={17} />
+                        <span>📅 Agendar / Reservar Equipamentos</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary btn-direct-rental"
+                        disabled={cartItems.length === 0}
+                        onClick={(e) => handleCreateRental(e, 'active')}
+                        title="Inicia a locação imediatamente mesmo com pagamento pendente"
+                      >
+                        <Zap size={15} />
+                        <span>⚡ Iniciar Locação Imediata (Pendente)</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="submit"
+                      className="btn-primary btn-generate-contract"
+                      disabled={cartItems.length === 0}
+                      onClick={(e) => handleCreateRental(e, 'active')}
+                    >
+                      <FileText size={18} />
+                      <span>🚀 Gerar Locação &amp; Emitir Termo</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </form>
@@ -1170,6 +1315,13 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   onClick={() => setRentalStatusFilter('all')}
                 >
                   Todas ({rentalsList.length})
+                </button>
+                <button
+                  type="button"
+                  className={`erm-pill-btn ${rentalStatusFilter === 'reserved' ? 'active pill-highlight-reserved' : ''}`}
+                  onClick={() => setRentalStatusFilter('reserved')}
+                >
+                  📅 Agendados &amp; Reservas ({kpiStats.reservedCount})
                 </button>
                 <button
                   type="button"
@@ -1213,30 +1365,40 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
               ) : (
                 filteredRentals.map((rental) => {
                   const todayStr = new Date().toISOString().split('T')[0];
+                  const isReserved = rental.status === 'reserved';
+                  const isCancelled = rental.status === 'cancelled';
                   const isOverdue =
-                    (rental.status === 'active' || rental.status === 'overdue') && rental.endDate < todayStr;
+                    !isReserved && !isCancelled &&
+                    (rental.status === 'active' || rental.status === 'overdue') &&
+                    rental.endDate < todayStr;
                   const isDueToday =
-                    (rental.status === 'active' || rental.status === 'overdue') && rental.endDate === todayStr;
+                    !isReserved && !isCancelled &&
+                    (rental.status === 'active' || rental.status === 'overdue') &&
+                    rental.endDate === todayStr;
                   const isReturned = rental.status === 'returned';
 
                   return (
                     <div
                       key={rental.id}
-                      className={`erm-rental-card ${isOverdue ? 'card-overdue' : isDueToday ? 'card-due-today' : isReturned ? 'card-returned' : 'card-active'}`}
+                      className={`erm-rental-card ${isReserved ? 'card-reserved' : isCancelled ? 'card-cancelled' : isOverdue ? 'card-overdue' : isDueToday ? 'card-due-today' : isReturned ? 'card-returned' : 'card-active'}`}
                     >
                       <div className="erc-header">
                         <div className="erc-code-row">
                           <span className="erc-code">{rental.code}</span>
                           <span
-                            className={`erc-status-pill ${isOverdue ? 'pill-overdue' : isDueToday ? 'pill-due-today' : isReturned ? 'pill-returned' : 'pill-active'}`}
+                            className={`erc-status-pill ${isReserved ? 'pill-reserved' : isCancelled ? 'pill-cancelled' : isOverdue ? 'pill-overdue' : isDueToday ? 'pill-due-today' : isReturned ? 'pill-returned' : 'pill-active'}`}
                           >
-                            {isOverdue
-                              ? '🚨 Atrasada (Prazo Vencido)'
-                              : isDueToday
-                                ? '🟠 Devolução Prevista Para Hoje'
-                                : isReturned
-                                  ? '✅ Devolução Concluída'
-                                  : '🟢 Em Andamento (No Prazo)'}
+                            {isReserved
+                              ? '📅 Agendado / Reserva Confirmada'
+                              : isCancelled
+                                ? '❌ Cancelada (Estoque Liberado)'
+                                : isOverdue
+                                  ? '🚨 Atrasada (Prazo Vencido)'
+                                  : isDueToday
+                                    ? '🟠 Devolução Prevista Para Hoje'
+                                    : isReturned
+                                      ? '✅ Devolução Concluída'
+                                      : '🟢 Em Andamento (No Prazo)'}
                           </span>
                         </div>
 
@@ -1289,25 +1451,65 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
 
                       {/* Ações da Locação */}
                       <div className="erc-actions-bar">
-                        <button
-                          type="button"
-                          className="btn-secondary btn-sm"
-                          onClick={() => setSelectedRentalForContract(rental)}
-                        >
-                          <FileText size={14} /> Ver Termo &amp; Contrato
-                        </button>
+                        {isReserved ? (
+                          <>
+                            <button
+                              type="button"
+                              className="btn-primary btn-sm btn-activate-reservation"
+                              onClick={() => handleActivateReservation(rental)}
+                              title="Confirma pagamento e transforma a reserva em locação ativa"
+                            >
+                              <CheckCircle2 size={14} /> Confirmar Pagamento &amp; Iniciar Locação
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-secondary btn-sm"
+                              onClick={() => setSelectedRentalForContract(rental)}
+                            >
+                              <FileText size={14} /> Comprovante de Reserva
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-danger-outline btn-sm btn-cancel-reservation"
+                              onClick={() => handleCancelRental(rental)}
+                              title="Cancela reserva e devolve itens para o estoque"
+                            >
+                              <X size={14} /> Cancelar Reserva
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="btn-secondary btn-sm"
+                              onClick={() => setSelectedRentalForContract(rental)}
+                            >
+                              <FileText size={14} /> Ver Termo &amp; Contrato
+                            </button>
 
-                        {!isReturned && (
-                          <button
-                            type="button"
-                            className="btn-primary btn-sm btn-checkin"
-                            onClick={() => {
-                              setReturningRental(rental);
-                              setReturnNotes('');
-                            }}
-                          >
-                            <RotateCcw size={14} /> Registrar Devolução (Check-in)
-                          </button>
+                            {!isReturned && !isCancelled && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="btn-primary btn-sm btn-checkin"
+                                  onClick={() => {
+                                    setReturningRental(rental);
+                                    setReturnNotes('');
+                                  }}
+                                >
+                                  <RotateCcw size={14} /> Registrar Devolução (Check-in)
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-danger-outline btn-sm"
+                                  onClick={() => handleCancelRental(rental)}
+                                  title="Cancela locação e devolve equipamentos ao estoque"
+                                >
+                                  <X size={14} /> Cancelar
+                                </button>
+                              </>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>

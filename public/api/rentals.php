@@ -493,8 +493,14 @@ if ($method === 'POST' && $action === 'create_rental') {
         $paymentStatus = trim($data['paymentStatus'] ?? 'Pendente');
         $notes = trim($data['notes'] ?? '');
 
-        // Gerar código único de contrato/locação: LOC-AAAAMM-XXX
-        $prefix = 'LOC-' . date('Ym') . '-';
+        // Define status: 'reserved' (Agendamento/Reserva) ou 'active' (Locação ativa)
+        $status = trim($data['status'] ?? '');
+        if (!in_array($status, ['active', 'reserved'])) {
+            $status = ($paymentStatus === 'Pago') ? 'active' : 'reserved';
+        }
+
+        // Prefixo do código: RES- para reservas/agendamentos, LOC- para locações diretas
+        $prefix = ($status === 'reserved') ? ('RES-' . date('Ym') . '-') : ('LOC-' . date('Ym') . '-');
         $stmtSeq = $db->query("SELECT COUNT(*) FROM rentals WHERE code LIKE '{$prefix}%'");
         $seq = (int)$stmtSeq->fetchColumn() + 1;
         $code = $prefix . str_pad($seq, 3, '0', STR_PAD_LEFT);
@@ -510,7 +516,7 @@ if ($method === 'POST' && $action === 'create_rental') {
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, 'active',
+                ?, ?, ?, ?, ?, ?,
                 ?, ?, ?
             )
         ");
@@ -518,20 +524,22 @@ if ($method === 'POST' && $action === 'create_rental') {
         $stmtRent->execute([
             $rentalId, $code, $clientName, $clientDocument, $clientPhone, $clientEmail, $clientAddress,
             $startDate, $startTime, $endDate, $endTime, $diffDays,
-            $subtotal, $discount, $totalAmount, $paymentMethod, $paymentStatus,
+            $subtotal, $discount, $totalAmount, $paymentMethod, $paymentStatus, $status,
             $notes, json_encode($validatedItems, JSON_UNESCAPED_UNICODE), $user['name']
         ]);
 
         $db->commit();
 
-        logAudit('CREATE_RENTAL', 'RENTALS', $rentalId, "Locação {$code} para {$clientName} criada por {$user['name']}.", $user['id'], $user['name']);
+        $actionLabel = ($status === 'reserved') ? "Reserva/Agendamento" : "Locação";
+        logAudit('CREATE_RENTAL', 'RENTALS', $rentalId, "{$actionLabel} {$code} para {$clientName} criada por {$user['name']}.", $user['id'], $user['name']);
         bumpSyncVersion('create_rental');
 
         jsonResponse([
             'success'   => true,
             'rentalId'  => $rentalId,
             'code'      => $code,
-            'message'   => "Locação {$code} gerada com sucesso!"
+            'status'    => $status,
+            'message'   => "{$actionLabel} {$code} gerada com sucesso!"
         ]);
 
     } catch (Exception $e) {
@@ -604,6 +612,102 @@ if ($method === 'POST' && $action === 'return_rental') {
             'message' => "Devolução da locação {$rental['code']} registrada com sucesso. Equipamentos liberados no estoque!"
         ]);
 
+    } catch (Exception $e) {
+        $db->rollBack();
+        jsonResponse(['success' => false, 'error' => $e->getMessage()], 400);
+    }
+}
+
+// ==============================================================================
+// 6. ATIVAR RESERVA / CONFIRMAR PAGAMENTO (POST action=activate_reservation)
+// ==============================================================================
+if ($method === 'POST' && $action === 'activate_reservation') {
+    $rentalId = trim($data['rentalId'] ?? $data['id'] ?? '');
+    $markPaid = !empty($data['markPaid']);
+
+    if (empty($rentalId)) {
+        jsonResponse(['success' => false, 'error' => 'ID da reserva não informado.'], 400);
+    }
+
+    $stmt = $db->prepare("SELECT * FROM rentals WHERE id = ?");
+    $stmt->execute([$rentalId]);
+    $rental = $stmt->fetch();
+
+    if (!$rental) {
+        jsonResponse(['success' => false, 'error' => 'Reserva/Locação não encontrada.'], 404);
+    }
+
+    $newPayStatus = $markPaid ? 'Pago' : $rental['payment_status'];
+    $stmtUp = $db->prepare("UPDATE rentals SET status = 'active', payment_status = ? WHERE id = ?");
+    $stmtUp->execute([$newPayStatus, $rentalId]);
+
+    logAudit('ACTIVATE_RESERVATION', 'RENTALS', $rentalId, "Reserva {$rental['code']} confirmada e ativada como locação por {$user['name']}.", $user['id'], $user['name']);
+    bumpSyncVersion('activate_reservation');
+
+    jsonResponse([
+        'success' => true,
+        'message' => "Reserva {$rental['code']} confirmada com sucesso! Agora é uma locação ativa."
+    ]);
+}
+
+// ==============================================================================
+// 7. CANCELAR RESERVA OU LOCAÇÃO (POST action=cancel_rental)
+// ==============================================================================
+if ($method === 'POST' && $action === 'cancel_rental') {
+    $rentalId = trim($data['rentalId'] ?? $data['id'] ?? '');
+    $cancelReason = trim($data['cancelReason'] ?? 'Cancelado pelo operador');
+
+    if (empty($rentalId)) {
+        jsonResponse(['success' => false, 'error' => 'ID da reserva/locação não informado.'], 400);
+    }
+
+    $db->beginTransaction();
+    try {
+        $stmt = $db->prepare("SELECT * FROM rentals WHERE id = ? FOR UPDATE");
+        $stmt->execute([$rentalId]);
+        $rental = $stmt->fetch();
+
+        if (!$rental) {
+            throw new Exception("Registro não encontrado.");
+        }
+
+        if ($rental['status'] === 'cancelled') {
+            throw new Exception("Este registro já se encontra cancelado.");
+        }
+
+        // Se estiver reservada ou ativa, devolve os itens de volta ao estoque disponível
+        if ($rental['status'] === 'reserved' || $rental['status'] === 'active') {
+            $items = !empty($rental['items_json']) ? json_decode($rental['items_json'], true) : [];
+            foreach ($items as $it) {
+                $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
+                $qty = (int)($it['quantity'] ?? 1);
+
+                $stmtEq = $db->prepare("SELECT total_qty, available_qty FROM equipment WHERE id = ? FOR UPDATE");
+                $stmtEq->execute([$eqId]);
+                $eq = $stmtEq->fetch();
+
+                if ($eq) {
+                    $newAvailable = min((int)$eq['total_qty'], (int)$eq['available_qty'] + $qty);
+                    $status = $newAvailable > 0 ? 'available' : 'rented';
+
+                    $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
+                       ->execute([$newAvailable, $status, $eqId]);
+                }
+            }
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $stmtCancel = $db->prepare("UPDATE rentals SET status = 'cancelled', return_notes = ? WHERE id = ?");
+        $stmtCancel->execute(["Cancelado em {$now}. Motivo: {$cancelReason}", $rentalId]);
+
+        $db->commit();
+        logAudit('CANCEL_RENTAL', 'RENTALS', $rentalId, "Reserva/Locação {$rental['code']} cancelada por {$user['name']}.", $user['id'], $user['name']);
+        bumpSyncVersion('cancel_rental');
+
+        jsonResponse([
+            'success' => true,
+            'message' => "Reserva/Locação {$rental['code']} cancelada com sucesso. Itens devolvidos ao estoque!"
+        ]);
     } catch (Exception $e) {
         $db->rollBack();
         jsonResponse(['success' => false, 'error' => $e->getMessage()], 400);
