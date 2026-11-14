@@ -37,6 +37,7 @@ import {
   formatCpfCnpj,
   formatPhoneBR,
   getEquipPhotoUrl,
+  compressImageFile,
 } from '../utils/rentalsData';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import RentalContractModal from './RentalContractModal';
@@ -440,6 +441,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
 
   // Salvar Equipamento (Editar ou Novo)
   const handleSaveEquipment = async (equipData) => {
+    let finalPhotoUrl = equipData.photoUrl;
     try {
       const res = await fetch('/api/rentals.php?action=save_equipment', {
         method: 'POST',
@@ -450,12 +452,17 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
+          if (data.photoUrl) {
+            finalPhotoUrl = data.photoUrl;
+          }
           fetchRentalsData();
         }
       }
     } catch (e) {
       console.warn('Atualizando equipamento localmente:', e);
     }
+
+    const payloadWithFinalPhoto = { ...equipData, photoUrl: finalPhotoUrl };
 
     // Atualização local imediata
     setEquipmentList((prev) => {
@@ -464,7 +471,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
         const updated = [...prev];
         const diff = (equipData.totalQty || 1) - (prev[idx].totalQty || 1);
         const newAvail = Math.max(0, (prev[idx].availableQty || 0) + diff);
-        const merged = { ...prev[idx], ...equipData, availableQty: newAvail, status: newAvail > 0 ? 'available' : 'rented' };
+        const merged = { ...prev[idx], ...payloadWithFinalPhoto, availableQty: newAvail, status: newAvail > 0 ? 'available' : 'rented' };
         updated[idx] = merged;
         if (selectedDetailEquipment && selectedDetailEquipment.id === equipData.id) {
           setSelectedDetailEquipment(merged);
@@ -472,7 +479,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
         return updated;
       } else {
         const newObj = {
-          ...equipData,
+          ...payloadWithFinalPhoto,
           id: equipData.id || 'eq-' + Date.now(),
           availableQty: equipData.totalQty,
           status: 'available',
@@ -1400,12 +1407,15 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                         type="file"
                         accept="image/*"
                         style={{ display: 'none' }}
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => setEditEquipPhoto(ev.target?.result);
-                            reader.readAsDataURL(file);
+                            try {
+                              const compressed = await compressImageFile(file, 1200, 0.85);
+                              setEditEquipPhoto(compressed);
+                            } catch (err) {
+                              console.error('Erro ao processar imagem:', err);
+                            }
                           }
                         }}
                       />

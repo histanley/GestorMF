@@ -17,7 +17,7 @@ import {
   Calendar,
   Sparkles,
 } from 'lucide-react';
-import { CATEGORY_LABELS, formatCurrency, formatDateBR, getEquipPhotoUrl } from '../utils/rentalsData';
+import { CATEGORY_LABELS, formatCurrency, formatDateBR, getEquipPhotoUrl, compressImageFile } from '../utils/rentalsData';
 import { alertDialog } from '../utils/dialog';
 
 export default function EquipmentDetailModal({
@@ -60,7 +60,7 @@ export default function EquipmentDetailModal({
     } catch {}
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -73,19 +73,19 @@ export default function EquipmentDetailModal({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result;
-      if (base64 && onUpdatePhoto) {
-        onUpdatePhoto(equipment.id, base64);
-        alertDialog({
-          title: 'Foto Atualizada!',
-          message: 'A foto do equipamento foi carregada com sucesso.',
-          variant: 'success',
-        });
+    try {
+      const compressedDataUrl = await compressImageFile(file, 1200, 0.85);
+      if (compressedDataUrl && onUpdatePhoto) {
+        await onUpdatePhoto(equipment.id, compressedDataUrl);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Erro ao processar imagem:', err);
+      alertDialog({
+        title: 'Erro ao Carregar Foto',
+        message: 'Não foi possível processar a imagem selecionada.',
+        variant: 'danger',
+      });
+    }
   };
 
   return (

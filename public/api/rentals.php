@@ -321,10 +321,33 @@ if ($method === 'POST' && $action === 'save_equipment') {
         jsonResponse(['success' => false, 'error' => 'O nome do equipamento é obrigatório.'], 400);
     }
 
+    // Processa upload de foto em base64 e salva como arquivo físico no servidor
+    if (!empty($photoUrl) && strpos($photoUrl, 'data:image/') === 0) {
+        $parts = explode(',', $photoUrl, 2);
+        if (count($parts) === 2) {
+            $imageData = base64_decode($parts[1]);
+            if ($imageData !== false && strlen($imageData) > 0) {
+                $equipDir = __DIR__ . '/../images/equipment';
+                if (!is_dir($equipDir)) {
+                    @mkdir($equipDir, 0755, true);
+                }
+                $filename = $id . '.jpg';
+                $filePath = $equipDir . '/' . $filename;
+                if (@file_put_contents($filePath, $imageData)) {
+                    $photoUrl = '/images/equipment/' . $filename . '?t=' . time();
+                }
+            }
+        }
+    }
+
     // Checa se já existe para manter coerência do available_qty
-    $stmtCheck = $db->prepare("SELECT id, total_qty, available_qty FROM equipment WHERE id = ?");
+    $stmtCheck = $db->prepare("SELECT id, total_qty, available_qty, photo_url FROM equipment WHERE id = ?");
     $stmtCheck->execute([$id]);
     $existing = $stmtCheck->fetch();
+
+    if ($existing && empty($photoUrl) && !empty($existing['photo_url'])) {
+        $photoUrl = $existing['photo_url'];
+    }
 
     if ($existing) {
         $diff = $totalQty - (int)$existing['total_qty'];
@@ -352,7 +375,12 @@ if ($method === 'POST' && $action === 'save_equipment') {
     logAudit('SAVE_EQUIPMENT', 'EQUIPMENT', $id, "Equipamento {$name} salvo por {$user['name']}.", $user['id'], $user['name']);
     bumpSyncVersion('save_equipment');
 
-    jsonResponse(['success' => true, 'id' => $id, 'message' => 'Equipamento salvo com sucesso.']);
+    jsonResponse([
+        'success'  => true,
+        'id'       => $id,
+        'photoUrl' => $photoUrl,
+        'message'  => 'Equipamento salvo com sucesso.'
+    ]);
 }
 
 // ==============================================================================
