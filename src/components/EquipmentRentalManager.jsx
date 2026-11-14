@@ -59,7 +59,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
           }));
         }
       }
-    } catch {}
+    } catch { }
     return INITIAL_EQUIPMENT_CATALOG.map((eq) => ({
       ...eq,
       photoUrl: eq.photoUrl || `/images/equipment/${eq.id}.jpg`,
@@ -70,7 +70,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     try {
       const saved = localStorage.getItem('gestormf_rentals_cache');
       if (saved) return JSON.parse(saved);
-    } catch {}
+    } catch { }
     return [];
   });
 
@@ -149,7 +149,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     try {
       localStorage.setItem('gestormf_equipment_cache', JSON.stringify(equipmentList));
       localStorage.setItem('gestormf_rentals_cache', JSON.stringify(rentalsList));
-    } catch {}
+    } catch { }
   }, [equipmentList, rentalsList]);
 
   // Sincroniza foto ao abrir modal de edição
@@ -534,11 +534,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       prev.map((r) =>
         r.id === returningRental.id
           ? {
-              ...r,
-              status: 'returned',
-              returnedAt: new Date().toISOString(),
-              returnNotes: returnNotes,
-            }
+            ...r,
+            status: 'returned',
+            returnedAt: new Date().toISOString(),
+            returnNotes: returnNotes,
+          }
           : r
       )
     );
@@ -1226,10 +1226,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                             {isOverdue
                               ? '🚨 Atrasada (Prazo Vencido)'
                               : isDueToday
-                              ? '🟠 Devolução Prevista Para Hoje'
-                              : isReturned
-                              ? '✅ Devolução Concluída'
-                              : '🟢 Em Andamento (No Prazo)'}
+                                ? '🟠 Devolução Prevista Para Hoje'
+                                : isReturned
+                                  ? '✅ Devolução Concluída'
+                                  : '🟢 Em Andamento (No Prazo)'}
                           </span>
                         </div>
 
