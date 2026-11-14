@@ -40700,3 +40700,22 @@ body.light-theme .megc-item-name,
   color: #94a3b8;
   font-style: italic;
 }
+
+
+/* Botão de Excluir Registro do Histórico (Exclusivo Administrador) */
+.erc-btn-delete {
+  margin-left: auto;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #f87171 !important;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.erc-btn-delete:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}

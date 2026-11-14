@@ -48,6 +48,16 @@ import EquipmentDetailModal from './EquipmentDetailModal';
 import RentalInspectionModal from './RentalInspectionModal';
 
 export default function EquipmentRentalManager({ currentUser, onClose = null }) {
+  // Verificação de privilégios de administrador
+  const isAdmin = Boolean(
+    currentUser?.role === 'admin' ||
+    currentUser?.role === 'ADMIN' ||
+    currentUser?.accessLevel === 'admin' ||
+    currentUser?.isAdmin ||
+    currentUser?.username === 'admin' ||
+    currentUser?.login === 'admin'
+  );
+
   // Abas do Módulo: 'catalog' (Estoque), 'new_rental' (Nova Locação), 'rentals' (Locações Ativas & Histórico)
   const [activeTab, setActiveTab] = useState('catalog');
 
@@ -601,6 +611,52 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       message: `${isRes ? 'Reserva' : 'Locação'} ${rental.code} foi cancelada e os equipamentos estão disponíveis no acervo.`,
       variant: 'info',
     });
+  };
+
+  // Excluir Definitivamente Registro do Histórico (Exclusivo Administrador)
+  const handleDeleteRental = async (rental) => {
+    const isRes = rental.status === 'reserved';
+    const confirmed = await confirmDialog({
+      title: 'Excluir do Histórico Permanentemente?',
+      message: `Tem certeza que deseja excluir em definitivo ${isRes ? 'a reserva' : 'o contrato de locação'} "${rental.code}" (${rental.clientName}) do sistema? Esta ação é irreversível.`,
+      description: (rental.status === 'active' || rental.status === 'reserved' || rental.status === 'overdue')
+        ? '⚠️ Os equipamentos alocados retornarão imediatamente ao estoque disponível.'
+        : 'O registro será removido permanentemente do banco de dados e do histórico.',
+      confirmLabel: 'Sim, Excluir Definitivamente',
+      cancelLabel: 'Cancelar',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      const res = await apiRequest('/rentals.php?action=delete_rental', {
+        method: 'POST',
+        body: JSON.stringify({ rentalId: rental.id }),
+      });
+
+      if (res && res.success) {
+        setRentalsList((prev) => prev.filter((r) => r.id !== rental.id));
+        loadRentalsData();
+        alertDialog({
+          title: 'Registro Excluído!',
+          message: res.message || `Registro ${rental.code} excluído com sucesso do histórico.`,
+          variant: 'success',
+        });
+      } else {
+        alertDialog({
+          title: 'Erro ao Excluir',
+          message: res?.error || 'Falha ao excluir registro.',
+          variant: 'danger',
+        });
+      }
+    } catch (err) {
+      alertDialog({
+        title: 'Erro de Conexão',
+        message: err.message || 'Falha ao se comunicar com o servidor.',
+        variant: 'danger',
+      });
+    }
   };
 
   // Salvar Equipamento (Editar ou Novo)
@@ -1862,6 +1918,19 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                               </>
                             )}
                           </>
+                        )}
+
+                        {/* Botão de Excluir do Histórico (Exclusivo Administrador) */}
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            className="btn-danger-outline btn-sm erc-btn-delete"
+                            onClick={() => handleDeleteRental(rental)}
+                            title="Excluir Permanentemente do Histórico (Exclusivo Administrador)"
+                          >
+                            <Trash2 size={13} />
+                            <span>Excluir</span>
+                          </button>
                         )}
                       </div>
                     </div>

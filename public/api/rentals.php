@@ -1276,6 +1276,66 @@ if ($method === 'POST' && $action === 'cancel_rental') {
     }
 }
 
+// ==============================================================================
+// 8. EXCLUIR REGISTRO DO HISTÓRICO DE LOCAÇÕES / RESERVAS (POST action=delete_rental ou DELETE)
+// Exclusivo para administradores
+// ==============================================================================
+if (($method === 'DELETE' || ($method === 'POST' && $action === 'delete_rental'))) {
+    $rentalId = trim($_GET['id'] ?? $data['rentalId'] ?? $data['id'] ?? '');
+
+    if (empty($rentalId)) {
+        jsonResponse(['success' => false, 'error' => 'ID do registro não informado.'], 400);
+    }
+
+    $db->beginTransaction();
+    try {
+        $stmt = $db->prepare("SELECT * FROM rentals WHERE id = ? FOR UPDATE");
+        $stmt->execute([$rentalId]);
+        $rental = $stmt->fetch();
+
+        if (!$rental) {
+            throw new Exception("Registro não encontrado ou já excluído.");
+        }
+
+        // Se ainda estiver ativa ou reservada, devolve os itens de volta ao estoque disponível
+        if ($rental['status'] === 'reserved' || $rental['status'] === 'active' || $rental['status'] === 'overdue') {
+            $items = !empty($rental['items_json']) ? json_decode($rental['items_json'], true) : [];
+            foreach ($items as $it) {
+                $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
+                $qty = (int)($it['quantity'] ?? 1);
+
+                $stmtEq = $db->prepare("SELECT total_qty, available_qty FROM equipment WHERE id = ? FOR UPDATE");
+                $stmtEq->execute([$eqId]);
+                $eq = $stmtEq->fetch();
+
+                if ($eq) {
+                    $newAvailable = min((int)$eq['total_qty'], (int)$eq['available_qty'] + $qty);
+                    $status = $newAvailable > 0 ? 'available' : 'rented';
+
+                    $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
+                       ->execute([$newAvailable, $status, $eqId]);
+                }
+            }
+        }
+
+        // Exclui o registro da tabela rentals
+        $stmtDel = $db->prepare("DELETE FROM rentals WHERE id = ?");
+        $stmtDel->execute([$rentalId]);
+
+        $db->commit();
+        logAudit('DELETE_RENTAL', 'RENTALS', $rentalId, "Reserva/Locação {$rental['code']} ({$rental['client_name']}) excluída permanentemente por {$user['name']}.", $user['id'], $user['name']);
+        bumpSyncVersion('delete_rental');
+
+        jsonResponse([
+            'success' => true,
+            'message' => "Registro {$rental['code']} excluído permanentemente do histórico com sucesso."
+        ]);
+    } catch (Exception $e) {
+        $db->rollBack();
+        jsonResponse(['success' => false, 'error' => $e->getMessage()], 400);
+    }
+}
+
 // Se nenhuma ação casar
 jsonResponse(['success' => false, 'error' => 'Endpoint ou ação não suportada.'], 404);
 
