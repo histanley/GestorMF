@@ -64,7 +64,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   // Dados do Catálogo e Locações
   const [equipmentList, setEquipmentList] = useState(() => {
     try {
-      const saved = localStorage.getItem('gestormf_equipment_cache_v3');
+      const saved = localStorage.getItem('gestormf_equipment_cache_v4');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -145,7 +145,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             photoUrl: eq.photoUrl || `/images/equipment/${eq.id}.jpg`,
           }));
           setEquipmentList(enriched);
-          localStorage.setItem('gestormf_equipment_cache_v3', JSON.stringify(enriched));
+          localStorage.setItem('gestormf_equipment_cache_v4', JSON.stringify(enriched));
         }
         if (Array.isArray(data.rentals)) {
           setRentalsList(data.rentals);
@@ -166,7 +166,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   // Salva no cache local sempre que houver alteração
   useEffect(() => {
     try {
-      localStorage.setItem('gestormf_equipment_cache_v3', JSON.stringify(equipmentList));
+      localStorage.setItem('gestormf_equipment_cache_v4', JSON.stringify(equipmentList));
       localStorage.setItem('gestormf_rentals_cache', JSON.stringify(rentalsList));
     } catch { }
   }, [equipmentList, rentalsList]);
