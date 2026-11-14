@@ -160,3 +160,14 @@ export function formatPhoneBR(value) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
+/**
+ * Retorna URL da foto do equipamento com cache-buster para garantir atualização imediata no navegador
+ */
+export function getEquipPhotoUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}v=20261114b`;
+}
+
+

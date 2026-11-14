@@ -36,6 +36,7 @@ import {
   formatDateBR,
   formatCpfCnpj,
   formatPhoneBR,
+  getEquipPhotoUrl,
 } from '../utils/rentalsData';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import RentalContractModal from './RentalContractModal';
@@ -768,7 +769,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                           onClick={() => setSelectedDetailEquipment(equip)}
                           title="Clique para ver detalhes"
                         >
-                          <img src={equip.photoUrl} alt={equip.name} />
+                          <img src={getEquipPhotoUrl(equip.photoUrl)} alt={equip.name} />
                         </div>
                       )}
 

@@ -17,7 +17,7 @@ import {
   Calendar,
   Sparkles,
 } from 'lucide-react';
-import { CATEGORY_LABELS, formatCurrency, formatDateBR } from '../utils/rentalsData';
+import { CATEGORY_LABELS, formatCurrency, formatDateBR, getEquipPhotoUrl } from '../utils/rentalsData';
 import { alertDialog } from '../utils/dialog';
 
 export default function EquipmentDetailModal({
@@ -122,7 +122,7 @@ export default function EquipmentDetailModal({
         <div className="edm-photo-hero">
           {equipment.photoUrl ? (
             <div className="edm-photo-wrapper">
-              <img src={equipment.photoUrl} alt={equipment.name} className="edm-photo-img" />
+              <img src={getEquipPhotoUrl(equipment.photoUrl)} alt={equipment.name} className="edm-photo-img" />
               <button
                 type="button"
                 className="edm-btn-change-photo"
