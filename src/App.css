@@ -38325,10 +38325,12 @@ body.light-theme .erm-kpi-val.text-amber,
 }
 
 .pv-logo {
-  height: 50px;
+  height: 48px;
   width: auto;
+  max-width: 220px;
   object-fit: contain;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
 }
 
 .pv-brand-tag {

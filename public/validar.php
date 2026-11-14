@@ -110,8 +110,10 @@ $docTitle = $isReserved ? 'Comprovante de Agendamento & Reserva' : 'Contrato de 
     .brand-logo {
       height: 48px;
       width: auto;
+      max-width: 220px;
       object-fit: contain;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
     }
 
     .brand-system {
@@ -389,10 +391,10 @@ $docTitle = $isReserved ? 'Comprovante de Agendamento & Reserva' : 'Contrato de 
 
   <div class="verifier-wrap">
     
-    <!-- Cabeçalho com Logo do Sistema -->
+    <!-- Cabeçalho com Logo Oficial do Sistema (Mega Gestão) -->
     <header class="verifier-header">
-      <img src="/images/contract/header-logo.png" alt="Mega Filmes e Fotografia" class="brand-logo" onerror="this.onerror=null;this.src='/logo.png';">
-      <span class="brand-system">GestorMF • Certificação de Documentos</span>
+      <img src="/images/logo-megagestao.png" alt="Mega Gestão" class="brand-logo" onerror="this.onerror=null;this.src='/logo.png';">
+      <span class="brand-system">Mega Gestão • Certificação Digital de Documentos</span>
     </header>
 
     <?php if ($isValid && $rental): ?>

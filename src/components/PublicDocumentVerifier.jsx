@@ -39,18 +39,18 @@ export default function PublicDocumentVerifier({ code = '' }) {
     <div className="public-verifier-page">
       <div className="pv-container">
         
-        {/* Cabeçalho */}
+        {/* Cabeçalho com Logo Oficial do Sistema (Mega Gestão) */}
         <header className="pv-header">
           <img
-            src="/images/contract/header-logo.png"
-            alt="Mega Filmes e Fotografia"
+            src="/images/logo-megagestao.png"
+            alt="Mega Gestão"
             className="pv-logo"
             onError={(e) => {
               e.currentTarget.onerror = null;
               e.currentTarget.src = '/logo.png';
             }}
           />
-          <span className="pv-brand-tag">GestorMF • Certificação Digital de Documentos</span>
+          <span className="pv-brand-tag">Mega Gestão • Certificação Digital de Documentos</span>
         </header>
 
         {loading ? (
