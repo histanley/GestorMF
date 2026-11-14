@@ -41046,3 +41046,18 @@ body.light-theme .statement-empty-xray {
   margin-left: auto;
   margin-right: auto;
 }
+
+
+/* ========================================================================== */
+/* CENTRALIZAÇÃO DO MENU DE SUB-ABAS DA CENTRAL ADM                           */
+/* ========================================================================== */
+
+.admin-center-tabs-bar {
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+.admin-center-tabs-group {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}

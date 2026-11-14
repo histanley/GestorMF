@@ -379,8 +379,8 @@ export default function AdminCenter({
       {/* ============================================================== */}
       {/* 2. BARRA DE NAVEGAÇÃO DE SUB-ABAS DA CENTRAL                   */}
       {/* ============================================================== */}
-      <div className="admin-center-tabs-bar">
-        <div className="admin-center-tabs-group">
+      <div className="admin-center-tabs-bar" style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+        <div className="admin-center-tabs-group" style={{ margin: '0 auto' }}>
           <button
             type="button"
             className={`ac-tab-btn ${adminTab === 'approvals_pp' ? 'is-active' : ''}`}
