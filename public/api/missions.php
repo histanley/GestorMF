@@ -841,6 +841,11 @@ if ($method === 'POST' || $method === 'PUT') {
         jsonResponse(['success' => false, 'error' => 'Acesso negado: apenas Administradores e Gestores podem alterar dados cadastrais da missão.'], 403);
     }
 
+    // Regra Específica: Missões já finalizadas só podem ser editadas por ADMINISTRADORES
+    if ($existing && in_array($existing['mission_status'], ['Finalizada', 'Finalizado', 'Concluída']) && $user['role'] !== 'ADMIN') {
+        jsonResponse(['success' => false, 'error' => 'Acesso negado: missões finalizadas só podem ser editadas por Administradores.'], 403);
+    }
+
     // Inicia transação atômica para checagem e gravação concorrente (P0-01 e P0-02)
     $db->beginTransaction();
 

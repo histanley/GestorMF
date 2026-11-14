@@ -89,6 +89,7 @@ export default function MissionDetailModal({
 
   const fuelSettings = settings || (typeof fuelPricePerLiter === 'object' ? fuelPricePerLiter : { gasolinePricePerLiter: fuelPricePerLiter, dieselPricePerLiter: 6.89 });
   const effectiveRole = normalizeRole(userRole || currentUser?.role);
+  const isAdmin = effectiveRole === 'admin';
   const canEditMission = effectiveRole === 'admin' || effectiveRole === 'manager';
   const canAdminManageEdition = effectiveRole === 'admin';
 
@@ -1074,27 +1075,37 @@ export default function MissionDetailModal({
                 </button>
               )}
 
-              {canEditMission && (mission.missionStatus !== 'Finalizada' && mission.missionStatus !== 'Finalizado') ? (
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => {
-                    const m = mission;
-                    onClose();
-                    if (onEditMission) onEditMission(m);
-                  }}
-                >
-                  <Edit2 size={15} /> Editar Missão
-                </button>
-              ) : canEditMission ? (
-                <span
-                  className="btn-secondary"
-                  style={{ opacity: 0.5, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  title="Missão finalizada e concluída (edição bloqueada)"
-                >
-                  <Lock size={14} /> Missão Encerrada
-                </span>
-              ) : null}
+              {(() => {
+                const isFinalizada = mission.missionStatus === 'Finalizada' || mission.missionStatus === 'Finalizado' || mission.missionStatus === 'Concluída';
+                if (canEditMission && (!isFinalizada || isAdmin)) {
+                  return (
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => {
+                        const m = mission;
+                        onClose();
+                        if (onEditMission) onEditMission(m);
+                      }}
+                      title={isFinalizada ? "Editar Missão Finalizada (Ajuste Administrativo)" : "Editar Missão"}
+                    >
+                      <Edit2 size={15} /> Editar Missão
+                    </button>
+                  );
+                }
+                if (canEditMission && isFinalizada) {
+                  return (
+                    <span
+                      className="btn-secondary"
+                      style={{ opacity: 0.5, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      title="Missão finalizada e encerrada (edição exclusiva para Administradores)"
+                    >
+                      <Lock size={14} /> Missão Encerrada
+                    </span>
+                  );
+                }
+                return null;
+              })()}
 
               <button
                 type="button"

@@ -1273,7 +1273,10 @@ export default function MissionModal({
       return;
     }
 
-    const computedStatus = computeMissionAutoStatus(formData, new Date(), true);
+    const isAlreadyFinalized = editingMission && ['Finalizada', 'Finalizado', 'Concluída'].includes(editingMission.missionStatus);
+    const computedStatus = isAlreadyFinalized
+      ? editingMission.missionStatus
+      : computeMissionAutoStatus(formData, new Date(), true);
     const generatedCode = generateNextMissionCode(formData.date, missions, editingMission);
 
     const missionPayload = {

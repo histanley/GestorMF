@@ -107,6 +107,7 @@ export default function ServiceBoard({
 }) {
   const fuelSettings = settings || (typeof fuelPricePerLiter === 'object' ? fuelPricePerLiter : { gasolinePricePerLiter: fuelPricePerLiter, dieselPricePerLiter: 6.89 });
   const effectiveRole = normalizeRole(userRole || currentUser?.role);
+  const isAdmin = effectiveRole === 'admin';
   const canCreateMission = effectiveRole === 'admin' || effectiveRole === 'manager';
   const canEditMission = effectiveRole === 'admin' || effectiveRole === 'manager';
   const canDeleteMission = effectiveRole === 'admin';
@@ -1791,23 +1792,32 @@ export default function ServiceBoard({
                         >
                           <Navigation size={14} />
                         </button>
-                        {canEditMission && (mission.missionStatus !== 'Finalizada' && mission.missionStatus !== 'Finalizado' && mission.missionStatus !== 'Concluída') ? (
-                          <button
-                            className="action-btn-icon edit"
-                            title="Editar Missão / Pauta"
-                            onClick={() => onEditMission(mission)}
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                        ) : canEditMission ? (
-                          <span
-                            className="action-btn-icon locked"
-                            title="Missão finalizada e encerrada (edição travada)"
-                            style={{ opacity: 0.45, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            <Lock size={13} />
-                          </span>
-                        ) : null}
+                        {(() => {
+                          const isFinalizada = mission.missionStatus === 'Finalizada' || mission.missionStatus === 'Finalizado' || mission.missionStatus === 'Concluída';
+                          if (canEditMission && (!isFinalizada || isAdmin)) {
+                            return (
+                              <button
+                                className={`action-btn-icon edit ${isFinalizada ? 'edit-finalized-admin' : ''}`}
+                                title={isFinalizada ? "Editar Missão Finalizada (Ajuste Administrativo)" : "Editar Missão / Pauta"}
+                                onClick={() => onEditMission(mission)}
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                            );
+                          }
+                          if (canEditMission && isFinalizada) {
+                            return (
+                              <span
+                                className="action-btn-icon locked"
+                                title="Missão finalizada e encerrada (edição exclusiva para Administradores)"
+                                style={{ opacity: 0.45, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                <Lock size={13} />
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
                         {canDeleteMission && (
                           <button
                             className="action-btn-icon delete"
@@ -2109,16 +2119,22 @@ export default function ServiceBoard({
                   >
                     <History size={13} />
                   </button>
-                  {canEditMission && (mission.missionStatus !== 'Finalizada' && mission.missionStatus !== 'Finalizado' && mission.missionStatus !== 'Concluída') && (
-                    <button
-                      type="button"
-                      className="mmc-action-pill edit"
-                      onClick={() => onEditMission(mission)}
-                      title="Editar Missão"
-                    >
-                      <Edit2 size={13} />
-                    </button>
-                  )}
+                  {(() => {
+                    const isFinalizada = mission.missionStatus === 'Finalizada' || mission.missionStatus === 'Finalizado' || mission.missionStatus === 'Concluída';
+                    if (canEditMission && (!isFinalizada || isAdmin)) {
+                      return (
+                        <button
+                          type="button"
+                          className="mmc-action-pill edit"
+                          onClick={() => onEditMission(mission)}
+                          title={isFinalizada ? "Editar Missão Finalizada (Administrador)" : "Editar Missão"}
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
                   {canDeleteMission && (
                     <button
                       type="button"
@@ -2978,27 +2994,37 @@ export default function ServiceBoard({
                     <Navigation size={15} /> Ver Rota no Mapa
                   </button>
 
-                  {canEditMission && (detailMission.missionStatus !== 'Finalizada' && detailMission.missionStatus !== 'Finalizado') ? (
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      onClick={() => {
-                        const m = detailMission;
-                        setSelectedDetailMissionId(null);
-                        onEditMission(m);
-                      }}
-                    >
-                      <Edit2 size={15} /> Editar Missão
-                    </button>
-                  ) : canEditMission ? (
-                    <span
-                      className="btn-secondary"
-                      style={{ opacity: 0.5, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                      title="Missão finalizada e concluída (edição bloqueada)"
-                    >
-                      <Lock size={14} /> Missão Encerrada
-                    </span>
-                  ) : null}
+                  {(() => {
+                    const isFinalizada = detailMission.missionStatus === 'Finalizada' || detailMission.missionStatus === 'Finalizado' || detailMission.missionStatus === 'Concluída';
+                    if (canEditMission && (!isFinalizada || isAdmin)) {
+                      return (
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          onClick={() => {
+                            const m = detailMission;
+                            setSelectedDetailMissionId(null);
+                            onEditMission(m);
+                          }}
+                          title={isFinalizada ? "Editar Missão Finalizada (Ajuste Administrativo)" : "Editar Missão"}
+                        >
+                          <Edit2 size={15} /> Editar Missão
+                        </button>
+                      );
+                    }
+                    if (canEditMission && isFinalizada) {
+                      return (
+                        <span
+                          className="btn-secondary"
+                          style={{ opacity: 0.5, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                          title="Missão finalizada e encerrada (edição exclusiva para Administradores)"
+                        >
+                          <Lock size={14} /> Missão Encerrada
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   <button
                     type="button"
