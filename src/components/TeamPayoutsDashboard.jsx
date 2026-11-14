@@ -26,6 +26,7 @@ import {
   HelpCircle,
   TrendingUp,
   RotateCcw,
+  Zap,
 } from 'lucide-react';
 import { apiGetPayouts, apiSavePayout } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
@@ -98,10 +99,16 @@ export default function TeamPayoutsDashboard({
   const [closures, setClosures] = useState({});
   const [isLoadingClosures, setIsLoadingClosures] = useState(false);
 
-  // Modais
+  // Modais e Raio-X
   const [editingRatesMember, setEditingRatesMember] = useState(null);
   const [viewingStatementMember, setViewingStatementMember] = useState(null);
+  const [statementFilter, setStatementFilter] = useState('all'); // 'all' | 'extra_hours' | 'daily' | 'commercial' | 'scheduled'
   const [copiedPixMemberId, setCopiedPixMemberId] = useState(null);
+
+  const handleOpenStatement = (member, filter = 'all') => {
+    setStatementFilter(filter);
+    setViewingStatementMember(member);
+  };
 
   // Form local de edição de taxas
   const [ratesForm, setRatesForm] = useState({
@@ -782,24 +789,49 @@ export default function TeamPayoutsDashboard({
                     </button>
                   </div>
 
-                  {/* Produção Detalhada no Mês (Missões, Horas Extras e Diárias Homologadas) */}
+                  {/* Produção Detalhada no Mês (Missões, Horas Extras e Diárias Homologadas com Acesso ao Raio-X) */}
                   <div className="pmc-col-production">
-                    <div className="pmc-prod-metric" title="Missões concluídas no mês">
+                    <div
+                      className="pmc-prod-metric pmc-prod-interactive"
+                      onClick={() => handleOpenStatement(member, 'all')}
+                      title="Ver todas as missões deste colaborador no mês"
+                    >
                       <span className="pmc-prod-val">{member.missionCount}</span>
                       <span className="pmc-prod-lbl">
                         Concluídas {member.scheduledMissionCount > 0 && <span className="pmc-scheduled-count">({member.scheduledMissionCount} agend.)</span>}
                       </span>
                     </div>
-                    <div className="pmc-prod-metric" title="Horas extras de missões concluídas (Banco de Horas Homologado)">
+
+                    <div
+                      className={`pmc-prod-metric pmc-prod-interactive ${member.totalHours > 0 ? 'has-extras-highlight' : ''}`}
+                      onClick={() => handleOpenStatement(member, 'extra_hours')}
+                      title="⚡ Raio-X: Clique para ver todas as missões que geraram hora extra para este colaborador"
+                    >
                       <span className="pmc-prod-val text-amber">{member.totalHours} h</span>
                       <span className="pmc-prod-lbl">Extras ({formatBRL(member.totalOffHoursAmount)})</span>
+                      <span className="pmc-xray-chip" title="Abrir Raio-X de Horas Extras">
+                        <Zap size={10} /> Raio-X
+                      </span>
                     </div>
-                    <div className="pmc-prod-metric" title="Diárias de missões concluídas">
+
+                    <div
+                      className={`pmc-prod-metric pmc-prod-interactive ${member.totalTravelDays > 0 ? 'has-daily-highlight' : ''}`}
+                      onClick={() => handleOpenStatement(member, 'daily')}
+                      title="📅 Raio-X: Clique para ver todas as viagens e missões com diária deste colaborador"
+                    >
                       <span className="pmc-prod-val text-cyan">{member.totalTravelDays} d</span>
                       <span className="pmc-prod-lbl">Diárias ({formatBRL(member.totalDailyAmount)})</span>
+                      <span className="pmc-xray-chip chip-cyan" title="Abrir Raio-X de Diárias">
+                        <Calendar size={10} /> Raio-X
+                      </span>
                     </div>
+
                     {member.plannedHours > 0 && (
-                      <div className="pmc-planned-strip" title="Horas extras previstas em missões agendadas que ainda não aconteceram">
+                      <div
+                        className="pmc-planned-strip pmc-prod-interactive"
+                        onClick={() => handleOpenStatement(member, 'scheduled')}
+                        title="Horas extras previstas em missões agendadas que ainda não aconteceram. Clique para ver."
+                      >
                         <span>⏳ {member.plannedHours}h a cumprir</span>
                         <small>(Não homologadas)</small>
                       </div>
@@ -881,11 +913,11 @@ export default function TeamPayoutsDashboard({
                     <div className="pmc-quick-action-buttons">
                       <button
                         type="button"
-                        className="pmc-action-btn"
-                        onClick={() => setViewingStatementMember(member)}
-                        title="Ver espelho detalhado de todas as missões do mês"
+                        className="pmc-action-btn btn-xray"
+                        onClick={() => handleOpenStatement(member, 'all')}
+                        title="Ver Raio-X e Espelho detalhado de todas as missões do mês"
                       >
-                        <Eye size={14} /> Espelho
+                        <Zap size={13} className="text-amber" /> Raio-X / Espelho
                       </button>
 
                       <button
@@ -1031,235 +1063,412 @@ export default function TeamPayoutsDashboard({
       {/* ============================================================== */}
       {/* 6. MODAL: ESPELHO / EXTRATO DE MISSÕES DO MÊS                  */}
       {/* ============================================================== */}
-      {viewingStatementMember && (
-        <div className="modal-overlay" onClick={() => setViewingStatementMember(null)}>
-          <div
-            className="modal-box modal-statement"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '750px' }}
-          >
-            <div className="modal-header">
-              <div>
-                <h2>Espelho de Diárias &amp; Horas</h2>
-                <span className="statement-sub-header">
-                  {viewingStatementMember.name} • {monthLabel}
-                </span>
-              </div>
-              <button className="modal-close" onClick={() => setViewingStatementMember(null)}>✕</button>
-            </div>
+      {/* ============================================================== */}
+      {/* 6. MODAL: RAIO-X & ESPELHO DE MISSÕES, HORAS EXTRAS & DIÁRIAS   */}
+      {/* ============================================================== */}
+      {viewingStatementMember && (() => {
+        const allMissions = viewingStatementMember.statementMissions || [];
+        const missionsWithExtras = allMissions.filter(
+          (m) => (m.offHoursWorked > 0 || (m.extraHoursApproved || 0) > 0)
+        );
+        const missionsWithDaily = allMissions.filter(
+          (m) => m.remunerationType === 'daily'
+        );
+        const missionsCommercial = allMissions.filter(
+          (m) => m.remunerationType !== 'daily' && m.offHoursWorked === 0 && (m.extraHoursApproved || 0) === 0
+        );
+        const missionsScheduled = allMissions.filter(
+          (m) => !m.isCompleted
+        );
 
-            <div className="modal-form statement-body">
-              {/* Resumo do Colaborador */}
-              <div className="statement-summary-banner">
-                <div className="ssb-item">
-                  <span className="ssb-lbl">Missões</span>
-                  <strong className="ssb-val">{viewingStatementMember.missionCount}</strong>
-                </div>
-                <div className="ssb-item">
-                  <span className="ssb-lbl">Horas Extras</span>
-                  <strong className="ssb-val text-amber">{viewingStatementMember.totalHours} h</strong>
-                  <small style={{ fontSize: '0.75rem', color: '#fbbf24', opacity: 0.85 }}>{formatBRL(viewingStatementMember.totalOffHoursAmount)}</small>
-                </div>
-                <div className="ssb-item">
-                  <span className="ssb-lbl">Diárias</span>
-                  <strong className="ssb-val text-cyan">{viewingStatementMember.totalTravelDays} d</strong>
-                  <small style={{ fontSize: '0.75rem', color: '#38bdf8', opacity: 0.85 }}>{formatBRL(viewingStatementMember.totalDailyAmount)}</small>
-                </div>
-                <div className="ssb-item ssb-total">
-                  <span className="ssb-lbl">{viewingStatementMember.status === 'Pago' ? 'Total Quitado' : 'Total Líquido'}</span>
-                  <strong className={`ssb-val ${viewingStatementMember.status === 'Pago' ? 'text-green' : 'text-gold'}`}>
-                    {formatBRL(viewingStatementMember.totalAmount)}
-                  </strong>
-                </div>
-              </div>
+        const displayedMissions = allMissions.filter((item) => {
+          if (statementFilter === 'extra_hours') {
+            return (item.offHoursWorked > 0 || (item.extraHoursApproved || 0) > 0);
+          }
+          if (statementFilter === 'daily') {
+            return item.remunerationType === 'daily';
+          }
+          if (statementFilter === 'commercial') {
+            return item.remunerationType !== 'daily' && item.offHoursWorked === 0 && (item.extraHoursApproved || 0) === 0;
+          }
+          if (statementFilter === 'scheduled') {
+            return !item.isCompleted;
+          }
+          return true;
+        });
 
-              {viewingStatementMember.status === 'Pago' && (
-                <div className="statement-cleared-banner">
-                  <CheckCircle2 size={16} className="text-green" />
-                  <span>
-                    <strong>Horas Zeradas &amp; Saldo Quitado:</strong> Este fechamento foi marcado como pago e o banco de horas foi quitado {viewingStatementMember.clearedAt ? `em ${formatDateBR(viewingStatementMember.clearedAt)}` : ''}.
+        return (
+          <div className="modal-overlay" onClick={() => setViewingStatementMember(null)}>
+            <div
+              className="modal-box modal-statement modal-xray-box"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: '840px' }}
+            >
+              <div className="modal-header">
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Zap size={22} className="text-amber" />
+                    <h2>Raio-X de Horas Extras &amp; Diárias</h2>
+                  </div>
+                  <span className="statement-sub-header">
+                    {viewingStatementMember.name} • {viewingStatementMember.role || 'Colaborador'} • {monthLabel}
                   </span>
                 </div>
-              )}
+                <button className="modal-close" onClick={() => setViewingStatementMember(null)}>✕</button>
+              </div>
 
-              {/* Chave PIX Evidenciada no Extrato do Colaborador */}
-              {viewingStatementMember.pixKey ? (
-                <div className="statement-pix-banner">
-                  <div className="spb-left">
-                    <CreditCard size={18} className="text-cyan" />
-                    <div>
-                      <span className="spb-label">Chave PIX para Pagamento:</span>
-                      <strong className="spb-key">{viewingStatementMember.pixKey}</strong>
-                    </div>
+              <div className="modal-form statement-body">
+                {/* Resumo do Colaborador com cliques interativos */}
+                <div className="statement-summary-banner">
+                  <div
+                    className={`ssb-item ssb-clickable ${statementFilter === 'all' ? 'is-selected' : ''}`}
+                    onClick={() => setStatementFilter('all')}
+                    title="Ver todas as missões"
+                  >
+                    <span className="ssb-lbl">Total Missões</span>
+                    <strong className="ssb-val">{viewingStatementMember.missionCount}</strong>
+                    <small style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Ver todas</small>
                   </div>
+                  <div
+                    className={`ssb-item ssb-clickable ${statementFilter === 'extra_hours' ? 'is-selected' : ''}`}
+                    onClick={() => setStatementFilter('extra_hours')}
+                    title="Filtrar apenas missões que geraram horas extras"
+                  >
+                    <span className="ssb-lbl">⚡ Horas Extras</span>
+                    <strong className="ssb-val text-amber">{viewingStatementMember.totalHours} h</strong>
+                    <small style={{ fontSize: '0.75rem', color: '#fbbf24', opacity: 0.9 }}>{formatBRL(viewingStatementMember.totalOffHoursAmount)}</small>
+                  </div>
+                  <div
+                    className={`ssb-item ssb-clickable ${statementFilter === 'daily' ? 'is-selected' : ''}`}
+                    onClick={() => setStatementFilter('daily')}
+                    title="Filtrar apenas missões com diárias"
+                  >
+                    <span className="ssb-lbl">📅 Diárias</span>
+                    <strong className="ssb-val text-cyan">{viewingStatementMember.totalTravelDays} d</strong>
+                    <small style={{ fontSize: '0.75rem', color: '#38bdf8', opacity: 0.9 }}>{formatBRL(viewingStatementMember.totalDailyAmount)}</small>
+                  </div>
+                  <div className="ssb-item ssb-total">
+                    <span className="ssb-lbl">{viewingStatementMember.status === 'Pago' ? 'Total Quitado' : 'Total Líquido'}</span>
+                    <strong className={`ssb-val ${viewingStatementMember.status === 'Pago' ? 'text-green' : 'text-gold'}`}>
+                      {formatBRL(viewingStatementMember.totalAmount)}
+                    </strong>
+                    <small style={{ fontSize: '0.72rem', color: '#a7f3d0' }}>Folha do Mês</small>
+                  </div>
+                </div>
+
+                {viewingStatementMember.status === 'Pago' && (
+                  <div className="statement-cleared-banner">
+                    <CheckCircle2 size={16} className="text-green" />
+                    <span>
+                      <strong>Horas Zeradas &amp; Saldo Quitado:</strong> Este fechamento foi marcado como pago e o banco de horas foi quitado {viewingStatementMember.clearedAt ? `em ${formatDateBR(viewingStatementMember.clearedAt)}` : ''}.
+                    </span>
+                  </div>
+                )}
+
+                {/* Chave PIX Evidenciada no Extrato do Colaborador */}
+                {viewingStatementMember.pixKey ? (
+                  <div className="statement-pix-banner">
+                    <div className="spb-left">
+                      <CreditCard size={18} className="text-cyan" />
+                      <div>
+                        <span className="spb-label">Chave PIX para Pagamento:</span>
+                        <strong className="spb-key">{viewingStatementMember.pixKey}</strong>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className={`btn-copy-pix btn-copy-pix-large ${copiedPixMemberId === viewingStatementMember.id ? 'is-copied' : ''}`}
+                      onClick={() => handleCopyPix(viewingStatementMember.pixKey, viewingStatementMember.id)}
+                      title="Copiar chave PIX"
+                    >
+                      {copiedPixMemberId === viewingStatementMember.id ? (
+                        <>
+                          <Check size={14} />
+                          <span>Chave Copiada!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={14} />
+                          <span>Copiar Chave PIX</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : null}
+
+                {/* Aviso de Horas e Valores Agendados a Cumprir (Não Homologados) */}
+                {viewingStatementMember.plannedHours > 0 && (
+                  <div className="statement-planned-banner">
+                    <Clock size={16} className="text-amber" />
+                    <span>
+                      <strong>Horas Agendadas Não Homologadas:</strong> Existem <strong>{viewingStatementMember.plannedHours}h extras ({formatBRL(viewingStatementMember.plannedOffHoursAmount)})</strong> previstas em pautas agendadas que ainda não foram realizadas. Elas <strong>NÃO</strong> constam no Total Líquido a pagar e só serão homologadas após a conclusão efetiva das missões.
+                    </span>
+                  </div>
+                )}
+
+                {/* BARRA DE NAVEGAÇÃO / FILTROS DO RAIO-X */}
+                <div className="statement-xray-filter-bar">
                   <button
                     type="button"
-                    className={`btn-copy-pix btn-copy-pix-large ${copiedPixMemberId === viewingStatementMember.id ? 'is-copied' : ''}`}
-                    onClick={() => handleCopyPix(viewingStatementMember.pixKey, viewingStatementMember.id)}
-                    title="Copiar chave PIX"
+                    className={`xray-filter-tab ${statementFilter === 'all' ? 'is-active' : ''}`}
+                    onClick={() => setStatementFilter('all')}
                   >
-                    {copiedPixMemberId === viewingStatementMember.id ? (
+                    <FileText size={13} />
+                    <span>Todas as Missões ({allMissions.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`xray-filter-tab tab-extras ${statementFilter === 'extra_hours' ? 'is-active' : ''}`}
+                    onClick={() => setStatementFilter('extra_hours')}
+                  >
+                    <Zap size={13} className="text-amber" />
+                    <span>🔥 Geraram Horas Extras ({missionsWithExtras.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`xray-filter-tab tab-daily ${statementFilter === 'daily' ? 'is-active' : ''}`}
+                    onClick={() => setStatementFilter('daily')}
+                  >
+                    <Calendar size={13} className="text-cyan" />
+                    <span>📅 Geraram Diárias ({missionsWithDaily.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`xray-filter-tab tab-commercial ${statementFilter === 'commercial' ? 'is-active' : ''}`}
+                    onClick={() => setStatementFilter('commercial')}
+                  >
+                    <CheckCircle2 size={13} className="text-green" />
+                    <span>🟢 Expediente Normal (0h) ({missionsCommercial.length})</span>
+                  </button>
+                  {missionsScheduled.length > 0 && (
+                    <button
+                      type="button"
+                      className={`xray-filter-tab tab-scheduled ${statementFilter === 'scheduled' ? 'is-active' : ''}`}
+                      onClick={() => setStatementFilter('scheduled')}
+                    >
+                      <Clock size={13} />
+                      <span>⏳ Agendadas ({missionsScheduled.length})</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Banner de Contexto do Filtro de Raio-X */}
+                {statementFilter === 'extra_hours' && (
+                  <div className="xray-banner-context extras">
+                    <Zap size={16} className="text-amber" />
+                    <div>
+                      <strong>Raio-X de Missões com Hora Extra ({missionsWithExtras.length} missão{missionsWithExtras.length === 1 ? '' : 'ões'}):</strong>
+                      <span> Exibindo detalhadamente todas as missões que geraram horas extras (saída antes das 08h, retorno após as 18h, trabalho aos fins de semana ou adicionais de pauta autorizados pela gestão).</span>
+                    </div>
+                  </div>
+                )}
+
+                {statementFilter === 'daily' && (
+                  <div className="xray-banner-context daily">
+                    <Calendar size={16} className="text-cyan" />
+                    <div>
+                      <strong>Raio-X de Missões com Diária ({missionsWithDaily.length} missão{missionsWithDaily.length === 1 ? '' : 'ões'}):</strong>
+                      <span> Exibindo viagens e pautas de campo remuneradas pela modalidade diária integral.</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Lista Detalhada de Missões com Raio-X */}
+                <div className="statement-missions-list">
+                  {displayedMissions.length === 0 ? (
+                    <div className="statement-empty-xray">
+                      <Zap size={32} className="empty-xray-icon text-amber" />
+                      <strong>Nenhuma missão encontrada para este filtro.</strong>
+                      <p>
+                        {statementFilter === 'extra_hours'
+                          ? 'Este colaborador não possui missões que geraram horas extras neste mês. Todas as missões registradas ocorreram dentro do expediente comercial normal (08h às 18h).'
+                          : statementFilter === 'daily'
+                          ? 'Nenhuma missão de viagem ou na modalidade diária registrada para este colaborador neste mês.'
+                          : statementFilter === 'commercial'
+                          ? 'Todas as missões realizadas neste mês geraram horas extras ou foram por diária.'
+                          : 'Nenhuma missão registrada para este colaborador neste mês.'}
+                      </p>
+                    </div>
+                  ) : (
+                    displayedMissions.map((item) => {
+                      const hasExtra = item.offHoursWorked > 0 || (item.extraHoursApproved || 0) > 0;
+                      const totalExtraHours = (item.offHoursWorked || 0) + (item.extraHoursApproved || 0);
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={`statement-item-row ${!item.isCompleted ? 'row-scheduled-pending' : ''} ${hasExtra ? 'row-has-extras' : ''} ${item.remunerationType === 'daily' ? 'row-has-daily' : ''}`}
+                        >
+                          <div className="sir-left">
+                            <div className="sir-code-date">
+                              <span className="sir-code">{item.code}</span>
+                              <span className="sir-date">
+                                <Calendar size={12} /> {formatDateBR(item.date)}
+                                {item.isMultiDay && item.endDate && ` a ${formatDateBR(item.endDate)}`}
+                              </span>
+
+                              {/* Badge de Homologação de Missão Concluída vs. Agendada */}
+                              {item.isCompleted ? (
+                                <span className="sir-badge-homologated">
+                                  ✅ Concluída (Homologada)
+                                </span>
+                              ) : (
+                                <span className="sir-badge-unhomologated">
+                                  ⏳ Agendada (Aguardando Realização)
+                                </span>
+                              )}
+
+                              {item.remunerationType === 'daily' ? (
+                                <span className="sir-badge-multiday">
+                                  📅 Diária {item.isMultiDay ? `Viagem (${item.daysCount}d)` : 'Campo (1d)'}
+                                </span>
+                              ) : hasExtra ? (
+                                <span className={`sir-badge-hours ${item.isCompleted ? 'sir-badge-offhours' : 'sir-badge-offhours-planned'}`} title={item.isCompleted ? "Horas extras homologadas no banco de horas" : "Horas extras previstas"}>
+                                  ⏱️ +{totalExtraHours}h Extras {item.isCompleted ? '' : '(A Cumprir)'}
+                                </span>
+                              ) : (
+                                <span className="sir-badge-hours sir-badge-inhours" title="Missão realizada 100% dentro do expediente comercial normal">
+                                  🟢 Expediente Comercial (0h extra)
+                                </span>
+                              )}
+                            </div>
+
+                            <strong className="sir-desc">{item.description}</strong>
+                            <span className="sir-loc">{item.locationName}</span>
+
+                            {/* RAIO-X EXPLICATIVO DA MISSÃO */}
+                            {hasExtra ? (
+                              <div className="sir-xray-box xray-extra-box">
+                                <div className="sxb-header">
+                                  <div className="sxb-title">
+                                    <Zap size={13} className="text-amber" />
+                                    <span>Raio-X da Hora Extra:</span>
+                                    <strong className="text-amber">+{totalExtraHours}h extras geradas</strong>
+                                  </div>
+                                  <strong className="sxb-amount text-gold">+{formatBRL(item.itemAmount)}</strong>
+                                </div>
+                                <div className="sxb-body">
+                                  {item.offHoursWorked > 0 && (
+                                    <div className="sxb-line">
+                                      <Clock size={11} className="text-amber" />
+                                      <span>
+                                        <strong>{item.offHoursWorked}h</strong> fora do expediente normal (seg-sex 08h-18h / sáb 08h-12h). Saída às <strong>{item.departureTime}</strong> e retorno às <strong>{item.returnTimeEstimated}</strong>.
+                                      </span>
+                                    </div>
+                                  )}
+                                  {item.extraHoursApproved > 0 && (
+                                    <div className="sxb-line">
+                                      <Sparkles size={11} className="text-gold" />
+                                      <span>
+                                        <strong>+{item.extraHoursApproved}h</strong> extras adicionais autorizadas pela gestão na pauta.
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="sxb-calc">
+                                    Cálculo: {totalExtraHours}h × {formatBRL(item.effectiveHourlyRate)}/h {item.isCustomRate ? '(Taxa personalizada na pauta)' : '(Taxa padrão do perfil)'} = <strong>{formatBRL(item.itemAmount)}</strong>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : item.remunerationType === 'daily' ? (
+                              <div className="sir-xray-box xray-daily-box">
+                                <div className="sxb-header">
+                                  <div className="sxb-title">
+                                    <Calendar size={13} className="text-cyan" />
+                                    <span>Raio-X da Diária:</span>
+                                    <strong className="text-cyan">{item.daysCount} diária(s) de viagem/campo</strong>
+                                  </div>
+                                  <strong className="sxb-amount text-cyan">+{formatBRL(item.itemAmount)}</strong>
+                                </div>
+                                <div className="sxb-body">
+                                  <div className="sxb-line">
+                                    <Compass size={11} className="text-cyan" />
+                                    <span>
+                                      Deslocamento de <strong>{formatDateBR(item.date)}</strong> {item.isMultiDay && item.endDate ? `até ${formatDateBR(item.endDate)}` : ''} ({item.daysCount} {item.daysCount === 1 ? 'dia integral' : 'dias integrais'}).
+                                    </span>
+                                  </div>
+                                  <div className="sxb-calc">
+                                    Cálculo: {item.daysCount} d × {formatBRL(item.effectiveDailyRate)}/dia {item.isCustomRate ? '(Taxa personalizada na pauta)' : '(Padrão)'} = <strong>{formatBRL(item.itemAmount)}</strong>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="sir-xray-box xray-normal-box">
+                                <div className="sxb-line">
+                                  <CheckCircle2 size={11} className="text-green" />
+                                  <span>Missão das <strong>{item.departureTime}</strong> às <strong>{item.returnTimeEstimated}</strong> realizada 100% no horário comercial. <strong>Não gerou horas extras.</strong></span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="sir-right">
+                            <span className="sir-role">{item.roleInMission}</span>
+                            {item.isCompleted ? (
+                              <strong className={`sir-amount ${item.itemAmount > 0 ? 'text-gold' : 'text-muted'}`}>
+                                {formatBRL(item.itemAmount)}
+                              </strong>
+                            ) : (
+                              <div className="sir-amount-scheduled-wrap">
+                                <strong className="sir-amount text-muted">
+                                  R$ 0,00
+                                </strong>
+                                <small className="sir-amount-planned-hint">
+                                  Previsto: {formatBRL(item.itemAmount)}
+                                </small>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Rodapé do Modal */}
+                <div className="modal-footer" style={{ marginTop: 16 }}>
+                  <button
+                    type="button"
+                    className={`btn-clear-hours-modal ${viewingStatementMember.status === 'Pago' ? 'is-cleared' : ''}`}
+                    onClick={async () => {
+                      await handleClearMemberHours(viewingStatementMember);
+                      setViewingStatementMember((prev) => prev ? {
+                        ...prev,
+                        status: prev.status === 'Pago' ? 'Pendente' : 'Pago'
+                      } : null);
+                    }}
+                  >
+                    {viewingStatementMember.status === 'Pago' ? (
                       <>
-                        <Check size={14} />
-                        <span>Chave Copiada!</span>
+                        <CheckCircle2 size={15} />
+                        <span>Horas Quitadas (Reabrir)</span>
                       </>
                     ) : (
                       <>
-                        <Copy size={14} />
-                        <span>Copiar Chave PIX</span>
+                        <RotateCcw size={15} />
+                        <span>Zerar Horas &amp; Quitar Saldo</span>
                       </>
                     )}
                   </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => handleShareWhatsApp(viewingStatementMember)}
+                  >
+                    <MessageCircle size={15} /> Enviar no WhatsApp
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => setViewingStatementMember(null)}
+                  >
+                    Fechar Raio-X
+                  </button>
                 </div>
-              ) : null}
-
-              {/* Aviso de Horas e Valores Agendados a Cumprir (Não Homologados) */}
-              {viewingStatementMember.plannedHours > 0 && (
-                <div className="statement-planned-banner">
-                  <Clock size={16} className="text-amber" />
-                  <span>
-                    <strong>Horas Agendadas Não Homologadas:</strong> Existem <strong>{viewingStatementMember.plannedHours}h extras ({formatBRL(viewingStatementMember.plannedOffHoursAmount)})</strong> previstas em pautas agendadas que ainda não foram realizadas. Elas <strong>NÃO</strong> constam no Total Líquido a pagar e só serão homologadas após a conclusão efetiva das missões.
-                  </span>
-                </div>
-              )}
-
-              {/* Lista Detalhada de Missões */}
-              <div className="statement-missions-list">
-                {viewingStatementMember.statementMissions.length === 0 ? (
-                  <p className="statement-empty">Nenhuma missão realizada por este colaborador neste mês.</p>
-                ) : (
-                  viewingStatementMember.statementMissions.map((item) => (
-                    <div key={item.id} className={`statement-item-row ${!item.isCompleted ? 'row-scheduled-pending' : ''}`}>
-                      <div className="sir-left">
-                        <div className="sir-code-date">
-                          <span className="sir-code">{item.code}</span>
-                          <span className="sir-date">
-                            <Calendar size={12} /> {formatDateBR(item.date)}
-                            {item.isMultiDay && item.endDate && ` a ${formatDateBR(item.endDate)}`}
-                          </span>
-
-                          {/* Badge de Homologação de Missão Concluída vs. Agendada */}
-                          {item.isCompleted ? (
-                            <span className="sir-badge-homologated">
-                              ✅ Concluída (Homologada)
-                            </span>
-                          ) : (
-                            <span className="sir-badge-unhomologated">
-                              ⏳ Agendada (Aguardando Realização)
-                            </span>
-                          )}
-
-                          {item.remunerationType === 'daily' ? (
-                            <span className="sir-badge-multiday">
-                              📅 Diária {item.isMultiDay ? `Viagem (${item.daysCount}d)` : 'Campo (1d)'}
-                            </span>
-                          ) : (item.offHoursWorked > 0 || item.extraHoursApproved > 0) ? (
-                            <span className={`sir-badge-hours ${item.isCompleted ? 'sir-badge-offhours' : 'sir-badge-offhours-planned'}`} title={item.isCompleted ? "Horas fora do expediente homologadas no banco de horas" : "Horas extras previstas caso a missão seja realizada conforme agendado"}>
-                              ⏱️ +{item.offHoursWorked + (item.extraHoursApproved || 0)}h Extras {item.isCompleted ? '' : '(A Cumprir)'}
-                              {item.extraHoursApproved > 0 && ` (+${item.extraHoursApproved}h aprovadas)`}
-                            </span>
-                          ) : (
-                            <span className="sir-badge-hours sir-badge-inhours" title="Missão realizada 100% dentro do expediente comercial normal">
-                              🟢 Expediente Comercial (0h extra)
-                            </span>
-                          )}
-                        </div>
-                        <strong className="sir-desc">{item.description}</strong>
-                        <span className="sir-loc">{item.locationName}</span>
-                        {item.remunerationType === 'daily' ? (
-                          <div className="sir-times-breakdown">
-                            <span className="sir-times">
-                              <Calendar size={11} /> Modalidade Diária: {item.daysCount} {item.daysCount === 1 ? 'diária' : 'diárias'}
-                            </span>
-                            <span className="sir-rate-applied">
-                              • Valor da Diária: {formatBRL(item.effectiveDailyRate)}/dia {item.isCustomRate ? '(Definida na Missão)' : '(Padrão)'}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="sir-times-breakdown">
-                            <span className="sir-times">
-                              <Clock size={11} /> Saída: {item.departureTime} • Retorno: {item.returnTimeEstimated} ({item.hoursWorked}h de missão)
-                            </span>
-                            {(item.offHoursWorked > 0 || item.extraHoursApproved > 0) ? (
-                              <span className="sir-rate-applied">
-                                • Taxa: {formatBRL(item.effectiveHourlyRate)}/h {item.isCustomRate ? '(Definida na Missão)' : '(Padrão)'}
-                                {!item.isCompleted && ' • (Não homologada até a realização)'}
-                              </span>
-                            ) : (
-                              <span className="sir-rate-commercial">
-                                • Horário comercial (08h às 18h)
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="sir-right">
-                        <span className="sir-role">{item.roleInMission}</span>
-                        {item.isCompleted ? (
-                          <strong className={`sir-amount ${item.itemAmount > 0 ? 'text-gold' : 'text-muted'}`}>
-                            {formatBRL(item.itemAmount)}
-                          </strong>
-                        ) : (
-                          <div className="sir-amount-scheduled-wrap">
-                            <strong className="sir-amount text-muted">
-                              R$ 0,00
-                            </strong>
-                            <small className="sir-amount-planned-hint">
-                              Previsto: {formatBRL(item.itemAmount)}
-                            </small>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Rodapé do Modal */}
-              <div className="modal-footer" style={{ marginTop: 16 }}>
-                <button
-                  type="button"
-                  className={`btn-clear-hours-modal ${viewingStatementMember.status === 'Pago' ? 'is-cleared' : ''}`}
-                  onClick={async () => {
-                    await handleClearMemberHours(viewingStatementMember);
-                    setViewingStatementMember((prev) => prev ? {
-                      ...prev,
-                      status: prev.status === 'Pago' ? 'Pendente' : 'Pago'
-                    } : null);
-                  }}
-                >
-                  {viewingStatementMember.status === 'Pago' ? (
-                    <>
-                      <CheckCircle2 size={15} />
-                      <span>Horas Quitadas (Reabrir)</span>
-                    </>
-                  ) : (
-                    <>
-                      <RotateCcw size={15} />
-                      <span>Zerar Horas &amp; Quitar Saldo</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => handleShareWhatsApp(viewingStatementMember)}
-                >
-                  <MessageCircle size={15} /> Enviar no WhatsApp
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => setViewingStatementMember(null)}
-                >
-                  Fechar Espelho
-                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

@@ -40733,3 +40733,316 @@ body.light-theme .megc-item-name,
   font-size: 0.92rem !important;
   letter-spacing: 1.5px !important;
 }
+
+
+/* ========================================================================== */
+/* RAIO-X DE HORAS EXTRAS & DIÁRIAS (PAINEL DE FECHAMENTO FINANCEIRO & GESTÃO) */
+/* ========================================================================== */
+
+.pmc-prod-interactive {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 3px 6px;
+  margin: -3px -6px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.pmc-prod-interactive:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateX(2px);
+}
+
+body.light-theme .pmc-prod-interactive:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.pmc-xray-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  margin-left: 6px;
+  transition: all 0.2s ease;
+}
+
+.pmc-xray-chip.chip-cyan {
+  background: rgba(6, 182, 212, 0.15);
+  color: #38bdf8;
+  border-color: rgba(6, 182, 212, 0.35);
+}
+
+.pmc-prod-interactive:hover .pmc-xray-chip {
+  background: rgba(245, 158, 11, 0.3);
+  border-color: #f59e0b;
+  transform: scale(1.05);
+}
+
+.pmc-prod-interactive:hover .pmc-xray-chip.chip-cyan {
+  background: rgba(6, 182, 212, 0.3);
+  border-color: #06b6d4;
+  transform: scale(1.05);
+}
+
+/* Itens clicáveis no banner de resumo do modal */
+.ssb-item.ssb-clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.ssb-item.ssb-clickable:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.ssb-item.ssb-clickable.is-selected {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+}
+
+body.light-theme .ssb-item.ssb-clickable.is-selected {
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+
+/* Barra de Abas e Filtros do Raio-X */
+.statement-xray-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 12px 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.xray-filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #94a3b8;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.xray-filter-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.xray-filter-tab.is-active {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #fbbf24;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+.xray-filter-tab.tab-daily.is-active {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: #06b6d4;
+  color: #38bdf8;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+}
+
+.xray-filter-tab.tab-commercial.is-active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #34d399;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+body.light-theme .xray-filter-tab {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+body.light-theme .xray-filter-tab.is-active {
+  background: #fef3c7;
+  border-color: #d97706;
+  color: #b45309;
+}
+
+/* Banners de Contexto do Filtro */
+.xray-banner-context {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.xray-banner-context.extras {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #fef3c7;
+}
+
+.xray-banner-context.daily {
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  color: #e0f2fe;
+}
+
+body.light-theme .xray-banner-context.extras {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+body.light-theme .xray-banner-context.daily {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+  color: #075985;
+}
+
+/* Boxes Explicativos do Raio-X em cada Missão */
+.statement-item-row.row-has-extras {
+  border-left: 3px solid #f59e0b;
+}
+
+.statement-item-row.row-has-daily {
+  border-left: 3px solid #06b6d4;
+}
+
+.sir-xray-box {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.sir-xray-box.xray-extra-box {
+  background: rgba(245, 158, 11, 0.07);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+body.light-theme .sir-xray-box.xray-extra-box {
+  background: #fffbeb;
+  border-color: #fef08a;
+}
+
+.sir-xray-box.xray-daily-box {
+  background: rgba(6, 182, 212, 0.07);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+}
+
+body.light-theme .sir-xray-box.xray-daily-box {
+  background: #f0f9ff;
+  border-color: #e0f2fe;
+}
+
+.sir-xray-box.xray-normal-box {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  color: #94a3b8;
+}
+
+body.light-theme .sir-xray-box.xray-normal-box {
+  background: #f0fdf4;
+  border-color: #dcfce7;
+  color: #166534;
+}
+
+.sxb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-bottom: 4px;
+}
+
+body.light-theme .sxb-header {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+.sxb-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #f1f5f9;
+}
+
+body.light-theme .sxb-title {
+  color: #1e293b;
+}
+
+.sxb-amount {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.sxb-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: #cbd5e1;
+}
+
+body.light-theme .sxb-body {
+  color: #334155;
+}
+
+.sxb-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.35;
+}
+
+.sxb-calc {
+  margin-top: 3px;
+  padding-top: 3px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+body.light-theme .sxb-calc {
+  color: #64748b;
+}
+
+.statement-empty-xray {
+  text-align: center;
+  padding: 32px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #94a3b8;
+}
+
+body.light-theme .statement-empty-xray {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.statement-empty-xray p {
+  margin-top: 6px;
+  font-size: 0.82rem;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
