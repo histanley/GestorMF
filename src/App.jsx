@@ -2500,19 +2500,17 @@ export default function App() {
                 <span className="tab-badge">{members.length}</span>
               </button>
 
-              {/* Módulo de Aluguel no Menu Principal: Exclusivo para Gestores */}
-              {isManagerUser && (
-                <button
-                  className={`tab-btn tab-btn-rentals ${activeTab === 'rentals' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('rentals')}
-                  title="Aluguel & Equipamentos: Gestão de Estoque e Locações Externas"
-                >
-                  <span className="tab-icon-box">
-                    <Camera size={15} />
-                  </span>
-                  <span className="tab-label">Aluguéis</span>
-                </button>
-              )}
+              {/* Módulo de Aluguel no Menu Principal: Acesso Direto para Gestores e Administradores */}
+              <button
+                className={`tab-btn tab-btn-rentals ${activeTab === 'rentals' ? 'active' : ''}`}
+                onClick={() => setActiveTab('rentals')}
+                title="Aluguel & Equipamentos: Gestão de Estoque e Locações Externas"
+              >
+                <span className="tab-icon-box">
+                  <Camera size={15} />
+                </span>
+                <span className="tab-label">Aluguéis</span>
+              </button>
             </>
           )}
 
@@ -2739,15 +2737,13 @@ export default function App() {
                     <span className="md-nav-badge">{members.length}</span>
                   </button>
 
-                  {isManagerUser && (
-                    <button
-                      className={`md-nav-item ${activeTab === 'rentals' ? 'active' : ''}`}
-                      onClick={() => { setActiveTab('rentals'); setIsMobileDrawerOpen(false); }}
-                    >
-                      <Camera size={18} />
-                      <span>Aluguel de Equipamentos</span>
-                    </button>
-                  )}
+                  <button
+                    className={`md-nav-item ${activeTab === 'rentals' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('rentals'); setIsMobileDrawerOpen(false); }}
+                  >
+                    <Camera size={18} />
+                    <span>Aluguel de Equipamentos</span>
+                  </button>
                 </>
               )}
 
