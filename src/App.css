@@ -37450,6 +37450,229 @@ body.light-theme .kpi-card.kpi-red {
   border-radius: 6px;
 }
 
+/* Card de Decisão de Manutenção pós-devolução */
+.checkin-maintenance-choice-card {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  transition: all 0.25s ease;
+}
+
+.checkin-maintenance-choice-card.is-maintenance-active {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.18);
+}
+
+.cmc-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.cmc-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cmc-text strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #fbbf24;
+  margin-bottom: 3px;
+}
+
+.cmc-text p {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.cmc-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cmc-toggle-row input[type="checkbox"] {
+  margin-top: 3px;
+  width: 17px;
+  height: 17px;
+  accent-color: #f59e0b;
+  cursor: pointer;
+}
+
+.cmc-toggle-row span strong {
+  display: block;
+  font-size: 0.85rem;
+  color: #f1f5f9;
+}
+
+.cmc-toggle-row span small {
+  display: block;
+  font-size: 0.74rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.btn-confirm-maintenance {
+  background: linear-gradient(135deg, #d97706, #b45309) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35) !important;
+}
+
+.btn-confirm-maintenance:hover {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  box-shadow: 0 6px 18px rgba(217, 119, 6, 0.45) !important;
+}
+
+/* Badge de Manutenção nos Cards de Equipamento */
+.status-pill.pill-maintenance {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.status-pill.pill-maintenance-mini {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  margin-left: 6px;
+}
+
+/* KPI Card & Tabs de Manutenção */
+.kpi-maintenance {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+.card-maint-highlight {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-maint-highlight:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.2);
+}
+
+.pill-maint-tab {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  color: #fbbf24 !important;
+}
+
+.pill-maint-tab.active {
+  background: #f59e0b !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+.badge-maint {
+  background: rgba(245, 158, 11, 0.3) !important;
+  color: #ffffff !important;
+}
+
+/* Alerta & Ação de Manutenção no Modal de Detalhes (EquipmentDetailModal) */
+.edm-maintenance-alert-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+.emac-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.emac-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+.emac-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.emac-title-row strong {
+  font-size: 0.92rem;
+  color: #fbbf24;
+}
+
+.emac-badge {
+  font-size: 0.72rem;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.25);
+  color: #fef08a;
+  font-weight: 700;
+}
+
+.emac-desc {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin: 0;
+}
+
+.btn-finish-maint-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #10b981;
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+}
+
+.btn-finish-maint-action:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(16, 185, 129, 0.4);
+}
+
 /* REGRAS DE IMPRESSÃO / PDF DO TERMO EM 1 PÁGINA A4 */
 @media print {
   @page {

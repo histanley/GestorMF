@@ -160,6 +160,18 @@ export function getEquipPhotoUrl(url) {
 }
 
 /**
+ * Trata fallback de foto de vistoria caso o carregamento direto por Apache falhe,
+ * acionando a rota PHP /api/rentals.php?action=view_photo que faz streaming e auto-recuperação.
+ */
+export function handleRentalPhotoError(e, photoUrl) {
+  if (!photoUrl || photoUrl.startsWith('data:') || photoUrl.startsWith('blob:')) return;
+  const fileName = photoUrl.split('?')[0].split('/').pop();
+  if (fileName && !e.target.src.includes('action=view_photo')) {
+    e.target.src = `/api/rentals.php?action=view_photo&file=${encodeURIComponent(fileName)}`;
+  }
+}
+
+/**
  * Compacta e redimensiona imagens enviadas pelo usuário antes do upload
  * Evita erro de limite de payload no PHP e estouro de cota no localStorage
  */

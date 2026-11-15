@@ -30,6 +30,7 @@ import {
   Upload,
   Zap,
   ShoppingCart,
+  Wrench,
 } from 'lucide-react';
 import {
   CATEGORY_LABELS,
@@ -108,6 +109,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   const [editRateUnit, setEditRateUnit] = useState('diária');
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const [returningRental, setReturningRental] = useState(null); // null ou objeto
+  const [sendToMaintenance, setSendToMaintenance] = useState(false);
   const [returnNotes, setReturnNotes] = useState('');
 
   // Estado do Carrinho / Formulário de Nova Locação
@@ -186,7 +188,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   const kpiStats = useMemo(() => {
     const totalUnits = equipmentList.reduce((acc, it) => acc + (Number(it.totalQty) || 1), 0);
     const availableUnits = equipmentList.reduce((acc, it) => acc + (Number(it.availableQty) || 0), 0);
-    const rentedUnits = Math.max(0, totalUnits - availableUnits);
+    const maintenanceUnits = equipmentList.reduce((acc, it) => acc + (Number(it.maintenanceQty) || 0), 0);
+    const rentedUnits = Math.max(0, totalUnits - availableUnits - maintenanceUnits);
 
     const totalAssetValue = equipmentList.reduce((acc, it) => {
       let unitVal = Number(it.assetValue) > 0 ? Number(it.assetValue) : 0;
@@ -229,6 +232,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     return {
       totalUnits,
       availableUnits,
+      maintenanceUnits,
       rentedUnits,
       totalAssetValue,
       categoryPatrimony,
@@ -242,7 +246,12 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   // Catálogo Filtrado
   const filteredEquipment = useMemo(() => {
     return equipmentList.filter((item) => {
-      const matchCat = selectedCategory === 'all' || item.category === selectedCategory;
+      const matchCat =
+        selectedCategory === 'all'
+          ? true
+          : selectedCategory === 'maintenance'
+          ? (item.maintenanceQty || 0) > 0
+          : item.category === selectedCategory;
       const q = searchTerm.toLowerCase().trim();
       const matchSearch =
         !q ||
@@ -773,7 +782,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     try {
       const res = await apiRequest('/rentals.php?action=return_rental', {
         method: 'POST',
-        body: JSON.stringify({ rentalId: returningRental.id, returnNotes }),
+        body: JSON.stringify({
+          rentalId: returningRental.id,
+          returnNotes,
+          sendToMaintenance,
+        }),
       });
       if (res && res.success) {
         fetchRentalsData();
@@ -782,14 +795,26 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       console.warn('Registrando devolução localmente:', e);
     }
 
-    // Libera quantidades de volta no catálogo
+    // Libera ou encaminha quantidades para manutenção
     const returnedItems = returningRental.items || [];
     setEquipmentList((prev) =>
       prev.map((eq) => {
         const item = returnedItems.find((it) => it.equipmentId === eq.id);
         if (item) {
-          const newAvail = Math.min(eq.totalQty, eq.availableQty + item.quantity);
-          return { ...eq, availableQty: newAvail, status: newAvail > 0 ? 'available' : 'rented' };
+          if (sendToMaintenance) {
+            const newMaint = (eq.maintenanceQty || 0) + item.quantity;
+            const newAvail = eq.availableQty; // NÃO incrementa estoque disponível!
+            const newStatus = newAvail > 0 ? 'available' : 'maintenance';
+            return {
+              ...eq,
+              maintenanceQty: newMaint,
+              status: newStatus,
+              maintenanceNotes: `Encaminhado para manutenção após devolução ${returningRental.code}: ${returnNotes || 'Avaria identificada'}`,
+            };
+          } else {
+            const newAvail = Math.min(eq.totalQty, eq.availableQty + item.quantity);
+            return { ...eq, availableQty: newAvail, status: newAvail > 0 ? 'available' : 'rented' };
+          }
         }
         return eq;
       })
@@ -804,19 +829,25 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             status: 'returned',
             returnedAt: new Date().toISOString(),
             returnNotes: returnNotes,
+            hasDamage: sendToMaintenance ? true : r.hasDamage,
+            sentToMaintenance: sendToMaintenance,
           }
           : r
       )
     );
 
     const rCode = returningRental.code;
+    const sentMaint = sendToMaintenance;
     setReturningRental(null);
     setReturnNotes('');
+    setSendToMaintenance(false);
 
     alertDialog({
-      title: 'Devolução Registrada com Sucesso!',
-      message: `A locação ${rCode} foi finalizada. Todos os equipamentos retornaram para o status DISPONÍVEL no estoque.`,
-      variant: 'success',
+      title: sentMaint ? '🛠️ Devolução Concluída & Item em Manutenção' : '✅ Devolução Registrada com Sucesso!',
+      message: sentMaint
+        ? `A locação ${rCode} foi finalizada. O equipamento com avaria foi encaminhado para Manutenção Técnica e NÃO estará disponível para novas locações até a conclusão do reparo.`
+        : `A locação ${rCode} foi finalizada. Todos os equipamentos retornaram para o status DISPONÍVEL no estoque.`,
+      variant: sentMaint ? 'warning' : 'success',
     });
   };
 
@@ -884,6 +915,23 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             <div className="erm-kpi-val text-cyan">{kpiStats.rentedUnits}</div>
             <span className="erm-kpi-sub">fora da sede</span>
           </div>
+
+          {kpiStats.maintenanceUnits > 0 && (
+            <div
+              className="erm-kpi-card kpi-maintenance card-maint-highlight pointer-card"
+              onClick={() => setSelectedCategory('maintenance')}
+              title="Clique para filtrar apenas os equipamentos em manutenção técnica"
+            >
+              <div className="erm-kpi-top">
+                <div className="erm-kpi-icon-wrap icon-amber">
+                  <Wrench size={15} />
+                </div>
+                <span className="erm-kpi-lbl">Em Manutenção</span>
+              </div>
+              <div className="erm-kpi-val text-amber">{kpiStats.maintenanceUnits}</div>
+              <span className="erm-kpi-sub">aguardando reparo</span>
+            </div>
+          )}
 
           <div className={`erm-kpi-card kpi-contracts ${kpiStats.overdueCount > 0 ? 'card-overdue-pulse' : ''}`}>
             <div className="erm-kpi-top">
@@ -1001,6 +1049,16 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     </button>
                   );
                 })}
+                {kpiStats.maintenanceUnits > 0 && (
+                  <button
+                    type="button"
+                    className={`erm-cat-pill pill-maint-tab ${selectedCategory === 'maintenance' ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory('maintenance')}
+                  >
+                    <span>🛠️ Em Manutenção</span>
+                    <span className="erm-cat-badge badge-maint">{kpiStats.maintenanceUnits}</span>
+                  </button>
+                )}
               </div>
 
               <div className="erm-search-box">
@@ -1085,7 +1143,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                         </span>
 
                         <div className="equip-status-indicator">
-                          {isFullyRented ? (
+                          {equip.maintenanceQty > 0 && equip.availableQty <= 0 ? (
+                            <span className="status-pill pill-maintenance">
+                              🛠️ {equip.maintenanceQty} em Manutenção
+                            </span>
+                          ) : isFullyRented ? (
                             <span className="status-pill pill-rented">
                               🔴 Alugado ({equip.totalQty}/{equip.totalQty})
                             </span>
@@ -1096,6 +1158,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                           ) : (
                             <span className="status-pill pill-available">
                               🟢 {equip.availableQty} un. Disponível
+                            </span>
+                          )}
+                          {equip.maintenanceQty > 0 && equip.availableQty > 0 && (
+                            <span className="status-pill pill-maintenance-mini" title={`${equip.maintenanceQty} un. em manutenção técnica`}>
+                              🛠️ {equip.maintenanceQty} em reparo
                             </span>
                           )}
                         </div>
@@ -1169,12 +1236,12 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                         <button
                           type="button"
                           className="btn-primary btn-sm btn-rent-action"
-                          disabled={isFullyRented}
+                          disabled={isFullyRented || equip.availableQty <= 0}
                           onClick={() => {
                             handleAddToCart(equip);
                             setActiveTab('new_rental');
                           }}
-                          title={isFullyRented ? 'Todas as unidades já estão alugadas' : 'Adicionar à nova locação'}
+                          title={equip.availableQty <= 0 ? 'Nenhuma unidade disponível no momento (em locação ou manutenção)' : 'Adicionar à nova locação'}
                         >
                           <Plus size={14} /> Alugar
                         </button>
@@ -2050,8 +2117,14 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                                   type="button"
                                   className="btn-primary btn-sm btn-checkin"
                                   onClick={() => {
+                                    const hasDmg = Boolean(
+                                      rental.hasDamage ||
+                                      rental.has_damage ||
+                                      (rental.returnPhotos && rental.returnPhotos.some((p) => p.condition === 'damage'))
+                                    );
                                     setReturningRental(rental);
-                                    setReturnNotes('');
+                                    setReturnNotes(rental.returnNotes || (hasDmg ? 'Avaria constatada na devolução. Encaminhado para reparo.' : ''));
+                                    setSendToMaintenance(hasDmg);
                                   }}
                                 >
                                   <RotateCcw size={14} /> Registrar Devolução (Check-in)
@@ -2452,16 +2525,53 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                 />
               </div>
 
+              {/* Decisão de Manutenção pós-devolução */}
+              <div className={`checkin-maintenance-choice-card ${sendToMaintenance ? 'is-maintenance-active' : ''}`}>
+                <div className="cmc-header">
+                  <div className="cmc-icon-wrap">
+                    <Wrench size={18} className={sendToMaintenance ? 'text-amber' : 'text-muted'} />
+                  </div>
+                  <div className="cmc-text">
+                    <strong>Destino do Equipamento Devolvido:</strong>
+                    <p>
+                      {sendToMaintenance
+                        ? '⚠️ Equipamento com avaria: será encaminhado para manutenção técnica e NÃO ficará disponível para novas locações até o retorno.'
+                        : 'Equipamento íntegro e testado: retornará diretamente ao estoque disponível para novas locações.'}
+                    </p>
+                  </div>
+                </div>
+
+                <label className="cmc-toggle-row">
+                  <input
+                    type="checkbox"
+                    checked={sendToMaintenance}
+                    onChange={(e) => setSendToMaintenance(e.target.checked)}
+                  />
+                  <span>
+                    <strong>🛠️ Encaminhar para Manutenção / Reparo Técnico</strong>
+                    <small>Marque caso tenham ocorrido avarias, quebras, riscos severos ou necessidade de conserto pós-locação.</small>
+                  </span>
+                </label>
+              </div>
+
               <div className="modal-footer">
                 <button type="button" className="btn-secondary" onClick={() => setReturningRental(null)}>
                   Cancelar
                 </button>
                 <button
                   type="button"
-                  className="btn-primary btn-confirm-return"
+                  className={`btn-primary ${sendToMaintenance ? 'btn-confirm-maintenance' : 'btn-confirm-return'}`}
                   onClick={handleConfirmReturn}
                 >
-                  <CheckCircle2 size={16} /> Confirmar Devolução &amp; Liberar Estoque
+                  {sendToMaintenance ? (
+                    <>
+                      <Wrench size={16} /> Confirmar Devolução &amp; Enviar para Manutenção
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={16} /> Confirmar Devolução &amp; Liberar Estoque
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -2487,6 +2597,13 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             setActiveTab('new_rental');
           }}
           onUpdatePhoto={handleUpdateEquipmentPhoto}
+          onEquipmentUpdated={(updatedEq) => {
+            setEquipmentList((prev) =>
+              prev.map((e) => (e.id === updatedEq.id ? updatedEq : e))
+            );
+            setSelectedDetailEquipment(updatedEq);
+            fetchRentalsData();
+          }}
         />
       )}
 
@@ -2503,6 +2620,15 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
               prev.map((r) => (r.id === updatedRental.id ? updatedRental : r))
             );
             setSelectedRentalForInspection(updatedRental);
+            setReturningRental((prev) => (prev && prev.id === updatedRental.id ? updatedRental : prev));
+            const hasDmg = Boolean(
+              updatedRental.hasDamage ||
+              updatedRental.has_damage ||
+              (updatedRental.returnPhotos && updatedRental.returnPhotos.some((p) => p.condition === 'damage'))
+            );
+            if (hasDmg) {
+              setSendToMaintenance(true);
+            }
           }}
         />
       )}

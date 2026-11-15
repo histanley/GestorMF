@@ -43,6 +43,14 @@ function ensureRentalsTables($db)
         $db->exec("ALTER TABLE equipment ADD COLUMN asset_value DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
     } catch (Exception $e) {
     }
+    try {
+        $db->exec("ALTER TABLE equipment ADD COLUMN maintenance_qty INT NOT NULL DEFAULT 0");
+    } catch (Exception $e) {
+    }
+    try {
+        $db->exec("ALTER TABLE equipment ADD COLUMN maintenance_notes TEXT NULL");
+    } catch (Exception $e) {
+    }
 
     $db->exec("
         CREATE TABLE IF NOT EXISTS rentals (
@@ -125,6 +133,14 @@ function ensureRentalsTables($db)
     }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN security_deposit DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
+    } catch (Exception $e) {
+    }
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN sent_to_maintenance TINYINT(1) NOT NULL DEFAULT 0");
+    } catch (Exception $e) {
+    }
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN maintenance_items_json LONGTEXT NULL");
     } catch (Exception $e) {
     }
 
@@ -457,18 +473,69 @@ function getBenchmarkAssetValue($name, $category, $dailyRate = 0)
 // Inicializa tabelas e seeds se necessário
 ensureRentalsTables($db);
 
-// Processa fotos de vistoria (salva em disco se base64, ou preserva base64)
+/**
+ * Garante que a pasta de armazenamento público de fotos de vistoria exista
+ * e recupera automaticamente fotos legadas que possam ter sido salvas fora da public_html.
+ */
+function ensureRentalStorage()
+{
+    $docRoot = !empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') : dirname(__DIR__);
+    $targetDir = $docRoot . '/images/rentals';
+
+    if (!is_dir($targetDir)) {
+        @mkdir($targetDir, 0777, true);
+    }
+    @chmod($targetDir, 0777);
+
+    // Auto-recupera fotos que possam ter sido gravadas em diretórios externos/legados no servidor
+    $externalDirs = [
+        dirname(__DIR__, 2) . '/images/rentals',
+        dirname(__DIR__, 3) . '/images/rentals',
+        dirname(__DIR__) . '/images/rentals',
+        __DIR__ . '/../images/rentals',
+    ];
+
+    foreach ($externalDirs as $extDir) {
+        if (is_dir($extDir) && realpath($extDir) !== realpath($targetDir)) {
+            $files = @scandir($extDir);
+            if ($files) {
+                foreach ($files as $f) {
+                    if ($f !== '.' && $f !== '..' && is_file($extDir . '/' . $f)) {
+                        $dest = $targetDir . '/' . $f;
+                        if (!file_exists($dest)) {
+                            @copy($extDir . '/' . $f, $dest);
+                            @chmod($dest, 0644);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return $targetDir;
+}
+
+/**
+ * Garante a pasta de fotos customizadas de equipamentos cadastrados
+ */
+function ensureEquipmentUploadStorage()
+{
+    $docRoot = !empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') : dirname(__DIR__);
+    $targetDir = $docRoot . '/images/uploads/equipment';
+    if (!is_dir($targetDir)) {
+        @mkdir($targetDir, 0777, true);
+    }
+    @chmod($targetDir, 0777);
+    return $targetDir;
+}
+
+// Processa fotos de vistoria (salva em disco em images/rentals ou preserva base64)
 function processRentalPhotos($photos, $rentalCode, $type)
 {
     if (!is_array($photos))
         return [];
     $processed = [];
-    $possibleDirs = [
-        __DIR__ . '/../images/rentals',
-        dirname(__DIR__) . '/images/rentals',
-        dirname(__DIR__, 2) . '/images/rentals',
-        ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/images/rentals',
-    ];
+    $targetDir = ensureRentalStorage();
 
     foreach ($photos as $idx => $p) {
         $url = $p['url'] ?? '';
@@ -480,19 +547,11 @@ function processRentalPhotos($photos, $rentalCode, $type)
                     $cleanCode = preg_replace('/[^a-zA-Z0-9_-]/', '', $rentalCode);
                     $cleanId = !empty($p['id']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $p['id']) : ('p' . ($idx + 1));
                     $filename = $cleanCode . '_' . $type . '_' . $cleanId . '_' . time() . '.jpg';
-                    foreach ($possibleDirs as $rDir) {
-                        if (empty($rDir))
-                            continue;
-                        if (!is_dir($rDir)) {
-                            @mkdir($rDir, 0777, true);
-                        }
-                        if (is_dir($rDir)) {
-                            $filePath = $rDir . '/' . $filename;
-                            if (@file_put_contents($filePath, $imageData)) {
-                                $url = '/images/rentals/' . $filename . '?t=' . time();
-                                break;
-                            }
-                        }
+                    $destPath = $targetDir . '/' . $filename;
+
+                    if (@file_put_contents($destPath, $imageData)) {
+                        @chmod($destPath, 0644);
+                        $url = '/images/rentals/' . $filename . '?t=' . time();
                     }
                 }
             }
@@ -512,6 +571,57 @@ function processRentalPhotos($photos, $rentalCode, $type)
 }
 
 $action = $_GET['action'] ?? '';
+
+// ==============================================================================
+// VISUALIZAÇÃO DIRETA DE FOTOS DE VISTORIA (GET action=view_photo | get_photo)
+// Permite que navegadores carreguem <img> com segurança e auto-recuperação
+// ==============================================================================
+if ($method === 'GET' && ($action === 'view_photo' || $action === 'get_photo')) {
+    $file = basename($_GET['file'] ?? $_GET['name'] ?? '');
+    if (empty($file)) {
+        http_response_code(400);
+        exit('Arquivo não especificado.');
+    }
+
+    $targetDir = ensureRentalStorage();
+    $candidatePaths = [
+        $targetDir . '/' . $file,
+        dirname(__DIR__, 2) . '/images/rentals/' . $file,
+        dirname(__DIR__, 3) . '/images/rentals/' . $file,
+        dirname(__DIR__) . '/images/rentals/' . $file,
+        __DIR__ . '/../images/rentals/' . $file,
+    ];
+
+    $foundPath = null;
+    foreach ($candidatePaths as $cp) {
+        if (is_file($cp)) {
+            $foundPath = $cp;
+            break;
+        }
+    }
+
+    if ($foundPath) {
+        if ($foundPath !== $targetDir . '/' . $file && is_dir($targetDir)) {
+            @copy($foundPath, $targetDir . '/' . $file);
+            @chmod($targetDir . '/' . $file, 0644);
+        }
+
+        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        $mime = 'image/jpeg';
+        if ($ext === 'png') $mime = 'image/png';
+        elseif ($ext === 'webp') $mime = 'image/webp';
+        elseif ($ext === 'gif') $mime = 'image/gif';
+
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . filesize($foundPath));
+        header('Cache-Control: public, max-age=31536000');
+        readfile($foundPath);
+        exit;
+    }
+
+    http_response_code(404);
+    exit('Foto não encontrada.');
+}
 
 // ==============================================================================
 // VERIFICAÇÃO PÚBLICA DE AUTENTICIDADE DE DOCUMENTOS (SEM EXIGÊNCIA DE LOGIN)
@@ -691,6 +801,8 @@ if ($method === 'GET') {
             'assetValue' => $assetVal,
             'totalQty' => (int) $e['total_qty'],
             'availableQty' => (int) $e['available_qty'],
+            'maintenanceQty' => (int) ($e['maintenance_qty'] ?? 0),
+            'maintenanceNotes' => $e['maintenance_notes'] ?? '',
             'serialNumber' => $e['serial_number'] ?? '',
             'photoUrl' => $e['photo_url'] ?? '',
             'description' => $e['description'] ?? '',
@@ -749,7 +861,8 @@ if ($method === 'GET') {
     // Métricas para Dashboard & Consolidação Patrimonial
     $totalEquipments = array_sum(array_column($equipment, 'totalQty'));
     $availableEquipments = array_sum(array_column($equipment, 'availableQty'));
-    $rentedEquipments = $totalEquipments - $availableEquipments;
+    $maintenanceEquipments = array_sum(array_column($equipment, 'maintenanceQty'));
+    $rentedEquipments = max(0, $totalEquipments - $availableEquipments - $maintenanceEquipments);
 
     $totalAssetValue = 0.0;
     $patrimonyByCategory = [];
@@ -795,6 +908,7 @@ if ($method === 'GET') {
         'summary' => [
             'totalEquipments' => $totalEquipments,
             'availableEquipments' => $availableEquipments,
+            'maintenanceEquipments' => $maintenanceEquipments,
             'rentedEquipments' => $rentedEquipments,
             'totalAssetValue' => $totalAssetValue,
             'activeRentals' => $activeRentals,
@@ -841,32 +955,15 @@ if ($method === 'POST' && $action === 'save_equipment') {
             $imageData = base64_decode($parts[1]);
             if ($imageData !== false && strlen($imageData) > 0) {
                 // Pasta de uploads protegida contra sobrescrita de deploy
-                $possibleDirs = [
-                    __DIR__ . '/../images/uploads/equipment',
-                    dirname(__DIR__) . '/images/uploads/equipment',
-                    dirname(__DIR__, 2) . '/images/uploads/equipment',
-                    ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/images/uploads/equipment',
-                    __DIR__ . '/../images/equipment',
-                    dirname(__DIR__) . '/images/equipment',
-                ];
-                $saved = false;
+                $targetDir = ensureEquipmentUploadStorage();
                 $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '', $id);
                 $uniqueFilename = 'custom_' . $cleanId . '_' . time() . '.jpg';
+                $filePath = $targetDir . '/' . $uniqueFilename;
 
-                foreach ($possibleDirs as $equipDir) {
-                    if (empty($equipDir))
-                        continue;
-                    if (!is_dir($equipDir)) {
-                        @mkdir($equipDir, 0777, true);
-                    }
-                    if (is_dir($equipDir)) {
-                        $filePath = $equipDir . '/' . $uniqueFilename;
-                        if (@file_put_contents($filePath, $imageData)) {
-                            $photoUrl = '/images/uploads/equipment/' . $uniqueFilename . '?t=' . time();
-                            $saved = true;
-                            break;
-                        }
-                    }
+                if (@file_put_contents($filePath, $imageData)) {
+                    @chmod($filePath, 0644);
+                    $photoUrl = '/images/uploads/equipment/' . $uniqueFilename . '?t=' . time();
+                    $saved = true;
                 }
                 // Se o arquivo físico falhar por permissão de pasta no servidor,
                 // $photoUrl permanece o dataUrl (base64) e é salvo no LONGTEXT do banco,
@@ -962,28 +1059,14 @@ if ($method === 'POST' && $action === 'update_equipment_photo') {
         if (count($parts) === 2) {
             $imageData = base64_decode($parts[1]);
             if ($imageData !== false && strlen($imageData) > 0) {
-                $possibleDirs = [
-                    __DIR__ . '/../images/uploads/equipment',
-                    dirname(__DIR__) . '/images/uploads/equipment',
-                    dirname(__DIR__, 2) . '/images/uploads/equipment',
-                    ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/images/uploads/equipment',
-                    __DIR__ . '/../images/equipment',
-                ];
+                $targetDir = ensureEquipmentUploadStorage();
                 $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '', $id);
                 $uniqueFilename = 'custom_' . $cleanId . '_' . time() . '.jpg';
-                foreach ($possibleDirs as $equipDir) {
-                    if (empty($equipDir))
-                        continue;
-                    if (!is_dir($equipDir)) {
-                        @mkdir($equipDir, 0777, true);
-                    }
-                    if (is_dir($equipDir)) {
-                        $filePath = $equipDir . '/' . $uniqueFilename;
-                        if (@file_put_contents($filePath, $imageData)) {
-                            $photoUrl = '/images/uploads/equipment/' . $uniqueFilename . '?t=' . time();
-                            break;
-                        }
-                    }
+                $filePath = $targetDir . '/' . $uniqueFilename;
+
+                if (@file_put_contents($filePath, $imageData)) {
+                    @chmod($filePath, 0644);
+                    $photoUrl = '/images/uploads/equipment/' . $uniqueFilename . '?t=' . time();
                 }
             }
         }
@@ -1213,6 +1296,8 @@ if ($method === 'POST' && $action === 'create_rental') {
 if ($method === 'POST' && $action === 'return_rental') {
     $rentalId = trim($data['rentalId'] ?? $data['id'] ?? '');
     $returnNotes = trim($data['returnNotes'] ?? '');
+    $sendToMaintenance = !empty($data['sendToMaintenance']);
+    $maintenanceItemIds = is_array($data['maintenanceItemIds'] ?? null) ? $data['maintenanceItemIds'] : [];
 
     if (empty($rentalId)) {
         jsonResponse(['success' => false, 'error' => 'ID da locação não informado.'], 400);
@@ -1234,29 +1319,51 @@ if ($method === 'POST' && $action === 'return_rental') {
         }
 
         $items = !empty($rental['items_json']) ? json_decode($rental['items_json'], true) : [];
+        $hasDamage = !empty($data['hasDamage']) || !empty($rental['has_damage']) || $sendToMaintenance ? 1 : 0;
+        $maintenanceItemsRecord = [];
 
-        // Devolve cada item ao estoque
+        // Devolve ou encaminha cada item para manutenção
         foreach ($items as $it) {
             $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
             $qty = (int) ($it['quantity'] ?? 1);
 
-            $stmtEq = $db->prepare("SELECT total_qty, available_qty FROM equipment WHERE id = ? FOR UPDATE");
+            $stmtEq = $db->prepare("SELECT total_qty, available_qty, maintenance_qty, name FROM equipment WHERE id = ? FOR UPDATE");
             $stmtEq->execute([$eqId]);
             $eq = $stmtEq->fetch();
 
             if ($eq) {
-                $newAvailable = min((int) $eq['total_qty'], (int) $eq['available_qty'] + $qty);
-                $status = $newAvailable > 0 ? 'available' : 'rented';
+                $itemSentToMaint = $sendToMaintenance || in_array($eqId, $maintenanceItemIds);
 
-                $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
-                    ->execute([$newAvailable, $status, $eqId]);
+                if ($itemSentToMaint) {
+                    // Vai para manutenção: NÃO entra no available_qty!
+                    $newMaint = (int) ($eq['maintenance_qty'] ?? 0) + $qty;
+                    $currentAvail = (int) $eq['available_qty'];
+                    $status = $currentAvail > 0 ? 'available' : 'maintenance';
+                    $maintNote = "Encaminhado para manutenção pós-locação {$rental['code']} em " . date('d/m/Y H:i') . ($returnNotes ? ": {$returnNotes}" : "");
+
+                    $db->prepare("UPDATE equipment SET maintenance_qty = ?, status = ?, maintenance_notes = ? WHERE id = ?")
+                        ->execute([$newMaint, $status, $maintNote, $eqId]);
+
+                    $maintenanceItemsRecord[] = [
+                        'equipmentId' => $eqId,
+                        'name' => $eq['name'] ?? $it['name'] ?? 'Equipamento',
+                        'quantity' => $qty,
+                        'sentAt' => date('Y-m-d H:i:s')
+                    ];
+                } else {
+                    // Devolve ao estoque disponível
+                    $newAvailable = min((int) $eq['total_qty'], (int) $eq['available_qty'] + $qty);
+                    $status = $newAvailable > 0 ? 'available' : 'rented';
+
+                    $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
+                        ->execute([$newAvailable, $status, $eqId]);
+                }
             }
         }
 
         // Atualiza locação para returned
         $now = date('Y-m-d H:i:s');
         $returnPhotosInput = is_array($data['returnPhotos'] ?? null) ? $data['returnPhotos'] : null;
-        $hasDamage = !empty($data['hasDamage']) ? 1 : 0;
         $inspectionNotes = trim($data['inspectionNotes'] ?? '');
 
         $sqlReturn = "UPDATE rentals SET status = 'returned', returned_at = ?, return_notes = ?";
@@ -1282,6 +1389,11 @@ if ($method === 'POST' && $action === 'return_rental') {
         $sqlReturn .= ", has_damage = ?";
         $paramsReturn[] = $hasDamage;
 
+        if ($sendToMaintenance || !empty($maintenanceItemsRecord)) {
+            $sqlReturn .= ", sent_to_maintenance = 1, maintenance_items_json = ?";
+            $paramsReturn[] = json_encode($maintenanceItemsRecord, JSON_UNESCAPED_UNICODE);
+        }
+
         $sqlReturn .= " WHERE id = ?";
         $paramsReturn[] = $rentalId;
 
@@ -1289,14 +1401,116 @@ if ($method === 'POST' && $action === 'return_rental') {
 
         $db->commit();
 
-        logAudit('RETURN_RENTAL', 'RENTALS', $rentalId, "Devolução da locação {$rental['code']} confirmada por {$user['name']}.", $user['id'], $user['name']);
+        $logMsg = "Devolução da locação {$rental['code']} confirmada por {$user['name']}." . ($sendToMaintenance ? " Equipamento(s) encaminhado(s) para manutenção." : " Equipamentos liberados no estoque.");
+        logAudit('RETURN_RENTAL', 'RENTALS', $rentalId, $logMsg, $user['id'], $user['name']);
         bumpSyncVersion('return_rental');
+
+        $returnSuccessMsg = $sendToMaintenance
+            ? "Devolução da locação {$rental['code']} registrada. Equipamento(s) com avaria encaminhado(s) para Manutenção Técnica com sucesso!"
+            : "Devolução da locação {$rental['code']} registrada com sucesso. Equipamentos liberados no estoque!";
 
         jsonResponse([
             'success' => true,
-            'message' => "Devolução da locação {$rental['code']} registrada com sucesso. Equipamentos liberados no estoque!"
+            'message' => $returnSuccessMsg,
+            'sentToMaintenance' => $sendToMaintenance,
+            'maintenanceItems' => $maintenanceItemsRecord
         ]);
 
+    } catch (Exception $e) {
+        $db->rollBack();
+        jsonResponse(['success' => false, 'error' => $e->getMessage()], 400);
+    }
+}
+
+// ==============================================================================
+// 5.1 UPLOAD INDIVIDUAL DE FOTO DE VISTORIA (POST action=upload_inspection_photo)
+// ==============================================================================
+if ($method === 'POST' && $action === 'upload_inspection_photo') {
+    $rentalCode = trim($data['rentalCode'] ?? $data['code'] ?? 'vistoria');
+    $type = trim($data['type'] ?? 'saida'); // 'saida' | 'retorno'
+    $photoData = $data['photo'] ?? $data['url'] ?? '';
+
+    if (empty($photoData) || strpos($photoData, 'data:image/') !== 0) {
+        jsonResponse(['success' => false, 'error' => 'Imagem em formato base64 inválida ou ausente.'], 400);
+    }
+
+    $parts = explode(',', $photoData, 2);
+    if (count($parts) !== 2) {
+        jsonResponse(['success' => false, 'error' => 'Dados de imagem corrompidos.'], 400);
+    }
+
+    $binaryData = base64_decode($parts[1]);
+    if ($binaryData === false || strlen($binaryData) === 0) {
+        jsonResponse(['success' => false, 'error' => 'Falha ao decodificar imagem.'], 400);
+    }
+
+    $targetDir = ensureRentalStorage();
+    $cleanCode = preg_replace('/[^a-zA-Z0-9_-]/', '', $rentalCode);
+    $uniqueId = preg_replace('/[^a-zA-Z0-9_-]/', '', $data['id'] ?? ('p' . bin2hex(random_bytes(3))));
+    $filename = $cleanCode . '_' . $type . '_' . $uniqueId . '_' . time() . '.jpg';
+    $destPath = $targetDir . '/' . $filename;
+
+    $saved = false;
+    if (@file_put_contents($destPath, $binaryData)) {
+        @chmod($destPath, 0644);
+        $saved = true;
+    }
+
+    $finalUrl = $saved ? ('/images/rentals/' . $filename . '?t=' . time()) : $photoData;
+
+    jsonResponse([
+        'success' => true,
+        'message' => 'Foto salva com sucesso na hospedagem.',
+        'url' => $finalUrl,
+        'filename' => $filename,
+        'isStoredOnDisk' => $saved
+    ]);
+}
+
+// ==============================================================================
+// 5.2 CONCLUIR MANUTENÇÃO & RETORNAR AO ESTOQUE DISPONÍVEL (POST action=finish_maintenance)
+// ==============================================================================
+if ($method === 'POST' && $action === 'finish_maintenance') {
+    $equipmentId = trim($data['equipmentId'] ?? $data['id'] ?? '');
+    $qty = isset($data['qty']) ? max(1, (int) $data['qty']) : null;
+
+    if (empty($equipmentId)) {
+        jsonResponse(['success' => false, 'error' => 'ID do equipamento não informado.'], 400);
+    }
+
+    $db->beginTransaction();
+    try {
+        $stmt = $db->prepare("SELECT * FROM equipment WHERE id = ? FOR UPDATE");
+        $stmt->execute([$equipmentId]);
+        $eq = $stmt->fetch();
+        if (!$eq) {
+            throw new Exception("Equipamento não encontrado.");
+        }
+
+        $currentMaint = (int) ($eq['maintenance_qty'] ?? 0);
+        if ($currentMaint <= 0) {
+            throw new Exception("Este equipamento não possui unidades registradas em manutenção.");
+        }
+
+        $releaseQty = ($qty !== null && $qty <= $currentMaint) ? $qty : $currentMaint;
+        $newMaint = max(0, $currentMaint - $releaseQty);
+        $newAvail = min((int) $eq['total_qty'], (int) $eq['available_qty'] + $releaseQty);
+        $newStatus = $newAvail > 0 ? 'available' : ($newMaint > 0 ? 'maintenance' : 'rented');
+
+        $stmtUp = $db->prepare("UPDATE equipment SET available_qty = ?, maintenance_qty = ?, status = ?, maintenance_notes = NULL WHERE id = ?");
+        $stmtUp->execute([$newAvail, $newMaint, $newStatus, $equipmentId]);
+
+        $db->commit();
+        logAudit('FINISH_MAINTENANCE', 'EQUIPMENT', $equipmentId, "Manutenção concluída para {$eq['name']} ({$releaseQty} un. devolvida ao estoque disponível) por {$user['name']}.", $user['id'], $user['name']);
+        bumpSyncVersion('finish_maintenance');
+
+        jsonResponse([
+            'success' => true,
+            'message' => "Manutenção finalizada com sucesso! {$releaseQty} unidade(s) de {$eq['name']} retornada(s) ao estoque disponível.",
+            'availableQty' => $newAvail,
+            'maintenanceQty' => $newMaint,
+            'status' => $newStatus
+        ]);
     } catch (Exception $e) {
         $db->rollBack();
         jsonResponse(['success' => false, 'error' => $e->getMessage()], 400);

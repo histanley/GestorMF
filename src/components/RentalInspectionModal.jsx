@@ -15,7 +15,7 @@ import {
   Sparkles,
   Info
 } from 'lucide-react';
-import { formatCurrency, formatDateBR, compressImageFile } from '../utils/rentalsData';
+import { formatCurrency, formatDateBR, compressImageFile, handleRentalPhotoError } from '../utils/rentalsData';
 import { apiRequest } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 
@@ -56,11 +56,32 @@ export default function RentalInspectionModal({
     try {
       setIsUploading(true);
       // Comprime a foto no navegador para economizar banda e armazenamento
-      const compressedDataUrl = await compressImageFile(file, 1400, 0.85);
+      const compressedDataUrl = await compressImageFile(file, 1200, 0.82);
+
+      let serverPhotoUrl = compressedDataUrl;
+      const photoId = 'photo-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+
+      // Salva imediatamente em arquivo físico na hospedagem
+      try {
+        const uploadRes = await apiRequest('/rentals.php?action=upload_inspection_photo', {
+          method: 'POST',
+          body: JSON.stringify({
+            rentalCode: rental.code,
+            type,
+            id: photoId,
+            photo: compressedDataUrl,
+          }),
+        });
+        if (uploadRes && uploadRes.success && uploadRes.url) {
+          serverPhotoUrl = uploadRes.url;
+        }
+      } catch (uploadErr) {
+        console.warn('Upload imediato falhou, mantendo base64:', uploadErr);
+      }
 
       const newPhotoObj = {
-        id: 'photo-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-        url: compressedDataUrl,
+        id: photoId,
+        url: serverPhotoUrl,
         caption: photoCaption.trim() || (photoCondition === 'damage' ? 'Avaria identificada' : 'Equipamento conferido'),
         equipmentName: selectedEquipName,
         condition: photoCondition,
@@ -351,7 +372,11 @@ export default function RentalInspectionModal({
                           onClick={() => setLightboxPhoto(photo)}
                           title="Clique para ampliar"
                         >
-                          <img src={photo.url} alt={photo.caption} />
+                          <img
+                            src={photo.url}
+                            alt={photo.caption}
+                            onError={(e) => handleRentalPhotoError(e, photo.url)}
+                          />
                           <button type="button" className="ic-zoom-btn">
                             <Maximize2 size={14} />
                           </button>
@@ -519,7 +544,11 @@ export default function RentalInspectionModal({
                           onClick={() => setLightboxPhoto(photo)}
                           title="Clique para ampliar"
                         >
-                          <img src={photo.url} alt={photo.caption} />
+                          <img
+                            src={photo.url}
+                            alt={photo.caption}
+                            onError={(e) => handleRentalPhotoError(e, photo.url)}
+                          />
                           <button type="button" className="ic-zoom-btn">
                             <Maximize2 size={14} />
                           </button>
@@ -622,7 +651,11 @@ export default function RentalInspectionModal({
                             onClick={() => setLightboxPhoto(photo)}
                           >
                             <div className="sbs-img-box">
-                              <img src={photo.url} alt={photo.caption} />
+                              <img
+                            src={photo.url}
+                            alt={photo.caption}
+                            onError={(e) => handleRentalPhotoError(e, photo.url)}
+                          />
                               <span className="sbs-badge-tag ok">Saída</span>
                             </div>
                             <div className="sbs-info">
@@ -658,7 +691,11 @@ export default function RentalInspectionModal({
                             onClick={() => setLightboxPhoto(photo)}
                           >
                             <div className="sbs-img-box">
-                              <img src={photo.url} alt={photo.caption} />
+                              <img
+                            src={photo.url}
+                            alt={photo.caption}
+                            onError={(e) => handleRentalPhotoError(e, photo.url)}
+                          />
                               <span
                                 className={`sbs-badge-tag ${
                                   photo.condition === 'damage' ? 'damage' : 'returned'
@@ -722,7 +759,11 @@ export default function RentalInspectionModal({
             >
               <X size={24} />
             </button>
-            <img src={lightboxPhoto.url} alt={lightboxPhoto.caption} />
+            <img
+              src={lightboxPhoto.url}
+              alt={lightboxPhoto.caption}
+              onError={(e) => handleRentalPhotoError(e, lightboxPhoto.url)}
+            />
             <div className="ilb-caption">
               <strong>{lightboxPhoto.equipmentName}</strong>
               <p>{lightboxPhoto.caption}</p>

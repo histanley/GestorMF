@@ -19,9 +19,11 @@ import {
   Maximize2,
   ExternalLink,
   ZoomIn,
+  Wrench,
 } from 'lucide-react';
 import { CATEGORY_LABELS, formatCurrency, formatDateBR, getEquipPhotoUrl, compressImageFile } from '../utils/rentalsData';
-import { alertDialog } from '../utils/dialog';
+import { apiRequest } from '../utils/api';
+import { alertDialog, confirmDialog } from '../utils/dialog';
 
 export default function EquipmentDetailModal({
   equipment,
@@ -30,9 +32,57 @@ export default function EquipmentDetailModal({
   onEdit,
   onRent,
   onUpdatePhoto,
+  onEquipmentUpdated,
 }) {
   const fileInputRef = useRef(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isFinishingMaintenance, setIsFinishingMaintenance] = useState(false);
+
+  const handleFinishMaintenance = async () => {
+    const maintQty = equipment.maintenanceQty || 1;
+    const confirmed = await confirmDialog({
+      title: 'Concluir Manutenção do Equipamento',
+      message: `Deseja dar baixa na manutenção de "${equipment.name}" e liberar ${maintQty} unidade(s) de volta ao estoque disponível para locação?`,
+      confirmLabel: 'Sim, Concluir e Liberar',
+      cancelLabel: 'Cancelar',
+      variant: 'success',
+    });
+    if (!confirmed) return;
+
+    try {
+      setIsFinishingMaintenance(true);
+      const res = await apiRequest('/rentals.php?action=finish_maintenance', {
+        method: 'POST',
+        body: JSON.stringify({ equipmentId: equipment.id }),
+      });
+      if (res && res.success) {
+        alertDialog({
+          title: '✅ Manutenção Concluída!',
+          message: `${equipment.name} foi finalizado e já está novamente disponível no estoque para novas locações.`,
+          variant: 'success',
+        });
+        if (onEquipmentUpdated) {
+          onEquipmentUpdated({
+            ...equipment,
+            availableQty: res.availableQty !== undefined ? res.availableQty : equipment.availableQty + maintQty,
+            maintenanceQty: 0,
+            status: 'available',
+            maintenanceNotes: null,
+          });
+        }
+      } else {
+        throw new Error(res?.error || 'Erro ao concluir manutenção.');
+      }
+    } catch (e) {
+      alertDialog({
+        title: 'Erro ao Concluir Manutenção',
+        message: e.message || 'Falha na comunicação com o servidor.',
+        variant: 'danger',
+      });
+    } finally {
+      setIsFinishingMaintenance(false);
+    }
+  };
 
   useEffect(() => {
     if (!isLightboxOpen) return;
@@ -113,13 +163,20 @@ export default function EquipmentDetailModal({
               <Camera size={13} /> {CATEGORY_LABELS[equipment.category] || equipment.category}
             </span>
 
-            <span className={`status-pill ${isFullyRented ? 'pill-rented' : isPartiallyRented ? 'pill-partial' : 'pill-available'}`}>
-              {isFullyRented
+            <span className={`status-pill ${equipment.maintenanceQty > 0 && equipment.availableQty <= 0 ? 'pill-maintenance' : isFullyRented ? 'pill-rented' : isPartiallyRented ? 'pill-partial' : 'pill-available'}`}>
+              {equipment.maintenanceQty > 0 && equipment.availableQty <= 0
+                ? `🛠️ Em Manutenção (${equipment.maintenanceQty} un.)`
+                : isFullyRented
                 ? '🔴 100% Alugado'
                 : isPartiallyRented
                 ? `🟡 ${equipment.availableQty} de ${equipment.totalQty} disp.`
                 : '🟢 Totalmente Disponível'}
             </span>
+            {equipment.maintenanceQty > 0 && equipment.availableQty > 0 && (
+              <span className="status-pill pill-maintenance">
+                🛠️ {equipment.maintenanceQty} em Manutenção
+              </span>
+            )}
           </div>
 
           <button
@@ -276,6 +333,36 @@ export default function EquipmentDetailModal({
                 </div>
               </div>
 
+              {/* Alerta & Ação de Manutenção Técnica */}
+              {equipment.maintenanceQty > 0 && (
+                <div className="edm-maintenance-alert-card">
+                  <div className="emac-left">
+                    <div className="emac-icon-circle">
+                      <Wrench size={18} />
+                    </div>
+                    <div>
+                      <div className="emac-title-row">
+                        <strong>Equipamento em Manutenção Técnica</strong>
+                        <span className="emac-badge">{equipment.maintenanceQty} unidade(s)</span>
+                      </div>
+                      <p className="emac-desc">
+                        {equipment.maintenanceNotes || 'Item retirado do estoque disponível aguardando conserto ou revisão técnica.'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-finish-maint-action"
+                    onClick={handleFinishMaintenance}
+                    disabled={isFinishingMaintenance}
+                    title="Concluir conserto e retornar o equipamento como disponível no estoque"
+                  >
+                    <CheckCircle2 size={15} />
+                    <span>{isFinishingMaintenance ? 'Liberando...' : 'Concluir Manutenção & Liberar Estoque'}</span>
+                  </button>
+                </div>
+              )}
+
               {/* Seção de Locações Ativas & Missões com este Item */}
               <div className="edm-active-rentals-box">
                 <h4 className="edm-section-title">
@@ -361,7 +448,7 @@ export default function EquipmentDetailModal({
           <button
             type="button"
             className="btn-primary"
-            disabled={isFullyRented}
+            disabled={isFullyRented || equipment.availableQty <= 0}
             onClick={() => {
               onClose();
               if (onRent) onRent(equipment);
