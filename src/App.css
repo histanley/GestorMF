@@ -32771,120 +32771,143 @@ body.light-theme .cs-live-top-badge {
 }
 
 /* ==========================================================================
-   CARDS DE APROVAÇÃO DE PÓS-PRODUÇÃO - MESMAS PROPORÇÕES DOS CARDS DE VIATURAS
+   CARDS DE APROVAÇÃO DE PÓS-PRODUÇÃO - MODERNO, ELEGANTE E 3 CARDS POR LINHA
    ========================================================================== */
 
-/* Grid com colunas proporcionais aos cards de viaturas (290px a 340px) */
+/* Grid com exatamente 3 colunas em desktop (cards maiores e mais confortáveis) */
 .ac-requests-grid.ac-pp-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 340px)) !important;
-  gap: 16px !important;
-  align-items: start !important;
-  justify-content: start !important;
-  max-width: 100% !important;
-}
-
-/* Card Principal de Pós-Produção no mesmo padrão enxuto, proporcional e vertical do .vehicle-card */
-.ac-request-card.ac-pp-card {
-  background: linear-gradient(160deg, rgba(22, 31, 50, 0.94) 0%, rgba(14, 20, 34, 0.98) 100%) !important;
-  border: 1px solid rgba(245, 158, 11, 0.35) !important;
-  border-left: 4px solid #f59e0b !important;
-  border-radius: 14px !important;
-  padding: 14px 15px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 16px rgba(245, 158, 11, 0.08) !important;
-  transition: all 0.22s ease !important;
-  overflow: hidden !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 20px !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
   width: 100% !important;
-  max-width: 340px !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
+@media (max-width: 1200px) {
+  .ac-requests-grid.ac-pp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .ac-requests-grid.ac-pp-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+}
+
+/* Card Principal de Pós-Produção - Design Imponente, Glassmorphism Escuro e Bordas Vivas */
+.ac-request-card.ac-pp-card {
+  background: linear-gradient(168deg, rgba(20, 30, 52, 0.96) 0%, rgba(11, 17, 30, 0.99) 100%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  border-left: 5px solid #f59e0b !important;
+  border-radius: 18px !important;
+  padding: 18px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.42), 0 0 20px rgba(245, 158, 11, 0.08) !important;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+  backdrop-filter: blur(12px) !important;
+}
+
 .ac-request-card.ac-pp-card:hover {
-  border-color: rgba(245, 158, 11, 0.55) !important;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45), 0 0 20px rgba(245, 158, 11, 0.14) !important;
-  transform: translateY(-2px) !important;
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.55), 0 0 26px rgba(245, 158, 11, 0.16) !important;
+  transform: translateY(-3px) !important;
 }
 
 body.light-theme .ac-request-card.ac-pp-card {
   background: #ffffff !important;
   border: 1.5px solid #e2e8f0 !important;
-  border-left: 4px solid #f59e0b !important;
-  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+  border-left: 5px solid #f59e0b !important;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.07), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
 }
 
-/* Cabeçalho do Card Compacto */
+/* Cabeçalho do Card */
 .ac-pp-header {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 8px !important;
+  gap: 10px !important;
   flex-wrap: wrap !important;
 }
 
 .ac-pp-header .ac-rc-header-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .ac-pp-header .ac-rc-code {
-  font-size: 0.72rem !important;
-  padding: 2px 7px !important;
-  border-radius: 6px !important;
-  font-weight: 700 !important;
-  background: rgba(56, 189, 248, 0.12) !important;
+  font-size: 0.78rem !important;
+  padding: 3px 9px !important;
+  border-radius: 8px !important;
+  font-weight: 800 !important;
+  background: rgba(56, 189, 248, 0.14) !important;
   color: #38bdf8 !important;
-  border: 1px solid rgba(56, 189, 248, 0.25) !important;
-  letter-spacing: 0.3px;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  letter-spacing: 0.4px;
 }
 
 .ac-pp-header .ac-rc-status-pill {
-  font-size: 0.68rem !important;
-  padding: 2px 8px !important;
+  font-size: 0.72rem !important;
+  padding: 3px 10px !important;
   border-radius: 999px !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.2px;
 }
 
 .ac-pp-header .ac-btn-history {
-  font-size: 0.68rem !important;
-  padding: 3px 8px !important;
-  border-radius: 6px !important;
-  gap: 4px !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-size: 0.72rem !important;
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  gap: 5px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   color: #94a3b8 !important;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .ac-pp-header .ac-btn-history:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
   color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
 }
 
-/* Chips de Data e Horário Compactos */
+/* Chips de Data e Horário */
 .ac-rc-meta-chips {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 8px !important;
   flex-wrap: wrap !important;
 }
 
 .ac-rc-meta-chips .ac-meta-chip {
-  font-size: 0.72rem !important;
-  padding: 2px 7px !important;
-  border-radius: 6px !important;
-  gap: 4px !important;
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  font-size: 0.76rem !important;
+  padding: 3px 9px !important;
+  border-radius: 7px !important;
+  gap: 5px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: #cbd5e1 !important;
   display: inline-flex;
   align-items: center;
+  font-weight: 600;
 }
 
 body.light-theme .ac-rc-meta-chips .ac-meta-chip {
@@ -32893,18 +32916,18 @@ body.light-theme .ac-rc-meta-chips .ac-meta-chip {
   color: #475569 !important;
 }
 
-/* Título e Local da Missão Proporcionais */
+/* Título e Local da Missão */
 .ac-pp-mission-box {
   display: flex !important;
   flex-direction: column !important;
-  gap: 3px !important;
+  gap: 4px !important;
 }
 
 .ac-pp-title {
-  font-size: 0.98rem !important;
+  font-size: 1.05rem !important;
   font-weight: 800 !important;
   color: #f8fafc !important;
-  line-height: 1.3 !important;
+  line-height: 1.35 !important;
   letter-spacing: -0.01em !important;
   margin: 0 !important;
 }
@@ -32916,25 +32939,25 @@ body.light-theme .ac-pp-title {
 .ac-pp-loc {
   display: flex !important;
   align-items: center !important;
-  gap: 5px !important;
-  font-size: 0.76rem !important;
+  gap: 6px !important;
+  font-size: 0.8rem !important;
   color: #94a3b8 !important;
-  line-height: 1.3 !important;
+  line-height: 1.35 !important;
 }
 
 body.light-theme .ac-pp-loc {
   color: #64748b !important;
 }
 
-/* Painel Estruturado de Detalhes da Pós-Produção Compacto */
+/* Painel Estruturado de Detalhes da Pós-Produção */
 .ac-pp-details-panel {
-  background: rgba(15, 23, 42, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  border-radius: 10px !important;
-  padding: 10px 11px !important;
+  background: rgba(10, 16, 28, 0.72) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+  padding: 13px 14px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 8px !important;
+  gap: 10px !important;
 }
 
 body.light-theme .ac-pp-details-panel {
@@ -32946,17 +32969,17 @@ body.light-theme .ac-pp-details-panel {
 .ac-pp-two-col-row {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
-  gap: 6px !important;
+  gap: 8px !important;
 }
 
 .ac-pp-mini-card {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 8px !important;
-  padding: 6px 8px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 10px !important;
+  padding: 8px 10px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 3px !important;
+  gap: 4px !important;
   min-width: 0 !important;
 }
 
@@ -32966,10 +32989,10 @@ body.light-theme .ac-pp-mini-card {
 }
 
 .ac-pp-mini-label {
-  font-size: 0.62rem !important;
+  font-size: 0.65rem !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.04em !important;
+  letter-spacing: 0.05em !important;
   color: #94a3b8 !important;
 }
 
@@ -32980,13 +33003,13 @@ body.light-theme .ac-pp-mini-label {
 .ac-pp-user-row {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 7px !important;
   min-width: 0 !important;
 }
 
 .ac-pp-avatar-circle {
-  width: 22px !important;
-  height: 22px !important;
+  width: 24px !important;
+  height: 24px !important;
   border-radius: 50% !important;
   background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
   color: #ffffff !important;
@@ -32994,13 +33017,13 @@ body.light-theme .ac-pp-mini-label {
   align-items: center !important;
   justify-content: center !important;
   font-weight: 800 !important;
-  font-size: 0.65rem !important;
+  font-size: 0.68rem !important;
   border: 1px solid #38bdf8 !important;
   flex-shrink: 0 !important;
 }
 
 .ac-pp-user-name {
-  font-size: 0.78rem !important;
+  font-size: 0.82rem !important;
   font-weight: 700 !important;
   color: #f8fafc !important;
   white-space: nowrap !important;
@@ -33015,15 +33038,15 @@ body.light-theme .ac-pp-user-name {
 .ac-pp-deadline-row {
   display: flex !important;
   flex-direction: column !important;
-  gap: 3px !important;
+  gap: 4px !important;
   min-width: 0 !important;
 }
 
 .ac-pp-deadline-info {
   display: flex !important;
   align-items: center !important;
-  gap: 4px !important;
-  font-size: 0.72rem !important;
+  gap: 5px !important;
+  font-size: 0.76rem !important;
   font-weight: 600 !important;
   color: #f1f5f9 !important;
   white-space: nowrap !important;
@@ -33036,22 +33059,83 @@ body.light-theme .ac-pp-deadline-info {
 }
 
 .ac-pp-status-badge {
-  font-size: 0.64rem !important;
-  padding: 1px 6px !important;
-  border-radius: 4px !important;
+  font-size: 0.68rem !important;
+  padding: 2px 7px !important;
+  border-radius: 5px !important;
   font-weight: 700 !important;
   width: fit-content !important;
+}
+
+/* Lista e Cards de Entregas Múltiplas de Editores */
+.ac-pp-multiple-deliveries-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  margin-top: 4px !important;
+}
+
+.ac-pp-editor-delivery-card {
+  padding: 11px 13px !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+body.light-theme .ac-pp-editor-delivery-card {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+.ac-pp-delivery-card-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+.ac-pp-delivery-editor-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.84rem !important;
+  color: #38bdf8 !important;
+}
+
+.ac-pp-delivery-editor-title strong {
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+}
+
+body.light-theme .ac-pp-delivery-editor-title strong {
+  color: #0f172a !important;
+}
+
+.ac-pp-delivery-done-tag {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  color: #34d399 !important;
+  background: rgba(16, 185, 129, 0.14) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
 }
 
 /* Seções de Arquivos do Servidor e Equipe */
 .ac-pp-section-block {
   display: flex !important;
   flex-direction: column !important;
-  gap: 4px !important;
+  gap: 5px !important;
 }
 
 .ac-pp-section-label {
-  font-size: 0.62rem !important;
+  font-size: 0.65rem !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
@@ -33066,11 +33150,11 @@ body.light-theme .ac-pp-section-label {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 6px !important;
-  background: rgba(10, 15, 29, 0.95) !important;
-  border: 1px solid rgba(56, 189, 248, 0.3) !important;
-  border-radius: 8px !important;
-  padding: 6px 8px !important;
+  gap: 8px !important;
+  background: rgba(8, 13, 25, 0.96) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  border-radius: 9px !important;
+  padding: 7px 10px !important;
 }
 
 body.light-theme .ac-pp-server-path-box {
@@ -33081,18 +33165,18 @@ body.light-theme .ac-pp-server-path-box {
 .ac-pp-path-left {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 7px !important;
   min-width: 0 !important;
   flex: 1 !important;
 }
 
 .ac-pp-path-text {
   font-family: var(--font-mono, monospace) !important;
-  font-size: 0.72rem !important;
+  font-size: 0.76rem !important;
   color: #38bdf8 !important;
   word-break: break-all !important;
   font-weight: 600 !important;
-  line-height: 1.25 !important;
+  line-height: 1.3 !important;
 }
 
 body.light-theme .ac-pp-path-text {
@@ -33100,46 +33184,65 @@ body.light-theme .ac-pp-path-text {
 }
 
 .ac-btn-copy-path {
-  padding: 3px 7px !important;
-  font-size: 0.68rem !important;
-  gap: 3px !important;
-  border-radius: 6px !important;
-  background: rgba(56, 189, 248, 0.12) !important;
-  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  padding: 4px 9px !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  gap: 4px !important;
+  border-radius: 7px !important;
+  background: rgba(56, 189, 248, 0.14) !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
   color: #38bdf8 !important;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.ac-btn-copy-path:hover {
+  background: rgba(56, 189, 248, 0.25) !important;
+  border-color: #38bdf8 !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
 }
 
 .ac-pp-message-box {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 8px !important;
-  padding: 6px 8px !important;
-  font-size: 0.72rem !important;
-  color: #cbd5e1 !important;
+  background: rgba(245, 158, 11, 0.05) !important;
+  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+  border-left: 3px solid #f59e0b !important;
+  border-radius: 0 8px 8px 0 !important;
+  padding: 7px 10px !important;
+  font-size: 0.76rem !important;
+  color: #e2e8f0 !important;
   font-style: italic !important;
+  line-height: 1.35 !important;
+}
+
+body.light-theme .ac-pp-message-box {
+  background: #fffbeb !important;
+  border-color: #fde68a !important;
+  border-left-color: #f59e0b !important;
+  color: #92400e !important;
 }
 
 /* Equipe de Gravação em Campo */
 .ac-pp-team-chips {
   display: flex !important;
   flex-wrap: wrap !important;
-  gap: 4px !important;
+  gap: 6px !important;
 }
 
 .ac-team-chip {
-  font-size: 0.7rem !important;
-  padding: 2px 6px !important;
-  border-radius: 5px !important;
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  font-size: 0.74rem !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: #cbd5e1 !important;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  font-weight: 600;
 }
 
 body.light-theme .ac-team-chip {
@@ -33148,15 +33251,17 @@ body.light-theme .ac-team-chip {
   color: #334155 !important;
 }
 
-/* Rodapé de Ações - Botões Proporcionais e Alinhados (como ações do .vehicle-card) */
+/* Rodapé de Ações - Botões Grandes, Imponentes, Modernos e Elegantes */
 .ac-pp-actions-footer {
-  display: flex !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1.25fr !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 12px !important;
   width: 100% !important;
-  margin-top: 2px !important;
-  padding-top: 10px !important;
+  margin-top: 6px !important;
+  padding-top: 14px !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-sizing: border-box !important;
 }
 
 body.light-theme .ac-pp-actions-footer {
@@ -33164,55 +33269,76 @@ body.light-theme .ac-pp-actions-footer {
 }
 
 .ac-pp-btn-action {
-  flex: 1 1 0 !important;
-  min-width: 0 !important;
-  height: 36px !important;
-  border-radius: 8px !important;
-  font-size: 0.76rem !important;
-  font-weight: 700 !important;
+  width: 100% !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  font-size: 0.84rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.2px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 6px !important;
+  gap: 8px !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
   box-sizing: border-box !important;
   white-space: nowrap !important;
-  padding: 0 8px !important;
+  padding: 0 12px !important;
 }
 
-/* Botão Rejeitar e Reabrir */
+/* Botão Rejeitar e Reabrir (Vermelho/Coral Moderno) */
 .ac-btn-reject.ac-pp-btn-action {
-  background: rgba(239, 68, 68, 0.12) !important;
-  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, rgba(185, 28, 28, 0.22) 100%) !important;
+  border: 1.5px solid rgba(248, 113, 113, 0.45) !important;
   color: #fca5a5 !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.15) !important;
 }
 
 .ac-btn-reject.ac-pp-btn-action:hover {
-  background: rgba(239, 68, 68, 0.22) !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(220, 38, 38, 0.38) 100%) !important;
   border-color: #ef4444 !important;
   color: #ffffff !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 22px rgba(239, 68, 68, 0.35) !important;
 }
 
-/* Botão Confirmar Finalização */
+body.light-theme .ac-btn-reject.ac-pp-btn-action {
+  background: #fef2f2 !important;
+  border: 1.5px solid #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
+body.light-theme .ac-btn-reject.ac-pp-btn-action:hover {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+}
+
+/* Botão Confirmar Finalização (Verde Esmeralda Vibrante e Sólido) */
 .ac-btn-approve.ac-pp-btn-action {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-  border: 1px solid #34d399 !important;
+  border: 1.5px solid #34d399 !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25) !important;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
 }
 
 .ac-btn-approve.ac-pp-btn-action:hover {
   background: linear-gradient(135deg, #34d399 0%, #059669 100%) !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4) !important;
+  border-color: #6ee7b7 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+}
+
+body.light-theme .ac-btn-approve.ac-pp-btn-action {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border: 1.5px solid #059669 !important;
+  color: #ffffff !important;
 }
 
 .ac-pp-btn-action:active {
-  transform: scale(0.98) !important;
+  transform: scale(0.97) !important;
 }
+
 
 
 /* Barra Rápida de Modalidades / Funções Oficiais */

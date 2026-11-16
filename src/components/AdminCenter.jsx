@@ -686,7 +686,7 @@ export default function AdminCenter({
 
                         {/* Entregas Detalhadas por Editor quando Múltiplos */}
                         {hasMultipleEditors ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                          <div className="ac-pp-multiple-deliveries-list">
                             {assignedEditors.map((ed) => {
                               const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
                               const isDone = edDeliv && edDeliv.status === 'delivered';
@@ -696,14 +696,21 @@ export default function AdminCenter({
                               if (!isDone && !edPath && !edNote) return null;
 
                               return (
-                                <div key={ed.id} style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.07)', borderRadius: '8px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                    <strong style={{ fontSize: '0.82rem', color: '#38bdf8' }}>Entrega: {ed.name}</strong>
-                                    {isDone && <span style={{ fontSize: '0.72rem', color: '#34d399' }}>✅ Concluído</span>}
+                                <div key={ed.id} className="ac-pp-editor-delivery-card">
+                                  <div className="ac-pp-delivery-card-header">
+                                    <div className="ac-pp-delivery-editor-title">
+                                      <User size={13} className="text-cyan" />
+                                      <span>Entrega: <strong>{ed.name}</strong></span>
+                                    </div>
+                                    {isDone && (
+                                      <span className="ac-pp-delivery-done-tag">
+                                        <CheckCircle2 size={12} /> Concluído
+                                      </span>
+                                    )}
                                   </div>
 
                                   {edPath && (
-                                    <div className="ac-pp-server-path-box" style={{ marginBottom: edNote ? '6px' : 0 }}>
+                                    <div className="ac-pp-server-path-box">
                                       <div className="ac-pp-path-left">
                                         <HardDrive size={14} className="text-amber icon-shrink" />
                                         <code className="ac-pp-path-text" title={edPath}>{edPath}</code>
@@ -730,7 +737,7 @@ export default function AdminCenter({
                                   )}
 
                                   {edNote && (
-                                    <div className="ac-pp-message-box" style={{ fontSize: '0.8rem' }}>
+                                    <div className="ac-pp-message-box">
                                       "{edNote}"
                                     </div>
                                   )}
