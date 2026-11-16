@@ -191,6 +191,8 @@ export default function TeamPayoutsDashboard({
       let totalOffHoursAmount = 0;
       let totalTravelDays = 0;
       let totalDailyAmount = 0;
+      let totalCustomCount = 0;
+      let totalCustomAmount = 0;
       let completedMissionCount = 0;
       let totalAmount = 0;
 
@@ -199,6 +201,8 @@ export default function TeamPayoutsDashboard({
       let plannedOffHoursAmount = 0;
       let plannedTravelDays = 0;
       let plannedDailyAmount = 0;
+      let plannedCustomCount = 0;
+      let plannedCustomAmount = 0;
       let scheduledMissionCount = 0;
       let plannedTotalAmount = 0;
 
@@ -253,6 +257,11 @@ export default function TeamPayoutsDashboard({
           const offHoursWorked = offHoursInfo.offHours;
           const inHoursWorked = offHoursInfo.inHours;
 
+          // Modalidade de remuneração (individual do colaborador ou padrão da missão)
+          const memberRemunType = (m.memberRemunerationTypes && m.memberRemunerationTypes[member.id])
+            || m.remunerationType
+            || (isMDay ? 'daily' : 'off_hours');
+
           // Taxa personalizada na missão ou taxa padrão do perfil
           const customRate = (m.customRates && m.customRates[member.id] !== undefined && m.customRates[member.id] !== null && m.customRates[member.id] !== '')
             ? Number(m.customRates[member.id])
@@ -265,12 +274,25 @@ export default function TeamPayoutsDashboard({
           const effectiveBaseCall = blockRate > 0 ? blockRate : 200;
           let extraFormulaText = '';
 
-          // Regra mandatória: se for mais de um dia OU configurada como Diária, calcula por Diária
-          const isDailyRemuneration = Boolean(isMDay || m.remunerationType === 'daily');
+          if (memberRemunType === 'custom') {
+            // Modalidade 3: Personalizada (Cachê ou valor fechado acordado diretamente)
+            itemAmount = customRate !== null ? customRate : 0;
+            extraFormulaText = `Cachê / Valor fixo acordado: R$ ${itemAmount.toFixed(2)}`;
 
-          if (isDailyRemuneration) {
+            if (isCompleted) {
+              totalCustomCount += 1;
+              totalCustomAmount += itemAmount;
+              totalAmount += itemAmount;
+            } else {
+              plannedCustomCount += 1;
+              plannedCustomAmount += itemAmount;
+              plannedTotalAmount += itemAmount;
+            }
+          } else if (memberRemunType === 'daily') {
+            // Modalidade 2: Diária de Campo ou Viagem
             daysCount = isMDay ? calculateDaysBetween(m.date, m.endDate) : 1;
             itemAmount = daysCount * effectiveDailyRate;
+            extraFormulaText = `${daysCount} diária(s) × R$ ${effectiveDailyRate.toFixed(2)}`;
 
             if (isCompleted) {
               totalTravelDays += daysCount;
@@ -282,7 +304,7 @@ export default function TeamPayoutsDashboard({
               plannedTotalAmount += itemAmount;
             }
           } else {
-            // Banco de Horas: Horas fora do expediente + Horas extras aprovadas pela gestão
+            // Modalidade 1: Hora Extra (Banco de Horas)
             // REGRA OFICIAL MEGAFILMES:
             // - Chamada fora do expediente fecha pacote base de até 4h (R$ 200,00).
             // - A partir da 4ª hora (5ª hora em diante), soma hora a hora pelo valor da taxa individual (R$ 50/h).
@@ -320,7 +342,7 @@ export default function TeamPayoutsDashboard({
             isMultiDay: isMDay,
             missionStatus: m.missionStatus || 'Agendada',
             isCompleted,
-            remunerationType: isDailyRemuneration ? 'daily' : 'off_hours',
+            remunerationType: memberRemunType,
             daysCount,
             description: m.description || 'Missão sem título',
             locationName: m.locationName || 'Local de gravação',
@@ -362,6 +384,8 @@ export default function TeamPayoutsDashboard({
         totalOffHoursAmount: Number(totalOffHoursAmount.toFixed(2)),
         totalTravelDays,
         totalDailyAmount: Number(totalDailyAmount.toFixed(2)),
+        totalCustomCount,
+        totalCustomAmount: Number(totalCustomAmount.toFixed(2)),
         missionCount: completedMissionCount,
         totalAmount: Number(totalAmount.toFixed(2)),
         // A cumprir (previsto / não homologado)
@@ -369,6 +393,8 @@ export default function TeamPayoutsDashboard({
         plannedOffHoursAmount: Number(plannedOffHoursAmount.toFixed(2)),
         plannedTravelDays,
         plannedDailyAmount: Number(plannedDailyAmount.toFixed(2)),
+        plannedCustomCount,
+        plannedCustomAmount: Number(plannedCustomAmount.toFixed(2)),
         scheduledMissionCount,
         plannedTotalAmount: Number(plannedTotalAmount.toFixed(2)),
         totalAllMissionsCount: completedMissionCount + scheduledMissionCount,
@@ -405,6 +431,8 @@ export default function TeamPayoutsDashboard({
     const totalHorasValor = memberPayouts.reduce((acc, m) => acc + (m.totalOffHoursAmount || 0), 0);
     const totalViagens = memberPayouts.reduce((acc, m) => acc + m.totalTravelDays, 0);
     const totalDiariasValor = memberPayouts.reduce((acc, m) => acc + (m.totalDailyAmount || 0), 0);
+    const totalCustoms = memberPayouts.reduce((acc, m) => acc + (m.totalCustomCount || 0), 0);
+    const totalCustomsValor = memberPayouts.reduce((acc, m) => acc + (m.totalCustomAmount || 0), 0);
     const totalPagos = memberPayouts.filter((m) => m.status === 'Pago').length;
     const totalPendentes = memberPayouts.filter((m) => m.status !== 'Pago' && m.totalAmount > 0).length;
 
@@ -414,6 +442,8 @@ export default function TeamPayoutsDashboard({
       totalHorasValor,
       totalViagens,
       totalDiariasValor,
+      totalCustoms,
+      totalCustomsValor,
       totalPagos,
       totalPendentes,
     };
@@ -544,6 +574,7 @@ export default function TeamPayoutsDashboard({
       `🎯 *Missões Concluídas:* ${member.missionCount}${member.scheduledMissionCount > 0 ? ` (+${member.scheduledMissionCount} agendadas)` : ''}`,
       `⏱️ *Horas Extras Homologadas:* ${member.totalHours}h (${formatBRL(member.totalOffHoursAmount)})`,
       `📅 *Diárias Homologadas:* ${member.totalTravelDays} diárias (${formatBRL(member.totalDailyAmount)})`,
+      member.totalCustomCount > 0 ? `🎯 *Remunerações Personalizadas / Cachês:* ${member.totalCustomCount} missões (${formatBRL(member.totalCustomAmount)})` : null,
       member.plannedHours > 0 ? `⏳ *Previsão em Pautas Agendadas (A Cumprir):* ${member.plannedHours}h (${formatBRL(member.plannedOffHoursAmount)}) - Não Homologadas` : null,
       `💰 *Total Líquido Homologado a Pagar:* ${formatBRL(member.totalAmount)}`,
       member.pixKey ? `💳 *Chave PIX:* ${member.pixKey}` : null,
@@ -832,6 +863,20 @@ export default function TeamPayoutsDashboard({
                       </span>
                     </div>
 
+                    {member.totalCustomCount > 0 && (
+                      <div
+                        className="pmc-prod-metric pmc-prod-interactive has-custom-highlight"
+                        onClick={() => handleOpenStatement(member, 'custom')}
+                        title="🎯 Raio-X: Clique para ver todas as missões com remuneração personalizada/cachê deste colaborador"
+                      >
+                        <span className="pmc-prod-val text-purple">{member.totalCustomCount}</span>
+                        <span className="pmc-prod-lbl">Cachês ({formatBRL(member.totalCustomAmount)})</span>
+                        <span className="pmc-xray-chip chip-purple" title="Abrir Raio-X de Personalizadas">
+                          <Sparkles size={10} /> Raio-X
+                        </span>
+                      </div>
+                    )}
+
                     {member.plannedHours > 0 && (
                       <div
                         className="pmc-planned-strip pmc-prod-interactive"
@@ -1059,13 +1104,16 @@ export default function TeamPayoutsDashboard({
       {viewingStatementMember && (() => {
         const allMissions = viewingStatementMember.statementMissions || [];
         const missionsWithExtras = allMissions.filter(
-          (m) => (m.offHoursWorked > 0 || (m.extraHoursApproved || 0) > 0)
+          (m) => m.remunerationType === 'off_hours' && (m.offHoursWorked > 0 || (m.extraHoursApproved || 0) > 0)
         );
         const missionsWithDaily = allMissions.filter(
           (m) => m.remunerationType === 'daily'
         );
+        const missionsWithCustom = allMissions.filter(
+          (m) => m.remunerationType === 'custom'
+        );
         const missionsCommercial = allMissions.filter(
-          (m) => m.remunerationType !== 'daily' && m.offHoursWorked === 0 && (m.extraHoursApproved || 0) === 0
+          (m) => m.remunerationType === 'off_hours' && m.offHoursWorked === 0 && (m.extraHoursApproved || 0) === 0
         );
         const missionsScheduled = allMissions.filter(
           (m) => !m.isCompleted
@@ -1073,13 +1121,16 @@ export default function TeamPayoutsDashboard({
 
         const displayedMissions = allMissions.filter((item) => {
           if (statementFilter === 'extra_hours') {
-            return (item.offHoursWorked > 0 || (item.extraHoursApproved || 0) > 0);
+            return item.remunerationType === 'off_hours' && (item.offHoursWorked > 0 || (item.extraHoursApproved || 0) > 0);
           }
           if (statementFilter === 'daily') {
             return item.remunerationType === 'daily';
           }
+          if (statementFilter === 'custom') {
+            return item.remunerationType === 'custom';
+          }
           if (statementFilter === 'commercial') {
-            return item.remunerationType !== 'daily' && item.offHoursWorked === 0 && (item.extraHoursApproved || 0) === 0;
+            return item.remunerationType === 'off_hours' && item.offHoursWorked === 0 && (item.extraHoursApproved || 0) === 0;
           }
           if (statementFilter === 'scheduled') {
             return !item.isCompleted;
@@ -1137,6 +1188,17 @@ export default function TeamPayoutsDashboard({
                     <strong className="ssb-val text-cyan">{viewingStatementMember.totalTravelDays} d</strong>
                     <small style={{ fontSize: '0.75rem', color: '#38bdf8', opacity: 0.9 }}>{formatBRL(viewingStatementMember.totalDailyAmount)}</small>
                   </div>
+                  {viewingStatementMember.totalCustomCount > 0 && (
+                    <div
+                      className={`ssb-item ssb-clickable ${statementFilter === 'custom' ? 'is-selected' : ''}`}
+                      onClick={() => setStatementFilter('custom')}
+                      title="Filtrar apenas missões com remuneração personalizada/cachê"
+                    >
+                      <span className="ssb-lbl">🎯 Personalizada</span>
+                      <strong className="ssb-val text-purple">{viewingStatementMember.totalCustomCount}</strong>
+                      <small style={{ fontSize: '0.75rem', color: '#c084fc', opacity: 0.9 }}>{formatBRL(viewingStatementMember.totalCustomAmount)}</small>
+                    </div>
+                  )}
                   <div className="ssb-item ssb-total">
                     <span className="ssb-lbl">{viewingStatementMember.status === 'Pago' ? 'Total Quitado' : 'Total Líquido'}</span>
                     <strong className={`ssb-val ${viewingStatementMember.status === 'Pago' ? 'text-green' : 'text-gold'}`}>
@@ -1224,6 +1286,14 @@ export default function TeamPayoutsDashboard({
                   </button>
                   <button
                     type="button"
+                    className={`xray-filter-tab tab-custom ${statementFilter === 'custom' ? 'is-active' : ''}`}
+                    onClick={() => setStatementFilter('custom')}
+                  >
+                    <Sparkles size={13} className="text-purple" />
+                    <span>🎯 Personalizadas ({missionsWithCustom.length})</span>
+                  </button>
+                  <button
+                    type="button"
                     className={`xray-filter-tab tab-commercial ${statementFilter === 'commercial' ? 'is-active' : ''}`}
                     onClick={() => setStatementFilter('commercial')}
                   >
@@ -1263,6 +1333,16 @@ export default function TeamPayoutsDashboard({
                   </div>
                 )}
 
+                {statementFilter === 'custom' && (
+                  <div className="xray-banner-context custom" style={{ borderLeft: '3px solid #a855f7', background: 'rgba(168, 85, 247, 0.1)', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '8px' }}>
+                    <Sparkles size={16} className="text-purple" />
+                    <div>
+                      <strong>Raio-X de Remunerações Personalizadas ({missionsWithCustom.length} missão{missionsWithCustom.length === 1 ? '' : 'ões'}):</strong>
+                      <span> Exibindo missões com cachê fixo ou remuneração acordada especificamente para este colaborador.</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Lista Detalhada de Missões com Raio-X */}
                 <div className="statement-missions-list">
                   {displayedMissions.length === 0 ? (
@@ -1281,13 +1361,15 @@ export default function TeamPayoutsDashboard({
                     </div>
                   ) : (
                     displayedMissions.map((item) => {
-                      const hasExtra = item.offHoursWorked > 0 || (item.extraHoursApproved || 0) > 0;
+                      const isCustom = item.remunerationType === 'custom';
+                      const isDaily = item.remunerationType === 'daily';
+                      const hasExtra = item.remunerationType === 'off_hours' && (item.offHoursWorked > 0 || (item.extraHoursApproved || 0) > 0);
                       const totalExtraHours = (item.offHoursWorked || 0) + (item.extraHoursApproved || 0);
 
                       return (
                         <div
                           key={item.id}
-                          className={`statement-item-row ${!item.isCompleted ? 'row-scheduled-pending' : ''} ${hasExtra ? 'row-has-extras' : ''} ${item.remunerationType === 'daily' ? 'row-has-daily' : ''}`}
+                          className={`statement-item-row ${!item.isCompleted ? 'row-scheduled-pending' : ''} ${hasExtra ? 'row-has-extras' : ''} ${isDaily ? 'row-has-daily' : ''} ${isCustom ? 'row-has-custom' : ''}`}
                         >
                           <div className="sir-left">
                             <div className="sir-code-date">
@@ -1308,7 +1390,11 @@ export default function TeamPayoutsDashboard({
                                 </span>
                               )}
 
-                              {item.remunerationType === 'daily' ? (
+                              {isCustom ? (
+                                <span className="sir-badge-custom" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
+                                  🎯 Personalizada (Cachê)
+                                </span>
+                              ) : isDaily ? (
                                 <span className="sir-badge-multiday">
                                   📅 Diária {item.isMultiDay ? `Viagem (${item.daysCount}d)` : 'Campo (1d)'}
                                 </span>
@@ -1327,7 +1413,26 @@ export default function TeamPayoutsDashboard({
                             <span className="sir-loc">{item.locationName}</span>
 
                             {/* RAIO-X EXPLICATIVO DA MISSÃO */}
-                            {hasExtra ? (
+                            {isCustom ? (
+                              <div className="sir-xray-box xray-custom-box" style={{ borderLeft: '3px solid #a855f7', background: 'rgba(168, 85, 247, 0.08)', padding: '8px 12px', borderRadius: '6px', marginTop: '6px' }}>
+                                <div className="sxb-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div className="sxb-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Sparkles size={13} style={{ color: '#c084fc' }} />
+                                    <span>Raio-X de Remuneração:</span>
+                                    <strong style={{ color: '#c084fc' }}>Personalizada (Cachê / Valor Acordado)</strong>
+                                  </div>
+                                  <strong className="sxb-amount text-gold">+{formatBRL(item.itemAmount)}</strong>
+                                </div>
+                                <div className="sxb-body" style={{ marginTop: '4px', fontSize: '0.78rem', color: '#cbd5e1' }}>
+                                  <div className="sxb-line">
+                                    <span>Remuneração direta acordada para este colaborador nesta missão.</span>
+                                  </div>
+                                  <div className="sxb-calc" style={{ marginTop: '2px', color: '#94a3b8' }}>
+                                    {item.formulaText || `Cálculo: Valor fixo da pauta = ${formatBRL(item.itemAmount)}`}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : hasExtra ? (
                               <div className="sir-xray-box xray-extra-box">
                                 <div className="sxb-header">
                                   <div className="sxb-title">
@@ -1363,7 +1468,7 @@ export default function TeamPayoutsDashboard({
                                   </div>
                                 </div>
                               </div>
-                            ) : item.remunerationType === 'daily' ? (
+                            ) : isDaily ? (
                               <div className="sir-xray-box xray-daily-box">
                                 <div className="sxb-header">
                                   <div className="sxb-title">

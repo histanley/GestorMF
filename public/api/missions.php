@@ -43,6 +43,7 @@ function ensureMissionColumnsExist($db) {
         'custom_rates'            => 'LONGTEXT NULL',
         'off_hours'               => 'DECIMAL(5,1) DEFAULT 0.0',
         'remuneration_type'       => "VARCHAR(20) DEFAULT 'off_hours'",
+        'member_remuneration_types' => 'LONGTEXT NULL',
         'member_roles'            => 'LONGTEXT NULL',
         'equipment_allocations'   => 'LONGTEXT NULL',
         'extra_hours_planned'     => 'DECIMAL(6,2) DEFAULT 0.00',
@@ -238,6 +239,7 @@ if ($method === 'GET') {
             'customRates'              => !empty($m['custom_rates']) ? json_decode($m['custom_rates'], true) : null,
             'offHours'                 => isset($m['off_hours']) ? (float)$m['off_hours'] : 0.0,
             'remunerationType'         => $m['remuneration_type'] ?? (!empty($m['is_multi_day']) ? 'daily' : 'off_hours'),
+            'memberRemunerationTypes'  => !empty($m['member_remuneration_types']) ? json_decode($m['member_remuneration_types'], true) : new stdClass(),
             'memberRoles'              => !empty($m['member_roles']) ? json_decode($m['member_roles'], true) : new stdClass(),
             'equipmentAllocations'     => !empty($m['equipment_allocations']) ? json_decode($m['equipment_allocations'], true) : [],
             'extraHoursPlanned'        => isset($m['extra_hours_planned']) ? (float)$m['extra_hours_planned'] : 0.0,
@@ -925,7 +927,7 @@ if ($method === 'POST' || $method === 'PUT') {
             is_recurring, recurrence_id, recurrence_rule, recurrence_days,
             is_multi_day, end_date,
             custom_rates, off_hours,
-            remuneration_type, member_roles, equipment_allocations, extra_hours_planned, extra_hours_approved, extra_hours_requests,
+            remuneration_type, member_remuneration_types, member_roles, equipment_allocations, extra_hours_planned, extra_hours_approved, extra_hours_requests,
             created_by
         ) VALUES (
             :id, :code, :description, :location_name, :address, :lat, :lon, :date,
@@ -943,7 +945,7 @@ if ($method === 'POST' || $method === 'PUT') {
             :is_recurring, :recurrence_id, :recurrence_rule, :recurrence_days,
             :is_multi_day, :end_date,
             :custom_rates, :off_hours,
-            :remuneration_type, :member_roles, :equipment_allocations, :extra_hours_planned, :extra_hours_approved, :extra_hours_requests,
+            :remuneration_type, :member_remuneration_types, :member_roles, :equipment_allocations, :extra_hours_planned, :extra_hours_approved, :extra_hours_requests,
             :created_by
         )
         ON DUPLICATE KEY UPDATE
@@ -1003,6 +1005,7 @@ if ($method === 'POST' || $method === 'PUT') {
             custom_rates = VALUES(custom_rates),
             off_hours = VALUES(off_hours),
             remuneration_type = VALUES(remuneration_type),
+            member_remuneration_types = VALUES(member_remuneration_types),
             member_roles = VALUES(member_roles),
             equipment_allocations = VALUES(equipment_allocations),
             extra_hours_planned = VALUES(extra_hours_planned),
@@ -1067,6 +1070,7 @@ if ($method === 'POST' || $method === 'PUT') {
         ':custom_rates'                => !empty($data['customRates']) ? json_encode($data['customRates'], JSON_UNESCAPED_UNICODE) : null,
         ':off_hours'                   => isset($data['offHours']) ? (float)$data['offHours'] : 0.0,
         ':remuneration_type'           => $data['remunerationType'] ?? ($isMultiDay ? 'daily' : 'off_hours'),
+        ':member_remuneration_types'   => !empty($data['memberRemunerationTypes']) ? (is_array($data['memberRemunerationTypes']) ? json_encode($data['memberRemunerationTypes'], JSON_UNESCAPED_UNICODE) : $data['memberRemunerationTypes']) : null,
         ':member_roles'                => !empty($data['memberRoles']) ? (is_array($data['memberRoles']) ? json_encode($data['memberRoles'], JSON_UNESCAPED_UNICODE) : $data['memberRoles']) : null,
         ':equipment_allocations'       => !empty($data['equipmentAllocations']) ? (is_array($data['equipmentAllocations']) ? json_encode($data['equipmentAllocations'], JSON_UNESCAPED_UNICODE) : $data['equipmentAllocations']) : null,
         ':extra_hours_planned'         => isset($data['extraHoursPlanned']) ? (float)$data['extraHoursPlanned'] : 0.0,

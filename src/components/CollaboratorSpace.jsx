@@ -326,6 +326,8 @@ export default function CollaboratorSpace({
     let totalHoursVal = 0;
     let totalDays = 0;
     let totalDaysVal = 0;
+    let totalCustomCount = 0;
+    let totalCustomVal = 0;
 
     monthMissions.forEach((m) => {
       const mStatus = String(m.missionStatus || 'Agendada').trim().toLowerCase();
@@ -334,12 +336,19 @@ export default function CollaboratorSpace({
       if (!isCompleted) return;
 
       const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
-      const customRate = (m.customRates && m.customRates[myMember.id] !== undefined)
+      const customRate = (m.customRates && m.customRates[myMember.id] !== undefined && m.customRates[myMember.id] !== null && m.customRates[myMember.id] !== '')
         ? Number(m.customRates[myMember.id])
         : null;
 
-      const isDaily = isMDay || m.remunerationType === 'daily';
-      if (isDaily) {
+      const memberMode = (m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
+        || m.remunerationType
+        || (isMDay ? 'daily' : 'off_hours');
+
+      if (memberMode === 'custom') {
+        const val = customRate !== null ? customRate : 0;
+        totalCustomCount += 1;
+        totalCustomVal += val;
+      } else if (memberMode === 'daily') {
         let days = 1;
         if (isMDay && m.date && m.endDate) {
           try {
@@ -374,7 +383,9 @@ export default function CollaboratorSpace({
       totalHoursVal: Number(totalHoursVal.toFixed(2)),
       totalDays,
       totalDaysVal: Number(totalDaysVal.toFixed(2)),
-      total: Number((totalHoursVal + totalDaysVal).toFixed(2)),
+      totalCustomCount,
+      totalCustomVal: Number(totalCustomVal.toFixed(2)),
+      total: Number((totalHoursVal + totalDaysVal + totalCustomVal).toFixed(2)),
       isPaid,
       clearedAt: closure?.clearedAt || null,
     };
@@ -733,6 +744,22 @@ export default function CollaboratorSpace({
               Taxa diária: {formatBRL(myMember.dailyRate || 200)}/dia
             </span>
           </div>
+
+          {/* Card Personalizadas (Cachês) */}
+          {financialSummary.totalCustomCount > 0 && (
+            <div className="cs-summary-card cs-card-custom" style={{ borderLeft: '3px solid #a855f7', background: 'rgba(168, 85, 247, 0.08)' }}>
+              <div className="cs-card-header">
+                <span className="cs-card-lbl">Personalizadas ({financialSummary.totalCustomCount} missões)</span>
+                <Sparkles size={18} className="text-purple" />
+              </div>
+              <strong className="cs-card-val text-purple">
+                {formatBRL(financialSummary.totalCustomVal)}
+              </strong>
+              <span className="cs-card-sub">
+                Cachês e valores fixos acordados
+              </span>
+            </div>
+          )}
 
           {/* Card Total a Receber / Quitado */}
           <div className={`cs-summary-card cs-card-total ${financialSummary.isPaid ? 'is-paid' : 'is-pending'}`}>
@@ -1129,6 +1156,9 @@ export default function CollaboratorSpace({
           <div className="cs-missions-list">
             {sortedMyMissions.slice(0, 15).map((m) => {
               const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
+              const memberMode = (m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
+                || m.remunerationType
+                || (isMDay ? 'daily' : 'off_hours');
               const requests = Array.isArray(m.extraHoursRequests) ? m.extraHoursRequests : [];
               const myRequests = requests.filter((r) => String(r.memberId) === String(myMember.id));
               const isClosed = m.missionStatus === 'Finalizada';
@@ -1168,9 +1198,17 @@ export default function CollaboratorSpace({
                         <span className="cs-mission-date">
                           📅 {formatDateBR(m.date)} {isMDay && m.endDate ? ` a ${formatDateBR(m.endDate)}` : ''}
                         </span>
-                        {isMDay ? (
+                        {memberMode === 'custom' ? (
+                          <span className="cs-badge-custom" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
+                            🎯 Personalizada
+                          </span>
+                        ) : isMDay ? (
                           <span className="cs-badge-mday">
                             🏕️ Viagem (+1d)
+                          </span>
+                        ) : memberMode === 'daily' ? (
+                          <span className="cs-badge-mday" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                            📅 Diária
                           </span>
                         ) : (
                           <span className={`cs-badge-hours ${progress.isUrgentOffHours ? 'badge-hours-urgent' : progress.isUrgentInHours ? 'badge-hours-inhours' : ''}`}>
