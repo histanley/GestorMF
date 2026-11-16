@@ -543,20 +543,6 @@ export default function MissionModal({
       });
     } else {
       const defaultVehicle = vehicles[0]?.id || '';
-      // Encontra primeiro membro habilitado para ser o motorista preferencial
-      const preferredDriver = members.find((m) => Boolean(m.canDrive ?? m.hasCnh))?.id || members[0]?.id || '';
-      const defaultTeam = preferredDriver
-        ? [preferredDriver, ...members.filter((m) => m.id !== preferredDriver).slice(0, 1).map((m) => m.id)]
-        : members.slice(0, 2).map((m) => m.id);
-
-      // Sugere os editores da equipe por padrão se houver algum com papel de 'Editor' ou 'Designer'
-      const defaultEditors = members
-        .filter((m) => {
-          const r = (m.role || '').toLowerCase();
-          return r.includes('editor') || r.includes('edição') || r.includes('designer');
-        })
-        .slice(0, 1)
-        .map((m) => m.id);
 
       setFormData({
         description: '',
@@ -572,11 +558,11 @@ export default function MissionModal({
         departureTime: '',
         arrivalTimeEstimated: '',
         returnTimeEstimated: '',
-        vehicleAllocations: [{ vehicleId: defaultVehicle, driverId: preferredDriver }],
-        teamIds: defaultTeam,
+        vehicleAllocations: [{ vehicleId: defaultVehicle, driverId: '' }],
+        teamIds: [],
         guests: [],
         editionStatus: 'Pendente',
-        editorIds: defaultEditors,
+        editorIds: [],
         editorNamesDisplay: '',
         deliveryDeadlineDate: getLocalTodayStr(),
         deliveryDeadlineTime: '18:00',
