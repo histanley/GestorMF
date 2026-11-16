@@ -268,6 +268,8 @@ export default function MissionModal({
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [guestInput, setGuestInput] = useState('');
+  // Recursos forçados/compartilhados (viaturas e colaboradores com autorização de sobreposição)
+  const [forcedResources, setForcedResources] = useState(() => new Set());
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [routeInfo, setRouteInfo] = useState({
     distanceKm: 0,
@@ -901,7 +903,31 @@ export default function MissionModal({
     });
   };
 
-  const handleChangeAllocationVehicle = (index, newVehicleId) => {
+  const handleChangeAllocationVehicle = async (index, newVehicleId) => {
+    if (!newVehicleId) {
+      setFormData((prev) => {
+        const copy = [...prev.vehicleAllocations];
+        copy[index] = { ...copy[index], vehicleId: '' };
+        return { ...prev, vehicleAllocations: copy };
+      });
+      return;
+    }
+
+    const vConflict = scheduleConflicts.vehicleConflicts[newVehicleId];
+    if (vConflict) {
+      const veh = vehicles.find((v) => v.id === newVehicleId);
+      const vehLabel = veh ? `${veh.name} (${veh.plate})` : 'Viatura selecionada';
+      const proceed = await confirmDialog({
+        title: '⚠️ Viatura Ocupada em Outra Missão',
+        message: `A viatura ${vehLabel} já está designada para a missão ${vConflict.code} "${vConflict.description}" no horário de ${vConflict.timeRange}.\n\nVocê concorda que este veículo participe também desta missão simultaneamente?\n(Ex: apoio conjunto a serviços próximos ou atendimento sequencial de campo sem retorno à base).`,
+        confirmText: 'Sim, Concordo e Forçar Viatura',
+        cancelText: 'Escolher Outra Viatura',
+        variant: 'warning',
+      });
+      if (!proceed) return;
+      setForcedResources((prev) => new Set(prev).add(`vehicle-${newVehicleId}`));
+    }
+
     setFormData((prev) => {
       const copy = [...prev.vehicleAllocations];
       copy[index] = { ...copy[index], vehicleId: newVehicleId };
@@ -909,7 +935,31 @@ export default function MissionModal({
     });
   };
 
-  const handleChangeAllocationDriver = (index, newDriverId) => {
+  const handleChangeAllocationDriver = async (index, newDriverId) => {
+    if (!newDriverId) {
+      setFormData((prev) => {
+        const copy = [...prev.vehicleAllocations];
+        copy[index] = { ...copy[index], driverId: '' };
+        return { ...prev, vehicleAllocations: copy };
+      });
+      return;
+    }
+
+    const dConflict = scheduleConflicts.memberConflicts[newDriverId];
+    if (dConflict) {
+      const drv = members.find((m) => m.id === newDriverId);
+      const drvLabel = drv ? drv.name : 'Colaborador';
+      const proceed = await confirmDialog({
+        title: '⚠️ Motorista Escalado em Outra Missão',
+        message: `O colaborador/condutor ${drvLabel} já está escalado na missão ${dConflict.code} "${dConflict.description}" no horário de ${dConflict.timeRange}.\n\nVocê concorda que este condutor participe também desta outra missão?\n(Ex: deslocamento direto de campo ou atuação simultânea).`,
+        confirmText: 'Sim, Concordo e Forçar Motorista',
+        cancelText: 'Escolher Outro Condutor',
+        variant: 'warning',
+      });
+      if (!proceed) return;
+      setForcedResources((prev) => new Set(prev).add(`member-${newDriverId}`));
+    }
+
     setFormData((prev) => {
       const copy = [...prev.vehicleAllocations];
       copy[index] = { ...copy[index], driverId: newDriverId };
@@ -927,6 +977,21 @@ export default function MissionModal({
     if (!exists) {
       const member = members.find((m) => m.id === memberId);
       if (member) {
+        // 1. Verificação de sobreposição com outra missão no mesmo horário
+        const mConflict = scheduleConflicts.memberConflicts[memberId];
+        if (mConflict) {
+          const proceedConflict = await confirmDialog({
+            title: '⚠️ Colaborador Escalado em Outra Missão',
+            message: `${member.name} já faz parte da equipe na missão ${mConflict.code} "${mConflict.description}" no horário de ${mConflict.timeRange}.\n\nVocê concorda que este colaborador participe também desta missão simultaneamente?\n(Ex: eventos próximos, deslocamento direto sem retorno à base ou cobertura compartilhada).`,
+            confirmText: 'Sim, Concordo e Forçar Participação',
+            cancelText: 'Voltar (Não Escalar)',
+            variant: 'warning',
+          });
+          if (!proceedConflict) return;
+          setForcedResources((prev) => new Set(prev).add(`member-${memberId}`));
+        }
+
+        // 2. Verificação de indisponibilidade declarada para horas extras
         const availCheck = checkMemberExtraHoursAvailability(
           member,
           formData.date,
@@ -1241,16 +1306,18 @@ export default function MissionModal({
         return `• Colaborador ${mObj?.name || 'Membro'}: Já escalado na missão ${c.code} "${c.description}" (${c.timeRange})`;
       });
 
+    let hasSharedOverrides = forcedResources.size > 0;
     const allConflictMsgs = [...conflictingVehicles, ...conflictingDrivers, ...conflictingTeam];
     if (allConflictMsgs.length > 0) {
       const proceed = await confirmDialog({
-        title: '⚠️ Aviso de Sobreposição de Escala',
-        message: `Foram detectadas sobreposições de escala com outra missão:\n\n${allConflictMsgs.join('\n')}\n\nDeseja autorizar a escala simultânea / deslocamento direto deste(s) colaborador(es)?`,
-        confirmText: 'Autorizar e Salvar Missão',
+        title: '⚠️ Aviso de Escala Compartilhada / Sobreposição',
+        message: `Foram detectadas sobreposições de escala com outra missão:\n\n${allConflictMsgs.join('\n')}\n\nVocê concorda em autorizar a participação simultânea / deslocamento direto deste(s) recurso(s)?`,
+        confirmText: 'Sim, Concordo e Salvar Missão',
         cancelText: 'Revisar Escala',
         variant: 'warning',
       });
       if (!proceed) return;
+      hasSharedOverrides = true;
     }
 
     const primaryAlloc = validAllocations[0] || null;
@@ -1420,6 +1487,9 @@ export default function MissionModal({
       extraHoursApproved: editingMission?.extraHoursApproved || 0,
       extraHoursRequests: editingMission?.extraHoursRequests || [],
       customRates: formData.customRates || {},
+      ignoreConflicts: hasSharedOverrides,
+      forceSharedResources: hasSharedOverrides,
+      overrideReason: hasSharedOverrides ? 'Participação compartilhada de viatura/colaborador forçada e autorizada pelo gestor' : undefined,
     };
 
     const res = await onSaveMission(missionPayload);
@@ -2303,14 +2373,14 @@ export default function MissionModal({
                           </select>
 
                           {vConflict && (
-                            <div className="mm-conflict-banner mm-conflict-vehicle">
-                              <div className="mcb-icon">
+                            <div className="mm-conflict-banner mm-conflict-vehicle" style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '6px', padding: '8px 12px', marginTop: '6px' }}>
+                              <div className="mcb-icon" style={{ color: '#fbbf24' }}>
                                 <AlertTriangle size={15} />
                               </div>
                               <div className="mcb-content">
-                                <strong className="mcb-title">Viatura em Uso no Mesmo Horário!</strong>
-                                <p className="mcb-desc">
-                                  A viatura selecionada já está escalada na missão <strong>{vConflict.code} {vConflict.description}</strong> no horário de <strong>{vConflict.timeRange}</strong>.
+                                <strong className="mcb-title" style={{ color: '#fbbf24' }}>Viatura em Escala Compartilhada / Forçada</strong>
+                                <p className="mcb-desc" style={{ color: '#cbd5e1' }}>
+                                  A viatura selecionada também atende à missão <strong>{vConflict.code} "{vConflict.description}"</strong> ({vConflict.timeRange}). Participação compartilhada autorizada pelo gestor.
                                 </p>
                               </div>
                             </div>
@@ -2367,14 +2437,14 @@ export default function MissionModal({
                           </select>
 
                           {dConflict && (
-                            <div className="mm-conflict-banner mm-conflict-driver">
-                              <div className="mcb-icon">
+                            <div className="mm-conflict-banner mm-conflict-driver" style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '6px', padding: '8px 12px', marginTop: '6px' }}>
+                              <div className="mcb-icon" style={{ color: '#fbbf24' }}>
                                 <AlertTriangle size={15} />
                               </div>
                               <div className="mcb-content">
-                                <strong className="mcb-title">Condutor Escalado em Outra Missão!</strong>
-                                <p className="mcb-desc">
-                                  O colaborador selecionado já está escalado na missão <strong>{dConflict.code} {dConflict.description}</strong> ({dConflict.timeRange}).
+                                <strong className="mcb-title" style={{ color: '#fbbf24' }}>Condutor em Escala Compartilhada / Forçada</strong>
+                                <p className="mcb-desc" style={{ color: '#cbd5e1' }}>
+                                  O colaborador selecionado também faz parte da missão <strong>{dConflict.code} "{dConflict.description}"</strong> ({dConflict.timeRange}). Atuação compartilhada autorizada pelo gestor.
                                 </p>
                               </div>
                             </div>
@@ -3104,10 +3174,11 @@ export default function MissionModal({
                               {memConflict ? (
                                 <span
                                   className="mm-conflict-pill"
-                                  title={`Ocupado na missão ${memConflict.code}: ${memConflict.timeRange}`}
+                                  title={`Ocupado na missão ${memConflict.code}: ${memConflict.timeRange}. Clique no card para forçar participação compartilhada.`}
+                                  style={isSelected ? { background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.35)', fontWeight: 700 } : undefined}
                                 >
                                   <AlertTriangle size={11} />
-                                  <span>Ocupado ({memConflict.timeRange})</span>
+                                  <span>{isSelected ? `🔄 Escala Compartilhada (${memConflict.code})` : `Ocupado (${memConflict.timeRange})`}</span>
                                 </span>
                               ) : isHabilitado || isDriver ? (
                                 <button

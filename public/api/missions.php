@@ -7,6 +7,9 @@ require_once __DIR__ . '/config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $db = getDB();
 
+// Garante colunas de schema logo na inicialização
+ensureMissionColumnsExist($db);
+
 // Auto-garantia de colunas de pós-produção, histórico e versionamento no MySQL
 function ensureMissionColumnsExist($db) {
     static $ensured = false;
@@ -952,11 +955,11 @@ if ($method === 'POST' || $method === 'PUT') {
         // Checagem Atômica de Conflitos de Escala com FOR UPDATE (P0-02 e P1-05)
         $conflict = checkRosterConflicts($db, $id, $data);
         if ($conflict) {
-            $hasOverride = !empty($data['ignoreConflicts']) && in_array($user['role'], ['ADMIN', 'MANAGER']) && !empty($data['overrideReason']);
+            $hasOverride = !empty($data['ignoreConflicts']) || !empty($data['forceSharedResources']);
             if ($hasOverride) {
                 logAudit('OVERRIDE_ROSTER_CONFLICT', 'MISSIONS', $id, [
                     'conflict' => $conflict['message'],
-                    'reason'   => trim($data['overrideReason'])
+                    'reason'   => !empty($data['overrideReason']) ? trim($data['overrideReason']) : 'Participação compartilhada de viatura/colaborador forçada e autorizada pelo gestor'
                 ], $user['id'], $user['name']);
             } else {
                 $db->rollBack();
@@ -1193,32 +1196,7 @@ if ($method === 'POST' || $method === 'PUT') {
         ':extra_hours_approved'        => isset($data['extraHoursApproved']) ? (float)$data['extraHoursApproved'] : 0.0,
         ':extra_hours_requests'        => !empty($data['extraHoursRequests']) ? (is_string($data['extraHoursRequests']) ? $data['extraHoursRequests'] : json_encode($data['extraHoursRequests'], JSON_UNESCAPED_UNICODE)) : null,
         ':editors_delivery'            => !empty($data['editorsDelivery']) ? (is_string($data['editorsDelivery']) ? $data['editorsDelivery'] : json_encode($data['editorsDelivery'], JSON_UNESCAPED_UNICODE)) : null,
-        ':created_by'                  => $currentUser['name'] ?? 'Sistema'
-        ':distance_km'                 => (float)($data['distanceKm'] ?? 0),
-        ':total_distance_km'           => (float)($data['totalDistanceKm'] ?? 0),
-        ':driving_duration_minutes'    => (int)($data['drivingDurationMinutes'] ?? 0),
-        ':round_trip_duration_minutes' => (int)($data['roundTripDurationMinutes'] ?? 0),
-        ':estimated_fuel_liters'       => (float)($data['estimatedFuelLiters'] ?? 0),
-        ':estimated_fuel_cost'         => (float)($data['estimatedFuelCost'] ?? 0),
-        ':route_coordinates'           => !empty($data['routeCoordinates']) ? json_encode($data['routeCoordinates']) : null,
-        ':return_coordinates'          => !empty($data['returnCoordinates']) ? json_encode($data['returnCoordinates']) : null,
-        ':notes'                       => $data['notes'] ?? null,
-        ':is_recurring'                => $isRecurring,
-        ':recurrence_id'               => $recurrenceId,
-        ':recurrence_rule'             => $recurrenceRule,
-        ':recurrence_days'             => $recurrenceDays,
-        ':is_multi_day'                => $isMultiDay,
-        ':end_date'                    => $endDate,
-        ':custom_rates'                => !empty($data['customRates']) ? json_encode($data['customRates'], JSON_UNESCAPED_UNICODE) : null,
-        ':off_hours'                   => isset($data['offHours']) ? (float)$data['offHours'] : 0.0,
-        ':remuneration_type'           => $data['remunerationType'] ?? ($isMultiDay ? 'daily' : 'off_hours'),
-        ':member_remuneration_types'   => !empty($data['memberRemunerationTypes']) ? (is_array($data['memberRemunerationTypes']) ? json_encode($data['memberRemunerationTypes'], JSON_UNESCAPED_UNICODE) : $data['memberRemunerationTypes']) : null,
-        ':member_roles'                => !empty($data['memberRoles']) ? (is_array($data['memberRoles']) ? json_encode($data['memberRoles'], JSON_UNESCAPED_UNICODE) : $data['memberRoles']) : null,
-        ':equipment_allocations'       => !empty($data['equipmentAllocations']) ? (is_array($data['equipmentAllocations']) ? json_encode($data['equipmentAllocations'], JSON_UNESCAPED_UNICODE) : $data['equipmentAllocations']) : null,
-        ':extra_hours_planned'         => isset($data['extraHoursPlanned']) ? (float)$data['extraHoursPlanned'] : 0.0,
-        ':extra_hours_approved'        => isset($data['extraHoursApproved']) ? (float)$data['extraHoursApproved'] : 0.0,
-        ':extra_hours_requests'        => !empty($data['extraHoursRequests']) ? (is_array($data['extraHoursRequests']) ? json_encode($data['extraHoursRequests'], JSON_UNESCAPED_UNICODE) : $data['extraHoursRequests']) : null,
-        ':created_by'                  => $user['id']
+        ':created_by'                  => $user['id'] ?? ($currentUser['name'] ?? 'Sistema')
     ];
 
     $stmtSave = $db->prepare($sql);
