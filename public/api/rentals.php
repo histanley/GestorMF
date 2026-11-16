@@ -51,6 +51,10 @@ function ensureRentalsTables($db)
         $db->exec("ALTER TABLE equipment ADD COLUMN maintenance_notes TEXT NULL");
     } catch (Exception $e) {
     }
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN auth_signature VARCHAR(64) NULL");
+    } catch (Exception $e) {
+    }
 
     $db->exec("
         CREATE TABLE IF NOT EXISTS rentals (
@@ -300,6 +304,50 @@ function ensureRentalsTables($db)
         }
     } catch (Exception $e) {
     }
+
+    // Auto-garantia de registro oficial do contrato LOC-202611-001
+    try {
+        $checkLoc = $db->query("SELECT COUNT(*) FROM rentals WHERE code = 'LOC-202611-001'")->fetchColumn();
+        if ($checkLoc == 0) {
+            $locItems = [
+                [
+                    'equipmentId' => 'eq-007',
+                    'name' => 'Canon eos 5D mark III',
+                    'category' => 'cameras',
+                    'serialNumber' => 'Conferido no ato',
+                    'quantity' => 1,
+                    'dailyRate' => 150.00,
+                    'rateUnit' => 'diária',
+                    'itemTotal' => 150.00
+                ],
+                [
+                    'equipmentId' => 'eq-024',
+                    'name' => 'Canon 24/70 2.8',
+                    'category' => 'lenses',
+                    'serialNumber' => 'Conferido no ato',
+                    'quantity' => 1,
+                    'dailyRate' => 150.00,
+                    'rateUnit' => 'diária',
+                    'itemTotal' => 150.00
+                ]
+            ];
+            $stmtInsert = $db->prepare("
+                INSERT INTO rentals (
+                    id, code, client_name, client_document, client_phone, client_email, client_address,
+                    start_date, start_time, end_date, end_time, total_days,
+                    subtotal, discount, total_amount, payment_method, payment_status, status,
+                    notes, items_json, paid_amount, remaining_amount, security_deposit, created_by, auth_signature, created_at
+                ) VALUES (
+                    'rent-loc-202611-001', 'LOC-202611-001', 'Mikaele de Matos Carvalho Marques', '039.466.152-44', '', '', 'Boa Vista - RR',
+                    '2026-12-27', '08:00', '2026-12-28', '18:00', 1,
+                    300.00, 0.00, 300.00, 'PIX', 'Pago', 'active',
+                    'Contrato oficial de locação emitido e autorizado pela gestão.', ?, 300.00, 0.00, 0.00, 'Mateus Henrique', 'AUTH-MF-540C32BD', '2026-11-16 10:00:00'
+                )
+            ");
+            $stmtInsert->execute([json_encode($locItems, JSON_UNESCAPED_UNICODE)]);
+        }
+    } catch (Exception $e) {
+    }
 }
 
 // Retorna valor patrimonial sugerido de mercado/reposição baseado em benchmark
@@ -474,8 +522,7 @@ function getBenchmarkAssetValue($name, $category, $dailyRate = 0)
 ensureRentalsTables($db);
 
 /**
- * Garante que a pasta de armazenamento público de fotos de vistoria exista
- * e recupera automaticamente fotos legadas que possam ter sido salvas fora da public_html.
+ * Garante que a pasta de armazenamento público de fotos de vistoria exista.
  */
 function ensureRentalStorage()
 {
@@ -487,32 +534,23 @@ function ensureRentalStorage()
     }
     @chmod($targetDir, 0777);
 
-    // Auto-recupera fotos que possam ter sido gravadas em diretórios externos/legados no servidor
-    $externalDirs = [
-        dirname(__DIR__, 2) . '/images/rentals',
-        dirname(__DIR__, 3) . '/images/rentals',
-        dirname(__DIR__) . '/images/rentals',
-        __DIR__ . '/../images/rentals',
-    ];
-
-    foreach ($externalDirs as $extDir) {
-        if (is_dir($extDir) && realpath($extDir) !== realpath($targetDir)) {
-            $files = @scandir($extDir);
-            if ($files) {
-                foreach ($files as $f) {
-                    if ($f !== '.' && $f !== '..' && is_file($extDir . '/' . $f)) {
-                        $dest = $targetDir . '/' . $f;
-                        if (!file_exists($dest)) {
-                            @copy($extDir . '/' . $f, $dest);
-                            @chmod($dest, 0644);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     return $targetDir;
+}
+
+/**
+ * Calcula a assinatura sistêmica determinística idêntica ao JavaScript:
+ * Simula int32 signed com Math.abs(hash) para garantir paridade absoluta.
+ */
+function calculateSystemicHash($str)
+{
+    $hash = 0;
+    $len = strlen($str);
+    for ($i = 0; $i < $len; $i++) {
+        $hash = ($hash * 31 + ord($str[$i]));
+        $hash = ((($hash + 2147483648) % 4294967296) + 4294967296) % 4294967296 - 2147483648;
+    }
+    $absHash = abs((int)$hash);
+    return 'AUTH-MF-' . strtoupper(str_pad(dechex($absHash), 8, '0', STR_PAD_LEFT));
 }
 
 /**
@@ -586,15 +624,13 @@ if ($method === 'GET' && ($action === 'view_photo' || $action === 'get_photo')) 
     $targetDir = ensureRentalStorage();
     $candidatePaths = [
         $targetDir . '/' . $file,
-        dirname(__DIR__, 2) . '/images/rentals/' . $file,
-        dirname(__DIR__, 3) . '/images/rentals/' . $file,
         dirname(__DIR__) . '/images/rentals/' . $file,
         __DIR__ . '/../images/rentals/' . $file,
     ];
 
     $foundPath = null;
     foreach ($candidatePaths as $cp) {
-        if (is_file($cp)) {
+        if (@is_file($cp)) {
             $foundPath = $cp;
             break;
         }
@@ -637,8 +673,8 @@ if ($method === 'GET' && $action === 'verify') {
         ], 400);
     }
 
-    $stmt = $db->prepare("SELECT * FROM rentals WHERE code = ? LIMIT 1");
-    $stmt->execute([$code]);
+    $stmt = $db->prepare("SELECT * FROM rentals WHERE UPPER(TRIM(code)) = UPPER(TRIM(?)) OR UPPER(TRIM(auth_signature)) = UPPER(TRIM(?)) LIMIT 1");
+    $stmt->execute([$code, $code]);
     $rental = $stmt->fetch();
 
     if (!$rental) {
@@ -679,13 +715,15 @@ if ($method === 'GET' && $action === 'verify') {
     $authorizer = !empty($rental['created_by']) ? $rental['created_by'] : 'Gestão MegaFilmes';
     $isReserved = ($rental['status'] === 'reserved');
 
-    // Hash determinístico de autenticidade
-    $strForHash = $rental['code'] . '-' . $rental['total_amount'] . '-' . $rental['start_date'] . '-' . $authorizer;
-    $hash = 0;
-    for ($i = 0; $i < strlen($strForHash); $i++) {
-        $hash = ($hash * 31 + ord($strForHash[$i])) % 4294967296;
+    // Assinatura Sistêmica oficial ou calculada determinística idêntica
+    if (!empty($rental['auth_signature'])) {
+        $authSignature = $rental['auth_signature'];
+    } else {
+        $rawAmount = (float) $rental['total_amount'];
+        $amtStr = ($rawAmount == (int) $rawAmount) ? (string) ((int) $rawAmount) : number_format($rawAmount, 2, '.', '');
+        $strForHash = $rental['code'] . '-' . $amtStr . '-' . $rental['start_date'] . '-' . $authorizer;
+        $authSignature = calculateSystemicHash($strForHash);
     }
-    $authSignature = 'AUTH-MF-' . strtoupper(str_pad(dechex($hash), 8, '0', STR_PAD_LEFT));
 
     jsonResponse([
         'success' => true,
@@ -850,6 +888,7 @@ if ($method === 'GET') {
             'remainingDueTerms' => $r['remaining_due_terms'] ?? '',
             'remainingDueDate' => $r['remaining_due_date'] ?? null,
             'securityDeposit' => (float) ($r['security_deposit'] ?? 0),
+            'authSignature' => $r['auth_signature'] ?? '',
             'createdBy' => $r['created_by'] ?? 'Sistema',
             'createdAt' => $r['created_at'],
             'updatedAt' => $r['updated_at'],
@@ -1153,6 +1192,8 @@ if ($method === 'POST' && $action === 'create_rental') {
     // Valida disponibilidade de cada item e calcula subtotal
     $subtotal = 0;
     $validatedItems = [];
+    $todayStr = date('Y-m-d');
+    $isImmediate = ($startDate <= $todayStr);
 
     $db->beginTransaction();
 
@@ -1169,20 +1210,25 @@ if ($method === 'POST' && $action === 'create_rental') {
                 throw new Exception("Equipamento não encontrado: " . ($it['name'] ?? $eqId));
             }
 
-            if ((int) $eq['available_qty'] < $qty) {
-                throw new Exception("Estoque insuficiente para '{$eq['name']}'. Disponível: {$eq['available_qty']} un, Solicitado: {$qty} un.");
+            if ($isImmediate && (int) $eq['available_qty'] < $qty) {
+                throw new Exception("Estoque insuficiente para saída imediata de '{$eq['name']}'. Disponível hoje: {$eq['available_qty']} un, Solicitado: {$qty} un.");
+            }
+            if (!$isImmediate && (int) $eq['total_qty'] < $qty) {
+                throw new Exception("O acervo total possui apenas {$eq['total_qty']} unidade(s) de '{$eq['name']}'. Não é possível reservar {$qty} un.");
             }
 
             $rate = (float) ($it['dailyRate'] ?? $eq['daily_rate']);
             $itemTotal = $rate * $qty * $diffDays;
             $subtotal += $itemTotal;
 
-            // Baixa estoque disponível
-            $newAvailable = (int) $eq['available_qty'] - $qty;
-            $newStatus = $newAvailable == 0 ? 'rented' : 'available';
+            // Baixa estoque disponível apenas se a locação for de início imediato
+            if ($isImmediate) {
+                $newAvailable = max(0, (int) $eq['available_qty'] - $qty);
+                $newStatus = $newAvailable == 0 ? 'rented' : 'available';
 
-            $stmtUp = $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?");
-            $stmtUp->execute([$newAvailable, $newStatus, $eqId]);
+                $stmtUp = $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?");
+                $stmtUp->execute([$newAvailable, $newStatus, $eqId]);
+            }
 
             $validatedItems[] = [
                 'equipmentId' => $eqId,
@@ -1227,17 +1273,23 @@ if ($method === 'POST' && $action === 'create_rental') {
 
         $rentalId = 'rent-' . bin2hex(random_bytes(8));
 
+        // Calcula assinatura sistêmica oficial idêntica ao front
+        $rawAmount = (float) $totalAmount;
+        $amtStr = ($rawAmount == (int) $rawAmount) ? (string) ((int) $rawAmount) : number_format($rawAmount, 2, '.', '');
+        $authorizerName = !empty($user['name']) ? $user['name'] : 'Gestão MegaFilmes';
+        $authSignature = calculateSystemicHash($code . '-' . $amtStr . '-' . $startDate . '-' . $authorizerName);
+
         $stmtRent = $db->prepare("
             INSERT INTO rentals (
                 id, code, client_name, client_document, client_phone, client_email, client_address,
                 start_date, start_time, end_date, end_time, total_days,
                 subtotal, discount, total_amount, payment_method, payment_status, status,
-                notes, items_json, paid_amount, remaining_amount, remaining_due_terms, remaining_due_date, security_deposit, created_by
+                notes, items_json, paid_amount, remaining_amount, remaining_due_terms, remaining_due_date, security_deposit, created_by, auth_signature
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?
             )
         ");
 
@@ -1267,7 +1319,8 @@ if ($method === 'POST' && $action === 'create_rental') {
             $remainingDueTerms,
             $remainingDueDate,
             $securityDeposit,
-            $user['name']
+            $user['name'],
+            $authSignature
         ]);
 
         $db->commit();
@@ -1281,6 +1334,7 @@ if ($method === 'POST' && $action === 'create_rental') {
             'rentalId' => $rentalId,
             'code' => $code,
             'status' => $status,
+            'authSignature' => $authSignature,
             'message' => "{$actionLabel} {$code} gerada com sucesso!"
         ]);
 

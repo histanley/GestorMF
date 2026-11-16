@@ -106,12 +106,23 @@ export default function EquipmentDetailModal({
     ? Math.round((equipment.availableQty / equipment.totalQty) * 100)
     : 0;
 
-  // Busca locações ativas que incluam este equipamento
-  const activeRentalsWithItem = rentals.filter((r) => {
-    if (r.status !== 'active' && r.status !== 'overdue') return false;
-    const items = r.items || [];
-    return items.some((it) => it.equipmentId === equipment.id || it.name === equipment.name);
-  });
+  // Todas as locações que envolvem este item
+  const allRentalsWithItem = useMemo(() => {
+    return (rentals || []).filter((r) => {
+      const items = r.items || [];
+      return items.some((it) => it.equipmentId === equipment.id || it.name === equipment.name);
+    });
+  }, [rentals, equipment.id, equipment.name]);
+
+  // Locações ativas, agendadas/reservadas ou atrasadas
+  const activeRentalsWithItem = useMemo(() => {
+    return allRentalsWithItem.filter((r) => r.status === 'active' || r.status === 'overdue' || r.status === 'reserved');
+  }, [allRentalsWithItem]);
+
+  // Histórico de locações já devolvidas
+  const pastRentalsWithItem = useMemo(() => {
+    return allRentalsWithItem.filter((r) => r.status === 'returned');
+  }, [allRentalsWithItem]);
 
   const handleCopySerial = async () => {
     if (!equipment.serialNumber) return;
@@ -402,10 +413,11 @@ export default function EquipmentDetailModal({
                     {/* 2. Locações Externas para Clientes */}
                     {activeRentalsWithItem.map((r) => {
                       const it = (r.items || []).find((x) => x.equipmentId === equipment.id || x.name === equipment.name);
-                      const isOverdue = r.status === 'overdue' || r.endDate < new Date().toISOString().split('T')[0];
+                      const isReserved = r.status === 'reserved';
+                      const isOverdue = !isReserved && (r.status === 'overdue' || r.endDate < new Date().toISOString().split('T')[0]);
 
                       return (
-                        <div key={r.id} className={`edm-rental-item-card ${isOverdue ? 'item-overdue' : ''}`}>
+                        <div key={r.id} className={`edm-rental-item-card ${isOverdue ? 'item-overdue' : isReserved ? 'item-reserved' : ''}`}>
                           <div className="eric-left">
                             <div className="eric-client">
                               <User size={13} className="text-gold" />
@@ -414,13 +426,23 @@ export default function EquipmentDetailModal({
                             </div>
                             <div className="eric-dates">
                               <Calendar size={12} />
-                              <span>Devolução: <strong>{formatDateBR(r.endDate)} às {r.endTime || '18:00'}</strong></span>
+                              <span>{isReserved ? 'Período Reservado:' : 'Devolução:'} <strong>{formatDateBR(r.startDate)} a {formatDateBR(r.endDate)} às {r.endTime || '18:00'}</strong></span>
                             </div>
                           </div>
 
                           <div className="eric-right">
                             <span className="eric-qty-badge">{it?.quantity || 1} un.</span>
-                            {isOverdue && <span className="eric-overdue-tag">🚨 Atrasada</span>}
+                            {isReserved ? (
+                              <span className="badge-reserved-pill" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>
+                                📅 Agendada
+                              </span>
+                            ) : isOverdue ? (
+                              <span className="eric-overdue-tag">🚨 Atrasada</span>
+                            ) : (
+                              <span className="badge-active-pill" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>
+                                ⚡ Locação Ativa
+                              </span>
+                            )}
                           </div>
                         </div>
                       );
@@ -428,6 +450,43 @@ export default function EquipmentDetailModal({
                   </div>
                 )}
               </div>
+
+              {/* Seção de Histórico de Locações deste Equipamento */}
+              {pastRentalsWithItem.length > 0 && (
+                <div className="edm-past-rentals-box" style={{ marginTop: '16px' }}>
+                  <h4 className="edm-section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FileText size={14} className="text-gold" />
+                    <span>Histórico de Locações deste Equipamento ({pastRentalsWithItem.length})</span>
+                  </h4>
+                  <div className="edm-rentals-list">
+                    {pastRentalsWithItem.map((r) => {
+                      const it = (r.items || []).find((x) => x.equipmentId === equipment.id || x.name === equipment.name);
+                      return (
+                        <div key={r.id} className="edm-rental-item-card item-returned">
+                          <div className="eric-left">
+                            <div className="eric-client">
+                              <User size={13} className="text-muted" />
+                              <strong>{r.clientName}</strong>
+                              <span className="eric-code">{r.code}</span>
+                            </div>
+                            <div className="eric-dates">
+                              <Calendar size={12} />
+                              <span>Período: {formatDateBR(r.startDate)} a {formatDateBR(r.endDate)}</span>
+                              {r.returnedAt && <span> • Devolvido em: {formatDateBR(r.returnedAt.split(/[T ]/)[0])}</span>}
+                            </div>
+                          </div>
+                          <div className="eric-right">
+                            <span className="eric-qty-badge">{it?.quantity || 1} un.</span>
+                            <span className="badge-returned-pill" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>
+                              ✅ Devolvido
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

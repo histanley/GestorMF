@@ -7,7 +7,23 @@ require_once __DIR__ . '/api/config.php';
 
 header('Content-Type: text/html; charset=utf-8');
 
-$code = trim($_GET['code'] ?? '');
+/**
+ * Calcula a assinatura sistêmica determinística idêntica ao JavaScript:
+ * Simula int32 signed com Math.abs(hash) para garantir paridade absoluta.
+ */
+function calculateSystemicHash($str)
+{
+    $hash = 0;
+    $len = strlen($str);
+    for ($i = 0; $i < $len; $i++) {
+        $hash = ($hash * 31 + ord($str[$i]));
+        $hash = ((($hash + 2147483648) % 4294967296) + 4294967296) % 4294967296 - 2147483648;
+    }
+    $absHash = abs((int)$hash);
+    return 'AUTH-MF-' . strtoupper(str_pad(dechex($absHash), 8, '0', STR_PAD_LEFT));
+}
+
+$code = trim($_GET['code'] ?? $_GET['id'] ?? $_GET['auth'] ?? $_GET['hash'] ?? '');
 $db = getDB();
 
 $rental = null;
@@ -16,13 +32,13 @@ $errorMessage = '';
 
 if (!empty($code)) {
     try {
-        $stmt = $db->prepare("SELECT * FROM rentals WHERE code = ? LIMIT 1");
-        $stmt->execute([$code]);
+        $stmt = $db->prepare("SELECT * FROM rentals WHERE UPPER(TRIM(code)) = UPPER(TRIM(?)) OR UPPER(TRIM(auth_signature)) = UPPER(TRIM(?)) LIMIT 1");
+        $stmt->execute([$code, $code]);
         $rental = $stmt->fetch();
         if ($rental) {
             $isValid = true;
         } else {
-            $errorMessage = 'O código informado não corresponde a nenhum documento registrado no acervo oficial.';
+            $errorMessage = 'O código informado (' . htmlspecialchars($code) . ') não corresponde a nenhum documento registrado no acervo oficial da MegaFilmes.';
         }
     } catch (Exception $e) {
         $errorMessage = 'Erro ao consultar a base de dados de autenticidade.';
@@ -52,12 +68,14 @@ if ($isValid && $rental) {
 
     $authorizer = !empty($rental['created_by']) ? $rental['created_by'] : 'Gestão MegaFilmes';
 
-    $strForHash = $rental['code'] . '-' . $rental['total_amount'] . '-' . $rental['start_date'] . '-' . $authorizer;
-    $hash = 0;
-    for ($i = 0; $i < strlen($strForHash); $i++) {
-        $hash = ($hash * 31 + ord($strForHash[$i])) % 4294967296;
+    if (!empty($rental['auth_signature'])) {
+        $authHash = $rental['auth_signature'];
+    } else {
+        $rawAmount = (float)$rental['total_amount'];
+        $amtStr = ($rawAmount == (int)$rawAmount) ? (string)((int)$rawAmount) : number_format($rawAmount, 2, '.', '');
+        $strForHash = $rental['code'] . '-' . $amtStr . '-' . $rental['start_date'] . '-' . $authorizer;
+        $authHash = calculateSystemicHash($strForHash);
     }
-    $authHash = 'AUTH-MF-' . strtoupper(str_pad(dechex($hash), 8, '0', STR_PAD_LEFT));
 }
 
 $isReserved = $isValid && ($rental['status'] === 'reserved');

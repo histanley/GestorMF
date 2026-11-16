@@ -34,7 +34,10 @@ export default function RentalContractModal({ rental, currentUser = null, onClos
   // Hash determinístico de integridade do contrato
   const contractHash = useMemo(() => {
     if (!rental) return 'AUTH-MF-0000';
-    const str = `${rental.code}-${rental.totalAmount}-${rental.startDate}-${authorizerName}`;
+    if (rental.authSignature) return rental.authSignature;
+    const amt = Number(rental.totalAmount) || 0;
+    const amtStr = amt % 1 === 0 ? String(amt) : amt.toFixed(2);
+    const str = `${rental.code}-${amtStr}-${rental.startDate}-${authorizerName}`;
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       hash = (hash << 5) - hash + str.charCodeAt(i);

@@ -265,15 +265,29 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   // Locações Filtradas
   const filteredRentals = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
+    const q = (searchTerm || '').toLowerCase().trim();
+
     return rentalsList.filter((r) => {
-      if (rentalStatusFilter === 'reserved') return r.status === 'reserved';
-      if (rentalStatusFilter === 'active') return r.status === 'active' && r.endDate >= todayStr;
-      if (rentalStatusFilter === 'overdue') return (r.status === 'active' || r.status === 'overdue') && r.endDate < todayStr;
-      if (rentalStatusFilter === 'due_soon') return (r.status === 'active' || r.status === 'overdue') && r.endDate === todayStr;
-      if (rentalStatusFilter === 'returned') return r.status === 'returned';
+      let matchesStatus = true;
+      if (rentalStatusFilter === 'reserved') matchesStatus = (r.status === 'reserved');
+      else if (rentalStatusFilter === 'active') matchesStatus = (r.status === 'active');
+      else if (rentalStatusFilter === 'overdue') matchesStatus = ((r.status === 'active' || r.status === 'overdue') && r.endDate < todayStr);
+      else if (rentalStatusFilter === 'due_soon') matchesStatus = ((r.status === 'active' || r.status === 'overdue') && r.endDate === todayStr);
+      else if (rentalStatusFilter === 'returned') matchesStatus = (r.status === 'returned');
+
+      if (!matchesStatus) return false;
+
+      if (q) {
+        const matchCode = (r.code || '').toLowerCase().includes(q);
+        const matchClient = (r.clientName || '').toLowerCase().includes(q);
+        const matchDoc = (r.clientDocument || '').toLowerCase().includes(q);
+        const matchItems = (r.items || []).some((it) => (it.name || '').toLowerCase().includes(q));
+        return matchCode || matchClient || matchDoc || matchItems;
+      }
+
       return true;
     });
-  }, [rentalsList, rentalStatusFilter]);
+  }, [rentalsList, rentalStatusFilter, searchTerm]);
 
   // Cálculo de Dias do Formulário de Locação
   const rentalDays = useMemo(() => {
@@ -455,24 +469,17 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
         const newRentalObj = {
           id: data.rentalId || 'rent-' + Date.now(),
           code: newCode,
+          authSignature: data.authSignature || '',
           ...payload,
           status: statusToApply,
           createdAt: new Date().toISOString(),
         };
 
-        // Baixa localmente estoque disponível (itens ficam reservados)
-        setEquipmentList((prev) =>
-          prev.map((eq) => {
-            const inCart = cartItems.find((c) => c.equipmentId === eq.id);
-            if (inCart) {
-              const newAvail = Math.max(0, eq.availableQty - inCart.quantity);
-              return { ...eq, availableQty: newAvail, status: newAvail > 0 ? 'available' : 'rented' };
-            }
-            return eq;
-          })
-        );
-
+        // Atualiza estado local imediatamente
         setRentalsList((prev) => [newRentalObj, ...prev]);
+
+        // Sincroniza dados oficiais com o servidor em background
+        fetchRentalsData();
 
         // Limpa carrinho e formulário
         setCartItems([]);
