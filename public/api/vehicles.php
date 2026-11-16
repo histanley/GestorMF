@@ -6,6 +6,7 @@ require_once __DIR__ . '/config.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $db = getDB();
+$action = $_GET['action'] ?? '';
 
 // LISTAR VIATURAS (GET)
 if ($method === 'GET') {
@@ -14,6 +15,17 @@ if ($method === 'GET') {
     $raw = $stmt->fetchAll();
 
     $vehicles = array_map(function($v) {
+        $fLogs = [];
+        if (!empty($v['fuel_logs'])) {
+            $decoded = json_decode($v['fuel_logs'], true);
+            if (is_array($decoded)) {
+                $fLogs = $decoded;
+            } elseif (is_string($decoded)) {
+                $second = json_decode($decoded, true);
+                if (is_array($second)) $fLogs = $second;
+            }
+        }
+
         return [
             'id'                 => $v['id'],
             'name'               => $v['name'],
@@ -26,13 +38,120 @@ if ($method === 'GET') {
             'currentFuelPercent' => (float)$v['current_fuel_percent'],
             'currentKm'          => (int)$v['current_km'],
             'status'             => $v['status'],
-            'fuelLogs'           => !empty($v['fuel_logs']) ? json_decode($v['fuel_logs'], true) : [],
+            'fuelLogs'           => $fLogs,
             'createdAt'          => $v['created_at'],
             'updatedAt'          => $v['updated_at']
         ];
     }, $raw);
 
     jsonResponse(['success' => true, 'vehicles' => $vehicles]);
+}
+
+// ACTION DEDICADA: ADICIONAR REGISTRO DE ABASTECIMENTO (POST ?action=add_fuel_log)
+if ($method === 'POST' && $action === 'add_fuel_log') {
+    $user = requireAuth(); // Admins, Managers e Colaboradores autorizados
+    $data = getJsonInput();
+    $vehicleId = trim($data['vehicleId'] ?? $data['id'] ?? '');
+    $log = $data['fuelLog'] ?? $data['log'] ?? null;
+
+    if (empty($vehicleId) || empty($log)) {
+        jsonResponse(['success' => false, 'error' => 'ID da viatura e dados do abastecimento são obrigatórios.'], 400);
+    }
+
+    $stmt = $db->prepare("SELECT id, name, plate, current_km, fuel_logs FROM vehicles WHERE id = ?");
+    $stmt->execute([$vehicleId]);
+    $veh = $stmt->fetch();
+
+    if (!$veh) {
+        jsonResponse(['success' => false, 'error' => 'Viatura não encontrada.'], 404);
+    }
+
+    $currentLogs = [];
+    if (!empty($veh['fuel_logs'])) {
+        $decoded = json_decode($veh['fuel_logs'], true);
+        if (is_array($decoded)) {
+            $currentLogs = $decoded;
+        } elseif (is_string($decoded)) {
+            $second = json_decode($decoded, true);
+            if (is_array($second)) $currentLogs = $second;
+        }
+    }
+
+    // Adiciona o novo abastecimento
+    $currentLogs[] = $log;
+    $logKm = (int)($log['km'] ?? 0);
+    $newKm = max((int)$veh['current_km'], $logKm);
+
+    $stmtUp = $db->prepare("UPDATE vehicles SET fuel_logs = :logs, current_km = :km WHERE id = :id");
+    $stmtUp->execute([
+        ':logs' => json_encode($currentLogs, JSON_UNESCAPED_UNICODE),
+        ':km'   => $newKm,
+        ':id'   => $vehicleId
+    ]);
+
+    $liters = $log['liters'] ?? 0;
+    $amount = $log['amountSpent'] ?? 0;
+    logAudit('ADD_FUEL_LOG', 'FLEET', $vehicleId, "Abastecimento de {$liters}L (R$ {$amount}) registrado na viatura {$veh['name']} ({$veh['plate']}) por {$user['name']}.", $user['id'], $user['name']);
+    bumpSyncVersion("fuel_{$vehicleId}");
+
+    jsonResponse([
+        'success'   => true,
+        'message'   => 'Abastecimento gravado com sucesso no servidor!',
+        'vehicleId' => $vehicleId,
+        'fuelLogs'  => $currentLogs,
+        'currentKm' => $newKm
+    ]);
+}
+
+// ACTION DEDICADA: EXCLUIR REGISTRO DE ABASTECIMENTO (POST ?action=delete_fuel_log)
+if ($method === 'POST' && $action === 'delete_fuel_log') {
+    $user = requireAuth(['ADMIN', 'MANAGER']);
+    $data = getJsonInput();
+    $vehicleId = trim($data['vehicleId'] ?? $data['id'] ?? '');
+    $logId = trim($data['fuelLogId'] ?? $data['logId'] ?? '');
+
+    if (empty($vehicleId) || empty($logId)) {
+        jsonResponse(['success' => false, 'error' => 'ID da viatura e ID do abastecimento são obrigatórios.'], 400);
+    }
+
+    $stmt = $db->prepare("SELECT id, name, plate, fuel_logs FROM vehicles WHERE id = ?");
+    $stmt->execute([$vehicleId]);
+    $veh = $stmt->fetch();
+
+    if (!$veh) {
+        jsonResponse(['success' => false, 'error' => 'Viatura não encontrada.'], 404);
+    }
+
+    $currentLogs = [];
+    if (!empty($veh['fuel_logs'])) {
+        $decoded = json_decode($veh['fuel_logs'], true);
+        if (is_array($decoded)) {
+            $currentLogs = $decoded;
+        } elseif (is_string($decoded)) {
+            $second = json_decode($decoded, true);
+            if (is_array($second)) $currentLogs = $second;
+        }
+    }
+
+    $filteredLogs = array_values(array_filter($currentLogs, function($l) use ($logId) {
+        return (string)($l['id'] ?? '') !== (string)$logId;
+    }));
+
+    $stmtUp = $db->prepare("UPDATE vehicles SET fuel_logs = :logs WHERE id = :id");
+    $stmtUp->execute([
+        ':logs' => !empty($filteredLogs) ? json_encode($filteredLogs, JSON_UNESCAPED_UNICODE) : null,
+        ':id'   => $vehicleId
+    ]);
+
+    logAudit('DELETE_FUEL_LOG', 'FLEET', $vehicleId, "Registro de abastecimento {$logId} excluído na viatura {$veh['name']} ({$veh['plate']}) por {$user['name']}.", $user['id'], $user['name']);
+    bumpSyncVersion("fuel_del_{$vehicleId}");
+
+    jsonResponse([
+        'success'   => true,
+        'message'   => 'Abastecimento excluído com sucesso!',
+        'vehicleId' => $vehicleId,
+        'fuelLogs'  => $filteredLogs
+    ]);
 }
 
 // SALVAR OU ATUALIZAR VIATURA (POST / PUT)
@@ -55,6 +174,17 @@ if ($method === 'POST' || $method === 'PUT') {
     $stmtCheck = $db->prepare("SELECT id, name FROM vehicles WHERE id = ?");
     $stmtCheck->execute([$id]);
     $existing = $stmtCheck->fetch();
+
+    $fuelLogsPayload = null;
+    if (isset($data['fuelLogs']) && is_array($data['fuelLogs']) && !empty($data['fuelLogs'])) {
+        $fuelLogsPayload = json_encode(array_values($data['fuelLogs']), JSON_UNESCAPED_UNICODE);
+    } elseif ($existing) {
+        // Se a requisição não enviou fuelLogs explicitamente, mantém o que já existia no banco
+        $stmtExistingLogs = $db->prepare("SELECT fuel_logs FROM vehicles WHERE id = ?");
+        $stmtExistingLogs->execute([$id]);
+        $rowLogs = $stmtExistingLogs->fetch();
+        $fuelLogsPayload = $rowLogs['fuel_logs'] ?? null;
+    }
 
     $sql = "
         INSERT INTO vehicles (
@@ -93,7 +223,7 @@ if ($method === 'POST' || $method === 'PUT') {
         ':current_fuel_percent'  => (float)($data['currentFuelPercent'] ?? 100.0),
         ':current_km'            => (int)($data['currentKm'] ?? 0),
         ':status'                => $data['status'] ?? 'Disponível',
-        ':fuel_logs'             => !empty($data['fuelLogs']) ? json_encode($data['fuelLogs'], JSON_UNESCAPED_UNICODE) : null
+        ':fuel_logs'             => $fuelLogsPayload
     ]);
 
     $actionName = $existing ? 'UPDATE_VEHICLE' : 'CREATE_VEHICLE';
@@ -132,4 +262,3 @@ if ($method === 'DELETE') {
 }
 
 jsonResponse(['error' => 'Método não suportado.'], 405);
-

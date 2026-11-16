@@ -291,8 +291,19 @@ export default function VehicleManager({
       station: fuelFormData.station || 'Posto de Abastecimento',
     };
 
-    onAddFuelLog(selectedVehicleForFuel.id, log);
     setShowFuelModal(false);
+    if (onAddFuelLog) {
+      await onAddFuelLog(selectedVehicleForFuel.id, log);
+      setSelectedVehicleForHistory((prev) => {
+        if (!prev || prev.id !== selectedVehicleForFuel.id) return prev;
+        const currentLogs = prev.fuelLogs || [];
+        return {
+          ...prev,
+          fuelLogs: [...currentLogs, log],
+          currentKm: Math.max(prev.currentKm || 0, log.km || 0),
+        };
+      });
+    }
   };
 
   // Exclui um registro do histórico de abastecimento
@@ -307,10 +318,16 @@ export default function VehicleManager({
     });
 
     if (confirmed) {
-      onDeleteFuelLog(vehicleId, logId);
-      // Atualiza o veículo exibido no modal de histórico
-      const updated = vehicles.find((v) => v.id === vehicleId);
-      if (updated) setSelectedVehicleForHistory(updated);
+      if (onDeleteFuelLog) {
+        await onDeleteFuelLog(vehicleId, logId);
+      }
+      setSelectedVehicleForHistory((prev) => {
+        if (!prev || prev.id !== vehicleId) return prev;
+        return {
+          ...prev,
+          fuelLogs: (prev.fuelLogs || []).filter((f) => f.id !== logId),
+        };
+      });
     }
   };
 

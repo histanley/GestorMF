@@ -268,6 +268,20 @@ export async function apiSaveVehicle(vehicle) {
   });
 }
 
+export async function apiAddFuelLog({ vehicleId, fuelLog }) {
+  return await apiRequest('/vehicles.php?action=add_fuel_log', {
+    method: 'POST',
+    body: JSON.stringify({ vehicleId, fuelLog })
+  });
+}
+
+export async function apiDeleteFuelLog({ vehicleId, fuelLogId }) {
+  return await apiRequest('/vehicles.php?action=delete_fuel_log', {
+    method: 'POST',
+    body: JSON.stringify({ vehicleId, fuelLogId })
+  });
+}
+
 export async function apiDeleteVehicle(vehicleId) {
   return await apiRequest(`/vehicles.php?id=${encodeURIComponent(vehicleId)}`, {
     method: 'DELETE'

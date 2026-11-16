@@ -84,6 +84,8 @@ import {
   apiGetVehicles,
   apiSaveVehicle,
   apiDeleteVehicle,
+  apiAddFuelLog,
+  apiDeleteFuelLog,
   apiGetMembers,
   apiSaveMember,
   apiDeleteMember,
@@ -1916,7 +1918,10 @@ export default function App() {
     }
   };
 
-  const handleAddFuelLog = (vehicleId, fuelLog) => {
+  const handleAddFuelLog = async (vehicleId, fuelLog) => {
+    let updatedTargetVeh = null;
+    const previousVehicles = vehicles;
+
     setVehicles((prev) =>
       prev.map((v) => {
         if (v.id === vehicleId) {
@@ -1939,31 +1944,109 @@ export default function App() {
             nextBaseFuelPercent = parseFloat(((cappedBaseLiters / tankCap) * 100).toFixed(4));
           }
 
-          return {
+          updatedTargetVeh = {
             ...v,
             fuelLogs: logs,
             baseFuelPercent: nextBaseFuelPercent,
             currentFuelPercent: tel.currentPercent,
             currentKm: fuelLog.km ? Math.max(v.currentKm || 0, fuelLog.km) : v.currentKm,
           };
+          return updatedTargetVeh;
         }
         return v;
       })
     );
+
+    // Persistência Imediata no MySQL (com fallback para salvamento completo da viatura)
+    try {
+      const res = await apiAddFuelLog({ vehicleId, fuelLog });
+      if (!res.success) {
+        if (updatedTargetVeh) {
+          const resFull = await apiSaveVehicle(updatedTargetVeh);
+          if (!resFull.success) {
+            setVehicles(previousVehicles);
+            await alertDialog({
+              title: 'Erro ao Gravar Abastecimento',
+              message: res.error || resFull.error || 'Não foi possível salvar o abastecimento no servidor.',
+              variant: 'danger',
+            });
+            return false;
+          }
+        } else {
+          setVehicles(previousVehicles);
+          return false;
+        }
+      }
+      return true;
+    } catch (e) {
+      if (updatedTargetVeh) {
+        try {
+          const resFull = await apiSaveVehicle(updatedTargetVeh);
+          if (resFull.success) return true;
+        } catch (e2) {}
+      }
+      setVehicles(previousVehicles);
+      await alertDialog({
+        title: 'Erro de Conexão',
+        message: 'Falha ao salvar o abastecimento no servidor. Verifique sua conexão com a internet.',
+        variant: 'danger',
+      });
+      return false;
+    }
   };
 
-  const handleDeleteFuelLog = (vehicleId, fuelLogId) => {
+  const handleDeleteFuelLog = async (vehicleId, fuelLogId) => {
+    let updatedTargetVeh = null;
+    const previousVehicles = vehicles;
+
     setVehicles((prev) =>
       prev.map((v) => {
         if (v.id === vehicleId) {
-          return {
+          updatedTargetVeh = {
             ...v,
             fuelLogs: (v.fuelLogs || []).filter((f) => f.id !== fuelLogId),
           };
+          return updatedTargetVeh;
         }
         return v;
       })
     );
+
+    try {
+      const res = await apiDeleteFuelLog({ vehicleId, fuelLogId });
+      if (!res.success) {
+        if (updatedTargetVeh) {
+          const resFull = await apiSaveVehicle(updatedTargetVeh);
+          if (!resFull.success) {
+            setVehicles(previousVehicles);
+            await alertDialog({
+              title: 'Erro ao Excluir Abastecimento',
+              message: res.error || resFull.error || 'Falha ao excluir abastecimento no servidor.',
+              variant: 'danger',
+            });
+            return false;
+          }
+        } else {
+          setVehicles(previousVehicles);
+          return false;
+        }
+      }
+      return true;
+    } catch (e) {
+      if (updatedTargetVeh) {
+        try {
+          const resFull = await apiSaveVehicle(updatedTargetVeh);
+          if (resFull.success) return true;
+        } catch (e2) {}
+      }
+      setVehicles(previousVehicles);
+      await alertDialog({
+        title: 'Erro de Conexão',
+        message: 'Falha ao excluir abastecimento no servidor.',
+        variant: 'danger',
+      });
+      return false;
+    }
   };
 
   // Handlers de Funções da Empresa
