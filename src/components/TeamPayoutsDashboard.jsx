@@ -271,7 +271,6 @@ export default function TeamPayoutsDashboard({
 
           let itemAmount = 0;
           let daysCount = 1;
-          const effectiveBaseCall = blockRate > 0 ? blockRate : 200;
           let extraFormulaText = '';
 
           if (memberRemunType === 'custom') {
@@ -306,16 +305,14 @@ export default function TeamPayoutsDashboard({
           } else {
             // Modalidade 1: Hora Extra (Banco de Horas)
             // REGRA OFICIAL MEGAFILMES:
-            // - Chamada fora do expediente fecha pacote base de até 4h (R$ 200,00).
-            // - A partir da 4ª hora (5ª hora em diante), soma hora a hora pelo valor da taxa individual (R$ 50/h).
+            // Cálculo proporcional direto: horas extras × taxa horária individual.
             const extraApproved = Number(m.extraHoursApproved) || 0;
             const totalMissionOffHours = offHoursWorked + extraApproved;
 
             if (totalMissionOffHours > 0) {
               const extraRemun = calculateExtraHoursRemuneration(
                 totalMissionOffHours,
-                effectiveHourlyRate,
-                effectiveBaseCall
+                effectiveHourlyRate
               );
               itemAmount = extraRemun.amount;
               extraFormulaText = extraRemun.formulaText;
@@ -356,7 +353,6 @@ export default function TeamPayoutsDashboard({
             offHoursSegments: offHoursInfo.offHoursSegments || [],
             effectiveHourlyRate,
             effectiveDailyRate,
-            baseCallPackage: effectiveBaseCall,
             formulaText: extraFormulaText,
             isCustomRate: customRate !== null,
             itemAmount,
@@ -807,13 +803,13 @@ export default function TeamPayoutsDashboard({
 
                   {/* Configuração de Remuneração Atual */}
                   <div className="pmc-col-rates">
-                    <div className="pmc-rate-box" title="Regra de hora extra e diárias cadastrada para este colaborador">
+                    <div className="pmc-rate-box" title="Regra de remuneração cadastrada para este colaborador">
                       <span className="pmc-rate-lbl">Taxa Individual:</span>
                       <strong className="pmc-rate-val">
                         {formatBRL(member.hourlyRate || 50)} / hora
                       </strong>
-                      <small className="pmc-rate-sub" title="Pacote fechado de até 4h de hora extra / Diária de viagem de campo">
-                        Base: {formatBRL(member.blockRate || 200)} (até 4h) • Viagem: {formatBRL(member.dailyRate || 200)}/dia
+                      <small className="pmc-rate-sub" title="Valor padrão da diária de campo">
+                        Diária: {formatBRL(member.dailyRate || 200)} / dia
                       </small>
                     </div>
                     <button
@@ -1010,29 +1006,13 @@ export default function TeamPayoutsDashboard({
               <div className="xray-banner-context extras" style={{ marginBottom: 16 }}>
                 <Zap size={18} className="text-amber" />
                 <div style={{ fontSize: '0.82rem' }}>
-                  <strong>Regra MegaFilmes:</strong> O colaborador chamado para hora extra fecha automaticamente o <strong>pacote base de até 4h</strong>. A partir da 4ª hora (5ª hora em diante), soma-se hora a hora o valor da taxa horária. Em viagens de campo, vigora a <strong>diária integral</strong>.
+                  <strong>Regra MegaFilmes:</strong> Remuneração organizada estritamente em 3 modalidades: <strong>Hora Extra</strong> (multiplicada proporcionalmente pelas horas trabalhadas), <strong>Diária</strong> (valor integral da diária) ou <strong>Personalizada</strong> (definida diretamente na missão).
                 </div>
               </div>
 
-              {/* Pacote Base de Chamada */}
+              {/* Valor por Hora Extra */}
               <div className="form-group">
-                <label>Pacote de Chamada / Base até 4h de Hora Extra (R$)</label>
-                <input
-                  type="number"
-                  step="10"
-                  min="0"
-                  value={ratesForm.blockRate}
-                  onChange={(e) => setRatesForm({ ...ratesForm, blockRate: e.target.value })}
-                  placeholder="Ex: 200.00"
-                />
-                <small className="field-hint-sub">
-                  Valor fixo garantido pago ao colaborador mesmo que permaneça de 1h a 4h no evento (Padrão: R$ 200,00).
-                </small>
-              </div>
-
-              {/* Valor por Hora Adicional */}
-              <div className="form-group">
-                <label>Valor por Hora Adicional a partir da 5ª hora (R$/h)</label>
+                <label>Valor da Hora Extra (R$/h)</label>
                 <input
                   type="number"
                   step="5"
@@ -1042,13 +1022,13 @@ export default function TeamPayoutsDashboard({
                   placeholder="Ex: 50.00"
                 />
                 <small className="field-hint-sub">
-                  Acrescido hora a hora além da 4ª hora (Ex: 5h = Base + 1h; 6h = Base + 2h). Padrão: R$ 50,00/h.
+                  Valor pago por cada hora extra trabalhada (fora do expediente comercial ou adicional aprovado). Padrão: R$ 50,00/h.
                 </small>
               </div>
 
-              {/* Valor da Diária de Viagem de Longa Duração */}
+              {/* Valor da Diária de Campo */}
               <div className="form-group">
-                <label>Valor da Diária de Viagem de Campo (R$/dia)</label>
+                <label>Valor da Diária de Campo (R$/dia)</label>
                 <input
                   type="number"
                   step="10"
@@ -1058,7 +1038,7 @@ export default function TeamPayoutsDashboard({
                   placeholder="Ex: 200.00"
                 />
                 <small className="field-hint-sub">
-                  Remuneração de 24h para o dia todo em viagens de campo para o interior (Padrão: R$ 200,00/dia).
+                  Remuneração de 24h para o dia todo em operações na modalidade diária ou viagens de campo (Padrão: R$ 200,00/dia).
                 </small>
               </div>
 

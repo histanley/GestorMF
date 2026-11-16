@@ -3193,8 +3193,7 @@ export default function MissionModal({
                           const travelDays = isMultiDay ? calculateDaysBetween(formData.date, formData.endDate) : 1;
                           const extraRemun = calculateExtraHoursRemuneration(
                             missionOffHours.offHours,
-                            effectiveRate,
-                            mem.blockRate ?? mem.block_rate ?? 200
+                            effectiveRate
                           );
 
                           let estimatedSubtotal = '0.00';
@@ -3208,9 +3207,7 @@ export default function MissionModal({
                           } else {
                             estimatedSubtotal = missionOffHours.isOffHours ? extraRemun.amount.toFixed(2) : '0.00';
                             subtotalLabel = missionOffHours.isOffHours
-                              ? (missionOffHours.offHours <= 4
-                                  ? 'Total (Pacote até 4h):'
-                                  : `Total (Base 4h + ${(missionOffHours.offHours - 4).toFixed(1)}h):`)
+                              ? `Total (${missionOffHours.offHours}h extra${missionOffHours.offHours !== 1 ? 's' : ''}):`
                               : 'Expediente Normal:';
                           }
 

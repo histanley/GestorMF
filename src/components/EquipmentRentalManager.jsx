@@ -31,6 +31,10 @@ import {
   Zap,
   ShoppingCart,
   Wrench,
+  FileCheck,
+  ExternalLink,
+  Download,
+  Paperclip,
 } from 'lucide-react';
 import {
   CATEGORY_LABELS,
@@ -130,8 +134,31 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     remainingDueTerms: 'Na Devolução dos Equipamentos',
     remainingDueDate: '',
     securityDeposit: '',
+    paymentReceiptUrl: '',
+    paymentReceiptName: '',
     notes: '',
   });
+
+  // Estado para visualização e anexo avulso de comprovante
+  const [viewingReceipt, setViewingReceipt] = useState(null); // { url, code, client }
+  const [attachingReceiptForRental, setAttachingReceiptForRental] = useState(null); // objeto rental
+  const [newReceiptFile, setNewReceiptFile] = useState({ dataUrl: '', name: '', isUploading: false });
+
+  // Utilitário para leitura de comprovantes (imagem comprimida ou PDF)
+  const handleReceiptFileRead = async (file) => {
+    if (!file) return null;
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ dataUrl: reader.result, name: file.name });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    } else {
+      const compressed = await compressImageFile(file, 1600, 0.85);
+      return { dataUrl: compressed, name: file.name };
+    }
+  };
 
   const [cartItems, setCartItems] = useState([]); // [{ equipmentId, name, category, dailyRate, quantity, availableQty, serialNumber }]
 
@@ -470,6 +497,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
           id: data.rentalId || 'rent-' + Date.now(),
           code: newCode,
           authSignature: data.authSignature || '',
+          paymentReceiptUrl: data.paymentReceiptUrl || payload.paymentReceiptUrl || '',
           ...payload,
           status: statusToApply,
           createdAt: new Date().toISOString(),
@@ -496,6 +524,12 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
           discount: 0,
           paymentMethod: 'PIX',
           paymentStatus: 'Pendente',
+          paidAmount: '',
+          remainingDueTerms: 'Na Devolução dos Equipamentos',
+          remainingDueDate: '',
+          securityDeposit: '',
+          paymentReceiptUrl: '',
+          paymentReceiptName: '',
           notes: '',
         });
 
@@ -1645,6 +1679,104 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     <small className="form-tip">Abatimento aplicado sobre o subtotal.</small>
                   </div>
 
+                  {/* Anexo de Comprovante de Pagamento (Foto ou PDF) */}
+                  <div className="form-group span-2">
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>Comprovante de Pagamento (Foto ou PDF)</span>
+                      {rentalForm.paymentReceiptUrl && (
+                        <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                          ✓ Comprovante Anexado
+                        </span>
+                      )}
+                    </label>
+
+                    {rentalForm.paymentReceiptUrl ? (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        background: 'rgba(16, 185, 129, 0.08)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        borderRadius: 8,
+                        gap: 12
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                          <CheckCircle2 size={18} className="text-emerald" style={{ flexShrink: 0 }} />
+                          <span style={{ fontSize: '0.85rem', color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {rentalForm.paymentReceiptName || 'Comprovante anexado'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <button
+                            type="button"
+                            className="btn-secondary btn-sm"
+                            style={{ padding: '4px 8px', fontSize: '0.78rem' }}
+                            onClick={() => setViewingReceipt({ url: rentalForm.paymentReceiptUrl, code: 'NOVA-LOCACAO', client: rentalForm.clientName || 'Cliente' })}
+                          >
+                            <Eye size={13} /> Ver
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-danger-outline btn-sm"
+                            style={{ padding: '4px 8px', fontSize: '0.78rem' }}
+                            onClick={() => setRentalForm({ ...rentalForm, paymentReceiptUrl: '', paymentReceiptName: '' })}
+                          >
+                            <X size={13} /> Remover
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '10px 14px',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px dashed rgba(255, 255, 255, 0.2)',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}>
+                        <Upload size={18} className="text-gold" />
+                        <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>
+                          📷 Anexar Foto do Recibo/PIX ou 📄 Arquivo PDF
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          style={{ display: 'none' }}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                const res = await handleReceiptFileRead(file);
+                                if (res) {
+                                  setRentalForm((prev) => ({
+                                    ...prev,
+                                    paymentReceiptUrl: res.dataUrl,
+                                    paymentReceiptName: res.name,
+                                    paymentStatus: prev.paymentStatus === 'Pendente' ? 'Pago' : prev.paymentStatus,
+                                  }));
+                                }
+                              } catch (err) {
+                                console.error('Erro ao processar comprovante:', err);
+                                alertDialog({
+                                  title: 'Erro no arquivo',
+                                  message: 'Não foi possível ler o arquivo selecionado.',
+                                  variant: 'warning',
+                                });
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                    <small className="form-tip">
+                      O comprovante será armazenado com segurança e vinculado ao termo oficial para consulta e validação.
+                    </small>
+                  </div>
+
                   <div className="form-group span-2">
                     <label>Observações / Acessórios Adicionais</label>
                     <input
@@ -2081,6 +2213,31 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                           </span>
                           {rental.hasDamage && <span className="erc-damage-badge">🚨 AVARIA</span>}
                         </button>
+
+                        {/* Botão de Comprovante de Pagamento (Visualizar ou Anexar) */}
+                        {rental.paymentReceiptUrl ? (
+                          <button
+                            type="button"
+                            className="btn-secondary btn-sm"
+                            onClick={() => setViewingReceipt({ url: rental.paymentReceiptUrl, code: rental.code, client: rental.clientName })}
+                            title="Visualizar ou baixar comprovante de pagamento"
+                            style={{ borderColor: 'rgba(16, 185, 129, 0.4)', color: '#34d399' }}
+                          >
+                            <FileCheck size={14} /> Ver Comprovante
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-secondary btn-sm"
+                            onClick={() => {
+                              setAttachingReceiptForRental(rental);
+                              setNewReceiptFile({ dataUrl: '', name: '', isUploading: false });
+                            }}
+                            title="Anexar comprovante de pagamento a este contrato"
+                          >
+                            <Upload size={14} /> + Comprovante
+                          </button>
+                        )}
 
                         {isReserved ? (
                           <>
@@ -2638,6 +2795,262 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             }
           }}
         />
+      )}
+
+      {/* ==================================================================== */}
+      {/* MODAL 6: VISUALIZAR COMPROVANTE DE PAGAMENTO                        */}
+      {/* ==================================================================== */}
+      {viewingReceipt && (
+        <div className="modal-overlay" onClick={() => setViewingReceipt(null)} style={{ zIndex: 1200 }}>
+          <div
+            className="modal-box"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 720, width: '92%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+          >
+            <div className="modal-header" style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="modal-header-text">
+                <h2 style={{ fontSize: '1.1rem', margin: 0 }}>Comprovante de Pagamento</h2>
+                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
+                  Contrato: <strong style={{ color: '#f59e0b' }}>{viewingReceipt.code}</strong> • Cliente: {viewingReceipt.client}
+                </p>
+              </div>
+              <button type="button" className="modal-close" onClick={() => setViewingReceipt(null)}>
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: 20, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              {viewingReceipt.url.includes('.pdf') || viewingReceipt.url.startsWith('data:application/pdf') ? (
+                <div style={{ width: '100%', textAlign: 'center' }}>
+                  <div style={{ padding: '30px 20px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px dashed rgba(255,255,255,0.15)', marginBottom: 16 }}>
+                    <FileText size={48} style={{ color: '#10b981', margin: '0 auto 12px' }} />
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#f8fafc' }}>Documento PDF Vinculado</div>
+                    <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 4 }}>
+                      O comprovante bancário ou de transferência está salvo em formato PDF oficial.
+                    </p>
+                  </div>
+                  <a
+                    href={viewingReceipt.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', textDecoration: 'none' }}
+                  >
+                    <ExternalLink size={16} /> Abrir / Baixar PDF em Nova Aba
+                  </a>
+                </div>
+              ) : (
+                <div style={{ width: '100%', textAlign: 'center' }}>
+                  <img
+                    src={viewingReceipt.url}
+                    alt="Comprovante de Pagamento"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '65vh',
+                      objectFit: 'contain',
+                      borderRadius: 8,
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}
+                  />
+                  <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 12 }}>
+                    <a
+                      href={viewingReceipt.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary btn-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                    >
+                      <ExternalLink size={14} /> Abrir Imagem Completa
+                    </a>
+                    <a
+                      href={viewingReceipt.url}
+                      download={`Comprovante_${viewingReceipt.code}.jpg`}
+                      className="btn-primary btn-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                    >
+                      <Download size={14} /> Baixar Foto
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* MODAL 7: ANEXAR COMPROVANTE A UMA LOCAÇÃO / RESERVA EXISTENTE        */}
+      {/* ==================================================================== */}
+      {attachingReceiptForRental && (
+        <div className="modal-overlay" onClick={() => setAttachingReceiptForRental(null)} style={{ zIndex: 1200 }}>
+          <div
+            className="modal-box"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 520, width: '92%' }}
+          >
+            <div className="modal-header">
+              <div className="modal-header-text">
+                <h2>Anexar Comprovante de Pagamento</h2>
+                <p>
+                  Contrato: <strong>{attachingReceiptForRental.code}</strong> — Cliente: {attachingReceiptForRental.clientName}
+                </p>
+              </div>
+              <button type="button" className="modal-close" onClick={() => setAttachingReceiptForRental(null)}>
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-form" style={{ padding: 20 }}>
+              <p style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: 16 }}>
+                Selecione a foto (print do PIX, recibo bancário) ou arquivo PDF para vincular permanentemente a este contrato.
+              </p>
+
+              {newReceiptFile.dataUrl ? (
+                <div style={{ padding: 14, background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 10, marginBottom: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <CheckCircle2 size={20} className="text-emerald" />
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc' }}>
+                          {newReceiptFile.name || 'Arquivo selecionado'}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#34d399' }}>Pronto para envio</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-danger-outline btn-sm"
+                      onClick={() => setNewReceiptFile({ dataUrl: '', name: '', isUploading: false })}
+                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                    >
+                      Trocar
+                    </button>
+                  </div>
+                  {!newReceiptFile.dataUrl.includes('application/pdf') && (
+                    <div style={{ marginTop: 12, textAlign: 'center' }}>
+                      <img
+                        src={newReceiptFile.dataUrl}
+                        alt="Pré-visualização"
+                        style={{ maxHeight: 180, maxWidth: '100%', borderRadius: 6, objectFit: 'contain' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <label
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '30px 20px',
+                    border: '2px dashed rgba(255,255,255,0.2)',
+                    borderRadius: 12,
+                    background: 'rgba(255,255,255,0.02)',
+                    cursor: 'pointer',
+                    marginBottom: 20,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <Upload size={32} style={{ color: '#f59e0b', marginBottom: 8 }} />
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f1f5f9' }}>
+                    Clique para selecionar Foto ou PDF
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 4 }}>
+                    Suporta PNG, JPG, JPEG ou PDF (até 15MB)
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        try {
+                          setNewReceiptFile((prev) => ({ ...prev, isUploading: true }));
+                          const res = await handleReceiptFileRead(file);
+                          if (res) {
+                            setNewReceiptFile({ dataUrl: res.dataUrl, name: res.name, isUploading: false });
+                          }
+                        } catch (err) {
+                          console.error('Erro ao ler arquivo:', err);
+                          alertDialog({
+                            title: 'Erro ao ler arquivo',
+                            message: 'Não foi possível carregar o arquivo selecionado.',
+                            variant: 'warning',
+                          });
+                          setNewReceiptFile((prev) => ({ ...prev, isUploading: false }));
+                        }
+                      }
+                    }}
+                  />
+                </label>
+              )}
+
+              <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setAttachingReceiptForRental(null)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={!newReceiptFile.dataUrl || newReceiptFile.isUploading}
+                  onClick={async () => {
+                    try {
+                      setNewReceiptFile((prev) => ({ ...prev, isUploading: true }));
+                      const res = await apiRequest('/rentals.php?action=attach_receipt', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          rentalId: attachingReceiptForRental.id,
+                          paymentReceiptUrl: newReceiptFile.dataUrl,
+                        }),
+                      });
+                      if (res && res.success) {
+                        const savedUrl = res.paymentReceiptUrl || newReceiptFile.dataUrl;
+                        setRentalsList((prev) =>
+                          prev.map((r) =>
+                            r.id === attachingReceiptForRental.id
+                              ? { ...r, paymentReceiptUrl: savedUrl, paymentStatus: 'Pago' }
+                              : r
+                          )
+                        );
+                        alertDialog({
+                          title: 'Comprovante Anexado!',
+                          message: `Comprovante de pagamento vinculado com sucesso ao contrato ${attachingReceiptForRental.code}.`,
+                          variant: 'success',
+                        });
+                        setAttachingReceiptForRental(null);
+                        fetchRentalsData();
+                      } else {
+                        alertDialog({
+                          title: 'Erro ao anexar',
+                          message: res?.error || 'Não foi possível salvar o comprovante.',
+                          variant: 'warning',
+                        });
+                      }
+                    } catch (err) {
+                      console.error('Erro ao anexar comprovante:', err);
+                      alertDialog({
+                        title: 'Erro de Comunicação',
+                        message: 'Falha ao salvar comprovante no servidor.',
+                        variant: 'warning',
+                      });
+                    } finally {
+                      setNewReceiptFile((prev) => ({ ...prev, isUploading: false }));
+                    }
+                  }}
+                >
+                  {newReceiptFile.isUploading ? 'Salvando...' : 'Salvar e Vincular Comprovante'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

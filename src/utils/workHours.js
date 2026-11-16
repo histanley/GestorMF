@@ -377,52 +377,31 @@ export function checkMemberExtraHoursAvailability(
  * 
  * Exemplos práticos:
  * - Ficou 1h extra: Pacote de chamada (até 4h) = R$ 200,00
- * - Ficou 2h extras: Pacote de chamada (até 4h) = R$ 200,00
- * - Ficou 3h extras: Pacote de chamada (até 4h) = R$ 200,00
- * - Ficou 4h extras: Pacote de chamada (até 4h) = R$ 200,00
- * - Ficou 5h extras: Pacote base 4h (R$ 200) + 1h (R$ 50) = R$ 250,00
- * - Ficou 6h extras: Pacote base 4h (R$ 200) + 2h (R$ 100) = R$ 300,00
- * 
+ * REGRA OFICIAL MEGAFILMES:
+ * Remuneração direta e proporcional por hora extra trabalhada: horas × taxa individual.
+ * Sem combo obrigatório de 4 horas.
+ *
  * @param {number} hours - Quantidade de horas extras (fora do expediente + aprovadas)
- * @param {number} hourlyRate - Taxa da hora adicional (padrão 50)
- * @param {number} baseCallPackage - Valor do pacote de chamada de até 4 horas (padrão 200)
- * @returns {object} { amount, baseAmount, extraHoursCount, extraAmount, formulaText }
+ * @param {number} hourlyRate - Taxa da hora extra individual (padrão 50)
+ * @returns {object} { amount, hoursCount, formulaText }
  */
-export function calculateExtraHoursRemuneration(hours, hourlyRate = 50, baseCallPackage = 200) {
+export function calculateExtraHoursRemuneration(hours, hourlyRate = 50) {
   const h = Number(hours) || 0;
   if (h <= 0) {
     return {
       amount: 0,
-      baseAmount: 0,
-      extraHoursCount: 0,
-      extraAmount: 0,
+      hoursCount: 0,
       formulaText: 'Sem horas extras',
     };
   }
 
-  const base = Number(baseCallPackage > 0 ? baseCallPackage : 200);
   const rate = Number(hourlyRate > 0 ? hourlyRate : 50);
-
-  if (h <= 4) {
-    return {
-      amount: base,
-      baseAmount: base,
-      extraHoursCount: 0,
-      extraAmount: 0,
-      formulaText: `Pacote de Chamada (até 4h de hora extra): R$ ${base.toFixed(2).replace('.', ',')}`,
-    };
-  }
-
-  const extraHoursCount = Number((h - 4).toFixed(1));
-  const extraAmount = Number((extraHoursCount * rate).toFixed(2));
-  const amount = Number((base + extraAmount).toFixed(2));
+  const amount = Number((h * rate).toFixed(2));
 
   return {
     amount,
-    baseAmount: base,
-    extraHoursCount,
-    extraAmount,
-    formulaText: `Pacote Base (4h): R$ ${base.toFixed(2).replace('.', ',')} + ${extraHoursCount}h excedente(s) (R$ ${rate.toFixed(2).replace('.', ',')}/h) = R$ ${amount.toFixed(2).replace('.', ',')}`,
+    hoursCount: h,
+    formulaText: `${h}h extra(s) × R$ ${rate.toFixed(2).replace('.', ',')}/h = R$ ${amount.toFixed(2).replace('.', ',')}`,
   };
 }
 

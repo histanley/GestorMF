@@ -51,10 +51,6 @@ function ensureRentalsTables($db)
         $db->exec("ALTER TABLE equipment ADD COLUMN maintenance_notes TEXT NULL");
     } catch (Exception $e) {
     }
-    try {
-        $db->exec("ALTER TABLE rentals ADD COLUMN auth_signature VARCHAR(64) NULL");
-    } catch (Exception $e) {
-    }
 
     $db->exec("
         CREATE TABLE IF NOT EXISTS rentals (
@@ -88,6 +84,8 @@ function ensureRentalsTables($db)
             remaining_due_terms VARCHAR(191) NULL DEFAULT '',
             remaining_due_date DATE NULL,
             security_deposit DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+            auth_signature VARCHAR(64) NULL,
+            payment_receipt_url LONGTEXT NULL,
             created_by VARCHAR(150) NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -98,6 +96,11 @@ function ensureRentalsTables($db)
             INDEX idx_rent_dates (start_date, end_date)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
+
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN auth_signature VARCHAR(64) NULL");
+    } catch (Exception $e) {
+    }
 
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN pickup_photos_json LONGTEXT NULL");
@@ -145,6 +148,10 @@ function ensureRentalsTables($db)
     }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN maintenance_items_json LONGTEXT NULL");
+    } catch (Exception $e) {
+    }
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN payment_receipt_url LONGTEXT NULL");
     } catch (Exception $e) {
     }
 
@@ -554,6 +561,37 @@ function calculateSystemicHash($str)
 }
 
 /**
+ * Processa e armazena comprovante de pagamento (imagem ou PDF)
+ */
+function processPaymentReceipt($receiptData, $rentalCode)
+{
+    if (empty($receiptData)) return null;
+    $trimmed = trim($receiptData);
+    if (strpos($trimmed, 'http://') === 0 || strpos($trimmed, 'https://') === 0 || strpos($trimmed, '/images/') === 0) {
+        return $trimmed;
+    }
+    if (strpos($trimmed, 'data:') === 0) {
+        $parts = explode(',', $trimmed, 2);
+        if (count($parts) === 2) {
+            $isPdf = strpos($parts[0], 'application/pdf') !== false;
+            $ext = $isPdf ? 'pdf' : 'jpg';
+            $binary = base64_decode($parts[1]);
+            if ($binary !== false && strlen($binary) > 0) {
+                $targetDir = ensureRentalStorage();
+                $cleanCode = preg_replace('/[^a-zA-Z0-9_-]/', '', $rentalCode);
+                $filename = $cleanCode . '_comprovante_' . time() . '.' . $ext;
+                $dest = $targetDir . '/' . $filename;
+                if (@file_put_contents($dest, $binary)) {
+                    @chmod($dest, 0644);
+                    return '/images/rentals/' . $filename . '?t=' . time();
+                }
+            }
+        }
+    }
+    return $trimmed;
+}
+
+/**
  * Garante a pasta de fotos customizadas de equipamentos cadastrados
  */
 function ensureEquipmentUploadStorage()
@@ -889,6 +927,7 @@ if ($method === 'GET') {
             'remainingDueDate' => $r['remaining_due_date'] ?? null,
             'securityDeposit' => (float) ($r['security_deposit'] ?? 0),
             'authSignature' => $r['auth_signature'] ?? '',
+            'paymentReceiptUrl' => $r['payment_receipt_url'] ?? '',
             'createdBy' => $r['created_by'] ?? 'Sistema',
             'createdAt' => $r['created_at'],
             'updatedAt' => $r['updated_at'],
@@ -1273,6 +1312,10 @@ if ($method === 'POST' && $action === 'create_rental') {
 
         $rentalId = 'rent-' . bin2hex(random_bytes(8));
 
+        // Processa comprovante de pagamento anexo se enviado
+        $paymentReceiptInput = $data['paymentReceiptUrl'] ?? $data['paymentReceipt'] ?? '';
+        $paymentReceiptUrl = processPaymentReceipt($paymentReceiptInput, $code);
+
         // Calcula assinatura sistêmica oficial idêntica ao front
         $rawAmount = (float) $totalAmount;
         $amtStr = ($rawAmount == (int) $rawAmount) ? (string) ((int) $rawAmount) : number_format($rawAmount, 2, '.', '');
@@ -1284,12 +1327,12 @@ if ($method === 'POST' && $action === 'create_rental') {
                 id, code, client_name, client_document, client_phone, client_email, client_address,
                 start_date, start_time, end_date, end_time, total_days,
                 subtotal, discount, total_amount, payment_method, payment_status, status,
-                notes, items_json, paid_amount, remaining_amount, remaining_due_terms, remaining_due_date, security_deposit, created_by, auth_signature
+                notes, items_json, paid_amount, remaining_amount, remaining_due_terms, remaining_due_date, security_deposit, created_by, auth_signature, payment_receipt_url
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             )
         ");
 
@@ -1320,7 +1363,8 @@ if ($method === 'POST' && $action === 'create_rental') {
             $remainingDueDate,
             $securityDeposit,
             $user['name'],
-            $authSignature
+            $authSignature,
+            $paymentReceiptUrl
         ]);
 
         $db->commit();
@@ -1335,6 +1379,7 @@ if ($method === 'POST' && $action === 'create_rental') {
             'code' => $code,
             'status' => $status,
             'authSignature' => $authSignature,
+            'paymentReceiptUrl' => $paymentReceiptUrl,
             'message' => "{$actionLabel} {$code} gerada com sucesso!"
         ]);
 
@@ -1672,6 +1717,7 @@ if ($method === 'POST' && $action === 'save_inspection') {
 if ($method === 'POST' && $action === 'activate_reservation') {
     $rentalId = trim($data['rentalId'] ?? $data['id'] ?? '');
     $markPaid = !empty($data['markPaid']);
+    $receiptInput = $data['paymentReceiptUrl'] ?? $data['paymentReceipt'] ?? '';
 
     if (empty($rentalId)) {
         jsonResponse(['success' => false, 'error' => 'ID da reserva não informado.'], 400);
@@ -1685,16 +1731,55 @@ if ($method === 'POST' && $action === 'activate_reservation') {
         jsonResponse(['success' => false, 'error' => 'Reserva/Locação não encontrada.'], 404);
     }
 
+    $receiptUrl = $rental['payment_receipt_url'];
+    if (!empty($receiptInput)) {
+        $receiptUrl = processPaymentReceipt($receiptInput, $rental['code']);
+    }
+
     $newPayStatus = $markPaid ? 'Pago' : $rental['payment_status'];
-    $stmtUp = $db->prepare("UPDATE rentals SET status = 'active', payment_status = ? WHERE id = ?");
-    $stmtUp->execute([$newPayStatus, $rentalId]);
+    $stmtUp = $db->prepare("UPDATE rentals SET status = 'active', payment_status = ?, payment_receipt_url = ? WHERE id = ?");
+    $stmtUp->execute([$newPayStatus, $receiptUrl, $rentalId]);
 
     logAudit('ACTIVATE_RESERVATION', 'RENTALS', $rentalId, "Reserva {$rental['code']} confirmada e ativada como locação por {$user['name']}.", $user['id'], $user['name']);
     bumpSyncVersion('activate_reservation');
 
     jsonResponse([
         'success' => true,
+        'paymentReceiptUrl' => $receiptUrl,
         'message' => "Reserva {$rental['code']} confirmada com sucesso! Agora é uma locação ativa."
+    ]);
+}
+
+// ==============================================================================
+// 6.1 ANEXAR / ATUALIZAR COMPROVANTE DE PAGAMENTO (POST action=attach_receipt)
+// ==============================================================================
+if ($method === 'POST' && ($action === 'attach_receipt' || $action === 'upload_receipt')) {
+    $rentalId = trim($data['rentalId'] ?? $data['id'] ?? '');
+    $receiptInput = $data['paymentReceiptUrl'] ?? $data['paymentReceipt'] ?? $data['receipt'] ?? '';
+
+    if (empty($rentalId)) {
+        jsonResponse(['success' => false, 'error' => 'ID da locação não informado.'], 400);
+    }
+
+    $stmt = $db->prepare("SELECT * FROM rentals WHERE id = ?");
+    $stmt->execute([$rentalId]);
+    $rental = $stmt->fetch();
+
+    if (!$rental) {
+        jsonResponse(['success' => false, 'error' => 'Locação não encontrada.'], 404);
+    }
+
+    $receiptUrl = processPaymentReceipt($receiptInput, $rental['code']);
+    $stmtUp = $db->prepare("UPDATE rentals SET payment_receipt_url = ?, payment_status = 'Pago' WHERE id = ?");
+    $stmtUp->execute([$receiptUrl, $rentalId]);
+
+    logAudit('ATTACH_RECEIPT', 'RENTALS', $rentalId, "Comprovante de pagamento anexado à locação {$rental['code']} por {$user['name']}.", $user['id'], $user['name']);
+    bumpSyncVersion('attach_receipt');
+
+    jsonResponse([
+        'success' => true,
+        'paymentReceiptUrl' => $receiptUrl,
+        'message' => "Comprovante de pagamento anexado com sucesso à locação {$rental['code']}!"
     ]);
 }
 

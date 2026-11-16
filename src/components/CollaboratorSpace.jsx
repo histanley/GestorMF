@@ -368,8 +368,7 @@ export default function CollaboratorSpace({
         totalHours += offHoursTotal;
         if (offHoursTotal > 0) {
           const rate = customRate !== null ? customRate : hourlyRate;
-          const baseCall = Number(myMember.blockRate ?? myMember.block_rate ?? 200);
-          const remun = calculateExtraHoursRemuneration(offHoursTotal, rate, baseCall);
+          const remun = calculateExtraHoursRemuneration(offHoursTotal, rate);
           totalHoursVal += remun.amount;
         }
       }
@@ -726,8 +725,8 @@ export default function CollaboratorSpace({
             <strong className="cs-card-val text-amber">
               {formatBRL(financialSummary.totalHoursVal)}
             </strong>
-            <span className="cs-card-sub" title="Pacote de chamada R$ 200 até 4h + hora adicional a partir da 5ª hora">
-              Base: {formatBRL(myMember.blockRate || 200)} (até 4h) + {formatBRL(myMember.hourlyRate || 50)}/h
+            <span className="cs-card-sub" title="Taxa individual por hora extra">
+              Taxa: {formatBRL(myMember.hourlyRate || 50)} / hora extra
             </span>
           </div>
 

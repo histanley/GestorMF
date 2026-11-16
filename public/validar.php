@@ -509,6 +509,21 @@ $docTitle = $isReserved ? 'Comprovante de Agendamento & Reserva' : 'Contrato de 
             </div>
           <?php endif; ?>
 
+          <?php if (!empty($rental['payment_receipt_url'])): ?>
+            <div style="margin-bottom: 20px; padding: 14px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.2rem;">📄</span>
+                <div>
+                  <div style="font-size: 0.82rem; font-weight: 700; color: #34d399;">Comprovante de Pagamento Anexado</div>
+                  <div style="font-size: 0.72rem; color: #94a3b8;">Documento conferido e associado ao contrato.</div>
+                </div>
+              </div>
+              <a href="<?= htmlspecialchars($rental['payment_receipt_url']) ?>" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #059669; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 700;">
+                Visualizar / Baixar Comprovante
+              </a>
+            </div>
+          <?php endif; ?>
+
           <!-- Selo de Validade Jurídica -->
           <div class="legal-seal">
             <span class="seal-icon">⚖️</span>
