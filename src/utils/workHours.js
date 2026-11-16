@@ -144,7 +144,42 @@ export function isMemberEligibleForExtraHours(member, mission) {
 
   if (isDriver) return true;
 
-  // 2. Checa se o colaborador esteve escalado na equipe presencial de campo
+  // 2. Checa se o colaborador é editor designado da missão (pós-produção)
+  const editorIds = Array.isArray(mission.editorIds) ? mission.editorIds.map(String) : [];
+  const inEditorIds = editorIds.includes(memIdStr) || (mission.editorId && String(mission.editorId) === memIdStr);
+  const inEditorDisplay = mission.editorNamesDisplay && mission.editorNamesDisplay.trim().toLowerCase().includes(memNameNorm);
+  const isAssignedEditor = inEditorIds || inEditorDisplay;
+
+  // 3. Checa se esteve em alguma viatura como passageiro de campo
+  const isPassengerInVehicle = allocations.some((a) => {
+    const pIds = Array.isArray(a.passengerIds) ? a.passengerIds.map(String) : [];
+    const pObjs = Array.isArray(a.passengers) ? a.passengers.map((p) => String(p.id || p)) : [];
+    return pIds.includes(memIdStr) || pObjs.includes(memIdStr);
+  });
+
+  // 4. Checa funções explícitas atribuídas no evento de campo
+  const explicitRoles = mission.memberRoles?.[member.id] || mission.memberRoles?.[memIdStr];
+  const roleArray = Array.isArray(explicitRoles) ? explicitRoles : (typeof explicitRoles === 'string' && explicitRoles.trim() ? [explicitRoles] : []);
+
+  const hasFieldRole = roleArray.some((r) => {
+    const rNorm = String(r).trim().toLowerCase();
+    return !rNorm.includes('editor') && !rNorm.includes('pós-produção') && !rNorm.includes('pos-producao') && !rNorm.includes('designer');
+  });
+
+  const isOnlyEditorRole = roleArray.length > 0 && !hasFieldRole;
+
+  // REGRA OFICIAL MEGAFILMES:
+  // "Os editores que ficam na pós-produção não devem receber horas extras."
+  // Se o colaborador está designado como editor de pós-produção ou sua função atribuída for de editor:
+  // Ele NUNCA recebe horas extras a menos que tenha ido a campo comprovadamente como motorista,
+  // passageiro de viatura em campo ou função explícita de campo (ex: Cinegrafista/Fotógrafo presencial).
+  if (isAssignedEditor || isOnlyEditorRole) {
+    if (!isDriver && !isPassengerInVehicle && !hasFieldRole) {
+      return false; // É editor de estúdio/ilha de edição, NÃO recebe horas extras!
+    }
+  }
+
+  // 5. Checa se esteve escalado na equipe presencial de campo
   const teamIds = Array.isArray(mission.teamIds) ? mission.teamIds.map(String) : [];
   const inTeamIds = teamIds.includes(memIdStr);
   const inTeamMembers = Array.isArray(mission.teamMembers) &&
@@ -152,14 +187,13 @@ export function isMemberEligibleForExtraHours(member, mission) {
   const inTeamField = Array.isArray(mission.team) &&
     mission.team.some((t) => String(t) === memIdStr || String(t).trim().toLowerCase() === memNameNorm);
 
-  // 3. Checa funções explícitas atribuídas no evento de campo
-  const explicitRoles = mission.memberRoles?.[member.id] || mission.memberRoles?.[memIdStr];
-  const hasFieldRole = Array.isArray(explicitRoles)
-    ? explicitRoles.some((r) => r !== 'Editor de Vídeo' && r !== 'Designer Gráfico')
-    : (typeof explicitRoles === 'string' && explicitRoles.trim() && explicitRoles !== 'Editor de Vídeo' && explicitRoles !== 'Designer Gráfico');
+  if ((inTeamIds || inTeamMembers || inTeamField || hasFieldRole) && !isAssignedEditor && !isOnlyEditorRole) {
+    return true;
+  }
 
-  const isFieldMember = inTeamIds || inTeamMembers || inTeamField || hasFieldRole;
-  if (isFieldMember) return true;
+  if (hasFieldRole && (isDriver || isPassengerInVehicle)) {
+    return true;
+  }
 
   // Se o colaborador atuou apenas como editor de pós-produção (sem ir a campo), NÃO é elegível a horas extras
   return false;

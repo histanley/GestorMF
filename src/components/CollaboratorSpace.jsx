@@ -18,6 +18,7 @@ import {
   MapPin,
   Car,
   ChevronRight,
+  ChevronDown,
   Shield,
   CreditCard,
   MessageCircle,
@@ -250,6 +251,20 @@ export default function CollaboratorSpace({
   const [requestedHours, setRequestedHours] = useState(1.0);
   const [requestReason, setRequestReason] = useState('');
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+
+  // Paginação de missões do colaborador (inicia com 5, expande de 10 em 10)
+  const [visibleMissionsCount, setVisibleMissionsCount] = useState(5);
+
+  // Regra Oficial MegaFilmes:
+  // O botão de prorrogação de retorno ou solicitação de hora extra só pode aparecer
+  // quando a missão estiver acontecendo agora e prestes a finalizar (15 min antes de finalizar).
+  // Missões passadas, futuras, finalizadas/canceladas ou de editores que não foram a campo NUNCA exibem o botão.
+  const canShowExtensionButton = (m, progress) => {
+    if (!m || !myMember || !isMemberEligibleForExtraHours(myMember, m)) return false;
+    const status = String(m.missionStatus || '').trim().toLowerCase();
+    if (['finalizada', 'finalizado', 'concluída', 'concluida', 'pendente', 'cancelada'].includes(status)) return false;
+    return Boolean(progress?.isHappeningNow && progress?.isUrgentEnd && progress?.remainingMinutes !== null && progress.remainingMinutes <= 15);
+  };
 
   // Monitor em tempo real: atualiza a cada 20s para verificar reta final das missões
   const [liveTick, setLiveTick] = useState(0);
@@ -1484,7 +1499,7 @@ export default function CollaboratorSpace({
           </div>
         ) : (
           <div className="cs-missions-list">
-            {sortedMyMissions.slice(0, 15).map((m) => {
+            {sortedMyMissions.slice(0, visibleMissionsCount).map((m) => {
               const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
               const memberMode = (m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
                 || m.remunerationType
@@ -1646,8 +1661,8 @@ export default function CollaboratorSpace({
                       )}
                     </div>
 
-                    {/* Ação: Solicitar Horas Extras ou Prorrogar Retorno (Exclusivo para equipe em campo; editores na pós não recebem horas extras) */}
-                    {!isClosed && isMemberEligibleForExtraHours(myMember, m) && (
+                    {/* Ação: Solicitar Horas Extras ou Prorrogar Retorno (somente quando prestes a finalizar, 15 min antes do término) */}
+                    {canShowExtensionButton(m, progress) && (
                       <button
                         type="button"
                         onClick={() => setRequestModalMission(m)}
@@ -1680,6 +1695,22 @@ export default function CollaboratorSpace({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {sortedMyMissions.length > visibleMissionsCount && (
+          <div className="cs-load-more-wrap">
+            <button
+              type="button"
+              className="cs-btn-load-more"
+              onClick={() => setVisibleMissionsCount((prev) => prev + 10)}
+            >
+              <ChevronDown size={18} />
+              <span>Mostrar mais missões (+10)</span>
+              <span className="cs-load-more-badge">
+                Exibindo {Math.min(visibleMissionsCount, sortedMyMissions.length)} de {sortedMyMissions.length}
+              </span>
+            </button>
           </div>
         )}
       </div>

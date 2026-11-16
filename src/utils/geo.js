@@ -1223,8 +1223,8 @@ export function getMissionLiveProgress(mission) {
   );
 
   // Urgência / Reta final:
-  // Quando a missão está em andamento e faltam 30 minutos ou menos (ou acabou de atingir o limite previsto)
-  const isUrgentEnd = isHappeningNow && remainingMinutes <= 30;
+  // Quando a missão está em andamento e faltam 15 minutos ou menos para o término (regra oficial de prorrogação)
+  const isUrgentEnd = isHappeningNow && remainingMinutes !== null && remainingMinutes <= 15;
 
   // Verifica se o término previsto está fora do expediente comercial regular
   // Expediente: Seg a Sex 08:00 às 18:00, Sáb 08:00 às 12:00, Dom dia todo fora
