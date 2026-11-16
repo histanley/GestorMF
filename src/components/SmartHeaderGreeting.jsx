@@ -66,7 +66,7 @@ export default function SmartHeaderGreeting({
   countAtivas = 0,
   pendingExtraHoursRequests = [],
   activeTab = 'map',
-  onNavigateTab = () => {},
+  onNavigateTab = () => { },
   onOpenDetailMission = null,
 }) {
   // Ocultar em celulares (iOS e Android / Telas Mobile)
@@ -90,7 +90,7 @@ export default function SmartHeaderGreeting({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const isAdminUser = userRole === 'admin' || userRole === 'manager';
+  const isAdminUser = String(userRole || '').trim().toLowerCase() === 'admin';
 
   // Relógio digital e data em tempo real
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -142,7 +142,7 @@ export default function SmartHeaderGreeting({
           return parsed.data;
         }
       }
-    } catch (_) {}
+    } catch (_) { }
     return {
       temperature: 32,
       apparentTemperature: 35,
