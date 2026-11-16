@@ -30,7 +30,12 @@ import {
 } from 'lucide-react';
 import { apiGetPayouts, apiSavePayout } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
-import { calculateMissionOffHours, calculateExtraHoursRemuneration } from '../utils/workHours';
+import {
+  calculateMissionOffHours,
+  calculateEventOnlyOffHours,
+  isMissionEligibleForPayout,
+  calculateExtraHoursRemuneration
+} from '../utils/workHours';
 
 // Formata data ISO para PT-BR (dd/mm/aaaa)
 function formatDateBR(dateStr) {
@@ -231,11 +236,14 @@ export default function TeamPayoutsDashboard({
 
         if (participated) {
           const mStatus = String(m.missionStatus || 'Agendada').trim().toLowerCase();
-          const isCompleted = (mStatus === 'finalizada' || mStatus === 'finalizado' || mStatus === 'concluída' || mStatus === 'concluida');
           const isCancelled = (mStatus === 'cancelada' || mStatus === 'cancelado');
 
           // Missões canceladas são completamente desconsideradas
           if (isCancelled) return;
+
+          // Regra Oficial MegaFilmes: Horas extras e diárias de campo são pagas assim que a missão retorna/evento termina,
+          // independente do material de pós-produção estar ainda em edição pelo editor.
+          const isCompleted = isMissionEligibleForPayout(m);
 
           if (isCompleted) {
             completedMissionCount++;
@@ -246,14 +254,8 @@ export default function TeamPayoutsDashboard({
           const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
           const missionHours = calculateMissionHours(m.departureTime, m.returnTimeEstimated);
 
-          // Apuração de horas comerciais vs. fora do expediente (Banco de Horas)
-          const offHoursInfo = calculateMissionOffHours(
-            m.date,
-            m.departureTime,
-            m.endDate,
-            m.returnTimeEstimated,
-            isMDay
-          );
+          // Apuração de horas fora do expediente estritamente sobre o evento (sem deslocamento de ida/volta à base)
+          const offHoursInfo = calculateEventOnlyOffHours(m);
           const offHoursWorked = offHoursInfo.offHours;
           const inHoursWorked = offHoursInfo.inHours;
 

@@ -47,7 +47,14 @@ import {
 } from '../utils/companyRoles';
 import { apiRequestExtraHours, apiExtendMissionReturnTime, apiUpdatePixKey } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
-import { calculateMissionOffHours, calculateExtraHoursRemuneration, evaluateMissionExtension, isOffHoursTime } from '../utils/workHours';
+import {
+  calculateMissionOffHours,
+  calculateEventOnlyOffHours,
+  isMissionEligibleForPayout,
+  calculateExtraHoursRemuneration,
+  evaluateMissionExtension,
+  isOffHoursTime
+} from '../utils/workHours';
 import { sortMissionsByStatusPriority, getMissionLiveProgress } from '../utils/geo';
 import { sendPushNotification, requestNotificationPermission } from '../utils/notifications';
 
@@ -339,10 +346,10 @@ export default function CollaboratorSpace({
     let totalCustomVal = 0;
 
     monthMissions.forEach((m) => {
-      const mStatus = String(m.missionStatus || 'Agendada').trim().toLowerCase();
-      const isCompleted = (mStatus === 'finalizada' || mStatus === 'finalizado' || mStatus === 'concluída' || mStatus === 'concluida');
-      // Apenas missões concluídas/finalizadas são contabilizadas no fechamento financeiro
-      if (!isCompleted) return;
+      // Regra Oficial MegaFilmes: Horas extras e diárias são contabilizadas assim que a missão retorna/evento termina,
+      // sem depender da entrega ou conclusão da pós-produção/edição.
+      const isEligible = isMissionEligibleForPayout(m);
+      if (!isEligible) return;
 
       const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
       const customRate = (m.customRates && m.customRates[myMember.id] !== undefined && m.customRates[myMember.id] !== null && m.customRates[myMember.id] !== '')
@@ -371,7 +378,9 @@ export default function CollaboratorSpace({
         const rate = customRate !== null ? customRate : dailyRate;
         totalDaysVal += days * rate;
       } else {
-        const offHoursInfo = calculateMissionOffHours(m.date, m.departureTime, m.endDate, m.returnTimeEstimated, false);
+        // Regra Oficial MegaFilmes: Horas extras calculadas estritamente entre o Início e Término do Evento
+        // (deslocamento ida e volta da base não é contabilizado)
+        const offHoursInfo = calculateEventOnlyOffHours(m);
         const approvedExtra = Number(m.extraHoursApproved) || 0;
         const offHoursTotal = (offHoursInfo.offHours || 0) + approvedExtra;
         totalHours += offHoursTotal;

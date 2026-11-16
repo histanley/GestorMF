@@ -36,7 +36,13 @@ import {
   ROLE_COLORS_MAP,
   normalizeToOfficialRole,
 } from '../utils/companyRoles';
-import { calculateMissionOffHours, calculateExtraHoursRemuneration, checkMemberExtraHoursAvailability } from '../utils/workHours';
+import {
+  calculateMissionOffHours,
+  calculateEventOnlyOffHours,
+  resolveEventTimes,
+  calculateExtraHoursRemuneration,
+  checkMemberExtraHoursAvailability
+} from '../utils/workHours';
 import {
   RECURRENCE_DAYS,
   getDayOfWeekFromDate,
@@ -237,6 +243,7 @@ export default function MissionModal({
     lon: '',
     date: getLocalTodayStr(),
     eventStartTime: '',
+    eventEndTime: '',
     antecedenceMinutes: 30,
     suggestedDepartureTime: '',
     departureTime: '',
@@ -471,6 +478,7 @@ export default function MissionModal({
       setFormData({
         ...editingMission,
         eventStartTime: editingMission.eventStartTime || '',
+        eventEndTime: editingMission.eventEndTime || '',
         antecedenceMinutes: editingMission.antecedenceMinutes !== undefined && editingMission.antecedenceMinutes !== null ? Number(editingMission.antecedenceMinutes) : 30,
         suggestedDepartureTime: editingMission.suggestedDepartureTime || '',
         lat: editingMission.lat || '',
@@ -558,6 +566,7 @@ export default function MissionModal({
         lon: initialCoords ? initialCoords.lon : '',
         date: getLocalTodayStr(),
         eventStartTime: '',
+        eventEndTime: '',
         antecedenceMinutes: 30,
         suggestedDepartureTime: '',
         departureTime: '',
@@ -806,6 +815,23 @@ export default function MissionModal({
       if (sug && (prev.departureTime === '08:00' || !prev.departureTime)) {
         updated.departureTime = sug;
         updated.arrivalTimeEstimated = calculateArrivalTime(sug, routeInfo.durationMinutes);
+      }
+      return updated;
+    });
+  };
+
+  const handleEventEndTimeChange = (val) => {
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        eventEndTime: val,
+      };
+      const dur = routeInfo.durationMinutes || 0;
+      if (val && dur > 0) {
+        const estReturn = calculateArrivalTime(val, dur);
+        if (estReturn && (!prev.returnTimeEstimated || prev.returnTimeEstimated === '18:00')) {
+          updated.returnTimeEstimated = estReturn;
+        }
       }
       return updated;
     });
@@ -1149,15 +1175,27 @@ export default function MissionModal({
 
   // Cálculo inteligente em tempo real de horas fora do expediente comercial (Banco de Horas)
   // Regras: Seg-Sex 08h às 18h e Sáb 08h às 12h = Comercial normal; resto = Banco de Horas
+  // Regra Oficial do Diretor: Horas extras computadas estritamente no intervalo do evento,
+  // excluindo tempo de deslocamento da base até o local e de retorno.
   const missionOffHours = useMemo(() => {
-    return calculateMissionOffHours(
-      formData.date,
-      formData.departureTime,
-      formData.endDate,
-      formData.returnTimeEstimated,
-      isMultiDay
-    );
-  }, [formData.date, formData.departureTime, formData.endDate, formData.returnTimeEstimated, isMultiDay]);
+    return calculateEventOnlyOffHours({
+      ...formData,
+      drivingDurationMinutes: routeInfo.durationMinutes || formData.drivingDurationMinutes,
+      roundTripDurationMinutes: routeInfo.durationMinutes ? routeInfo.durationMinutes * 2 : formData.roundTripDurationMinutes,
+    });
+  }, [
+    formData.date,
+    formData.eventStartTime,
+    formData.eventEndTime,
+    formData.departureTime,
+    formData.arrivalTimeEstimated,
+    formData.returnTimeEstimated,
+    formData.endDate,
+    routeInfo.durationMinutes,
+    formData.drivingDurationMinutes,
+    formData.roundTripDurationMinutes,
+    isMultiDay,
+  ]);
 
   const handleCustomRateChange = (memberId, value) => {
     setFormData((prev) => {
@@ -1427,6 +1465,7 @@ export default function MissionModal({
       ...formData,
       code: generatedCode,
       eventStartTime: formData.eventStartTime || null,
+      eventEndTime: formData.eventEndTime || null,
       antecedenceMinutes: formData.antecedenceMinutes ? Number(formData.antecedenceMinutes) : 30,
       suggestedDepartureTime: dynamicSuggestedDeparture || formData.suggestedDepartureTime || null,
       isRoundTrip: true,
@@ -1634,7 +1673,18 @@ export default function MissionModal({
                   onChange={(e) => handleEventStartTimeChange(e.target.value)}
                   title="Horário em que o evento começa ou que a equipe já deve estar posicionada no local"
                 />
-                <small className="field-hint-sub">Horário do evento/gravação</small>
+                <small className="field-hint-sub">Início no local</small>
+              </div>
+              <div className="form-group flex-1">
+                <label><Clock size={13} /> Término do Evento</label>
+                <input
+                  type="time"
+                  placeholder="Ex: 22:00"
+                  value={formData.eventEndTime || ''}
+                  onChange={(e) => handleEventEndTimeChange(e.target.value)}
+                  title="Horário oficial de término do evento no local (base exclusiva para o cálculo de horas extras)"
+                />
+                <small className="field-hint-sub">Fim no local (sem percurso)</small>
               </div>
               <div className="form-group flex-1">
                 <label><Clock size={13} /> Saída da Base <span className="req-star">*</span></label>

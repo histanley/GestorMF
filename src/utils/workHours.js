@@ -14,15 +14,114 @@
  */
 
 /**
+ * Resolve com precisão os horários de início e fim do evento no local,
+ * desconsiderando o percurso de ida e volta da base.
+ *
+ * Regra MegaFilmes:
+ * "Quero pagar apenas horário de início e fim do evento, não quero que seja
+ * contabilizado o deslocamento da base até o evento e nem do evento até a base,
+ * apenas o horário do evento."
+ */
+export function resolveEventTimes(data) {
+  if (!data) return { startTime: null, endTime: null };
+
+  // 1. Início do evento:
+  // Prioridade: eventStartTime -> arrivalTimeEstimated -> departureTime
+  const startTime = data.eventStartTime || data.arrivalTimeEstimated || data.departureTime || null;
+
+  // 2. Término do evento:
+  // Prioridade: eventEndTime -> se não preenchido, deduz subtraindo a viagem de volta do retorno à base
+  let endTime = data.eventEndTime || null;
+  if (!endTime && data.returnTimeEstimated) {
+    const returnTime = data.returnTimeEstimated;
+    const oneWayMin = Number(data.drivingDurationMinutes) || (Number(data.roundTripDurationMinutes) ? Math.round(Number(data.roundTripDurationMinutes) / 2) : 0);
+    if (oneWayMin > 0 && String(returnTime).includes(':')) {
+      const [rh, rm] = String(returnTime).split(':').map(Number);
+      const retTotalMin = rh * 60 + rm;
+      const endTotalMin = retTotalMin - oneWayMin;
+      if (endTotalMin >= 0) {
+        const eh = Math.floor(endTotalMin / 60);
+        const em = endTotalMin % 60;
+        endTime = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
+      } else {
+        endTime = returnTime;
+      }
+    } else {
+      endTime = returnTime;
+    }
+  }
+
+  return { startTime, endTime };
+}
+
+/**
+ * Calcula as horas extras (fora do expediente) EXCLUSIVAMENTE sobre o período do evento
+ * (Início do Evento até Fim do Evento), EXCLUINDO totalmente o deslocamento de ida/volta à base.
+ */
+export function calculateEventOnlyOffHours(missionOrData) {
+  if (!missionOrData) {
+    return {
+      totalMinutes: 0,
+      totalHours: 0,
+      inHoursMinutes: 0,
+      inHours: 0,
+      offHoursMinutes: 0,
+      offHours: 0,
+      isOffHours: false,
+      offHoursSegments: [],
+    };
+  }
+
+  const { startTime, endTime } = resolveEventTimes(missionOrData);
+  const startDateStr = missionOrData.date;
+  const endDateStr = missionOrData.endDate || missionOrData.date;
+  const isMultiDay = Boolean(missionOrData.isMultiDay || (missionOrData.endDate && missionOrData.endDate !== missionOrData.date));
+
+  return calculateMissionOffHours(startDateStr, startTime, endDateStr, endTime, isMultiDay);
+}
+
+/**
+ * Determina se a missão já teve sua parte de campo/evento encerrada e equipe retornada à base,
+ * estando 100% elegível para contabilização e pagamento de horas extras e diárias.
+ *
+ * Regra do Diretor:
+ * "Sei que as missões que tem pós-produção não finalizam até os editores entregarem o material,
+ * mas devemos contabilizar as horas extras do colaborador sem que isso dependa do final da missão,
+ * sem que dependa do editor entregar o material. Quero que as horas extras sejam pagas assim que o evento terminar."
+ */
+export function isMissionEligibleForPayout(mission, referenceNow = new Date()) {
+  if (!mission) return false;
+  const status = String(mission.missionStatus || 'Agendada').trim().toLowerCase();
+
+  // Missões canceladas nunca geram remuneração
+  if (status === 'cancelada' || status === 'cancelado') return false;
+
+  // Se já está Finalizada ou Concluída
+  if (status === 'finalizada' || status === 'finalizado' || status === 'concluída' || status === 'concluida') return true;
+
+  // Se está 'Pendente' (status onde o campo já foi realizado e aguarda edição/aprovação de vídeo)
+  if (status === 'pendente') return true;
+
+  // Se o retorno da missão ou o evento já aconteceu no tempo
+  const dateStr = mission.endDate || mission.date;
+  const timeStr = mission.returnTimeEstimated || mission.eventEndTime || mission.arrivalTimeEstimated || '23:59';
+  if (dateStr) {
+    try {
+      const [y, m, d] = String(dateStr).split('-').map(Number);
+      const [h, min] = String(timeStr).split(':').map(Number);
+      const missionEnd = new Date(y, m - 1, d, h || 0, min || 0, 0, 0);
+      if (missionEnd <= referenceNow) {
+        return true;
+      }
+    } catch (e) {}
+  }
+
+  return false;
+}
+
+/**
  * Calcula os minutos totais, minutos em expediente e minutos fora do expediente (banco de horas)
- * entre o horário de partida e retorno de uma missão.
- * 
- * @param {string} startDateStr - Data inicial no formato YYYY-MM-DD
- * @param {string} departureTime - Horário de saída no formato HH:mm
- * @param {string} endDateStr - Data final no formato YYYY-MM-DD (se for missão de múltiplos dias)
- * @param {string} returnTime - Horário de retorno no formato HH:mm
- * @param {boolean} isMultiDay - Se é missão de múltiplos dias
- * @returns {object} Resumo com totalMinutes, inHoursMinutes, offHoursMinutes, offHours, inHours, isOffHours
+ * entre dois horários em determinada(s) data(s).
  */
 export function calculateMissionOffHours(
   startDateStr,
