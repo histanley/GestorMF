@@ -30,6 +30,7 @@ import {
   Copy,
   ExternalLink,
   Camera,
+  MessageSquare,
 } from 'lucide-react';
 import TeamPayoutsDashboard from './TeamPayoutsDashboard';
 import TeamPerformanceRanking from './TeamPerformanceRanking';
@@ -612,9 +613,9 @@ export default function AdminCenter({
                           </span>
                         )}
                         {hasMultipleEditors && (
-                          <span className="ac-meta-chip" style={{ background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}>
+                          <span className="ac-meta-chip ac-meta-chip-editors">
                             <Users size={12} />
-                            <span>{assignedEditors.length} Editores ({deliverySummary.summaryBadgeText})</span>
+                            <span>{assignedEditors.length} Editores • {deliverySummary.isFullyDelivered ? `${assignedEditors.length}/${assignedEditors.length} Entregues` : `${deliverySummary.deliveredCount}/${assignedEditors.length} Entregues`}</span>
                           </span>
                         )}
                       </div>
@@ -626,63 +627,42 @@ export default function AdminCenter({
                         </h4>
                         <div className="ac-rc-mission-loc ac-pp-loc">
                           <MapPin size={14} className="text-amber" />
-                          <span>{mission.locationName || mission.address || 'Local não definido'}</span>
+                          <span className="ac-pp-loc-name">{mission.locationName || mission.address || 'Local não definido'}</span>
                         </div>
                       </div>
 
                       {/* Painel Moderno de Pós-Produção */}
                       <div className="ac-pp-details-panel">
-                        {/* Linha com Editor e Prazo em Cards Lado a Lado */}
-                        <div className="ac-pp-two-col-row">
-                          {/* Editor Responsável */}
-                          <div className="ac-pp-mini-card">
-                            <span className="ac-pp-mini-label">
-                              {hasMultipleEditors ? `Editores Escalados (${assignedEditors.length}):` : 'Editor Responsável:'}
-                            </span>
-                            {hasMultipleEditors ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
-                                {assignedEditors.map((ed) => {
-                                  const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
-                                  const isDone = edDeliv && edDeliv.status === 'delivered';
-                                  return (
-                                    <div key={ed.id} className="ac-pp-user-row" style={{ justifyContent: 'space-between' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <div className="ac-pp-avatar-circle" style={{ width: '22px', height: '22px', fontSize: '0.68rem' }}>
-                                          {ed.name.slice(0, 2).toUpperCase()}
-                                        </div>
-                                        <strong className="ac-pp-user-name" style={{ fontSize: '0.82rem' }}>{ed.name}</strong>
-                                      </div>
-                                      <span style={{ fontSize: '0.72rem', padding: '1px 6px', borderRadius: '4px', background: isDone ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: isDone ? '#34d399' : '#fbbf24', border: `1px solid ${isDone ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}` }}>
-                                        {isDone ? '✅ Entregue' : '⏳ Pendente'}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <div className="ac-pp-user-row">
-                                <div className="ac-pp-avatar-circle">
-                                  {editorName.slice(0, 2).toUpperCase()}
-                                </div>
-                                <strong className="ac-pp-user-name">{editorName}</strong>
-                              </div>
-                            )}
+                        {/* Faixa Executiva Unificada de Prazo de Entrega */}
+                        <div className="ac-pp-deadline-banner">
+                          <div className="ac-pp-deadline-col-info">
+                            <span className="ac-pp-deadline-sub">Prazo de Entrega da Edição:</span>
+                            <div className="ac-pp-deadline-time-row">
+                              <Calendar size={13} className="text-amber" />
+                              <strong className="ac-pp-deadline-date">
+                                {mission.deliveryDeadlineDate ? `${formatDateBR(mission.deliveryDeadlineDate)} às ${mission.deliveryDeadlineTime || '18:00'}` : 'Não estipulado'}
+                              </strong>
+                            </div>
                           </div>
 
-                          {/* Prazo de Entrega */}
-                          <div className="ac-pp-mini-card">
-                            <span className="ac-pp-mini-label">Prazo de Entrega:</span>
-                            <div className="ac-pp-deadline-row">
-                              <div className="ac-pp-deadline-info">
-                                <Clock size={13} className="text-muted" />
-                                <span>
-                                  {mission.deliveryDeadlineDate ? `${formatDateBR(mission.deliveryDeadlineDate)} às ${mission.deliveryDeadlineTime || '18:00'}` : 'Não estipulado'}
-                                </span>
+                          <div className="ac-pp-deadline-col-badges">
+                            <span className={`ac-pp-status-badge ${isOverdue ? 'overdue' : 'ontime'}`}>
+                              {isOverdue ? '⚠️ Atrasado' : '✅ No Prazo'}
+                            </span>
+                            {!hasMultipleEditors && editorName && (
+                              <div className="ac-pp-single-editor-pill">
+                                <div className="ac-pp-avatar-circle" style={{ width: '22px', height: '22px', fontSize: '0.65rem' }}>
+                                  {editorName.slice(0, 2).toUpperCase()}
+                                </div>
+                                <span className="ac-pp-user-name" style={{ fontSize: '0.8rem' }}>{editorName}</span>
                               </div>
-                              <span className={`ac-pp-status-badge ${isOverdue ? 'overdue' : 'ontime'}`}>
-                                {isOverdue ? '⚠️ Atrasado' : '✅ No Prazo'}
+                            )}
+                            {hasMultipleEditors && (
+                              <span className="ac-pp-editors-summary-pill">
+                                <Users size={12} className="text-cyan" />
+                                <span>{assignedEditors.length} Editores ({deliverySummary.isFullyDelivered ? `${assignedEditors.length}/${assignedEditors.length} Entregue` : `${deliverySummary.deliveredCount}/${assignedEditors.length}`})</span>
                               </span>
-                            </div>
+                            )}
                           </div>
                         </div>
 
@@ -701,14 +681,24 @@ export default function AdminCenter({
                                 <div key={ed.id} className="ac-pp-editor-delivery-card">
                                   <div className="ac-pp-delivery-card-header">
                                     <div className="ac-pp-delivery-editor-title">
-                                      <User size={13} className="text-cyan" />
+                                      <div className="ac-pp-avatar-circle" style={{ width: '24px', height: '24px', fontSize: '0.68rem' }}>
+                                        {ed.name.slice(0, 2).toUpperCase()}
+                                      </div>
                                       <span>Entrega: <strong>{ed.name}</strong></span>
                                     </div>
-                                    {isDone && (
-                                      <span className="ac-pp-delivery-done-tag">
-                                        <CheckCircle2 size={12} /> Concluído
-                                      </span>
-                                    )}
+                                    <span className={`ac-pp-delivery-done-tag ${isDone ? 'tag-done' : 'tag-pending'}`}>
+                                      {isDone ? (
+                                        <>
+                                          <CheckCircle2 size={12} />
+                                          <span>Concluído</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Clock size={12} />
+                                          <span>Pendente</span>
+                                        </>
+                                      )}
+                                    </span>
                                   </div>
 
                                   {edPath && (
@@ -739,8 +729,12 @@ export default function AdminCenter({
                                   )}
 
                                   {edNote && (
-                                    <div className="ac-pp-message-box">
-                                      "{edNote}"
+                                    <div className="ac-pp-message-bubble">
+                                      <div className="ac-pp-msg-label">
+                                        <MessageSquare size={12} className="text-amber" />
+                                        <span>Observação do Editor:</span>
+                                      </div>
+                                      <p className="ac-pp-msg-content">"{edNote}"</p>
                                     </div>
                                   )}
                                 </div>
@@ -783,9 +777,12 @@ export default function AdminCenter({
                             {/* Mensagem / Observações do Editor */}
                             {editorMessage && (
                               <div className="ac-pp-section-block">
-                                <span className="ac-pp-section-label">Observações da Entrega pelo Editor:</span>
-                                <div className="ac-pp-message-box">
-                                  "{editorMessage}"
+                                <div className="ac-pp-message-bubble">
+                                  <div className="ac-pp-msg-label">
+                                    <MessageSquare size={12} className="text-amber" />
+                                    <span>Observação do Editor:</span>
+                                  </div>
+                                  <p className="ac-pp-msg-content">"{editorMessage}"</p>
                                 </div>
                               </div>
                             )}
@@ -793,23 +790,30 @@ export default function AdminCenter({
                         )}
 
                         {/* Equipe de Campo */}
-                        <div className="ac-pp-section-block">
+                        <div className="ac-pp-section-block ac-pp-field-team-section">
                           <span className="ac-pp-section-label">Equipe de Gravação em Campo:</span>
                           <div className="ac-pp-team-chips">
-                            {mission.vehicleNameDisplay && (
-                              <span className="ac-team-chip">
-                                <Car size={13} className="text-rose" />
-                                <span>{mission.vehicleNameDisplay}</span>
-                              </span>
-                            )}
-                            {mission.driverName && (
-                              <span className="ac-team-chip">
-                                <User size={13} className="text-amber" />
-                                <span>Motorista: {mission.driverName}</span>
+                            {(mission.vehicleNameDisplay || mission.driverName) && (
+                              <span className="ac-team-chip ac-team-chip-veh">
+                                {mission.vehicleNameDisplay && (
+                                  <>
+                                    <Car size={13} className="text-rose" />
+                                    <strong>{mission.vehicleNameDisplay}</strong>
+                                  </>
+                                )}
+                                {mission.vehicleNameDisplay && mission.driverName && (
+                                  <span className="chip-dot-sep">•</span>
+                                )}
+                                {mission.driverName && (
+                                  <>
+                                    <User size={13} className="text-amber" />
+                                    <span>Motorista: <strong>{mission.driverName}</strong></span>
+                                  </>
+                                )}
                               </span>
                             )}
                             {mission.teamNamesDisplay && (
-                              <span className="ac-team-chip">
+                              <span className="ac-team-chip ac-team-chip-crew">
                                 <Users size={13} className="text-indigo" />
                                 <span>{mission.teamNamesDisplay}</span>
                               </span>
