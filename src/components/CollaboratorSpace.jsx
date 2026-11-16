@@ -58,6 +58,7 @@ import {
   calculateMissionOffHours,
   calculateEventOnlyOffHours,
   isMissionEligibleForPayout,
+  isMemberEligibleForExtraHours,
   calculateExtraHoursRemuneration,
   evaluateMissionExtension,
   isOffHoursTime
@@ -298,12 +299,14 @@ export default function CollaboratorSpace({
   }, [myMember, missions]);
 
   // Identifica se há alguma missão ativa na reta final crítica (restam <= 30 min)
+  // Regra Oficial MegaFilmes: Notificação de reta final e horas extras é exclusiva para quem está em campo (não aplicável a editores na pós)
   const urgentMissionNow = useMemo(() => {
     return myMissions.find((m) => {
+      if (!isMemberEligibleForExtraHours(myMember, m)) return false;
       const prog = getMissionLiveProgress(m);
       return prog.isUrgentEnd;
     }) || null;
-  }, [myMissions, liveTick]);
+  }, [myMissions, liveTick, myMember]);
 
   // Disparo inteligente de Notificação Push e Alerta Sonoro para o colaborador quando em reta final
   useEffect(() => {
@@ -439,14 +442,18 @@ export default function CollaboratorSpace({
       } else {
         // Regra Oficial MegaFilmes: Horas extras calculadas estritamente entre o Início e Término do Evento
         // (deslocamento ida e volta da base não é contabilizado)
-        const offHoursInfo = calculateEventOnlyOffHours(m);
-        const approvedExtra = Number(m.extraHoursApproved) || 0;
-        const offHoursTotal = (offHoursInfo.offHours || 0) + approvedExtra;
-        totalHours += offHoursTotal;
-        if (offHoursTotal > 0) {
-          const rate = customRate !== null ? customRate : hourlyRate;
-          const remun = calculateExtraHoursRemuneration(offHoursTotal, rate);
-          totalHoursVal += remun.amount;
+        // REGRA IMPORTANTE: Os editores que ficam na pós-produção NÃO devem receber horas extras!
+        const isEligibleForExtras = isMemberEligibleForExtraHours(myMember, m);
+        if (isEligibleForExtras) {
+          const offHoursInfo = calculateEventOnlyOffHours(m);
+          const approvedExtra = Number(m.extraHoursApproved) || 0;
+          const offHoursTotal = (offHoursInfo.offHours || 0) + approvedExtra;
+          totalHours += offHoursTotal;
+          if (offHoursTotal > 0) {
+            const rate = customRate !== null ? customRate : hourlyRate;
+            const remun = calculateExtraHoursRemuneration(offHoursTotal, rate);
+            totalHoursVal += remun.amount;
+          }
         }
       }
     });
@@ -1636,8 +1643,8 @@ export default function CollaboratorSpace({
                       )}
                     </div>
 
-                    {/* Ação: Solicitar Horas Extras ou Prorrogar Retorno */}
-                    {!isClosed && (
+                    {/* Ação: Solicitar Horas Extras ou Prorrogar Retorno (Exclusivo para equipe em campo; editores na pós não recebem horas extras) */}
+                    {!isClosed && isMemberEligibleForExtraHours(myMember, m) && (
                       <button
                         type="button"
                         onClick={() => setRequestModalMission(m)}

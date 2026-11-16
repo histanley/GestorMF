@@ -120,6 +120,52 @@ export function isMissionEligibleForPayout(mission, referenceNow = new Date()) {
 }
 
 /**
+ * Verifica se um colaborador é elegível para receber horas extras em uma missão.
+ *
+ * REGRA OFICIAL MEGAFILMES:
+ * "Os editores que ficam na pós-produção não devem receber horas extras."
+ *
+ * Horas extras fora do expediente são devidas estritamente à equipe operacional
+ * que atuou presencialmente em campo no local do evento (membros de campo e condutores).
+ * Quem participou exclusivamente na pós-produção/edição não recebe horas extras.
+ */
+export function isMemberEligibleForExtraHours(member, mission) {
+  if (!member || !mission) return false;
+  const memIdStr = String(member.id);
+  const memNameNorm = String(member.name || '').trim().toLowerCase();
+
+  // 1. Checa se o colaborador foi condutor/motorista em campo
+  const allocations = Array.isArray(mission.vehicleAllocations) ? mission.vehicleAllocations : [];
+  const isDriver = allocations.some(
+    (a) => (a.driverId && String(a.driverId) === memIdStr) ||
+           (a.driverName && String(a.driverName).trim().toLowerCase() === memNameNorm)
+  ) || (mission.driverId && String(mission.driverId) === memIdStr) ||
+       (mission.driverName && String(mission.driverName).trim().toLowerCase() === memNameNorm);
+
+  if (isDriver) return true;
+
+  // 2. Checa se o colaborador esteve escalado na equipe presencial de campo
+  const teamIds = Array.isArray(mission.teamIds) ? mission.teamIds.map(String) : [];
+  const inTeamIds = teamIds.includes(memIdStr);
+  const inTeamMembers = Array.isArray(mission.teamMembers) &&
+    mission.teamMembers.some((tm) => String(tm.id) === memIdStr || String(tm.name || '').trim().toLowerCase() === memNameNorm);
+  const inTeamField = Array.isArray(mission.team) &&
+    mission.team.some((t) => String(t) === memIdStr || String(t).trim().toLowerCase() === memNameNorm);
+
+  // 3. Checa funções explícitas atribuídas no evento de campo
+  const explicitRoles = mission.memberRoles?.[member.id] || mission.memberRoles?.[memIdStr];
+  const hasFieldRole = Array.isArray(explicitRoles)
+    ? explicitRoles.some((r) => r !== 'Editor de Vídeo' && r !== 'Designer Gráfico')
+    : (typeof explicitRoles === 'string' && explicitRoles.trim() && explicitRoles !== 'Editor de Vídeo' && explicitRoles !== 'Designer Gráfico');
+
+  const isFieldMember = inTeamIds || inTeamMembers || inTeamField || hasFieldRole;
+  if (isFieldMember) return true;
+
+  // Se o colaborador atuou apenas como editor de pós-produção (sem ir a campo), NÃO é elegível a horas extras
+  return false;
+}
+
+/**
  * Calcula os minutos totais, minutos em expediente e minutos fora do expediente (banco de horas)
  * entre dois horários em determinada(s) data(s).
  */

@@ -1,3 +1,5 @@
+import { isMemberEligibleForExtraHours } from './workHours';
+
 // ==============================================================================
 // 12 FUNÇÕES OFICIAIS DA EMPRESA (MEGA FILMES & MEGA GESTÃO)
 // ==============================================================================
@@ -325,8 +327,9 @@ export function calculateMemberPerformanceProfile(member, missions = []) {
         multiDayCount++;
       }
 
-      // Horas extras aprovadas nesta missão
-      const extraH = Number(m.extraHoursApproved || 0);
+      // Horas extras aprovadas nesta missão (exclusivas para quem atuou presencialmente em campo; editores na pós não recebem horas extras)
+      const isEligibleForExtras = isMemberEligibleForExtraHours(member, m);
+      const extraH = isEligibleForExtras ? Number(m.extraHoursApproved || 0) : 0;
       if (extraH > 0) {
         totalApprovedExtraHours += extraH;
       }

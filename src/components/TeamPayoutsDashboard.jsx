@@ -34,6 +34,7 @@ import {
   calculateMissionOffHours,
   calculateEventOnlyOffHours,
   isMissionEligibleForPayout,
+  isMemberEligibleForExtraHours,
   calculateExtraHoursRemuneration
 } from '../utils/workHours';
 
@@ -307,31 +308,42 @@ export default function TeamPayoutsDashboard({
           } else {
             // Modalidade 1: Hora Extra (Banco de Horas)
             // REGRA OFICIAL MEGAFILMES:
-            // Cálculo proporcional direto: horas extras × taxa horária individual.
-            const extraApproved = Number(m.extraHoursApproved) || 0;
-            const totalMissionOffHours = offHoursWorked + extraApproved;
+            // "Os editores que ficam na pós-produção não devem receber horas extras."
+            // Horas extras fora do expediente são devidas estritamente à equipe presencial de campo.
+            const isEligibleForExtras = isMemberEligibleForExtraHours(member, m);
 
-            if (totalMissionOffHours > 0) {
-              const extraRemun = calculateExtraHoursRemuneration(
-                totalMissionOffHours,
-                effectiveHourlyRate
-              );
-              itemAmount = extraRemun.amount;
-              extraFormulaText = extraRemun.formulaText;
-            } else {
+            if (!isEligibleForExtras) {
               itemAmount = 0;
-            }
-
-            if (isCompleted) {
-              totalHours += totalMissionOffHours;
-              totalOffHoursAmount += itemAmount;
-              totalAmount += itemAmount;
+              extraFormulaText = 'Editor na Pós-Produção (Sem Horas Extras - exclusivo para campo)';
             } else {
-              plannedHours += totalMissionOffHours;
-              plannedOffHoursAmount += itemAmount;
-              plannedTotalAmount += itemAmount;
+              const extraApproved = Number(m.extraHoursApproved) || 0;
+              const totalMissionOffHours = offHoursWorked + extraApproved;
+
+              if (totalMissionOffHours > 0) {
+                const extraRemun = calculateExtraHoursRemuneration(
+                  totalMissionOffHours,
+                  effectiveHourlyRate
+                );
+                itemAmount = extraRemun.amount;
+                extraFormulaText = extraRemun.formulaText;
+              } else {
+                itemAmount = 0;
+              }
+
+              if (isCompleted) {
+                totalHours += totalMissionOffHours;
+                totalOffHoursAmount += itemAmount;
+                totalAmount += itemAmount;
+              } else {
+                plannedHours += totalMissionOffHours;
+                plannedOffHoursAmount += itemAmount;
+                plannedTotalAmount += itemAmount;
+              }
             }
           }
+
+          const isEligibleForExtras = isMemberEligibleForExtraHours(member, m);
+          const isOnlyEditor = !isEligibleForExtras && (inEditorIds || inEditorDisplay);
 
           statementMissions.push({
             id: m.id,
@@ -341,6 +353,8 @@ export default function TeamPayoutsDashboard({
             isMultiDay: isMDay,
             missionStatus: m.missionStatus || 'Agendada',
             isCompleted,
+            isOnlyEditor,
+            isEligibleForExtras,
             remunerationType: memberRemunType,
             daysCount,
             description: m.description || 'Missão sem título',
@@ -348,8 +362,8 @@ export default function TeamPayoutsDashboard({
             departureTime: m.departureTime || '--:--',
             returnTimeEstimated: m.returnTimeEstimated || '--:--',
             hoursWorked: missionHours,
-            offHoursWorked,
-            extraHoursApproved: Number(m.extraHoursApproved) || 0,
+            offHoursWorked: isEligibleForExtras ? offHoursWorked : 0,
+            extraHoursApproved: isEligibleForExtras ? (Number(m.extraHoursApproved) || 0) : 0,
             inHoursWorked,
             isOffHours: offHoursInfo.isOffHours,
             offHoursSegments: offHoursInfo.offHoursSegments || [],
@@ -1389,6 +1403,10 @@ export default function TeamPayoutsDashboard({
                                 <span className="sir-badge-multiday">
                                   📅 Diária {item.isMultiDay ? `Viagem (${item.daysCount}d)` : 'Campo (1d)'}
                                 </span>
+                              ) : item.isOnlyEditor ? (
+                                <span className="sir-badge-hours" style={{ background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.35)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }} title="Editores na pós-produção não recebem horas extras">
+                                  🎬 Pós-Produção (Sem Horas Extras)
+                                </span>
                               ) : hasExtra ? (
                                 <span className={`sir-badge-hours ${item.isCompleted ? 'sir-badge-offhours' : 'sir-badge-offhours-planned'}`} title={item.isCompleted ? "Horas extras homologadas no banco de horas" : "Horas extras previstas"}>
                                   ⏱️ +{totalExtraHours}h Extras {item.isCompleted ? '' : '(A Cumprir)'}
@@ -1404,7 +1422,23 @@ export default function TeamPayoutsDashboard({
                             <span className="sir-loc">{item.locationName}</span>
 
                             {/* RAIO-X EXPLICATIVO DA MISSÃO */}
-                            {isCustom ? (
+                            {item.isOnlyEditor && !isCustom && !isDaily ? (
+                              <div className="sir-xray-box" style={{ borderLeft: '3px solid #38bdf8', background: 'rgba(56, 189, 248, 0.08)', padding: '8px 12px', borderRadius: '6px', marginTop: '6px' }}>
+                                <div className="sxb-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div className="sxb-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Briefcase size={13} className="text-cyan" />
+                                    <span>Raio-X de Pós-Produção:</span>
+                                    <strong style={{ color: '#38bdf8' }}>Edição em Ilha / Estúdio</strong>
+                                  </div>
+                                  <strong className="sxb-amount" style={{ color: '#94a3b8' }}>R$ 0,00</strong>
+                                </div>
+                                <div className="sxb-body" style={{ marginTop: '4px', fontSize: '0.78rem', color: '#cbd5e1' }}>
+                                  <div className="sxb-line">
+                                    <span>Conforme as diretrizes oficiais da MegaFilmes, horas extras são destinadas estritamente à equipe que atua presencialmente em campo fora do expediente regular. Os editores que atuam na pós-produção não recebem horas extras.</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : isCustom ? (
                               <div className="sir-xray-box xray-custom-box" style={{ borderLeft: '3px solid #a855f7', background: 'rgba(168, 85, 247, 0.08)', padding: '8px 12px', borderRadius: '6px', marginTop: '6px' }}>
                                 <div className="sxb-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <div className="sxb-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
