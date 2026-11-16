@@ -31,6 +31,10 @@ import {
   Ban,
   HelpCircle,
   Film,
+  Star,
+  TrendingUp,
+  Target,
+  ShieldCheck,
 } from 'lucide-react';
 import ConcludePostProductionModal from './ConcludePostProductionModal';
 import {
@@ -42,8 +46,11 @@ import {
   OFFICIAL_COMPANY_ROLES,
   ROLE_ICONS_MAP,
   ROLE_COLORS_MAP,
+  ROLE_XP_POINTS,
+  ACTIVITY_XP_POINTS,
   normalizeToOfficialRole,
   computeMemberRoleCounts,
+  calculateMemberPerformanceProfile,
 } from '../utils/companyRoles';
 import { apiRequestExtraHours, apiExtendMissionReturnTime, apiUpdatePixKey } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
@@ -324,6 +331,58 @@ export default function CollaboratorSpace({
     if (!myMember) return {};
     return computeMemberRoleCounts(myMember, myMissions);
   }, [myMember, myMissions]);
+
+  // Modal de Detalhamento Completo do XP e Gamificação
+  const [isXpModalOpen, setIsXpModalOpen] = useState(false);
+
+  // Perfil completo de performance e XP do colaborador
+  const performanceProfile = useMemo(() => {
+    if (!myMember) return null;
+    return calculateMemberPerformanceProfile(myMember, missions);
+  }, [myMember, missions]);
+
+  // Nível gamificado calculado com base no Score de XP
+  const userLevel = useMemo(() => {
+    const s = performanceProfile?.score || 0;
+    const tiers = [
+      { level: 1, min: 0, max: 60, title: 'Iniciante de Campo', color: '#94a3b8' },
+      { level: 2, min: 60, max: 150, title: 'Operador Prata', color: '#38bdf8' },
+      { level: 3, min: 150, max: 300, title: 'Especialista Ouro', color: '#fbbf24' },
+      { level: 4, min: 300, max: 550, title: 'Mestre Diamante', color: '#a855f7' },
+      { level: 5, min: 550, max: 900, title: 'Comandante de Set', color: '#f43f5e' },
+      { level: 6, min: 900, max: 999999, title: 'Lenda MegaFilmes', color: '#10b981' },
+    ];
+    const currentTier = tiers.find((t) => s >= t.min && s < t.max) || tiers[tiers.length - 1];
+    const span = Math.max(1, currentTier.max - currentTier.min);
+    const currentLevelXP = Math.max(0, s - currentTier.min);
+    const neededForNextLevel = span;
+    const remainingForNext = Math.max(0, currentTier.max - s);
+    const progressPercent = Math.min(100, Math.max(0, Math.round((currentLevelXP / span) * 100)));
+
+    return {
+      level: currentTier.level,
+      title: currentTier.title,
+      color: currentTier.color,
+      score: s,
+      currentLevelXP,
+      neededForNextLevel,
+      remainingForNext,
+      progressPercent,
+    };
+  }, [performanceProfile?.score]);
+
+  // Lista ordenada de funções que estão gerando pontos ativamente
+  const activeScoringRoles = useMemo(() => {
+    if (!performanceProfile?.rolePoints) return [];
+    return OFFICIAL_COMPANY_ROLES
+      .filter((r) => (performanceProfile.rolePoints[r] || 0) > 0)
+      .map((r) => ({
+        role: r,
+        points: performanceProfile.rolePoints[r],
+        count: performanceProfile.roleCounts[r] || 0,
+      }))
+      .sort((a, b) => b.points - a.points);
+  }, [performanceProfile]);
 
   // Missões ordenadas estritamente por ordem de acontecimento (o que vai acontecer logo aparece primeiro)
   const sortedMyMissions = useMemo(() => {
@@ -845,6 +904,107 @@ export default function CollaboratorSpace({
             </>
           )}
         </div>
+
+        {/* Divisor Visual Sutil */}
+        <div className="cs-hero-divider" />
+
+        {/* ============================================================== */}
+        {/* WIDGET EXECUTIVO DE XP, NÍVEL E PONTUAÇÃO POR FUNÇÃO           */}
+        {/* ============================================================== */}
+        <div className="cs-hero-xp-card">
+          <div className="cs-xp-card-header">
+            <div className="cs-xp-tier-info">
+              <div
+                className="cs-xp-badge-icon"
+                style={{
+                  borderColor: userLevel.color || '#f59e0b',
+                  color: userLevel.color || '#f59e0b',
+                  boxShadow: `0 0 14px ${userLevel.color ? userLevel.color + '40' : 'rgba(245, 158, 11, 0.25)'}`,
+                }}
+              >
+                <Trophy size={18} />
+              </div>
+              <div className="cs-xp-tier-text">
+                <div className="cs-xp-tier-badge-row">
+                  <span className="cs-xp-tier-level" style={{ color: userLevel.color || '#f59e0b' }}>
+                    NÍVEL {userLevel.level}
+                  </span>
+                  <span className="cs-xp-tier-tag">Patente Operacional</span>
+                </div>
+                <strong className="cs-xp-tier-title">{userLevel.title}</strong>
+              </div>
+            </div>
+
+            <div className="cs-xp-score-block">
+              <div className="cs-xp-score-digits">
+                <Sparkles size={16} className="text-amber" />
+                <span>{userLevel.score}</span>
+                <small>XP</small>
+              </div>
+              <button
+                type="button"
+                className="cs-btn-xp-details"
+                onClick={() => setIsXpModalOpen(true)}
+                title="Abrir Extrato Completo de Pontuação, Horas e Funções"
+              >
+                <span>Ver Extrato</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Barra de Progresso de XP da Patente */}
+          <div className="cs-xp-progress-wrap">
+            <div className="cs-xp-progress-bar-bg">
+              <div
+                className="cs-xp-progress-fill"
+                style={{
+                  width: `${userLevel.progressPercent}%`,
+                  background: `linear-gradient(90deg, #06b6d4 0%, ${userLevel.color || '#f59e0b'} 100%)`,
+                  boxShadow: `0 0 10px ${userLevel.color ? userLevel.color + '60' : 'rgba(245, 158, 11, 0.4)'}`,
+                }}
+              />
+            </div>
+            <div className="cs-xp-progress-meta">
+              <span className="cs-xp-progress-pct">{userLevel.progressPercent}% para o próximo nível</span>
+              <span className="cs-xp-progress-remaining">
+                {userLevel.level >= 6
+                  ? '🌟 Patente Máxima da MegaFilmes'
+                  : `Faltam ${userLevel.remainingForNext} XP para o Nível ${userLevel.level + 1}`}
+              </span>
+            </div>
+          </div>
+
+          {/* Funções em que está pontuando ativamente */}
+          <div className="cs-xp-active-roles-row">
+            <span className="cs-xp-roles-label">
+              <Target size={13} />
+              <span>Pontuando em:</span>
+            </span>
+
+            <div className="cs-xp-roles-pills-list">
+              {activeScoringRoles.length > 0 ? (
+                activeScoringRoles.map(({ role, points, count }) => (
+                  <button
+                    key={role}
+                    type="button"
+                    className="cs-xp-role-pill"
+                    onClick={() => setIsXpModalOpen(true)}
+                    title={`${role}: ${count}x missões concluídas gerando ${points} XP. Clique para ver extrato completo.`}
+                  >
+                    <span className="pill-icon">{ROLE_ICONS_MAP[role] || '💼'}</span>
+                    <span className="pill-name">{role}</span>
+                    <strong className="pill-pts">+{points} XP</strong>
+                  </button>
+                ))
+              ) : (
+                <span className="cs-xp-role-pill-empty">
+                  🚀 Participe de missões de campo e entregas para computar XP nas suas funções!
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ============================================================== */}
@@ -920,22 +1080,35 @@ export default function CollaboratorSpace({
       </div>
 
       {/* ============================================================== */}
-      {/* 3. ATUAÇÃO FIEL PELAS 11 FUNÇÕES DA EMPRESA                    */}
+      {/* 3. ATUAÇÃO FIEL PELAS 12 FUNÇÕES DA EMPRESA                    */}
       {/* ============================================================== */}
       <div className="cs-section-block">
         <div className="cs-section-header-row">
-          <h3 className="cs-section-heading">
-            <Briefcase size={18} className="text-amber" />
-            Minhas Atuações por Função na Empresa ({OFFICIAL_COMPANY_ROLES.length} Funções Oficiais)
-          </h3>
-          <span className="cs-section-header-sub">
-            Rastreamento fiel e pontuação das funções cumpridas
-          </span>
+          <div>
+            <h3 className="cs-section-heading">
+              <Briefcase size={18} className="text-amber" />
+              Minhas Atuações por Função na Empresa ({OFFICIAL_COMPANY_ROLES.length} Funções Oficiais)
+            </h3>
+            <span className="cs-section-header-sub">
+              Rastreamento fiel e pontuação das funções cumpridas em missões
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className="cs-btn-view-xp-extrato"
+            onClick={() => setIsXpModalOpen(true)}
+            title="Abrir Extrato Completo de Pontuação de XP"
+          >
+            <Trophy size={14} className="text-amber" />
+            <span>Ver Extrato de XP</span>
+          </button>
         </div>
 
         <div className="cs-roles-grid">
           {OFFICIAL_COMPANY_ROLES.map((roleName) => {
             const count = roleCounts[roleName] || 0;
+            const pts = performanceProfile?.rolePoints?.[roleName] || 0;
             const isMainRole = normalizeToOfficialRole(myMember.role) === roleName;
             const isSecRole = Array.isArray(myMember.secondaryRoles) &&
               myMember.secondaryRoles.map(normalizeToOfficialRole).includes(roleName);
@@ -958,8 +1131,15 @@ export default function CollaboratorSpace({
                   </div>
                 </div>
 
-                <div className={`cs-role-count-badge ${count > 0 ? 'active' : ''}`}>
-                  {count}x
+                <div className="cs-role-counts-col">
+                  <div className={`cs-role-count-badge ${count > 0 ? 'active' : ''}`} title={`${count} missões exercidas`}>
+                    {count}x
+                  </div>
+                  {pts > 0 && (
+                    <div className="cs-role-xp-mini-badge" title={`${pts} XP gerados nesta função`}>
+                      +{pts} XP
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -1639,6 +1819,239 @@ export default function CollaboratorSpace({
         currentUser={currentUser}
         onConfirmConclude={handleConfirmConcludeEditorPart}
       />
+
+      {/* ============================================================== */}
+      {/* MODAL DETALHADO DE EXTRATO DE XP & CONQUISTAS                 */}
+      {/* ============================================================== */}
+      {isXpModalOpen && performanceProfile && (
+        <div className="cs-modal-backdrop" onClick={() => setIsXpModalOpen(false)}>
+          <div className="cs-xp-modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="cs-xp-modal-header">
+              <div className="cs-xp-modal-header-left">
+                <div
+                  className="cs-xp-modal-icon-badge"
+                  style={{
+                    borderColor: userLevel.color || '#f59e0b',
+                    color: userLevel.color || '#f59e0b',
+                  }}
+                >
+                  <Trophy size={22} />
+                </div>
+                <div>
+                  <div className="cs-xp-modal-tag-row">
+                    <span
+                      className="cs-xp-modal-tag"
+                      style={{
+                        borderColor: userLevel.color || '#f59e0b',
+                        color: userLevel.color || '#f59e0b',
+                      }}
+                    >
+                      Nível {userLevel.level} • {userLevel.title}
+                    </span>
+                    <span className="cs-xp-modal-subtag">Gamificação &amp; Carreira</span>
+                  </div>
+                  <h3 className="cs-xp-modal-title">Extrato de Pontuação de XP &amp; Funções</h3>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="cs-xp-modal-close"
+                onClick={() => setIsXpModalOpen(false)}
+                title="Fechar Extrato"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="cs-xp-modal-body">
+              {/* Card Hero do Modal: Patente Atual & Progresso */}
+              <div className="cs-xp-modal-hero-card">
+                <div className="cs-xp-modal-hero-top">
+                  <div className="cs-xp-modal-score-big">
+                    <span className="cs-xp-modal-score-num">{userLevel.score}</span>
+                    <span className="cs-xp-modal-score-lbl">XP TOTAL ACUMULADO</span>
+                  </div>
+
+                  <div className="cs-xp-modal-tier-badge-box">
+                    <span className="cs-xp-modal-tier-name" style={{ color: userLevel.color || '#f59e0b' }}>
+                      {userLevel.title}
+                    </span>
+                    <p className="cs-xp-modal-tier-phrase">
+                      {userLevel.level >= 6
+                        ? 'Parabéns! Você alcançou o nível lendário de excelência e liderança operacional na MegaFilmes.'
+                        : `Você já conquistou ${userLevel.currentLevelXP} XP nesta patente. Faltam ${userLevel.remainingForNext} XP para o próximo nível.`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="cs-xp-modal-bar-wrap">
+                  <div className="cs-xp-progress-bar-bg large">
+                    <div
+                      className="cs-xp-progress-fill"
+                      style={{
+                        width: `${userLevel.progressPercent}%`,
+                        background: `linear-gradient(90deg, #06b6d4 0%, ${userLevel.color || '#f59e0b'} 100%)`,
+                      }}
+                    />
+                  </div>
+                  <div className="cs-xp-progress-meta">
+                    <span>{userLevel.progressPercent}% concluído</span>
+                    <span>
+                      {userLevel.level >= 6
+                        ? '🌟 Nível Máximo'
+                        : `${userLevel.score} / ${userLevel.score + userLevel.remainingForNext} XP`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid de KPIs de Fontes de XP */}
+              <div className="cs-xp-kpi-grid">
+                <div className="cs-xp-kpi-card">
+                  <div className="cs-xp-kpi-header">
+                    <span className="cs-xp-kpi-title">Funções Oficiais</span>
+                    <Briefcase size={16} className="text-amber" />
+                  </div>
+                  <strong className="cs-xp-kpi-value text-amber">
+                    +{performanceProfile.rolesTotalXP} XP
+                  </strong>
+                  <span className="cs-xp-kpi-desc">
+                    Pontos pelas 12 especialidades exercidas
+                  </span>
+                </div>
+
+                <div className="cs-xp-kpi-card">
+                  <div className="cs-xp-kpi-header">
+                    <span className="cs-xp-kpi-title">Presença &amp; Êxito</span>
+                    <CheckCircle2 size={16} className="text-emerald" />
+                  </div>
+                  <strong className="cs-xp-kpi-value text-emerald">
+                    +{performanceProfile.missionBaseXP + performanceProfile.completedBonusXP} XP
+                  </strong>
+                  <span className="cs-xp-kpi-desc">
+                    {performanceProfile.totalMissions} missões finalizadas com sucesso
+                  </span>
+                </div>
+
+                <div className="cs-xp-kpi-card">
+                  <div className="cs-xp-kpi-header">
+                    <span className="cs-xp-kpi-title">Dedicação Extra</span>
+                    <Clock size={16} className="text-cyan" />
+                  </div>
+                  <strong className="cs-xp-kpi-value text-cyan">
+                    +{performanceProfile.extraHoursXP} XP
+                  </strong>
+                  <span className="cs-xp-kpi-desc">
+                    {performanceProfile.totalApprovedExtraHours}h extras aprovadas em campo
+                  </span>
+                </div>
+
+                <div className="cs-xp-kpi-card">
+                  <div className="cs-xp-kpi-header">
+                    <span className="cs-xp-kpi-title">Condução de Viatura</span>
+                    <Car size={16} className="text-blue" />
+                  </div>
+                  <strong className="cs-xp-kpi-value text-blue">
+                    +{performanceProfile.drivingKmXP} XP
+                  </strong>
+                  <span className="cs-xp-kpi-desc">
+                    {performanceProfile.drivingCount}x ao volante ({Math.round(performanceProfile.estimatedDistanceKm)} km)
+                  </span>
+                </div>
+              </div>
+
+              {/* Grid Discriminado por Função Oficial */}
+              <div className="cs-xp-section-title-row">
+                <h4 className="cs-xp-modal-heading">
+                  <Target size={18} className="text-amber" />
+                  Detalhamento de Pontos pelas 12 Funções Oficiais
+                </h4>
+                <span className="cs-xp-modal-heading-sub">
+                  Cada especialidade técnica possui seu valor de pontuação por missão concluída
+                </span>
+              </div>
+
+              <div className="cs-xp-roles-detailed-grid">
+                {OFFICIAL_COMPANY_ROLES.map((roleName) => {
+                  const count = performanceProfile.roleCounts[roleName] || 0;
+                  const pts = performanceProfile.rolePoints[roleName] || 0;
+                  const isMainRole = normalizeToOfficialRole(myMember.role) === roleName;
+                  const isSecRole = Array.isArray(myMember.secondaryRoles) &&
+                    myMember.secondaryRoles.map(normalizeToOfficialRole).includes(roleName);
+                  const icon = ROLE_ICONS_MAP[roleName] || '💼';
+                  const xpRate = ROLE_XP_POINTS[roleName] || 15;
+
+                  return (
+                    <div
+                      key={roleName}
+                      className={`cs-xp-role-card ${pts > 0 ? 'has-points' : ''} ${isMainRole ? 'is-main' : isSecRole ? 'is-sec' : ''}`}
+                    >
+                      <div className="cs-xp-role-card-top">
+                        <span className="cs-xp-role-card-icon">{icon}</span>
+                        <div className="cs-xp-role-card-meta">
+                          {isMainRole && <span className="cs-role-badge main">Principal</span>}
+                          {isSecRole && <span className="cs-role-badge sec">Adicional</span>}
+                          <span className="cs-role-rate-badge">{xpRate} XP/missão</span>
+                        </div>
+                      </div>
+
+                      <div className="cs-xp-role-card-body">
+                        <strong className="cs-xp-role-card-name">{roleName}</strong>
+                        <span className="cs-xp-role-card-sub">
+                          {count > 0 ? `${count} missão(ões) realizada(s)` : 'Ainda não realizada'}
+                        </span>
+                      </div>
+
+                      <div className="cs-xp-role-card-footer">
+                        <span className="cs-xp-role-card-label">Pontuação Total:</span>
+                        <strong className={`cs-xp-role-card-score ${pts > 0 ? 'text-amber' : ''}`}>
+                          {pts > 0 ? `+${pts} XP` : '0 XP'}
+                        </strong>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Insígnias e Reconhecimentos */}
+              {performanceProfile.badges && performanceProfile.badges.length > 0 && (
+                <div className="cs-xp-badges-wrapper">
+                  <div className="cs-xp-section-title-row">
+                    <h4 className="cs-xp-modal-heading">
+                      <Award size={18} className="text-amber" />
+                      Insígnias &amp; Conquistas Desbloqueadas ({performanceProfile.badges.length})
+                    </h4>
+                  </div>
+                  <div className="cs-xp-badges-grid">
+                    {performanceProfile.badges.map((b, idx) => (
+                      <div key={idx} className="cs-xp-badge-card" style={{ borderColor: b.color || '#f59e0b' }}>
+                        <span className="cs-xp-badge-card-icon">{b.icon || '🏅'}</span>
+                        <div className="cs-xp-badge-card-content">
+                          <strong className="cs-xp-badge-card-title" style={{ color: b.color || '#f59e0b' }}>
+                            {b.title}
+                          </strong>
+                          <p className="cs-xp-badge-card-desc">{b.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="cs-xp-modal-footer">
+              <button
+                type="button"
+                className="cs-btn-close-xp-modal"
+                onClick={() => setIsXpModalOpen(false)}
+              >
+                Fechar Extrato
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

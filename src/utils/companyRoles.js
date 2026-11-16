@@ -223,12 +223,29 @@ export function getRolesExercisedInMission(member, mission) {
 export function isMissionCompleted(m) {
   if (!m) return false;
   const s = String(m.missionStatus || m.status || '').toLowerCase().trim();
-  return (
+  if (
     s === 'finalizada' ||
     s === 'finalizado' ||
     s === 'concluída' ||
-    s === 'concluida'
-  );
+    s === 'concluida' ||
+    s === 'pendente'
+  ) {
+    return true;
+  }
+  // Se o retorno ou o evento já aconteceu no tempo, o trabalho operacional de campo já foi exercido
+  const dateStr = m.endDate || m.date;
+  const timeStr = m.returnTimeEstimated || m.eventEndTime || m.arrivalTimeEstimated || '23:59';
+  if (dateStr) {
+    try {
+      const [y, mo, d] = String(dateStr).split('-').map(Number);
+      const [h, min] = String(timeStr).split(':').map(Number);
+      const missionEnd = new Date(y, mo - 1, d, h || 0, min || 0, 0, 0);
+      if (missionEnd <= new Date()) {
+        return true;
+      }
+    } catch (e) {}
+  }
+  return false;
 }
 
 /**
