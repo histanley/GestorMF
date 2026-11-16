@@ -1110,9 +1110,69 @@ export default function MissionModal({
       ...prev,
       memberRoles: {
         ...(prev.memberRoles || {}),
-        [memberId]: roleName,
+        [memberId]: Array.isArray(roleName) ? roleName : [roleName],
       },
     }));
+  };
+
+  const handleAddMemberRole = (memberId, roleName) => {
+    if (!roleName) return;
+    setFormData((prev) => {
+      const mem = members.find((m) => String(m.id) === String(memberId));
+      const fallback = normalizeToOfficialRole(mem?.role || 'Cinegrafista');
+      const existing = prev.memberRoles?.[memberId];
+      let currentList = [];
+      if (Array.isArray(existing)) {
+        currentList = [...existing];
+      } else if (typeof existing === 'string' && existing.trim()) {
+        currentList = existing.includes(',')
+          ? existing.split(',').map((r) => r.trim()).filter(Boolean)
+          : [existing.trim()];
+      } else {
+        currentList = [fallback];
+      }
+
+      if (!currentList.includes(roleName)) {
+        currentList.push(roleName);
+      }
+
+      return {
+        ...prev,
+        memberRoles: {
+          ...(prev.memberRoles || {}),
+          [memberId]: currentList,
+        },
+      };
+    });
+  };
+
+  const handleRemoveMemberRole = (memberId, roleName) => {
+    setFormData((prev) => {
+      const mem = members.find((m) => String(m.id) === String(memberId));
+      const fallback = normalizeToOfficialRole(mem?.role || 'Cinegrafista');
+      const existing = prev.memberRoles?.[memberId];
+      let currentList = [];
+      if (Array.isArray(existing)) {
+        currentList = [...existing];
+      } else if (typeof existing === 'string' && existing.trim()) {
+        currentList = existing.includes(',')
+          ? existing.split(',').map((r) => r.trim()).filter(Boolean)
+          : [existing.trim()];
+      } else {
+        currentList = [fallback];
+      }
+
+      if (currentList.length <= 1) return prev;
+      const nextList = currentList.filter((r) => r !== roleName);
+
+      return {
+        ...prev,
+        memberRoles: {
+          ...(prev.memberRoles || {}),
+          [memberId]: nextList,
+        },
+      };
+    });
   };
 
   const handleMemberRemunerationTypeChange = (memberId, type) => {
@@ -3211,7 +3271,12 @@ export default function MissionModal({
                               : 'Expediente Normal:';
                           }
 
-                          const selectedRole = formData.memberRoles?.[mId] || normalizeToOfficialRole(mem.role);
+                          const rawMemberRole = formData.memberRoles?.[mId];
+                          const selectedRoles = Array.isArray(rawMemberRole)
+                            ? (rawMemberRole.length > 0 ? rawMemberRole : [normalizeToOfficialRole(mem.role)])
+                            : (typeof rawMemberRole === 'string' && rawMemberRole.trim()
+                                ? (rawMemberRole.includes(',') ? rawMemberRole.split(',').map((s) => s.trim()).filter(Boolean) : [rawMemberRole.trim()])
+                                : [normalizeToOfficialRole(mem.role)]);
 
                           return (
                             <div key={mId} className="mm-offhours-rate-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.75rem' }}>
@@ -3230,31 +3295,95 @@ export default function MissionModal({
                                   </div>
                                 </div>
 
-                                {/* SELETOR DA FUNÇÃO ESPECÍFICA NA MISSÃO (11 FUNÇÕES OFICIAIS) */}
-                                <div style={{ minWidth: '220px', flex: '1 1 220px' }}>
-                                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
-                                    🎯 Função nesta Missão:
-                                  </label>
-                                  <select
-                                    value={selectedRole}
-                                    onChange={(e) => handleMemberRoleChange(mId, e.target.value)}
-                                    style={{
-                                      width: '100%',
-                                      padding: '6px 10px',
-                                      background: '#0f172a',
-                                      border: '1px solid rgba(255,255,255,0.15)',
-                                      borderRadius: '8px',
-                                      color: '#f8fafc',
-                                      fontSize: '0.82rem',
-                                      fontWeight: 500
-                                    }}
-                                  >
-                                    {OFFICIAL_COMPANY_ROLES.map((r) => (
-                                      <option key={r} value={r}>
-                                        {ROLE_ICONS_MAP[r] || '💼'} {r}
-                                      </option>
-                                    ))}
-                                  </select>
+                                {/* SELETOR DE FUNÇÕES ACUMULATIVAS NESTA MISSÃO (12 FUNÇÕES OFICIAIS) */}
+                                <div style={{ minWidth: '240px', flex: '1 1 260px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                    <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}>
+                                      🎯 Funções nesta Missão:
+                                    </label>
+                                    <span style={{ fontSize: '0.7rem', color: selectedRoles.length > 1 ? '#38bdf8' : '#94a3b8', fontWeight: 600 }}>
+                                      {selectedRoles.length} {selectedRoles.length === 1 ? 'função' : 'funções acumuladas'}
+                                    </span>
+                                  </div>
+
+                                  {/* Badges das Funções Selecionadas com botão de remoção */}
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                                    {selectedRoles.map((r) => {
+                                      const color = ROLE_COLORS_MAP[r] || '#3b82f6';
+                                      const icon = ROLE_ICONS_MAP[r] || '💼';
+                                      return (
+                                        <span
+                                          key={r}
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                            padding: '4px 8px',
+                                            background: 'rgba(15, 23, 42, 0.9)',
+                                            border: `1px solid ${color}`,
+                                            borderRadius: '6px',
+                                            fontSize: '0.76rem',
+                                            fontWeight: 600,
+                                            color: '#f8fafc',
+                                            boxShadow: `0 2px 8px ${color}22`
+                                          }}
+                                        >
+                                          <span>{icon} {r}</span>
+                                          {selectedRoles.length > 1 && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleRemoveMemberRole(mId, r)}
+                                              style={{
+                                                background: 'transparent',
+                                                border: 'none',
+                                                color: '#94a3b8',
+                                                cursor: 'pointer',
+                                                padding: '0 2px',
+                                                fontSize: '0.85rem',
+                                                lineHeight: 1,
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                marginLeft: '2px'
+                                              }}
+                                              title={`Remover função ${r}`}
+                                            >
+                                              ✕
+                                            </button>
+                                          )}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {/* Seletor para adicionar/acumular outra função */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <select
+                                      value=""
+                                      onChange={(e) => {
+                                        if (e.target.value) {
+                                          handleAddMemberRole(mId, e.target.value);
+                                        }
+                                      }}
+                                      style={{
+                                        width: '100%',
+                                        padding: '6px 10px',
+                                        background: '#0f172a',
+                                        border: '1px dashed rgba(255,255,255,0.25)',
+                                        borderRadius: '8px',
+                                        color: '#cbd5e1',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 500,
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      <option value="">+ Acumular outra função (Fotógrafo, Totem, Drone, Áudio...)</option>
+                                      {OFFICIAL_COMPANY_ROLES.filter((r) => !selectedRoles.includes(r)).map((r) => (
+                                        <option key={r} value={r}>
+                                          + {ROLE_ICONS_MAP[r] || '💼'} {r}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
                                 </div>
                               </div>
 
@@ -3539,6 +3668,7 @@ export default function MissionModal({
               {formData.teamIds.map((mId) => {
                 const mem = members.find((x) => x.id === mId);
                 const roleName = formData.memberRoles?.[mId] || mem?.role || 'Membro de Campo';
+                const roleDisplay = Array.isArray(roleName) ? roleName.join(' • ') : roleName;
                 const personGroup = (formData.equipmentAllocations || []).find((g) => g.collaboratorId === mId) || { items: [] };
                 const itemsCount = (personGroup.items || []).reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
                 const selectedEquipId = selectedEquipByPerson[mId] || '';
@@ -3552,7 +3682,7 @@ export default function MissionModal({
                         </div>
                         <div>
                           <strong className="mepc-name">{mem?.name || 'Colaborador'}</strong>
-                          <span className="mepc-role-badge">{roleName}</span>
+                          <span className="mepc-role-badge">{roleDisplay}</span>
                         </div>
                       </div>
 

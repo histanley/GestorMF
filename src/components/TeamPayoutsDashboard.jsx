@@ -356,7 +356,16 @@ export default function TeamPayoutsDashboard({
             formulaText: extraFormulaText,
             isCustomRate: customRate !== null,
             itemAmount,
-            roleInMission: isDriver ? 'Motorista / Condutor' : (inEditorIds || inEditorDisplay) ? 'Editor / Pós-Produção' : 'Equipe de Campo',
+            roleInMission: (() => {
+              const explicitRoles = m.memberRoles?.[member.id] || m.memberRoles?.[String(member.id)];
+              if (Array.isArray(explicitRoles) && explicitRoles.length > 0) {
+                return explicitRoles.join(' • ');
+              }
+              if (typeof explicitRoles === 'string' && explicitRoles.trim()) {
+                return explicitRoles;
+              }
+              return isDriver ? 'Motorista / Condutor' : (inEditorIds || inEditorDisplay) ? 'Editor / Pós-Produção' : 'Equipe de Campo';
+            })(),
           });
         }
       });

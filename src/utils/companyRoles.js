@@ -1,5 +1,5 @@
 // ==============================================================================
-// 11 FUNÇÕES OFICIAIS DA EMPRESA (MEGA FILMES & MEGA GESTÃO)
+// 12 FUNÇÕES OFICIAIS DA EMPRESA (MEGA FILMES & MEGA GESTÃO)
 // ==============================================================================
 
 export const OFFICIAL_COMPANY_ROLES = [
@@ -8,6 +8,7 @@ export const OFFICIAL_COMPANY_ROLES = [
   'Piloto de Drone',
   'Fotógrafo(a)',
   'Editor de Vídeo',
+  'Operador de Totem',
   'Motorista / Produção',
   'Assistente Geral',
   'Designer Gráfico',
@@ -22,6 +23,7 @@ export const ROLE_ICONS_MAP = {
   'Piloto de Drone': '🚁',
   'Fotógrafo(a)': '📸',
   'Editor de Vídeo': '✂️',
+  'Operador de Totem': '🖼️',
   'Motorista / Produção': '🚗',
   'Assistente Geral': '🛠️',
   'Designer Gráfico': '🎨',
@@ -36,6 +38,7 @@ export const ROLE_COLORS_MAP = {
   'Piloto de Drone': '#06b6d4',
   'Fotógrafo(a)': '#ec4899',
   'Editor de Vídeo': '#8b5cf6',
+  'Operador de Totem': '#0ea5e9',
   'Motorista / Produção': '#10b981',
   'Assistente Geral': '#64748b',
   'Designer Gráfico': '#f43f5e',
@@ -55,6 +58,7 @@ export const ROLE_XP_POINTS = {
   'Editor de Vídeo': 25,          // Pós-produção, montagem e finalização
   'Cinegrafista': 20,             // Captação de imagens e operação de câmeras
   'Fotógrafo(a)': 20,             // Cobertura fotográfica oficial / ensaios
+  'Operador de Totem': 20,        // Operação técnica de totem fotográfico e impressão
   'Operador de Áudio': 20,        // Captação de áudio direto, estúdio e microfonação
   'Designer Gráfico': 20,         // Identidade visual, cartelas, artes e motions
   'Motorista / Produção': 15,     // Condução de viaturas e logística de set
@@ -86,6 +90,7 @@ export function normalizeToOfficialRole(roleStr) {
   if (clean.includes('cinegraf') || clean.includes('camera') || clean.includes('cam')) return 'Cinegrafista';
   if (clean.includes('foto')) return 'Fotógrafo(a)';
   if (clean.includes('editor') || clean.includes('pos-prod') || clean.includes('edicao')) return 'Editor de Vídeo';
+  if (clean.includes('totem') || clean.includes('toten') || clean.includes('cabine') || clean.includes('impressora')) return 'Operador de Totem';
   if (clean.includes('motorista') || clean.includes('condutor') || clean.includes('producao')) return 'Motorista / Produção';
   if (clean.includes('design') || clean.includes('motion')) return 'Designer Gráfico';
   if (clean.includes('audio') || clean.includes('som') || clean.includes('microfone') || clean.includes('locuc')) return 'Operador de Áudio';
@@ -161,7 +166,17 @@ export function getRolesExercisedInMission(member, mission) {
     }
 
     if (explicitRole) {
-      exercisedRoles.add(normalizeToOfficialRole(explicitRole));
+      if (Array.isArray(explicitRole)) {
+        explicitRole.forEach((r) => {
+          if (r) exercisedRoles.add(normalizeToOfficialRole(r));
+        });
+      } else if (typeof explicitRole === 'string' && explicitRole.includes(',')) {
+        explicitRole.split(',').forEach((r) => {
+          if (r.trim()) exercisedRoles.add(normalizeToOfficialRole(r.trim()));
+        });
+      } else {
+        exercisedRoles.add(normalizeToOfficialRole(explicitRole));
+      }
     } else {
       // 3.2. Inferência contextual baseada na pauta da missão e habilidades do colaborador
       const pauta = cleanText(`${mission.description || ''} ${mission.title || ''} ${mission.locationName || ''} ${mission.notes || ''}`);
@@ -355,6 +370,9 @@ export function calculateMemberPerformanceProfile(member, missions = []) {
   }
   if (roleCounts['Piloto de Drone'] >= 1) {
     badges.push({ id: 'drone-gold', icon: '🚁', name: 'Ás dos Ares', desc: `${roleCounts['Piloto de Drone']}x voos aéreos concluídos` });
+  }
+  if (roleCounts['Operador de Totem'] >= 1) {
+    badges.push({ id: 'totem-gold', icon: '🖼️', name: 'Mestre do Totem', desc: `${roleCounts['Operador de Totem']}x operações de totem fotográfico concluídas` });
   }
   if (roleCounts['Fotógrafo(a)'] >= 2) {
     badges.push({ id: 'photo-gold', icon: '📸', name: 'Foco Perfeito', desc: `${roleCounts['Fotógrafo(a)']}x ensaios e coberturas concluídas` });

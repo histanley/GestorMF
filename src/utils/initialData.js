@@ -20,6 +20,7 @@ export const DEFAULT_ROLES = [
   'Piloto de Drone',
   'Fotógrafo(a)',
   'Editor de Vídeo',
+  'Operador de Totem',
   'Motorista / Produção',
   'Assistente Geral',
   'Designer Gráfico',

@@ -785,7 +785,7 @@ export default function CollaboratorSpace({
         <div className="cs-section-header-row">
           <h3 className="cs-section-heading">
             <Briefcase size={18} className="text-amber" />
-            Minhas Atuações por Função na Empresa (11 Funções Oficiais)
+            Minhas Atuações por Função na Empresa ({OFFICIAL_COMPANY_ROLES.length} Funções Oficiais)
           </h3>
           <span className="cs-section-header-sub">
             Rastreamento fiel e pontuação das funções cumpridas

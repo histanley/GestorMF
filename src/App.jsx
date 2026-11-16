@@ -293,7 +293,12 @@ export default function App() {
 
   const [roles, setRoles] = useState(() => {
     const saved = localStorage.getItem('gestormf_roles');
-    return saved ? JSON.parse(saved) : DEFAULT_ROLES;
+    const parsed = saved ? JSON.parse(saved) : DEFAULT_ROLES;
+    const baseList = Array.isArray(parsed) ? parsed : DEFAULT_ROLES;
+    if (!baseList.includes('Operador de Totem')) {
+      return [...baseList, 'Operador de Totem'];
+    }
+    return baseList;
   });
 
   const [missions, setMissions] = useState(() => {
@@ -987,7 +992,8 @@ export default function App() {
         if (sRes.success && sRes.settings) {
           setSettings((prev) => ({ ...prev, ...sRes.settings }));
           if (Array.isArray(sRes.roles) && sRes.roles.length > 0) {
-            setRoles(sRes.roles);
+            const merged = sRes.roles.includes('Operador de Totem') ? sRes.roles : [...sRes.roles, 'Operador de Totem'];
+            setRoles(merged);
           }
         }
       } catch (err) {

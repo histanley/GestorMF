@@ -84,11 +84,14 @@ function runDatabaseInstallation($db) {
         'Piloto de Drone',
         'Fotógrafo(a)',
         'Editor de Vídeo',
+        'Operador de Totem',
         'Técnico de Instalação (Mega Print)',
         'Motorista / Produção',
         'Assistente Geral',
         'Designer Gráfico (Mega Print)',
-        'Operador de Áudio'
+        'Operador de Áudio',
+        'Social Mídia',
+        'Transmissão (Streamer)'
     ], JSON_UNESCAPED_UNICODE);
 
     $stmtSet = $db->prepare("
