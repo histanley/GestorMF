@@ -36,6 +36,7 @@ import {
   TrendingUp,
   Target,
   ShieldCheck,
+  Printer,
 } from 'lucide-react';
 import ConcludePostProductionModal from './ConcludePostProductionModal';
 import {
@@ -2082,6 +2083,15 @@ export default function CollaboratorSpace({
             </div>
 
             <div className="cs-xp-modal-footer">
+              <button
+                type="button"
+                className="cs-btn-print-xp-modal"
+                onClick={() => window.print()}
+                title="Imprimir Extrato de XP e Pontuações"
+              >
+                <Printer size={15} />
+                <span>Imprimir Extrato</span>
+              </button>
               <button
                 type="button"
                 className="cs-btn-close-xp-modal"

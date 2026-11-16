@@ -650,9 +650,18 @@ export default function TeamPayoutsDashboard({
     }
   };
 
-  // Imprimir relatório da folha
+  // Imprimir relatório geral da folha
   const handlePrintReport = () => {
     window.print();
+  };
+
+  // Imprimir Raio-X / Extrato Individual de Fechamento do Colaborador (A4 / PDF)
+  const handlePrintStatement = () => {
+    document.body.classList.add('printing-statement-xray');
+    window.print();
+    setTimeout(() => {
+      document.body.classList.remove('printing-statement-xray');
+    }, 1500);
   };
 
   return (
@@ -1159,9 +1168,9 @@ export default function TeamPayoutsDashboard({
         });
 
         return (
-          <div className="modal-overlay" onClick={() => setViewingStatementMember(null)}>
+          <div className="modal-overlay statement-modal-overlay" onClick={() => setViewingStatementMember(null)}>
             <div
-              className="modal-box modal-statement modal-xray-box"
+              className="modal-box modal-statement modal-xray-box printable-statement-sheet"
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: '840px' }}
             >
@@ -1175,10 +1184,44 @@ export default function TeamPayoutsDashboard({
                     {viewingStatementMember.name} • {viewingStatementMember.role || 'Colaborador'} • {monthLabel}
                   </span>
                 </div>
-                <button className="modal-close" onClick={() => setViewingStatementMember(null)}>✕</button>
+                <div className="statement-header-actions no-print" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn-statement-print-top"
+                    onClick={handlePrintStatement}
+                    title="Imprimir Raio-X / Extrato do Colaborador (A4 / PDF)"
+                  >
+                    <Printer size={15} />
+                    <span>Imprimir</span>
+                  </button>
+                  <button className="modal-close" onClick={() => setViewingStatementMember(null)} title="Fechar Janela">✕</button>
+                </div>
               </div>
 
               <div className="modal-form statement-body">
+                {/* Cabeçalho Corporativo Oficial para Impressão Timbrada (visível somente na impressão A4) */}
+                <div className="statement-print-header">
+                  <div className="sph-brand">
+                    <img
+                      src="/logo.png"
+                      alt="Mega Filmes"
+                      className="sph-logo"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                    <div>
+                      <h1 className="sph-company-name">MEGA FILMES &amp; PRODUÇÕES</h1>
+                      <div className="sph-doc-title">Extrato Operacional Oficial • Raio-X de Horas Extras &amp; Diárias</div>
+                    </div>
+                  </div>
+                  <div className="sph-meta-box">
+                    <div><strong>Competência:</strong> {monthLabel}</div>
+                    <div><strong>Colaborador:</strong> {viewingStatementMember.name} ({viewingStatementMember.role || 'Produção'})</div>
+                    {viewingStatementMember.pixKey && <div><strong>Chave PIX:</strong> {viewingStatementMember.pixKey}</div>}
+                    <div><strong>Emissão:</strong> {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div><strong>Situação:</strong> {viewingStatementMember.status === 'Pago' ? 'QUITADO / PAGO' : 'PENDENTE DE QUITAÇÃO'}</div>
+                  </div>
+                </div>
+
                 {/* Resumo do Colaborador com cliques interativos */}
                 <div className="statement-summary-banner">
                   <div
@@ -1580,8 +1623,22 @@ export default function TeamPayoutsDashboard({
                   )}
                 </div>
 
-                {/* Rodapé do Modal */}
-                <div className="modal-footer" style={{ marginTop: 16 }}>
+                {/* Rodapé Oficial Timbrado para Impressão com Linhas de Assinatura (visível apenas na impressão) */}
+                <div className="statement-print-footer">
+                  <div className="spf-sign-col">
+                    <div className="spf-sign-line" />
+                    <strong>{viewingStatementMember.name}</strong>
+                    <span>Colaborador • {viewingStatementMember.role || 'Produção'}</span>
+                  </div>
+                  <div className="spf-sign-col">
+                    <div className="spf-sign-line" />
+                    <strong>Diretoria Executiva / Gestão</strong>
+                    <span>Mega Filmes &amp; Fotografia</span>
+                  </div>
+                </div>
+
+                {/* Rodapé do Modal com Ações */}
+                <div className="modal-footer statement-footer no-print" style={{ marginTop: 16 }}>
                   <button
                     type="button"
                     className={`btn-clear-hours-modal ${viewingStatementMember.status === 'Pago' ? 'is-cleared' : ''}`}
@@ -1604,6 +1661,15 @@ export default function TeamPayoutsDashboard({
                         <span>Zerar Horas &amp; Quitar Saldo</span>
                       </>
                     )}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary btn-statement-print"
+                    onClick={handlePrintStatement}
+                    title="Imprimir Extrato / Espelho em folha A4 ou salvar em PDF"
+                  >
+                    <Printer size={15} />
+                    <span>Imprimir Extrato</span>
                   </button>
                   <button
                     type="button"
