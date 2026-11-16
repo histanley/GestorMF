@@ -57,6 +57,7 @@ import ConfirmModal from './components/ConfirmModal';
 import NotificationsCenter from './components/NotificationsCenter';
 import SendMessageModal from './components/SendMessageModal';
 import { registerDialogListener, confirmDialog, alertDialog } from './utils/dialog';
+import { normalizeMissionMultiEditors } from './utils/postProduction';
 
 import {
   getCurrentUser,
@@ -804,10 +805,14 @@ export default function App() {
 
         if (mRes.success && Array.isArray(mRes.missions)) {
           const now = new Date();
-          const freshMissions = mRes.missions.map((m) => ({
-            ...m,
-            missionStatus: computeMissionAutoStatus(m, now),
-          }));
+          const curMembers = (memRes.success && Array.isArray(memRes.members)) ? memRes.members : members;
+          const freshMissions = mRes.missions.map((m) => {
+            const normalized = normalizeMissionMultiEditors(m, curMembers);
+            return {
+              ...normalized,
+              missionStatus: computeMissionAutoStatus(normalized, now),
+            };
+          });
           setMissions(freshMissions);
 
           // Detecção de Novas Missões em Tempo Real para envio de Push Notification e Central de Notificações
@@ -1718,10 +1723,13 @@ export default function App() {
       if (mRes.success && Array.isArray(mRes.missions)) {
         const now = new Date();
         setMissions(
-          mRes.missions.map((m) => ({
-            ...m,
-            missionStatus: computeMissionAutoStatus(m, now),
-          }))
+          mRes.missions.map((m) => {
+            const normalized = normalizeMissionMultiEditors(m, members);
+            return {
+              ...normalized,
+              missionStatus: computeMissionAutoStatus(normalized, now),
+            };
+          })
         );
       }
     } catch (e) {
@@ -3386,6 +3394,7 @@ export default function App() {
             onUpdatePixKey={handleUpdatePixKey}
             onUpdateMember={handleUpdateMember}
             onUpdateAvailability={handleUpdateMemberAvailability}
+            onSaveMission={handleSaveMission}
           />
         )}
 

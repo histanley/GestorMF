@@ -46,6 +46,11 @@ import {
 import { alertDialog } from '../utils/dialog';
 import { normalizeRole } from '../utils/auth';
 import MissionHistoryModal from './MissionHistoryModal';
+import {
+  resolveMissionEditors,
+  getMissionEditionDeliverySummary,
+  getMissionEditorsDeliveryMap,
+} from '../utils/postProduction';
 
 function formatDateBR(dateStr) {
   if (!dateStr) return '';
@@ -224,49 +229,12 @@ export default function MissionDetailModal({
     });
   };
 
-  const resolveMissionEditors = (mis) => {
-    if (!mis) return [];
-    const found = [];
-    const seen = new Set();
-
-    if (Array.isArray(mis.editorIds) && mis.editorIds.length > 0) {
-      mis.editorIds.forEach((id) => {
-        const mem = members.find((m) => m.id === id);
-        if (mem && !seen.has(mem.id)) {
-          seen.add(mem.id);
-          found.push(mem);
-        }
-      });
-    }
-
-    if (mis.editorId) {
-      const mem = members.find((m) => m.id === mis.editorId);
-      if (mem && !seen.has(mem.id)) {
-        seen.add(mem.id);
-        found.push(mem);
-      }
-    }
-
-    if (found.length === 0 && (mis.editorNamesDisplay || mis.editorName)) {
-      const names = (mis.editorNamesDisplay || mis.editorName).split(',');
-      names.forEach((n) => {
-        const tr = n.trim();
-        if (tr && !seen.has(tr.toLowerCase())) {
-          seen.add(tr.toLowerCase());
-          const byName = members.find((m) => m.name && m.name.toLowerCase() === tr.toLowerCase());
-          found.push(byName || { id: `ed-${tr}`, name: tr, role: 'Editor de Vídeo', company: 'MegaFilmes' });
-        }
-      });
-    }
-
-    return found;
-  };
-
   const detailCode = getMissionCode(mission, missions);
   const detailAllocations = getMissionAllocations(mission, vehicles, members);
   const drv = resolveMissionDriver(mission);
   const teamMembers = resolveMissionTeamMembers(mission);
-  const assignedEditors = resolveMissionEditors(mission);
+  const assignedEditors = resolveMissionEditors(mission, members);
+  const deliverySummary = getMissionEditionDeliverySummary(mission, members);
   const isDetailOverdue = checkIsMissionOverdue(mission);
   const totalKm = getMissionTotalKm(mission);
   const oneWayKm = mission.distanceKm || 0;
@@ -835,21 +803,30 @@ export default function MissionDetailModal({
                         </label>
                         {assignedEditors.length > 0 ? (
                           <div className="mdm-editor-tags">
-                            {assignedEditors.map((ed, idx) => (
-                              <div key={ed.id || idx} className="mdm-editor-tag">
-                                <span className="mdm-editor-avatar">
-                                  {ed.photoUrl ? (
-                                    <img src={ed.photoUrl} alt={ed.name} />
-                                  ) : (
-                                    <span>{ed.name.slice(0, 2).toUpperCase()}</span>
-                                  )}
-                                </span>
-                                <div className="mdm-editor-info">
-                                  <strong>{ed.name}</strong>
-                                  <small>{ed.role || 'Editor de Vídeo'}</small>
+                            {assignedEditors.map((ed, idx) => {
+                              const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
+                              const isDone = edDeliv && edDeliv.status === 'delivered';
+                              return (
+                                <div key={ed.id || idx} className="mdm-editor-tag" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span className="mdm-editor-avatar">
+                                      {ed.photoUrl ? (
+                                        <img src={ed.photoUrl} alt={ed.name} />
+                                      ) : (
+                                        <span>{ed.name.slice(0, 2).toUpperCase()}</span>
+                                      )}
+                                    </span>
+                                    <div className="mdm-editor-info">
+                                      <strong>{ed.name}</strong>
+                                      <small>{ed.role || 'Editor de Vídeo'}</small>
+                                    </div>
+                                  </div>
+                                  <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', background: isDone ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: isDone ? '#34d399' : '#fbbf24', border: `1px solid ${isDone ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`, fontWeight: 700 }}>
+                                    {isDone ? '✅ Entregue' : '⏳ Pendente'}
+                                  </span>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : (
                           <div className="mdm-pp-empty">
@@ -896,7 +873,7 @@ export default function MissionDetailModal({
                       <div className="mdm-pp-status-left">
                         <span className="mdm-pp-label-sm">Situação da Pós-Produção:</span>
                         <span className={`status-badge-inline status-${(mission.editionStatus || 'Pendente').toLowerCase().replace(/\s+/g, '-')}`}>
-                          {mission.editionStatus || 'Pendente'}
+                          {deliverySummary.hasMultipleEditors ? deliverySummary.summaryBadgeText : (mission.editionStatus || 'Pendente')}
                         </span>
                         {mission.editionCompletedAt && (
                           <small className="mdm-pp-completed-info">
@@ -907,17 +884,17 @@ export default function MissionDetailModal({
 
                       <div className="mdm-pp-actions">
                         {/* Concluir Tarefa de Edição */}
-                        {mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && mission.editionStatus !== 'Não se aplica' && (
+                        {!deliverySummary.isFullyDelivered && mission.editionStatus !== 'Não se aplica' && (
                           <>
                             {canConcludeDetail && onConcludeEdition ? (
                               <button
                                 type="button"
                                 className="btn-pp-conclude"
                                 onClick={() => onConcludeEdition(mission)}
-                                title="Concluir tarefa de edição e enviar para confirmação da gestão"
+                                title={deliverySummary.hasMultipleEditors ? "Entregar minha parte na edição" : "Concluir tarefa de edição e enviar para confirmação da gestão"}
                               >
                                 <CheckCircle2 size={13} />
-                                <span>Concluir Tarefa de Edição</span>
+                                <span>{deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa de Edição'}</span>
                               </button>
                             ) : (
                               <span className="status-badge-inline status-pendente">
@@ -928,12 +905,12 @@ export default function MissionDetailModal({
                         )}
 
                         {/* Ações após conclusão do material: Apenas Administradores podem aceitar ou rejeitar */}
-                        {mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada' && (
+                        {deliverySummary.isFullyDelivered && mission.missionStatus !== 'Finalizada' && (
                           <>
                             {!canAdminManageEdition ? (
                               <div
                                 className="btn-pp-waiting"
-                                title="Material entregue pelo editor. Aguardando aceitação e confirmação pelo Administrador."
+                                title="Material entregue pelos editores. Aguardando aceitação e confirmação pelo Administrador."
                               >
                                 <Clock size={13} />
                                 <span>Aguardando Confirmação</span>

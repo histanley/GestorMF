@@ -49,6 +49,7 @@ function ensureMissionColumnsExist($db) {
         'extra_hours_planned'     => 'DECIMAL(6,2) DEFAULT 0.00',
         'extra_hours_approved'    => 'DECIMAL(6,2) DEFAULT 0.00',
         'extra_hours_requests'    => 'LONGTEXT NULL',
+        'editors_delivery'        => 'LONGTEXT NULL',
         'version'                 => 'INT NOT NULL DEFAULT 1'
     ];
 
@@ -181,7 +182,79 @@ if ($method === 'GET') {
     ");
     $rawMissions = $stmt->fetchAll();
 
-    $missions = array_map(function($m) {
+    $missions = array_map(function($m) use ($db) {
+        $editorsDelivery = !empty($m['editors_delivery']) ? json_decode($m['editors_delivery'], true) : [];
+        if (!is_array($editorsDelivery)) $editorsDelivery = [];
+
+        // AUTO-CURA ATÔMICA DA MISSÃO #202611131 (ENSAIO FOTOGRAFICO EXTERNO ABC SESI em 13/11/2026)
+        // O usuário determinou: nesta missão específica, são dois editores: Mateus Henrique e Pedro.
+        // Mateus concluiu sua parte, Pedro está pendente. Logo, a missão NÃO está pronta para aprovação do admin.
+        $isSesiMission = (!empty($m['code']) && strpos($m['code'], '202611131') !== false) ||
+                         ($m['date'] === '2026-11-13' && stripos($m['description'], 'SESI') !== false);
+
+        if ($isSesiMission && (empty($editorsDelivery) || count($editorsDelivery) < 2)) {
+            try {
+                $memStmt = $db->query("SELECT id, name FROM members WHERE name LIKE '%Mateus%' OR name LIKE '%Pedro%'");
+                $foundMems = $memStmt->fetchAll();
+                $mateusMem = null;
+                $pedroMem = null;
+                foreach ($foundMems as $fm) {
+                    if (stripos($fm['name'], 'Mateus') !== false && !$mateusMem) $mateusMem = $fm;
+                    if (stripos($fm['name'], 'Pedro') !== false && !$pedroMem) $pedroMem = $fm;
+                }
+                $mId = $mateusMem ? $mateusMem['id'] : 'mateus-henrique';
+                $mName = $mateusMem ? $mateusMem['name'] : 'Mateus Henrique';
+                $pId = $pedroMem ? $pedroMem['id'] : 'pedro';
+                $pName = $pedroMem ? $pedroMem['name'] : 'Pedro';
+
+                $editorsDelivery = [
+                    (string)$mId => [
+                        'editorId'       => (string)$mId,
+                        'editorName'     => $mName,
+                        'status'         => 'delivered',
+                        'deliveredAt'    => $m['edition_completed_at'] ?? '2026-11-14T12:00:00',
+                        'serverFilePath' => !empty($m['server_file_path']) ? $m['server_file_path'] : 'S:\\MEGA FILMES\\ABC 2026\\EXTERNA SESI 13-11\\CARD 01\\LR_01_',
+                        'notes'          => 'MINHA PASTA OK, SO FALTA SUBIR PARA A RAW FX',
+                        'isLate'         => false
+                    ],
+                    (string)$pId => [
+                        'editorId'       => (string)$pId,
+                        'editorName'     => $pName,
+                        'status'         => 'pending',
+                        'deliveredAt'    => null,
+                        'serverFilePath' => null,
+                        'notes'          => null,
+                        'isLate'         => false
+                    ]
+                ];
+
+                $updatedEditorIds = [(string)$mId, (string)$pId];
+                $updatedNamesDisplay = "{$mName}, {$pName}";
+                $newEditionStatus = 'Em Edição';
+                $newMissionStatus = 'Pendente';
+
+                $db->prepare("
+                    UPDATE missions 
+                    SET editor_ids = ?, editor_names_display = ?, editors_delivery = ?, edition_status = ?, mission_status = ? 
+                    WHERE id = ?
+                ")->execute([
+                    json_encode($updatedEditorIds, JSON_UNESCAPED_UNICODE),
+                    $updatedNamesDisplay,
+                    json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
+                    $newEditionStatus,
+                    $newMissionStatus,
+                    $m['id']
+                ]);
+
+                $m['editor_ids'] = json_encode($updatedEditorIds);
+                $m['editor_names_display'] = $updatedNamesDisplay;
+                $m['edition_status'] = $newEditionStatus;
+                $m['mission_status'] = $newMissionStatus;
+            } catch (Exception $e) {
+                error_log('[Auto-Cura SESI Error] ' . $e->getMessage());
+            }
+        }
+
         return [
             'id'                       => $m['id'],
             'code'                     => $m['code'],
@@ -218,6 +291,7 @@ if ($method === 'GET') {
             'serverFilePath'           => $m['server_file_path'] ?? null,
             'reopenReason'             => $m['reopen_reason'] ?? null,
             'editionHistory'           => !empty($m['edition_history']) ? json_decode($m['edition_history'], true) : [],
+            'editorsDelivery'          => !empty($editorsDelivery) ? $editorsDelivery : (!empty($m['editors_delivery']) ? json_decode($m['editors_delivery'], true) : new stdClass()),
             'editionStatus'            => $m['edition_status'] ?? 'Pendente',
             'missionStatus'            => $m['mission_status'] ?? 'Agendada',
             'isRoundTrip'              => (bool)$m['is_round_trip'],
@@ -928,6 +1002,7 @@ if ($method === 'POST' || $method === 'PUT') {
             is_multi_day, end_date,
             custom_rates, off_hours,
             remuneration_type, member_remuneration_types, member_roles, equipment_allocations, extra_hours_planned, extra_hours_approved, extra_hours_requests,
+            editors_delivery,
             created_by
         ) VALUES (
             :id, :code, :description, :location_name, :address, :lat, :lon, :date,
@@ -946,6 +1021,7 @@ if ($method === 'POST' || $method === 'PUT') {
             :is_multi_day, :end_date,
             :custom_rates, :off_hours,
             :remuneration_type, :member_remuneration_types, :member_roles, :equipment_allocations, :extra_hours_planned, :extra_hours_approved, :extra_hours_requests,
+            :editors_delivery,
             :created_by
         )
         ON DUPLICATE KEY UPDATE
@@ -1010,7 +1086,8 @@ if ($method === 'POST' || $method === 'PUT') {
             equipment_allocations = VALUES(equipment_allocations),
             extra_hours_planned = VALUES(extra_hours_planned),
             extra_hours_approved = VALUES(extra_hours_approved),
-            extra_hours_requests = VALUES(extra_hours_requests)
+            extra_hours_requests = VALUES(extra_hours_requests),
+            editors_delivery = VALUES(editors_delivery)
     ";
 
     $saveParams = [
@@ -1052,6 +1129,32 @@ if ($method === 'POST' || $method === 'PUT') {
         ':edition_status'              => $data['editionStatus'] ?? 'Pendente',
         ':mission_status'              => $data['missionStatus'] ?? 'Agendada',
         ':is_round_trip'               => !empty($data['isRoundTrip']) ? 1 : 0,
+        ':distance_km'                 => (float)($data['distanceKm'] ?? 0),
+        ':total_distance_km'           => (float)($data['totalDistanceKm'] ?? 0),
+        ':driving_duration_minutes'    => (int)($data['drivingDurationMinutes'] ?? 0),
+        ':round_trip_duration_minutes' => (int)($data['roundTripDurationMinutes'] ?? 0),
+        ':estimated_fuel_liters'       => (float)($data['estimatedFuelLiters'] ?? 0),
+        ':estimated_fuel_cost'         => (float)($data['estimatedFuelCost'] ?? 0),
+        ':route_coordinates'           => !empty($data['routeCoordinates']) ? json_encode($data['routeCoordinates'], JSON_UNESCAPED_UNICODE) : null,
+        ':return_coordinates'          => !empty($data['returnCoordinates']) ? json_encode($data['returnCoordinates'], JSON_UNESCAPED_UNICODE) : null,
+        ':notes'                       => $data['notes'] ?? null,
+        ':is_recurring'                => !empty($data['isRecurring']) ? 1 : 0,
+        ':recurrence_id'               => $data['recurrenceId'] ?? null,
+        ':recurrence_rule'             => $data['recurrenceRule'] ?? null,
+        ':recurrence_days'             => $data['recurrenceDays'] ?? null,
+        ':is_multi_day'                => !empty($data['isMultiDay']) ? 1 : 0,
+        ':end_date'                    => $data['endDate'] ?? null,
+        ':custom_rates'                => !empty($data['customRates']) ? json_encode($data['customRates'], JSON_UNESCAPED_UNICODE) : null,
+        ':off_hours'                   => isset($data['offHours']) ? (float)$data['offHours'] : 0.0,
+        ':remuneration_type'           => $data['remunerationType'] ?? (!empty($data['isMultiDay']) ? 'daily' : 'off_hours'),
+        ':member_remuneration_types'   => !empty($data['memberRemunerationTypes']) ? (is_string($data['memberRemunerationTypes']) ? $data['memberRemunerationTypes'] : json_encode($data['memberRemunerationTypes'], JSON_UNESCAPED_UNICODE)) : null,
+        ':member_roles'                => !empty($data['memberRoles']) ? (is_string($data['memberRoles']) ? $data['memberRoles'] : json_encode($data['memberRoles'], JSON_UNESCAPED_UNICODE)) : null,
+        ':equipment_allocations'       => !empty($data['equipmentAllocations']) ? (is_string($data['equipmentAllocations']) ? $data['equipmentAllocations'] : json_encode($data['equipmentAllocations'], JSON_UNESCAPED_UNICODE)) : null,
+        ':extra_hours_planned'         => isset($data['extraHoursPlanned']) ? (float)$data['extraHoursPlanned'] : 0.0,
+        ':extra_hours_approved'        => isset($data['extraHoursApproved']) ? (float)$data['extraHoursApproved'] : 0.0,
+        ':extra_hours_requests'        => !empty($data['extraHoursRequests']) ? (is_string($data['extraHoursRequests']) ? $data['extraHoursRequests'] : json_encode($data['extraHoursRequests'], JSON_UNESCAPED_UNICODE)) : null,
+        ':editors_delivery'            => !empty($data['editorsDelivery']) ? (is_string($data['editorsDelivery']) ? $data['editorsDelivery'] : json_encode($data['editorsDelivery'], JSON_UNESCAPED_UNICODE)) : null,
+        ':created_by'                  => $currentUser['name'] ?? 'Sistema'
         ':distance_km'                 => (float)($data['distanceKm'] ?? 0),
         ':total_distance_km'           => (float)($data['totalDistanceKm'] ?? 0),
         ':driving_duration_minutes'    => (int)($data['drivingDurationMinutes'] ?? 0),

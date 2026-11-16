@@ -30,7 +30,14 @@ import {
   CalendarOff,
   Ban,
   HelpCircle,
+  Film,
 } from 'lucide-react';
+import ConcludePostProductionModal from './ConcludePostProductionModal';
+import {
+  resolveMissionEditors,
+  getMissionEditionDeliverySummary,
+  getMissionEditorsDeliveryMap,
+} from '../utils/postProduction';
 import {
   OFFICIAL_COMPANY_ROLES,
   ROLE_ICONS_MAP,
@@ -67,7 +74,9 @@ export default function CollaboratorSpace({
   onUpdatePixKey = null,
   onUpdateMember = null,
   onUpdateAvailability = null,
+  onSaveMission = null,
 }) {
+  const [concludeModal, setConcludeModal] = useState({ isOpen: false, mission: null });
   // Identifica o colaborador correspondente ao usuário logado
   const myMember = useMemo(() => {
     if (!currentUser) return members[0] || null;
@@ -550,6 +559,129 @@ export default function CollaboratorSpace({
       });
     } finally {
       setIsSubmittingRequest(false);
+    }
+  };
+
+  const handleConfirmConcludeEditorPart = async ({
+    mission,
+    editorId,
+    editorName,
+    serverFilePath,
+    editorMessage,
+    isLate,
+  }) => {
+    if (!mission) return;
+    const now = new Date();
+    const deliveryStatus = isLate ? 'Fora do Prazo' : 'Dentro do Prazo';
+
+    const assignedEditors = resolveMissionEditors(mission, members);
+    const existingDelivery = getMissionEditorsDeliveryMap(mission, members);
+
+    const edKey = String(editorId || myMember?.id || assignedEditors[0]?.id || 'editor');
+    const edName = editorName || myMember?.name || 'Editor';
+
+    const updatedDelivery = {
+      ...existingDelivery,
+      [edKey]: {
+        editorId: edKey,
+        editorName: edName,
+        status: 'delivered',
+        deliveredAt: now.toISOString(),
+        serverFilePath: serverFilePath || null,
+        notes: editorMessage || null,
+        isLate,
+      },
+    };
+
+    const pendingRemaining = assignedEditors.filter((e) => {
+      const d = updatedDelivery[String(e.id)];
+      return !d || d.status !== 'delivered';
+    });
+    const isAllFinished = assignedEditors.length > 0 && pendingRemaining.length === 0;
+
+    const descParts = [
+      `Entrega de pós-produção registrada por ${edName}.`,
+      serverFilePath ? `Local no Servidor: "${serverFilePath}".` : null,
+      editorMessage ? `Mensagem: "${editorMessage}".` : null,
+      `Pontualidade: ${deliveryStatus}.`,
+      isAllFinished ? 'Todos os editores concluíram.' : `Aguardando ${pendingRemaining.map((e) => e.name).join(', ')}.`,
+    ].filter(Boolean).join(' ');
+
+    const newEvent = {
+      id: 'h-' + Date.now(),
+      type: isAllFinished ? 'COMPLETED' : 'PARTIAL_COMPLETED',
+      user: edName,
+      timestamp: now.toISOString(),
+      title: isAllFinished ? `Edição Totalmente Concluída (${deliveryStatus})` : `Parte Entregue por ${edName} (${deliveryStatus})`,
+      description: descParts,
+      status: deliveryStatus,
+      isOverdue: isLate,
+      serverFilePath: serverFilePath || null,
+      message: editorMessage || null,
+    };
+
+    const updatedHistory = Array.isArray(mission.editionHistory)
+      ? [...mission.editionHistory, newEvent]
+      : [newEvent];
+
+    let updatedNotes = mission.notes || '';
+    const noteItems = [];
+    if (serverFilePath) noteItems.push(`[${edName}] Servidor: ${serverFilePath}`);
+    if (editorMessage) noteItems.push(`[${edName}] ${editorMessage}`);
+    if (noteItems.length > 0) {
+      const noteContent = `[${formatDateBR(now)}]: ` + noteItems.join(' | ');
+      updatedNotes = updatedNotes ? `${updatedNotes}\n${noteContent}` : noteContent;
+    }
+
+    const missionVer = (mission.version !== undefined && mission.version !== null) ? Number(mission.version) : 1;
+    const updatedMission = {
+      ...mission,
+      editionStatus: isAllFinished ? 'Edição Concluída' : 'Em Edição',
+      missionStatus: 'Pendente',
+      editionDeliveryStatus: deliveryStatus,
+      serverFilePath: serverFilePath || mission.serverFilePath || null,
+      editionCompletedAt: isAllFinished ? now.toISOString() : (mission.editionCompletedAt || now.toISOString()),
+      editionCompletedBy: isAllFinished ? edName : mission.editionCompletedBy,
+      isOverdue: isLate ? 1 : 0,
+      reopenReason: '',
+      notes: updatedNotes,
+      editorsDelivery: updatedDelivery,
+      editionHistory: updatedHistory,
+      version: missionVer,
+    };
+
+    setConcludeModal({ isOpen: false, mission: null });
+
+    if (onSaveMission) {
+      const res = await onSaveMission(updatedMission);
+      if (res && res.success === false) {
+        await alertDialog({
+          title: 'Não foi possível concluir',
+          message: res.error || 'Erro ao registrar a conclusão da tarefa de pós-produção.',
+          variant: 'danger',
+        });
+        return;
+      }
+
+      if (isAllFinished) {
+        sendPushNotification(`🎬 Pós-Produção Pronta para Avaliação! (#${mission.code || mission.id})`, {
+          body: `Todos os editores (${assignedEditors.map(e => e.name).join(', ')}) concluíram a pauta "${mission.description}".`,
+          tag: `pp-pending-${mission.id}`,
+          data: { missionId: mission.id, type: 'post_production_approval' },
+        });
+        await alertDialog({
+          title: '🎉 Edição Concluída!',
+          message: 'Todos os editores finalizaram suas etapas! A pauta foi enviada para avaliação e aprovação final da diretoria.',
+          variant: 'success',
+        });
+      } else {
+        await alertDialog({
+          title: '✅ Sua Parte Foi Entregue!',
+          message: `Sua etapa da pós-produção foi registrada com sucesso! A pauta permanecerá em edição aguardando ${pendingRemaining.map(e => e.name).join(', ')}.`,
+          variant: 'success',
+        });
+      }
+      if (onReloadMissions) onReloadMissions();
     }
   };
 
@@ -1225,6 +1357,76 @@ export default function CollaboratorSpace({
                       </strong>
                       <span className="cs-mission-loc">📍 {m.locationName}</span>
 
+                      {/* Bloco Operacional de Pós-Produção para o Editor Responsável */}
+                      {(() => {
+                        const deliverySummary = getMissionEditionDeliverySummary(m, members);
+                        if (!deliverySummary.hasPostProduction) return null;
+
+                        const myMemIdStr = myMember ? String(myMember.id) : '';
+                        const myMemNameNorm = myMember?.name ? myMember.name.trim().toLowerCase() : '';
+                        const isMyEdition = deliverySummary.assignedEditors.some(
+                          (ed) => String(ed.id) === myMemIdStr || ed.name?.toLowerCase().includes(myMemNameNorm)
+                        );
+                        if (!isMyEdition) return null;
+
+                        const matchedEditorObj = deliverySummary.assignedEditors.find(
+                          (ed) => String(ed.id) === myMemIdStr || ed.name?.toLowerCase().includes(myMemNameNorm)
+                        );
+                        const edKey = matchedEditorObj ? String(matchedEditorObj.id) : myMemIdStr;
+                        const myDeliv = deliverySummary.deliveryMap[edKey];
+                        const isMyPartDone = myDeliv && myDeliv.status === 'delivered';
+
+                        return (
+                          <div className="cs-pp-edition-block" style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(56, 189, 248, 0.06)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Film size={15} style={{ color: '#38bdf8' }} />
+                                <strong style={{ fontSize: '0.84rem', color: '#f8fafc' }}>
+                                  Sua Atuação nesta Pauta: Pós-Produção & Edição
+                                </strong>
+                              </div>
+                              <span style={{ fontSize: '0.74rem', padding: '2px 8px', borderRadius: '4px', background: isMyPartDone ? 'rgba(16, 185, 129, 0.18)' : 'rgba(245, 158, 11, 0.18)', color: isMyPartDone ? '#34d399' : '#fbbf24', border: `1px solid ${isMyPartDone ? 'rgba(16, 185, 129, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`, fontWeight: 700 }}>
+                                {isMyPartDone ? '✅ Sua Parte Entregue' : '⏳ Sua Parte Pendente'}
+                              </span>
+                            </div>
+
+                            {deliverySummary.hasMultipleEditors && (
+                              <div style={{ marginTop: '6px', fontSize: '0.76rem', color: '#94a3b8' }}>
+                                👥 Status da Equipe: <strong>{deliverySummary.summaryBadgeText}</strong>
+                              </div>
+                            )}
+
+                            {isMyPartDone ? (
+                              <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                                <small style={{ color: '#34d399', fontSize: '0.76rem' }}>
+                                  {deliverySummary.isFullyDelivered
+                                    ? '🎉 Todos os editores entregaram! A pauta está na fila de aprovação da Diretoria.'
+                                    : 'Aguardando entrega dos outros editores para envio à aprovação da Diretoria.'}
+                                </small>
+                                <button
+                                  type="button"
+                                  onClick={() => setConcludeModal({ isOpen: true, mission: m })}
+                                  style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#cbd5e1', fontSize: '0.75rem', cursor: 'pointer' }}
+                                >
+                                  Editar / Reenviar Entrega
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ marginTop: '8px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setConcludeModal({ isOpen: true, mission: m })}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: '1px solid rgba(16, 185, 129, 0.5)', borderRadius: '8px', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)' }}
+                                >
+                                  <CheckCircle2 size={14} />
+                                  <span>Entregar Minha Parte da Edição</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       {/* Histórico de solicitações de horas extras nesta missão */}
                       {myRequests.length > 0 && (
                         <div className="cs-requests-chips">
@@ -1417,6 +1619,17 @@ export default function CollaboratorSpace({
           </div>
         );
       })()}
+
+      {/* Modal de Conclusão de Pós-Produção */}
+      <ConcludePostProductionModal
+        isOpen={Boolean(concludeModal.isOpen)}
+        onClose={() => setConcludeModal({ isOpen: false, mission: null })}
+        mission={concludeModal.mission}
+        missions={missions}
+        members={members}
+        currentUser={currentUser}
+        onConfirmConclude={handleConfirmConcludeEditorPart}
+      />
     </div>
   );
 }

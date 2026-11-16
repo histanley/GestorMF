@@ -68,6 +68,13 @@ import { confirmDialog, alertDialog } from '../utils/dialog';
 import { normalizeRole } from '../utils/auth';
 import { sendPushNotification, clearPostProductionNotification } from '../utils/notifications';
 import MissionHistoryModal from './MissionHistoryModal';
+import RejectPostProductionModal from './RejectPostProductionModal';
+import ConcludePostProductionModal from './ConcludePostProductionModal';
+import {
+  resolveMissionEditors,
+  getMissionEditionDeliverySummary,
+  getMissionEditorsDeliveryMap,
+} from '../utils/postProduction';
 
 // Formata YYYY-MM-DD para DD/MM/AAAA
 function formatDateBR(dateStr) {
@@ -199,7 +206,7 @@ export default function ServiceBoard({
   };
 
   // Ação: Concluir Pós-Produção (Validando pontualidade em relação ao prazo estipulado)
-  // Ação: Concluir Pós-Produção (Abre modal de confirmação com suporte a mensagem do editor para gestão)
+  // Ação: Concluir Pós-Produção (Abre modal moderno com suporte a múltiplos editores)
   const handleConcludeEdition = async (mission) => {
     const isAssignedEditor = checkIsAssignedEditor(mission);
     const canConclude = isAssignedEditor || canAdminManageEdition;
@@ -213,56 +220,65 @@ export default function ServiceBoard({
       return;
     }
 
-    const now = new Date();
-    let isLate = false;
-    let deadlineStr = '';
-    if (mission.deliveryDeadlineDate) {
-      const deadlineDateStr = `${mission.deliveryDeadlineDate}T${mission.deliveryDeadlineTime || '18:00'}:00`;
-      const deadlineObj = new Date(deadlineDateStr);
-      if (!isNaN(deadlineObj.getTime())) {
-        isLate = now.getTime() > deadlineObj.getTime();
-        deadlineStr = `${formatDateBR(mission.deliveryDeadlineDate)} às ${mission.deliveryDeadlineTime || '18:00'}`;
-      }
-    }
-
     setConcludeModal({
       isOpen: true,
       mission,
-      isLate,
-      deadlineStr,
-      serverFilePath: mission.serverFilePath || '',
-      editorMessage: '',
     });
   };
 
-  const handleConfirmConclude = async () => {
-    const mission = concludeModal.mission;
+  const handleConfirmConclude = async ({
+    mission,
+    editorId,
+    editorName,
+    serverFilePath,
+    editorMessage,
+    isLate,
+  }) => {
     if (!mission) return;
-
     const now = new Date();
-    const isLate = concludeModal.isLate;
-    const deadlineStr = concludeModal.deadlineStr;
-    const serverFilePath = (concludeModal.serverFilePath || '').trim();
-    const editorMessage = (concludeModal.editorMessage || '').trim();
-
     const deliveryStatus = isLate ? 'Fora do Prazo' : 'Dentro do Prazo';
+
+    const assignedEditors = resolveMissionEditors(mission, members);
+    const existingDelivery = getMissionEditorsDeliveryMap(mission, members);
+
+    const edKey = String(editorId || assignedEditors[0]?.id || 'editor');
+    const updatedDelivery = {
+      ...existingDelivery,
+      [edKey]: {
+        editorId: edKey,
+        editorName: editorName || 'Editor',
+        status: 'delivered',
+        deliveredAt: now.toISOString(),
+        serverFilePath: serverFilePath || null,
+        notes: editorMessage || null,
+        isLate,
+      },
+    };
+
+    // Avalia se todos os editores concluíram suas partes
+    const pendingRemaining = assignedEditors.filter((e) => {
+      const d = updatedDelivery[String(e.id)];
+      return !d || d.status !== 'delivered';
+    });
+    const isAllFinished = assignedEditors.length > 0 && pendingRemaining.length === 0;
+
     const descParts = [
-      `Pós-produção entregue por ${currentUser?.name || 'Editor'}.`,
+      `Entrega de pós-produção registrada para ${editorName}.`,
       serverFilePath ? `Local no Servidor: "${serverFilePath}".` : null,
-      editorMessage ? `Mensagem do editor: "${editorMessage}".` : null,
-      `Avaliação de pontualidade: ${deliveryStatus}.`
+      editorMessage ? `Mensagem: "${editorMessage}".` : null,
+      `Pontualidade: ${deliveryStatus}.`,
+      isAllFinished ? 'Todos os editores concluíram.' : `Aguardando ${pendingRemaining.map((e) => e.name).join(', ')}.`,
     ].filter(Boolean).join(' ');
 
     const newEvent = {
       id: 'h-' + Date.now(),
-      type: 'COMPLETED',
-      user: currentUser?.name || 'Editor Responsável',
+      type: isAllFinished ? 'COMPLETED' : 'PARTIAL_COMPLETED',
+      user: currentUser?.name || editorName || 'Editor',
       timestamp: now.toISOString(),
-      title: `Edição Concluída (${deliveryStatus})`,
+      title: isAllFinished ? `Edição Totalmente Concluída (${deliveryStatus})` : `Parte Entregue por ${editorName} (${deliveryStatus})`,
       description: descParts,
       status: deliveryStatus,
       isOverdue: isLate,
-      deadline: deadlineStr,
       serverFilePath: serverFilePath || null,
       message: editorMessage || null,
     };
@@ -273,31 +289,31 @@ export default function ServiceBoard({
 
     let updatedNotes = mission.notes || '';
     const noteItems = [];
-    if (serverFilePath) noteItems.push(`Local no Servidor: ${serverFilePath}`);
-    if (editorMessage) noteItems.push(editorMessage);
+    if (serverFilePath) noteItems.push(`[${editorName}] Servidor: ${serverFilePath}`);
+    if (editorMessage) noteItems.push(`[${editorName}] ${editorMessage}`);
     if (noteItems.length > 0) {
-      const authorTag = `[${currentUser?.name || 'Editor'} - ${formatDateBR(now)}]: `;
-      const noteContent = authorTag + noteItems.join(' | ');
+      const noteContent = `[${formatDateBR(now)}]: ` + noteItems.join(' | ');
       updatedNotes = updatedNotes ? `${updatedNotes}\n${noteContent}` : noteContent;
     }
 
     const missionVer = (mission.version !== undefined && mission.version !== null) ? Number(mission.version) : 1;
     const updatedMission = {
       ...mission,
-      editionStatus: 'Edição Concluída',
+      editionStatus: isAllFinished ? 'Edição Concluída' : 'Em Edição',
       missionStatus: 'Pendente',
       editionDeliveryStatus: deliveryStatus,
       serverFilePath: serverFilePath || mission.serverFilePath || null,
-      editionCompletedAt: now.toISOString(),
-      editionCompletedBy: currentUser?.name || 'Editor',
+      editionCompletedAt: isAllFinished ? now.toISOString() : (mission.editionCompletedAt || now.toISOString()),
+      editionCompletedBy: isAllFinished ? (currentUser?.name || editorName) : mission.editionCompletedBy,
       isOverdue: isLate ? 1 : 0,
       reopenReason: '',
       notes: updatedNotes,
+      editorsDelivery: updatedDelivery,
       editionHistory: updatedHistory,
       version: missionVer,
     };
 
-    setConcludeModal({ isOpen: false, mission: null, isLate: false, deadlineStr: '', serverFilePath: '', editorMessage: '' });
+    setConcludeModal({ isOpen: false, mission: null });
 
     if (onSaveMission) {
       const res = await onSaveMission(updatedMission);
@@ -310,18 +326,27 @@ export default function ServiceBoard({
         return;
       }
       clearPostProductionNotification(mission.id);
-      sendPushNotification(`🎬 Nova Pós-Produção Pronta para Avaliação! (#${getMissionCode(mission, missions)})`, {
-        body: `${currentUser?.name || 'O editor'} concluiu a edição de "${mission.description}" e enviou para avaliação da diretoria.`,
-        tag: `pp-pending-${mission.id}`,
-        data: { missionId: mission.id, type: 'post_production_approval' },
-      });
-      await alertDialog({
-        title: '✅ Tarefa Concluída!',
-        message: 'A entrega da pós-produção foi registrada com sucesso! A diretoria foi notificada para avaliar e aprovar o material.',
-        variant: 'success',
-      });
+
+      if (isAllFinished) {
+        sendPushNotification(`🎬 Nova Pós-Produção Pronta para Avaliação! (#${getMissionCode(mission, missions)})`, {
+          body: `Todos os editores (${assignedEditors.map(e => e.name).join(', ')}) concluíram "${mission.description}". Enviado para aprovação da diretoria.`,
+          tag: `pp-pending-${mission.id}`,
+          data: { missionId: mission.id, type: 'post_production_approval' },
+        });
+        await alertDialog({
+          title: '✅ Edição Concluída!',
+          message: 'Todos os editores escalados finalizaram suas partes com sucesso! A diretoria foi notificada para avaliar e aprovar o material na Central do Administrador.',
+          variant: 'success',
+        });
+      } else {
+        await alertDialog({
+          title: '✅ Sua Parte Foi Entregue!',
+          message: `Sua etapa da pós-produção foi registrada com sucesso! A pauta continuará em edição até que ${pendingRemaining.map(e => e.name).join(', ')} também finalize a respectiva parte. Assim que todos concluírem, será enviada para aprovação da diretoria.`,
+          variant: 'success',
+        });
+      }
     } else if (onUpdateEditionStatus) {
-      onUpdateEditionStatus(mission.id, 'Edição Concluída');
+      onUpdateEditionStatus(mission.id, isAllFinished ? 'Edição Concluída' : 'Em Edição');
     }
   };
 
@@ -338,14 +363,17 @@ export default function ServiceBoard({
     setReopenModal({
       isOpen: true,
       mission,
-      reason: '',
-      hasNewDeadline: false,
-      newDeadlineDate: mission.deliveryDeadlineDate || mission.date || '',
-      newDeadlineTime: mission.deliveryDeadlineTime || '18:00',
     });
   };
 
-  const handleConfirmReopen = async () => {
+  const handleConfirmReopen = async ({
+    mission: m,
+    reason,
+    targetEditorId,
+    hasNewDeadline,
+    newDeadlineDate,
+    newDeadlineTime,
+  }) => {
     if (!canAdminManageEdition) {
       await alertDialog({
         title: 'Acesso Restrito',
@@ -354,31 +382,50 @@ export default function ServiceBoard({
       });
       return;
     }
-    if (!reopenModal.reason.trim()) {
-      await alertDialog({
-        title: 'Motivo Obrigatório',
-        message: 'Por favor, descreva os ajustes necessários ou o motivo da recusa do serviço.',
-        variant: 'warning',
-      });
-      return;
-    }
-    const m = reopenModal.mission;
-    const reason = reopenModal.reason.trim();
+
     const now = new Date();
-    const hasNewDeadline = reopenModal.hasNewDeadline && reopenModal.newDeadlineDate;
-    const newDeadlineStr = hasNewDeadline
-      ? `${formatDateBR(reopenModal.newDeadlineDate)} às ${reopenModal.newDeadlineTime || '18:00'}`
+    const hasDeadlineVal = Boolean(hasNewDeadline && newDeadlineDate);
+    const newDeadlineStr = hasDeadlineVal
+      ? `${formatDateBR(newDeadlineDate)} às ${newDeadlineTime || '18:00'}`
       : (m.deliveryDeadlineDate ? `${formatDateBR(m.deliveryDeadlineDate)} às ${m.deliveryDeadlineTime || '18:00'}` : 'Não estipulado');
+
+    const assignedEditors = resolveMissionEditors(m, members);
+    const existingDelivery = getMissionEditorsDeliveryMap(m, members);
+    const updatedDelivery = { ...existingDelivery };
+
+    let targetDesc = 'todos os editores';
+    if (targetEditorId && targetEditorId !== 'ALL') {
+      const targetEd = assignedEditors.find((e) => String(e.id) === String(targetEditorId));
+      targetDesc = targetEd ? targetEd.name : `Editor #${targetEditorId}`;
+      if (updatedDelivery[String(targetEditorId)]) {
+        updatedDelivery[String(targetEditorId)] = {
+          ...updatedDelivery[String(targetEditorId)],
+          status: 'pending',
+          reopenReason: reason,
+          reopenedAt: now.toISOString(),
+        };
+      }
+    } else {
+      Object.keys(updatedDelivery).forEach((k) => {
+        updatedDelivery[k] = {
+          ...updatedDelivery[k],
+          status: 'pending',
+          reopenReason: reason,
+          reopenedAt: now.toISOString(),
+        };
+      });
+    }
 
     const newEvent = {
       id: 'h-' + Date.now(),
       type: 'REOPENED',
       user: currentUser?.name || 'Administrador',
       timestamp: now.toISOString(),
-      title: 'Material Rejeitado e Reaberto para Ajustes',
-      description: `Motivo da rejeição / ajustes solicitados: "${reason}".` + (hasNewDeadline ? ` Novo prazo estipulado: ${newDeadlineStr}.` : ''),
+      title: `Material Rejeitado e Reaberto (${targetDesc})`,
+      description: `Motivo da rejeição / ajustes solicitados: "${reason}". Devolução direcionada para: ${targetDesc}.` + (hasDeadlineVal ? ` Novo prazo estipulado: ${newDeadlineStr}.` : ''),
       reason,
-      newDeadline: hasNewDeadline ? newDeadlineStr : null,
+      targetEditorId: targetEditorId || 'ALL',
+      newDeadline: hasDeadlineVal ? newDeadlineStr : null,
       isOverdue: true,
     };
 
@@ -393,8 +440,9 @@ export default function ServiceBoard({
       missionStatus: 'Pendente',
       isOverdue: 1,
       reopenReason: reason,
-      deliveryDeadlineDate: hasNewDeadline ? reopenModal.newDeadlineDate : m.deliveryDeadlineDate,
-      deliveryDeadlineTime: hasNewDeadline ? (reopenModal.newDeadlineTime || '18:00') : m.deliveryDeadlineTime,
+      deliveryDeadlineDate: hasDeadlineVal ? newDeadlineDate : m.deliveryDeadlineDate,
+      deliveryDeadlineTime: hasDeadlineVal ? (newDeadlineTime || '18:00') : m.deliveryDeadlineTime,
+      editorsDelivery: updatedDelivery,
       editionHistory: updatedHistory,
       version: mVer,
     };
@@ -412,11 +460,11 @@ export default function ServiceBoard({
       clearPostProductionNotification(m.id);
       await alertDialog({
         title: '↩️ Serviço Reaberto',
-        message: `A missão "${m.description}" retornou para o status Pendente (Em Edição). Os editores foram notificados com as orientações.` + (hasNewDeadline ? ` Novo prazo: ${newDeadlineStr}.` : ''),
+        message: `A missão "${m.description}" retornou para o status Pendente (Em Edição). Orientações enviadas para ${targetDesc}.` + (hasDeadlineVal ? ` Novo prazo: ${newDeadlineStr}.` : ''),
         variant: 'warning',
       });
     }
-    setReopenModal({ isOpen: false, mission: null, reason: '', hasNewDeadline: false, newDeadlineDate: '', newDeadlineTime: '18:00' });
+    setReopenModal({ isOpen: false, mission: null });
   };
 
   // Ação: Aprovar Entrega Final da Pós-Produção
@@ -3054,199 +3102,26 @@ export default function ServiceBoard({
       />
 
       {/* Modal Moderno para Informar Motivo de Rejeição / Reabertura de Edição */}
-      {reopenModal.isOpen && (
-        <div className="modal-overlay" onClick={() => setReopenModal({ isOpen: false, mission: null, reason: '', hasNewDeadline: false, newDeadlineDate: '', newDeadlineTime: '18:00' })}>
-          <div className="modal-box modal-box-compact reopen-edition-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <RotateCcw size={20} className="text-danger-bright" />
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Rejeitar e Reabrir Serviço</h3>
-                  <small style={{ color: 'var(--text-muted)' }}>
-                    Pauta: #{getMissionCode(reopenModal.mission, missions)} — {reopenModal.mission?.description}
-                  </small>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setReopenModal({ isOpen: false, mission: null, reason: '', hasNewDeadline: false, newDeadlineDate: '', newDeadlineTime: '18:00' })}
-              >
-                ✕
-              </button>
-            </div>
+      <RejectPostProductionModal
+        isOpen={Boolean(reopenModal.isOpen)}
+        onClose={() => setReopenModal({ isOpen: false, mission: null })}
+        mission={reopenModal.mission}
+        missions={missions}
+        members={members}
+        currentUser={currentUser}
+        onConfirmReopen={handleConfirmReopen}
+      />
 
-            <div className="modal-body" style={{ padding: '16px' }}>
-              <div className="reopen-warning-box">
-                <AlertTriangle size={16} />
-                <span>Esta ação rejeitará o material, retornará a missão para <strong>Pendente</strong> e notificará o editor responsável com as suas instruções.</span>
-              </div>
-
-              <div className="form-group" style={{ marginTop: '14px' }}>
-                <label>
-                  Motivo da Rejeição / Ajustes Solicitados: <span className="req-star">*</span>
-                </label>
-                <textarea
-                  rows="3"
-                  required
-                  placeholder="Descreva com detalhes o que o editor precisa ajustar (ex: cortes, áudio, trilha sonora, vinheta)..."
-                  value={reopenModal.reason}
-                  onChange={(e) => setReopenModal((prev) => ({ ...prev, reason: e.target.value }))}
-                  autoFocus
-                />
-              </div>
-
-              {/* Opção de Novo Prazo de Entrega */}
-              <div className="form-group reopen-deadline-toggle" style={{ marginTop: '12px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
-                  <input
-                    type="checkbox"
-                    checked={reopenModal.hasNewDeadline}
-                    onChange={(e) => setReopenModal((prev) => ({ ...prev, hasNewDeadline: e.target.checked }))}
-                  />
-                  <span>Estipular novo prazo de entrega para os editores trabalharem</span>
-                </label>
-              </div>
-
-              {reopenModal.hasNewDeadline && (
-                <div className="reopen-deadline-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px', padding: '10px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px' }}>
-                  <div className="form-group">
-                    <label style={{ fontSize: '0.8rem' }}>Nova Data Limite:</label>
-                    <input
-                      type="date"
-                      value={reopenModal.newDeadlineDate}
-                      onChange={(e) => setReopenModal((prev) => ({ ...prev, newDeadlineDate: e.target.value }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label style={{ fontSize: '0.8rem' }}>Novo Horário Limite:</label>
-                    <input
-                      type="time"
-                      value={reopenModal.newDeadlineTime}
-                      onChange={(e) => setReopenModal((prev) => ({ ...prev, newDeadlineTime: e.target.value }))}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setReopenModal({ isOpen: false, mission: null, reason: '', hasNewDeadline: false, newDeadlineDate: '', newDeadlineTime: '18:00' })}
-              >
-                Voltar
-              </button>
-              <button
-                type="button"
-                className="btn-danger"
-                onClick={handleConfirmReopen}
-              >
-                <RotateCcw size={14} /> Rejeitar e Reabrir Pauta
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Modal para Conclusão de Tarefa pelo Editor com Mensagem Opcional */}
-      {concludeModal.isOpen && (
-        <div className="modal-overlay" onClick={() => setConcludeModal({ isOpen: false, mission: null, isLate: false, deadlineStr: '', editorMessage: '' })}>
-          <div className="modal-box modal-box-compact reopen-edition-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {concludeModal.isLate ? (
-                  <AlertTriangle size={20} className="text-warning-bright" />
-                ) : (
-                  <CheckCircle2 size={20} style={{ color: '#10b981' }} />
-                )}
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
-                    {concludeModal.isLate ? 'Concluir Pós-Produção Fora do Prazo' : 'Concluir Pós-Produção no Prazo'}
-                  </h3>
-                  <small style={{ color: 'var(--text-muted)' }}>
-                    Pauta: #{getMissionCode(concludeModal.mission, missions)} — {concludeModal.mission?.description}
-                  </small>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setConcludeModal({ isOpen: false, mission: null, isLate: false, deadlineStr: '', editorMessage: '' })}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="modal-body" style={{ padding: '16px' }}>
-              {concludeModal.isLate ? (
-                <div className="reopen-warning-box" style={{ borderColor: 'rgba(245, 158, 11, 0.4)', background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24' }}>
-                  <AlertTriangle size={16} />
-                  <span>
-                    Atenção: O prazo estipulado para entrega era <strong>{concludeModal.deadlineStr || 'o combinado'}</strong> e já expirou. A conclusão será registrada como <strong>FORA DO PRAZO</strong> no histórico da missão.
-                  </span>
-                </div>
-              ) : (
-                <div className="reopen-warning-box" style={{ borderColor: 'rgba(16, 185, 129, 0.4)', background: 'rgba(16, 185, 129, 0.1)', color: '#34d399' }}>
-                  <CheckCircle2 size={16} />
-                  <span>
-                    Parabéns pela pontualidade! Prazo limite: <strong>{concludeModal.deadlineStr || 'hoje'}</strong>. Sua entrega está <strong>DENTRO DO PRAZO</strong>.
-                  </span>
-                </div>
-              )}
-
-              {/* CAMINHO DO ARQUIVO GERADO NO SERVIDOR */}
-              <div className="form-group" style={{ marginTop: '14px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                  <Folder size={15} style={{ color: '#38bdf8' }} />
-                  <span>Local do Arquivo / Pasta no Servidor:</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: S:\MEGA FILMES\ANIVERSARIO\GISELE 50 ANOS\VIDEOS\Gisele 50"
-                  value={concludeModal.serverFilePath}
-                  onChange={(e) => setConcludeModal((prev) => ({ ...prev, serverFilePath: e.target.value }))}
-                  style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
-                  autoFocus
-                />
-                <small className="field-hint-sub">Informe o caminho da pasta ou arquivo gerado no servidor de rede/armazenamento.</small>
-              </div>
-
-              <div className="form-group" style={{ marginTop: '12px' }}>
-                <label>
-                  Mensagem / Observações para a Gestão (opcional):
-                </label>
-                <textarea
-                  rows="2"
-                  placeholder="Ex: Vídeo finalizado com trilha sonora e artes inseridas..."
-                  value={concludeModal.editorMessage}
-                  onChange={(e) => setConcludeModal((prev) => ({ ...prev, editorMessage: e.target.value }))}
-                />
-                <small className="field-hint-sub">Esta mensagem será enviada ao Administrador e registrada no histórico da missão.</small>
-              </div>
-            </div>
-
-            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setConcludeModal({ isOpen: false, mission: null, isLate: false, deadlineStr: '', serverFilePath: '', editorMessage: '' })}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="btn-pp-conclude"
-                onClick={handleConfirmConclude}
-                style={{ padding: '8px 16px', fontSize: '0.85rem' }}
-              >
-                <CheckCircle2 size={14} />
-                <span>{concludeModal.isLate ? 'Confirmar Conclusão com Atraso' : 'Confirmar Conclusão no Prazo'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Moderno para Conclusão de Tarefa pelo Editor com Múltiplos Editores */}
+      <ConcludePostProductionModal
+        isOpen={Boolean(concludeModal.isOpen)}
+        onClose={() => setConcludeModal({ isOpen: false, mission: null })}
+        mission={concludeModal.mission}
+        missions={missions}
+        members={members}
+        currentUser={currentUser}
+        onConfirmConclude={handleConfirmConclude}
+      />
     </div>
   );
 }

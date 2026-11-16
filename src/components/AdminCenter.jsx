@@ -35,9 +35,15 @@ import TeamPayoutsDashboard from './TeamPayoutsDashboard';
 import TeamPerformanceRanking from './TeamPerformanceRanking';
 import MissionHistoryModal from './MissionHistoryModal';
 import EquipmentRentalManager from './EquipmentRentalManager';
+import RejectPostProductionModal from './RejectPostProductionModal';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { getMissionCode } from '../utils/geo';
 import { clearPostProductionNotification } from '../utils/notifications';
+import {
+  resolveMissionEditors,
+  getMissionEditionDeliverySummary,
+  getMissionEditorsDeliveryMap,
+} from '../utils/postProduction';
 
 function formatDateBR(dateStr) {
   if (!dateStr) return '';
@@ -98,16 +104,29 @@ export default function AdminCenter({
   }, [allExtraHoursRequests]);
 
   // 2. Extrai missões de Pós-Produção que precisam de aprovação da Diretoria
+  // Regra Estrita: Se houver múltiplos editores escalados, ela só pode entrar na fila quando TODOS tiverem entregue!
   const pendingEditions = useMemo(() => {
-    return missions.filter(
-      (m) => m.editionStatus === 'Edição Concluída' && m.missionStatus !== 'Finalizada'
-    );
-  }, [missions]);
+    return missions.filter((m) => {
+      const isFinished = m.missionStatus === 'Finalizada' || m.missionStatus === 'Finalizado' || m.missionStatus === 'Concluída';
+      if (isFinished) return false;
+
+      const summary = getMissionEditionDeliverySummary(m, members);
+      if (!summary.hasPostProduction) return false;
+
+      // Se houver múltiplos editores, SÓ entra para aprovação final da diretoria se TODOS concluírem!
+      if (summary.hasMultipleEditors) {
+        return summary.isFullyDelivered;
+      }
+
+      return m.editionStatus === 'Edição Concluída' || m.editionStatus === 'Entregue';
+    });
+  }, [missions, members]);
 
   const historyEditions = useMemo(() => {
-    return missions.filter(
-      (m) => m.missionStatus === 'Finalizada' && m.editionStatus === 'Edição Concluída'
-    );
+    return missions.filter((m) => {
+      const isFinished = m.missionStatus === 'Finalizada' || m.missionStatus === 'Finalizado' || m.missionStatus === 'Concluída';
+      return isFinished && (m.editionStatus === 'Edição Concluída' || m.editionStatus === 'Entregue');
+    });
   }, [missions]);
 
   // Sub-aba inicial: Se houver pós-produção pendente abre nela; se houver hora extra pendente abre nela; senão, fechamento
@@ -204,32 +223,58 @@ export default function AdminCenter({
   };
 
   // Ação: Rejeitar e Reabrir Serviço
-  const handleConfirmReopen = async () => {
-    if (!reopenModal.reason.trim()) {
-      await alertDialog({
-        title: 'Motivo Obrigatório',
-        message: 'Por favor, descreva os ajustes necessários ou o motivo da recusa do serviço.',
-        variant: 'warning',
-      });
-      return;
-    }
-    const m = reopenModal.mission;
-    const reason = reopenModal.reason.trim();
+  const handleConfirmReopen = async ({
+    mission: m,
+    reason,
+    targetEditorId,
+    hasNewDeadline,
+    newDeadlineDate,
+    newDeadlineTime,
+  }) => {
     const now = new Date();
-    const hasNewDeadline = reopenModal.hasNewDeadline && reopenModal.newDeadlineDate;
-    const newDeadlineStr = hasNewDeadline
-      ? `${formatDateBR(reopenModal.newDeadlineDate)} às ${reopenModal.newDeadlineTime || '18:00'}`
+    const hasDeadlineVal = Boolean(hasNewDeadline && newDeadlineDate);
+    const newDeadlineStr = hasDeadlineVal
+      ? `${formatDateBR(newDeadlineDate)} às ${newDeadlineTime || '18:00'}`
       : (m.deliveryDeadlineDate ? `${formatDateBR(m.deliveryDeadlineDate)} às ${m.deliveryDeadlineTime || '18:00'}` : 'Não estipulado');
+
+    const assignedEditors = resolveMissionEditors(m, members);
+    const deliveryMap = getMissionEditorsDeliveryMap(m, members);
+    const updatedDelivery = { ...deliveryMap };
+
+    let targetDesc = 'todos os editores';
+    if (targetEditorId && targetEditorId !== 'ALL') {
+      const targetEd = assignedEditors.find((e) => String(e.id) === String(targetEditorId));
+      targetDesc = targetEd ? targetEd.name : `Editor #${targetEditorId}`;
+      if (updatedDelivery[String(targetEditorId)]) {
+        updatedDelivery[String(targetEditorId)] = {
+          ...updatedDelivery[String(targetEditorId)],
+          status: 'pending',
+          reopenReason: reason,
+          reopenedAt: now.toISOString(),
+        };
+      }
+    } else {
+      // Reabre para todos
+      Object.keys(updatedDelivery).forEach((k) => {
+        updatedDelivery[k] = {
+          ...updatedDelivery[k],
+          status: 'pending',
+          reopenReason: reason,
+          reopenedAt: now.toISOString(),
+        };
+      });
+    }
 
     const newEvent = {
       id: 'h-' + Date.now(),
       type: 'REOPENED',
       user: currentUser?.name || 'Administrador',
       timestamp: now.toISOString(),
-      title: 'Material Rejeitado e Reaberto para Ajustes',
-      description: `Ajustes solicitados pela Diretoria na Central do Administrador: "${reason}".` + (hasNewDeadline ? ` Novo prazo: ${newDeadlineStr}.` : ''),
+      title: `Material Rejeitado e Reaberto (${targetDesc})`,
+      description: `Ajustes solicitados pela Diretoria: "${reason}". Devolução direcionada para: ${targetDesc}.` + (hasDeadlineVal ? ` Novo prazo: ${newDeadlineStr}.` : ''),
       reason,
-      newDeadline: hasNewDeadline ? newDeadlineStr : null,
+      targetEditorId: targetEditorId || 'ALL',
+      newDeadline: hasDeadlineVal ? newDeadlineStr : null,
       isOverdue: true,
     };
 
@@ -244,8 +289,9 @@ export default function AdminCenter({
       missionStatus: 'Pendente',
       isOverdue: 1,
       reopenReason: reason,
-      deliveryDeadlineDate: hasNewDeadline ? reopenModal.newDeadlineDate : m.deliveryDeadlineDate,
-      deliveryDeadlineTime: hasNewDeadline ? (reopenModal.newDeadlineTime || '18:00') : m.deliveryDeadlineTime,
+      deliveryDeadlineDate: hasDeadlineVal ? newDeadlineDate : m.deliveryDeadlineDate,
+      deliveryDeadlineTime: hasDeadlineVal ? (newDeadlineTime || '18:00') : m.deliveryDeadlineTime,
+      editorsDelivery: updatedDelivery,
       editionHistory: updatedHistory,
       version: mVer,
     };
@@ -263,11 +309,11 @@ export default function AdminCenter({
       clearPostProductionNotification(m.id);
       await alertDialog({
         title: '↩️ Serviço Reaberto',
-        message: `A missão "${m.description}" retornou para o status Pendente (Em Edição). Os editores foram notificados com as orientações.` + (hasNewDeadline ? ` Novo prazo: ${newDeadlineStr}.` : ''),
+        message: `A missão "${m.description}" retornou para o status Pendente (Em Edição). Orientações enviadas para ${targetDesc}.` + (hasDeadlineVal ? ` Novo prazo: ${newDeadlineStr}.` : ''),
         variant: 'warning',
       });
     }
-    setReopenModal({ isOpen: false, mission: null, reason: '', hasNewDeadline: false, newDeadlineDate: '', newDeadlineTime: '18:00' });
+    setReopenModal({ isOpen: false, mission: null });
   };
 
   // Copiar caminho do servidor
@@ -508,8 +554,13 @@ export default function AdminCenter({
                 {displayedEditions.map((mission) => {
                   const mCode = getMissionCode(mission, missions);
                   const isPending = mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada';
-                  const editorName = mission.editionCompletedBy || mission.editorNamesDisplay || mission.editorName || 'Jonathan Jordan';
                   const isOverdue = Boolean(mission.isOverdue || mission.editionDeliveryStatus === 'Atrasado');
+
+                  const assignedEditors = resolveMissionEditors(mission, members);
+                  const deliverySummary = getMissionEditionDeliverySummary(mission, members);
+                  const hasMultipleEditors = assignedEditors.length > 1;
+
+                  const editorName = mission.editionCompletedBy || mission.editorNamesDisplay || mission.editorName || (assignedEditors[0]?.name) || 'Editor Responsável';
 
                   // Extrai a última mensagem do editor deixada no histórico
                   const lastConcludeEvent = Array.isArray(mission.editionHistory)
@@ -558,6 +609,12 @@ export default function AdminCenter({
                             <span>Saída: {mission.departureTime}</span>
                           </span>
                         )}
+                        {hasMultipleEditors && (
+                          <span className="ac-meta-chip" style={{ background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}>
+                            <Users size={12} />
+                            <span>{assignedEditors.length} Editores ({deliverySummary.summaryBadgeText})</span>
+                          </span>
+                        )}
                       </div>
 
                       {/* Descrição / Pauta e Local */}
@@ -577,13 +634,37 @@ export default function AdminCenter({
                         <div className="ac-pp-two-col-row">
                           {/* Editor Responsável */}
                           <div className="ac-pp-mini-card">
-                            <span className="ac-pp-mini-label">Editor Responsável:</span>
-                            <div className="ac-pp-user-row">
-                              <div className="ac-pp-avatar-circle">
-                                {editorName.slice(0, 2).toUpperCase()}
+                            <span className="ac-pp-mini-label">
+                              {hasMultipleEditors ? `Editores Escalados (${assignedEditors.length}):` : 'Editor Responsável:'}
+                            </span>
+                            {hasMultipleEditors ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                                {assignedEditors.map((ed) => {
+                                  const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
+                                  const isDone = edDeliv && edDeliv.status === 'delivered';
+                                  return (
+                                    <div key={ed.id} className="ac-pp-user-row" style={{ justifyContent: 'space-between' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div className="ac-pp-avatar-circle" style={{ width: '22px', height: '22px', fontSize: '0.68rem' }}>
+                                          {ed.name.slice(0, 2).toUpperCase()}
+                                        </div>
+                                        <strong className="ac-pp-user-name" style={{ fontSize: '0.82rem' }}>{ed.name}</strong>
+                                      </div>
+                                      <span style={{ fontSize: '0.72rem', padding: '1px 6px', borderRadius: '4px', background: isDone ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: isDone ? '#34d399' : '#fbbf24', border: `1px solid ${isDone ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}` }}>
+                                        {isDone ? '✅ Entregue' : '⏳ Pendente'}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                              <strong className="ac-pp-user-name">{editorName}</strong>
-                            </div>
+                            ) : (
+                              <div className="ac-pp-user-row">
+                                <div className="ac-pp-avatar-circle">
+                                  {editorName.slice(0, 2).toUpperCase()}
+                                </div>
+                                <strong className="ac-pp-user-name">{editorName}</strong>
+                              </div>
+                            )}
                           </div>
 
                           {/* Prazo de Entrega */}
@@ -603,45 +684,103 @@ export default function AdminCenter({
                           </div>
                         </div>
 
-                        {/* Caminho dos Arquivos no Servidor */}
-                        {serverPath && (
-                          <div className="ac-pp-section-block">
-                            <span className="ac-pp-section-label">Local dos Arquivos no Servidor:</span>
-                            <div className="ac-pp-server-path-box">
-                              <div className="ac-pp-path-left">
-                                <HardDrive size={15} className="text-amber icon-shrink" />
-                                <code className="ac-pp-path-text" title={serverPath}>{serverPath}</code>
-                              </div>
-                              <button
-                                type="button"
-                                className="ac-btn-copy-path"
-                                onClick={() => handleCopyServerPath(serverPath, mission.id)}
-                                title="Copiar caminho da pasta"
-                              >
-                                {copiedPathId === mission.id ? (
-                                  <>
-                                    <Check size={13} className="text-emerald" />
-                                    <span>Copiado!</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy size={13} />
-                                    <span>Copiar</span>
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                        {/* Entregas Detalhadas por Editor quando Múltiplos */}
+                        {hasMultipleEditors ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                            {assignedEditors.map((ed) => {
+                              const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
+                              const isDone = edDeliv && edDeliv.status === 'delivered';
+                              const edPath = edDeliv?.serverFilePath || serverPath;
+                              const edNote = edDeliv?.notes || (ed.name.toLowerCase().includes('mateus') ? editorMessage : null);
 
-                        {/* Mensagem / Observações do Editor */}
-                        {editorMessage && (
-                          <div className="ac-pp-section-block">
-                            <span className="ac-pp-section-label">Observações da Entrega pelo Editor:</span>
-                            <div className="ac-pp-message-box">
-                              "{editorMessage}"
-                            </div>
+                              if (!isDone && !edPath && !edNote) return null;
+
+                              return (
+                                <div key={ed.id} style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.07)', borderRadius: '8px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                    <strong style={{ fontSize: '0.82rem', color: '#38bdf8' }}>Entrega: {ed.name}</strong>
+                                    {isDone && <span style={{ fontSize: '0.72rem', color: '#34d399' }}>✅ Concluído</span>}
+                                  </div>
+
+                                  {edPath && (
+                                    <div className="ac-pp-server-path-box" style={{ marginBottom: edNote ? '6px' : 0 }}>
+                                      <div className="ac-pp-path-left">
+                                        <HardDrive size={14} className="text-amber icon-shrink" />
+                                        <code className="ac-pp-path-text" title={edPath}>{edPath}</code>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        className="ac-btn-copy-path"
+                                        onClick={() => handleCopyServerPath(edPath, `${mission.id}-${ed.id}`)}
+                                        title="Copiar caminho da pasta"
+                                      >
+                                        {copiedPathId === `${mission.id}-${ed.id}` ? (
+                                          <>
+                                            <Check size={12} className="text-emerald" />
+                                            <span>Copiado!</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Copy size={12} />
+                                            <span>Copiar</span>
+                                          </>
+                                        )}
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {edNote && (
+                                    <div className="ac-pp-message-box" style={{ fontSize: '0.8rem' }}>
+                                      "{edNote}"
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
+                        ) : (
+                          <>
+                            {/* Caminho dos Arquivos no Servidor */}
+                            {serverPath && (
+                              <div className="ac-pp-section-block">
+                                <span className="ac-pp-section-label">Local dos Arquivos no Servidor:</span>
+                                <div className="ac-pp-server-path-box">
+                                  <div className="ac-pp-path-left">
+                                    <HardDrive size={15} className="text-amber icon-shrink" />
+                                    <code className="ac-pp-path-text" title={serverPath}>{serverPath}</code>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="ac-btn-copy-path"
+                                    onClick={() => handleCopyServerPath(serverPath, mission.id)}
+                                    title="Copiar caminho da pasta"
+                                  >
+                                    {copiedPathId === mission.id ? (
+                                      <>
+                                        <Check size={13} className="text-emerald" />
+                                        <span>Copiado!</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy size={13} />
+                                        <span>Copiar</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Mensagem / Observações do Editor */}
+                            {editorMessage && (
+                              <div className="ac-pp-section-block">
+                                <span className="ac-pp-section-label">Observações da Entrega pelo Editor:</span>
+                                <div className="ac-pp-message-box">
+                                  "{editorMessage}"
+                                </div>
+                              </div>
+                            )}
+                          </>
                         )}
 
                         {/* Equipe de Campo */}
@@ -936,103 +1075,17 @@ export default function AdminCenter({
       </div>
 
       {/* ============================================================== */}
-      {/* 4. MODAL: REJEITAR E REABRIR PÓS-PRODUÇÃO                      */}
+      {/* 4. MODAL: REJEITAR E REABRIR PÓS-PRODUÇÃO (MODERNO & SELETIVO) */}
       {/* ============================================================== */}
-      {reopenModal.isOpen && (
-        <div className="modal-overlay" onClick={() => setReopenModal({ isOpen: false, mission: null, reason: '', hasNewDeadline: false, newDeadlineDate: '', newDeadlineTime: '18:00' })}>
-          <div className="modal-box modal-box-compact reopen-edition-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <RotateCcw size={20} className="text-danger-bright" />
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Rejeitar e Reabrir Serviço</h3>
-                  <small style={{ color: 'var(--text-muted)' }}>
-                    Pauta: #{getMissionCode(reopenModal.mission, missions)} — {reopenModal.mission?.description}
-                  </small>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setReopenModal({ isOpen: false, mission: null, reason: '', hasNewDeadline: false, newDeadlineDate: '', newDeadlineTime: '18:00' })}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="modal-body" style={{ padding: '16px' }}>
-              <div className="reopen-warning-box">
-                <AlertTriangle size={16} />
-                <span>Esta ação rejeitará o material, retornará a missão para <strong>Pendente (Em Edição)</strong> e notificará os editores com suas orientações de ajuste.</span>
-              </div>
-
-              <div className="form-group" style={{ marginTop: '14px' }}>
-                <label>
-                  Motivo da Rejeição / Ajustes Solicitados: <span className="req-star">*</span>
-                </label>
-                <textarea
-                  rows="3"
-                  required
-                  placeholder="Descreva com detalhes o que o editor precisa ajustar (ex: cortes, áudio, trilha sonora, vinheta, cor)..."
-                  value={reopenModal.reason}
-                  onChange={(e) => setReopenModal((prev) => ({ ...prev, reason: e.target.value }))}
-                  autoFocus
-                />
-              </div>
-
-              {/* Opção de Novo Prazo de Entrega */}
-              <div className="form-group reopen-deadline-toggle" style={{ marginTop: '12px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
-                  <input
-                    type="checkbox"
-                    checked={reopenModal.hasNewDeadline}
-                    onChange={(e) => setReopenModal((prev) => ({ ...prev, hasNewDeadline: e.target.checked }))}
-                  />
-                  <span>Estipular novo prazo limite de entrega para os editores</span>
-                </label>
-              </div>
-
-              {reopenModal.hasNewDeadline && (
-                <div className="reopen-deadline-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px', padding: '10px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px' }}>
-                  <div className="form-group">
-                    <label style={{ fontSize: '0.8rem' }}>Nova Data Limite:</label>
-                    <input
-                      type="date"
-                      value={reopenModal.newDeadlineDate}
-                      onChange={(e) => setReopenModal((prev) => ({ ...prev, newDeadlineDate: e.target.value }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label style={{ fontSize: '0.8rem' }}>Novo Horário Limite:</label>
-                    <input
-                      type="time"
-                      value={reopenModal.newDeadlineTime}
-                      onChange={(e) => setReopenModal((prev) => ({ ...prev, newDeadlineTime: e.target.value }))}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '12px 16px' }}>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setReopenModal({ isOpen: false, mission: null, reason: '', hasNewDeadline: false, newDeadlineDate: '', newDeadlineTime: '18:00' })}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="btn-danger"
-                onClick={handleConfirmReopen}
-              >
-                <RotateCcw size={14} /> Rejeitar e Reabrir Pauta
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RejectPostProductionModal
+        isOpen={Boolean(reopenModal.isOpen)}
+        onClose={() => setReopenModal({ isOpen: false, mission: null })}
+        mission={reopenModal.mission}
+        missions={missions}
+        members={members}
+        currentUser={currentUser}
+        onConfirmReopen={handleConfirmReopen}
+      />
 
       {/* ============================================================== */}
       {/* 5. MODAL: HISTÓRICO COMPLETO DA MISSÃO                         */}
