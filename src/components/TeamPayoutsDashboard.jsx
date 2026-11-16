@@ -27,7 +27,9 @@ import {
   TrendingUp,
   RotateCcw,
   Zap,
+  ExternalLink,
 } from 'lucide-react';
+import MissionDetailModal from './MissionDetailModal';
 import { apiGetPayouts, apiSavePayout } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 import {
@@ -88,6 +90,8 @@ function calculateDaysBetween(startDateStr, endDateStr) {
 export default function TeamPayoutsDashboard({
   members = [],
   missions = [],
+  vehicles = [],
+  baseLocation = null,
   onUpdateMember,
 }) {
   // Mês selecionado (YYYY-MM)
@@ -110,6 +114,16 @@ export default function TeamPayoutsDashboard({
   const [viewingStatementMember, setViewingStatementMember] = useState(null);
   const [statementFilter, setStatementFilter] = useState('all'); // 'all' | 'extra_hours' | 'daily' | 'commercial' | 'scheduled'
   const [copiedPixMemberId, setCopiedPixMemberId] = useState(null);
+  const [selectedMissionForDetail, setSelectedMissionForDetail] = useState(null);
+
+  const handleOpenMissionDetail = (missionItem) => {
+    if (!missionItem) return;
+    const fullMission = missions.find(
+      (m) => String(m.id) === String(missionItem.id) ||
+             (m.code && missionItem.code && String(m.code).trim() === String(missionItem.code).trim())
+    ) || missionItem.rawMission || missionItem;
+    setSelectedMissionForDetail(fullMission);
+  };
 
   const handleOpenStatement = (member, filter = 'all') => {
     setStatementFilter(filter);
@@ -347,6 +361,7 @@ export default function TeamPayoutsDashboard({
 
           statementMissions.push({
             id: m.id,
+            rawMission: m,
             code: m.code || `#${m.id}`,
             date: m.date,
             endDate: m.endDate,
@@ -1378,7 +1393,16 @@ export default function TeamPayoutsDashboard({
                         >
                           <div className="sir-left">
                             <div className="sir-code-date">
-                              <span className="sir-code">{item.code}</span>
+                              <span
+                                className="sir-code sir-clickable"
+                                onClick={() => handleOpenMissionDetail(item)}
+                                title="🔍 Clique para ver os detalhes completos desta missão"
+                                role="button"
+                                tabIndex={0}
+                              >
+                                {item.code}
+                                <ExternalLink size={10} className="sir-link-icon" />
+                              </span>
                               <span className="sir-date">
                                 <Calendar size={12} /> {formatDateBR(item.date)}
                                 {item.isMultiDay && item.endDate && ` a ${formatDateBR(item.endDate)}`}
@@ -1418,7 +1442,15 @@ export default function TeamPayoutsDashboard({
                               )}
                             </div>
 
-                            <strong className="sir-desc">{item.description}</strong>
+                            <strong
+                              className="sir-desc sir-clickable"
+                              onClick={() => handleOpenMissionDetail(item)}
+                              title="🔍 Clique para ver os detalhes completos desta missão"
+                              role="button"
+                              tabIndex={0}
+                            >
+                              {item.description}
+                            </strong>
                             <span className="sir-loc">{item.locationName}</span>
 
                             {/* RAIO-X EXPLICATIVO DA MISSÃO */}
@@ -1593,6 +1625,20 @@ export default function TeamPayoutsDashboard({
           </div>
         );
       })()}
+
+      {/* Modal de Detalhes da Missão acionado pelo Raio-X */}
+      {selectedMissionForDetail && (
+        <MissionDetailModal
+          isOpen={Boolean(selectedMissionForDetail)}
+          mission={selectedMissionForDetail}
+          missions={missions}
+          vehicles={vehicles}
+          members={members}
+          baseLocation={baseLocation}
+          userRole="admin"
+          onClose={() => setSelectedMissionForDetail(null)}
+        />
+      )}
     </div>
   );
 }

@@ -3460,6 +3460,8 @@ export default function App() {
             currentUser={currentUser}
             members={members}
             missions={missions}
+            vehicles={vehicles}
+            baseLocation={baseLocation}
             onUpdateMember={handleUpdateMember}
             onRespondExtraHours={handleRespondExtraHours}
             onSaveMission={handleSaveMission}

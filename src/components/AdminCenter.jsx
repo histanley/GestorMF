@@ -56,6 +56,8 @@ export default function AdminCenter({
   currentUser,
   members = [],
   missions = [],
+  vehicles = [],
+  baseLocation = null,
   closures = {},
   onUpdateMember = null,
   onRespondExtraHours = null,
@@ -1053,6 +1055,8 @@ export default function AdminCenter({
             <TeamPayoutsDashboard
               members={members}
               missions={missions}
+              vehicles={vehicles}
+              baseLocation={baseLocation}
               onUpdateMember={onUpdateMember}
             />
           </div>
