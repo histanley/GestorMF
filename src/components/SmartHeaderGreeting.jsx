@@ -251,8 +251,12 @@ export default function SmartHeaderGreeting({
 
       // Depois próxima missão agendada
       const scheduledToday = missions
-        .filter((m) => isUserAssigned(m) && (m.missionStatus === 'Agendada' || m.missionStatus === 'Pendente'))
-        .sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
+        .filter((m) => isUserAssigned(m) && (!m.missionStatus || m.missionStatus === 'Agendada'))
+        .sort((a, b) => {
+          const dComp = String(a.date || '').localeCompare(String(b.date || ''));
+          if (dComp !== 0) return dComp;
+          return (a.departureTime || '').localeCompare(b.departureTime || '');
+        });
 
       if (scheduledToday.length > 0) {
         return { mission: scheduledToday[0], type: 'scheduled' };
@@ -269,10 +273,14 @@ export default function SmartHeaderGreeting({
       const preparing = missions.find((m) => m.missionStatus === 'Em Preparo');
       if (preparing) return { mission: preparing, type: 'preparing' };
 
-      // Próxima missão agendada
+      // Próxima missão agendada de campo (exclui Pendentes de pós-produção)
       const nextScheduled = missions
-        .filter((m) => m.missionStatus === 'Agendada' || m.missionStatus === 'Pendente')
-        .sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
+        .filter((m) => !m.missionStatus || m.missionStatus === 'Agendada')
+        .sort((a, b) => {
+          const dComp = String(a.date || '').localeCompare(String(b.date || ''));
+          if (dComp !== 0) return dComp;
+          return (a.departureTime || '').localeCompare(b.departureTime || '');
+        });
 
       if (nextScheduled.length > 0) {
         return { mission: nextScheduled[0], type: 'scheduled' };

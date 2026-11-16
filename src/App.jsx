@@ -2214,28 +2214,31 @@ export default function App() {
     const s = (m.missionStatus || '').toLowerCase();
     return s === 'finalizada' || s === 'finalizado' || s === 'concluída' || s === 'concluida';
   };
-  const isMissionAtiva = (m) => !isMissionFinalizada(m) && m.missionStatus !== 'Cancelada';
+  const isMissionPendente = (m) => {
+    if (!m) return false;
+    const s = (m.missionStatus || '').trim().toLowerCase();
+    return s === 'pendente' || s === 'pendente (pós-prod.)' || s === 'pós-produção' || s === 'pos-producao';
+  };
+  // 'Ativas' inclui apenas missões ativas em campo (Em Andamento e Agendadas; exclui Pendentes de Pós-Produção, Finalizadas e Canceladas)
+  const isMissionAtiva = (m) => !isMissionFinalizada(m) && !isMissionPendente(m) && m.missionStatus !== 'Cancelada';
 
   const countAtivas = missions.filter(isMissionAtiva).length;
   const countAgendadas = missions.filter(isMissionAgendada).length;
   const countAndamento = missions.filter(isMissionEmAndamento).length;
-  const countPendentes = missions.filter((m) => m.missionStatus === 'Pendente').length;
+  const countPendentes = missions.filter(isMissionPendente).length;
   const countFinalizadas = missions.filter(isMissionFinalizada).length;
 
   const filteredMapMissions = useMemo(() => {
     const list = missions.filter((m) => {
       if (mapMissionFilter === 'agendadas') return isMissionAgendada(m);
       if (mapMissionFilter === 'andamento') return isMissionEmAndamento(m);
-      if (mapMissionFilter === 'pendentes') return m.missionStatus === 'Pendente';
+      if (mapMissionFilter === 'pendentes') return isMissionPendente(m);
       if (mapMissionFilter === 'finalizadas') return isMissionFinalizada(m);
-      // Padrão ('ativas'): mostra Agendadas, Pendentes, Em Preparo e Em Execução (não mostra Finalizadas)
+      // Padrão ('ativas'): mostra apenas missões ativas em campo (Agendadas, Em Preparo e Em Execução)
       return isMissionAtiva(m);
     });
 
-    // Ordenação estrita por prioridade de status:
-    // 1º: Em Execução / Em Andamento
-    // 2º: Pendentes
-    // 3º: Agendadas
+    // Ordenação estrita por prioridade de status
     return sortMissionsByStatusPriority(list);
   }, [missions, mapMissionFilter]);
 
@@ -3115,7 +3118,7 @@ export default function App() {
                   type="button"
                   className={`map-filter-btn ${mapMissionFilter === 'ativas' ? 'active filter-all' : ''}`}
                   onClick={() => setMapMissionFilter('ativas')}
-                  title="Exibe todas as missões ativas (Em Execução, Pendentes e Agendadas)"
+                  title="Exibe apenas missões ativas em campo (Em Andamento e Agendadas)"
                 >
                   <span>Ativas</span>
                   <span className="filter-count">{countAtivas}</span>
@@ -3133,9 +3136,9 @@ export default function App() {
                   type="button"
                   className={`map-filter-btn ${mapMissionFilter === 'pendentes' ? 'active filter-pendente' : ''}`}
                   onClick={() => setMapMissionFilter('pendentes')}
-                  title="Exibe missões concluídas em campo aguardando pós-produção"
+                  title="Exibe missões já concluídas em campo aguardando pós-produção ou edição"
                 >
-                  <span>Pendentes</span>
+                  <span>Pendentes (Pós-Prod.)</span>
                   <span className="filter-count">{countPendentes}</span>
                 </button>
                 <button
@@ -3199,7 +3202,7 @@ export default function App() {
                             <span className="mission-code-mini">#{mCode}</span>
                             <span className={`status-tag tag-${(m.missionStatus || 'Agendada').toLowerCase().replace(/\s+/g, '-')}`}>
                               {isExecuting && <span className="exec-pulse-dot"></span>}
-                              {m.missionStatus || 'Agendada'}
+                              {m.missionStatus === 'Pendente' ? 'Pendente (Pós-Prod.)' : (m.missionStatus || 'Agendada')}
                             </span>
                             {Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date)) && (
                               <span className="mission-multiday-tag" title={`Missão de múltiplos dias: de ${m.date} a ${m.endDate}`}>

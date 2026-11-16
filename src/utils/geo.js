@@ -390,13 +390,13 @@ export function getMissionStatusPriority(mission) {
     return 1;
   }
 
-  // 2º lugar: Pendente (Pós-Produção)
-  if (status === 'pendente') {
+  // 2º lugar: Agendadas (missões futuras de campo a realizar)
+  if (status === 'agendada' || status === 'agendado') {
     return 2;
   }
 
-  // 3º lugar: Agendadas
-  if (status === 'agendada' || status === 'agendado') {
+  // 3º lugar: Pendente (Pós-Produção / Edição - campo já encerrado)
+  if (status === 'pendente') {
     return 3;
   }
 
@@ -455,7 +455,22 @@ export function sortMissionsByStatusPriority(missions = []) {
       return String(b.id || '').localeCompare(String(a.id || ''));
     }
 
-    // Ambas são ativas:
+    // Missões ativas de campo (Em Execução, Em Preparo, Agendadas) sempre vêm antes de missões concluídas em campo em pós-produção (Pendente)
+    const isPendA = (a.missionStatus || '').toLowerCase() === 'pendente';
+    const isPendB = (b.missionStatus || '').toLowerCase() === 'pendente';
+    if (!isPendA && isPendB) return -1;
+    if (isPendA && !isPendB) return 1;
+
+    // Se ambas forem Pendentes de Pós-Produção: mais recentes primeiro (data DESC, hora DESC)
+    if (isPendA && isPendB) {
+      const dateComp = String(b.date || '').localeCompare(String(a.date || ''));
+      if (dateComp !== 0) return dateComp;
+      const timeComp = String(b.departureTime || '00:00').localeCompare(String(a.departureTime || '00:00'));
+      if (timeComp !== 0) return timeComp;
+      return String(b.id || '').localeCompare(String(a.id || ''));
+    }
+
+    // Ambas são ativas de campo:
     // 1º lugar: Missão na Reta Final Crítica (Urgente) ou Acontecendo Agora tem prioridade máxima imediata
     const progA = getMissionLiveProgress(a);
     const progB = getMissionLiveProgress(b);

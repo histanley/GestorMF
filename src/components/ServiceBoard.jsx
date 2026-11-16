@@ -672,7 +672,7 @@ export default function ServiceBoard({
         m.missionStatus === 'Finalizado' ||
         m.missionStatus === 'Concluída';
       const matchesMissionStatus =
-        (filterMissionStatus === 'ATIVAS' && !isFinalizada && m.missionStatus !== 'Cancelada') ||
+        (filterMissionStatus === 'ATIVAS' && !isFinalizada && m.missionStatus !== 'Cancelada' && m.missionStatus !== 'Pendente') ||
         filterMissionStatus === 'TODOS' ||
         (filterMissionStatus === 'ANDAMENTO' &&
           (m.missionStatus === 'Em Execução' || m.missionStatus === 'Em Preparo')) ||
