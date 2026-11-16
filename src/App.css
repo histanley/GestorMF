@@ -44321,3 +44321,118 @@ body.light-theme .cs-btn-print-xp-modal {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ==========================================================================
+   BOTÕES E RODAPÉ ULTRA-MODERNOS DOS MODAIS DE VIATURA (HISTÓRICO & ABASTECIMENTO)
+   ========================================================================== */
+.modal-footer {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 14px 24px 20px 24px !important;
+  border-top: 1px solid var(--border-subtle) !important;
+  box-sizing: border-box !important;
+}
+
+.veh-history-modal-footer,
+.veh-fuel-modal-footer,
+.veh-form-modal-footer {
+  padding: 16px 24px 20px 24px !important;
+  margin-top: 10px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.45) 0%, rgba(10, 15, 29, 0.95) 100%) !important;
+  backdrop-filter: blur(12px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  box-sizing: border-box !important;
+}
+
+body.light-theme .veh-history-modal-footer,
+body.light-theme .veh-fuel-modal-footer,
+body.light-theme .veh-form-modal-footer {
+  background: #f8fafc !important;
+  border-top-color: #e2e8f0 !important;
+}
+
+/* Botão Destaque: Novo Abastecimento / Salvar Viatura */
+.btn-veh-action-fuel {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  height: 42px !important;
+  padding: 0 22px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  border: 1px solid rgba(251, 191, 36, 0.5) !important;
+  color: #0b0f19 !important;
+  font-size: 0.88rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.2px !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  white-space: nowrap !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+.btn-veh-action-fuel:hover {
+  transform: translateY(-2px) scale(1.01) !important;
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  filter: brightness(1.05) !important;
+  color: #000000 !important;
+}
+
+.btn-veh-action-fuel:active {
+  transform: translateY(0) scale(0.99) !important;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3) !important;
+}
+
+/* Botão Secundário: Fechar / Cancelar */
+.btn-veh-action-close {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  height: 42px !important;
+  padding: 0 20px !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #e2e8f0 !important;
+  font-size: 0.86rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  white-space: nowrap !important;
+}
+
+.btn-veh-action-close:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.26) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.btn-veh-action-close:active {
+  transform: translateY(0) scale(0.99) !important;
+}
+
+body.light-theme .btn-veh-action-close {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme .btn-veh-action-close:hover {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08) !important;
+}

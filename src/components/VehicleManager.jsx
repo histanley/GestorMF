@@ -1105,11 +1105,11 @@ export default function VehicleManager({
                 </select>
               </div>
 
-              <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setShowAddVehicleModal(false)}>
+              <div className="modal-footer veh-form-modal-footer">
+                <button type="button" className="btn-veh-action-close" onClick={() => setShowAddVehicleModal(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn-primary">
+                <button type="submit" className="btn-veh-action-fuel">
                   {editingVehicle ? 'Salvar Alterações' : 'Cadastrar Viatura'}
                 </button>
               </div>
@@ -1300,12 +1300,13 @@ export default function VehicleManager({
                   />
                 </div>
 
-                <div className="modal-footer">
-                  <button type="button" className="btn-secondary" onClick={() => setShowFuelModal(false)}>
+                <div className="modal-footer veh-fuel-modal-footer">
+                  <button type="button" className="btn-veh-action-close" onClick={() => setShowFuelModal(false)}>
                     Cancelar
                   </button>
-                  <button type="submit" className="btn-primary">
-                    {isElec ? '⚡ Salvar e Recarregar Bateria' : 'Salvar e Acrescentar ao Tanque'}
+                  <button type="submit" className="btn-veh-action-fuel">
+                    {isElec ? <Zap size={16} /> : <Fuel size={16} />}
+                    <span>{isElec ? 'Salvar e Recarregar Bateria' : 'Salvar e Acrescentar ao Tanque'}</span>
                   </button>
                 </div>
               </form>
@@ -1586,20 +1587,25 @@ export default function VehicleManager({
                 )}
               </div>
 
-              <div className="modal-footer">
+              <div className="modal-footer veh-history-modal-footer">
                 {canFuelVehicle && (
                   <button
                     type="button"
-                    className="btn-primary"
+                    className="btn-veh-action-fuel"
                     onClick={() => {
                       setShowHistoryModal(false);
                       handleOpenFuelModal(vehData);
                     }}
                   >
-                    <Fuel size={14} /> Novo Abastecimento
+                    {isElecHist ? <Zap size={16} /> : <Fuel size={16} />}
+                    <span>{isElecHist ? 'Nova Recarga Elétrica' : 'Novo Abastecimento'}</span>
                   </button>
                 )}
-                <button type="button" className="btn-secondary" onClick={() => setShowHistoryModal(false)}>
+                <button
+                  type="button"
+                  className="btn-veh-action-close"
+                  onClick={() => setShowHistoryModal(false)}
+                >
                   Fechar
                 </button>
               </div>
