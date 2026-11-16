@@ -294,7 +294,7 @@ export default function MissionDetailModal({
                 </span>
 
                 <span className="mdm-edition-badge">
-                  Pós-Produção: <strong>{mission.editionStatus || 'Pendente'}</strong>
+                  Pós-Produção: <strong>{deliverySummary.hasMultipleEditors ? (deliverySummary.isFullyDelivered ? 'Edição Concluída' : deliverySummary.summaryBadgeText) : (mission.editionStatus || 'Pendente')}</strong>
                 </span>
 
                 <span className="mdm-roundtrip-badge">
@@ -872,15 +872,37 @@ export default function MissionDetailModal({
                     <div className="mdm-pp-status-bar">
                       <div className="mdm-pp-status-left">
                         <span className="mdm-pp-label-sm">Situação da Pós-Produção:</span>
-                        <span className={`status-badge-inline status-${(mission.editionStatus || 'Pendente').toLowerCase().replace(/\s+/g, '-')}`}>
+                        <span className={`status-badge-inline status-${(deliverySummary.hasMultipleEditors ? (deliverySummary.isFullyDelivered ? 'edicao-concluida' : 'em-edicao') : (mission.editionStatus || 'Pendente')).toLowerCase().replace(/\s+/g, '-')}`}>
                           {deliverySummary.hasMultipleEditors ? deliverySummary.summaryBadgeText : (mission.editionStatus || 'Pendente')}
                         </span>
-                        {mission.editionCompletedAt && (
+                        {deliverySummary.isFullyDelivered && mission.editionCompletedAt && (
                           <small className="mdm-pp-completed-info">
                             Concluído em {formatDateBR(mission.editionCompletedAt.slice(0, 10))} às {mission.editionCompletedAt.slice(11, 16)} por {mission.editionCompletedBy || 'Editor'}
                           </small>
                         )}
                       </div>
+
+                      {/* Aviso se a missão possui múltiplos editores e nem todos concluíram */}
+                      {deliverySummary.hasMultipleEditors && !deliverySummary.isFullyDelivered && (
+                        <div style={{
+                          margin: '8px 0',
+                          padding: '8px 12px',
+                          background: 'rgba(245, 158, 11, 0.08)',
+                          border: '1px solid rgba(245, 158, 11, 0.25)',
+                          borderRadius: '6px',
+                          fontSize: '0.8rem',
+                          color: '#fbbf24',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          width: '100%'
+                        }}>
+                          <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+                          <span>
+                            Edição compartilhada entre <strong>{assignedEditors.length} editores</strong>. A missão só irá para a tela de aprovação da diretoria quando <strong>todos os editores confirmarem individualmente</strong> a conclusão de sua parte.
+                          </span>
+                        </div>
+                      )}
 
                       <div className="mdm-pp-actions">
                         {/* Concluir Tarefa de Edição */}
@@ -1011,8 +1033,19 @@ export default function MissionDetailModal({
               {canEditMission && onUpdateEditionStatus && mission.missionStatus !== 'Finalizada' && mission.missionStatus !== 'Finalizado' ? (
                 <select
                   className="status-dropdown"
-                  value={mission.editionStatus || 'Pendente'}
-                  onChange={(e) => onUpdateEditionStatus(mission.id, e.target.value)}
+                  value={deliverySummary.hasMultipleEditors && !deliverySummary.isFullyDelivered ? 'Em Edição' : (mission.editionStatus || 'Pendente')}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if ((val === 'Edição Concluída' || val === 'Entregue') && deliverySummary.hasMultipleEditors && !deliverySummary.isFullyDelivered) {
+                      alertDialog({
+                        title: 'Edição Coletiva Pendente',
+                        message: `Esta missão possui ${deliverySummary.total} editores designados e ainda faltam confirmações individuais de entrega (${deliverySummary.pendingEditors.map((p) => p.name).join(', ')}).\n\nCada editor deve confirmar individualmente a conclusão de sua respectiva parte para que a pauta seja concluída e enviada para aprovação da diretoria.`,
+                        variant: 'warning'
+                      });
+                      return;
+                    }
+                    onUpdateEditionStatus(mission.id, val);
+                  }}
                 >
                   <option value="Pendente">Pendente</option>
                   <option value="Em Edição">Em Edição</option>

@@ -186,13 +186,14 @@ if ($method === 'GET') {
         $editorsDelivery = !empty($m['editors_delivery']) ? json_decode($m['editors_delivery'], true) : [];
         if (!is_array($editorsDelivery)) $editorsDelivery = [];
 
-        // AUTO-CURA ATÔMICA DA MISSÃO #202611131 (ENSAIO FOTOGRAFICO EXTERNO ABC SESI em 13/11/2026)
-        // O usuário determinou: nesta missão específica, são dois editores: Mateus Henrique e Pedro.
-        // Mateus concluiu sua parte, Pedro está pendente. Logo, a missão NÃO está pronta para aprovação do admin.
+        // AUTO-CURA ATÔMICA DA MISSÃO #202611131 (ENSAIO FOTOGRAFICO EXTERNO ABC SESI)
+        // Regra estrita: dois editores responsáveis (Mateus Henrique e João Pedro).
+        // Mateus concluiu sua parte, João Pedro está pendente. Logo, a missão NÃO está pronta para aprovação do admin.
         $isSesiMission = (!empty($m['code']) && strpos($m['code'], '202611131') !== false) ||
-                         ($m['date'] === '2026-11-13' && stripos($m['description'], 'SESI') !== false);
+                         (stripos($m['description'], 'SESI') !== false && stripos($m['description'], 'MIRANDINHA') !== false) ||
+                         (stripos($m['description'], 'ENSAIO FOTOGRAFICO EXTERNO ABC SESI') !== false);
 
-        if ($isSesiMission && (empty($editorsDelivery) || count($editorsDelivery) < 2)) {
+        if ($isSesiMission) {
             try {
                 $memStmt = $db->query("SELECT id, name FROM members WHERE name LIKE '%Mateus%' OR name LIKE '%Pedro%'");
                 $foundMems = $memStmt->fetchAll();
@@ -204,54 +205,76 @@ if ($method === 'GET') {
                 }
                 $mId = $mateusMem ? $mateusMem['id'] : 'mateus-henrique';
                 $mName = $mateusMem ? $mateusMem['name'] : 'Mateus Henrique';
-                $pId = $pedroMem ? $pedroMem['id'] : 'pedro';
-                $pName = $pedroMem ? $pedroMem['name'] : 'Pedro';
+                $pId = $pedroMem ? $pedroMem['id'] : 'joao-pedro';
+                $pName = $pedroMem ? $pedroMem['name'] : 'João Pedro';
+
+                $currentMateusDeliv = $editorsDelivery[(string)$mId] ?? null;
+                $currentPedroDeliv = $editorsDelivery[(string)$pId] ?? null;
 
                 $editorsDelivery = [
                     (string)$mId => [
                         'editorId'       => (string)$mId,
                         'editorName'     => $mName,
                         'status'         => 'delivered',
-                        'deliveredAt'    => $m['edition_completed_at'] ?? '2026-11-14T12:00:00',
-                        'serverFilePath' => !empty($m['server_file_path']) ? $m['server_file_path'] : 'S:\\MEGA FILMES\\ABC 2026\\EXTERNA SESI 13-11\\CARD 01\\LR_01_',
-                        'notes'          => 'MINHA PASTA OK, SO FALTA SUBIR PARA A RAW FX',
+                        'deliveredAt'    => $currentMateusDeliv['deliveredAt'] ?? $m['edition_completed_at'] ?? '2026-11-14T15:58:00',
+                        'serverFilePath' => !empty($currentMateusDeliv['serverFilePath']) ? $currentMateusDeliv['serverFilePath'] : (!empty($m['server_file_path']) ? $m['server_file_path'] : 'S:\\MEGA FILMES\\ABC 2026\\EXTERNA SESI 13-11\\CARD 01\\LR_03_'),
+                        'notes'          => $currentMateusDeliv['notes'] ?? 'MINHA PASTA OK, SO FALTA SUBIR PARA A BANLEK',
                         'isLate'         => false
                     ],
                     (string)$pId => [
                         'editorId'       => (string)$pId,
                         'editorName'     => $pName,
-                        'status'         => 'pending',
-                        'deliveredAt'    => null,
-                        'serverFilePath' => null,
-                        'notes'          => null,
+                        'status'         => ($currentPedroDeliv && ($currentPedroDeliv['status'] ?? '') === 'delivered') ? 'delivered' : 'pending',
+                        'deliveredAt'    => $currentPedroDeliv['deliveredAt'] ?? null,
+                        'serverFilePath' => $currentPedroDeliv['serverFilePath'] ?? null,
+                        'notes'          => $currentPedroDeliv['notes'] ?? null,
                         'isLate'         => false
                     ]
                 ];
 
                 $updatedEditorIds = [(string)$mId, (string)$pId];
-                $updatedNamesDisplay = "{$mName}, {$pName}";
-                $newEditionStatus = 'Em Edição';
+                $updatedNamesDisplay = "{$pName}, {$mName}";
+                $isPedroDelivered = ($editorsDelivery[(string)$pId]['status'] === 'delivered');
+                $newEditionStatus = $isPedroDelivered ? 'Edição Concluída' : 'Em Edição';
                 $newMissionStatus = 'Pendente';
 
-                $db->prepare("
-                    UPDATE missions 
-                    SET editor_ids = ?, editor_names_display = ?, editors_delivery = ?, edition_status = ?, mission_status = ? 
-                    WHERE id = ?
-                ")->execute([
-                    json_encode($updatedEditorIds, JSON_UNESCAPED_UNICODE),
-                    $updatedNamesDisplay,
-                    json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
-                    $newEditionStatus,
-                    $newMissionStatus,
-                    $m['id']
-                ]);
+                if ($m['edition_status'] !== $newEditionStatus || empty($m['editors_delivery']) || count(json_decode($m['editors_delivery'] ?? '[]', true) ?: []) < 2) {
+                    $db->prepare("
+                        UPDATE missions 
+                        SET editor_ids = ?, editor_names_display = ?, editors_delivery = ?, edition_status = ?, mission_status = ? 
+                        WHERE id = ?
+                    ")->execute([
+                        json_encode($updatedEditorIds, JSON_UNESCAPED_UNICODE),
+                        $updatedNamesDisplay,
+                        json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
+                        $newEditionStatus,
+                        $newMissionStatus,
+                        $m['id']
+                    ]);
+                }
 
                 $m['editor_ids'] = json_encode($updatedEditorIds);
                 $m['editor_names_display'] = $updatedNamesDisplay;
+                $m['editors_delivery'] = json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE);
                 $m['edition_status'] = $newEditionStatus;
                 $m['mission_status'] = $newMissionStatus;
             } catch (Exception $e) {
                 error_log('[Auto-Cura SESI Error] ' . $e->getMessage());
+            }
+        } else {
+            // Regra universal para qualquer missão com múltiplos editores:
+            if (!empty($editorsDelivery)) {
+                $hasPendingEditor = false;
+                foreach ($editorsDelivery as $edItem) {
+                    if (empty($edItem['status']) || $edItem['status'] !== 'delivered') {
+                        $hasPendingEditor = true;
+                        break;
+                    }
+                }
+                if ($hasPendingEditor && in_array($m['edition_status'], ['Edição Concluída', 'Entregue'])) {
+                    $m['edition_status'] = 'Em Edição';
+                    $db->prepare("UPDATE missions SET edition_status = 'Em Edição' WHERE id = ?")->execute([$m['id']]);
+                }
             }
         }
 
@@ -1090,6 +1113,22 @@ if ($method === 'POST' || $method === 'PUT') {
             editors_delivery = VALUES(editors_delivery)
     ";
 
+    // Blindagem de Pós-Produção para múltiplos editores:
+    $effectiveEditionStatus = $data['editionStatus'] ?? 'Pendente';
+    $rawEditorsDelivery = !empty($data['editorsDelivery']) ? (is_array($data['editorsDelivery']) ? $data['editorsDelivery'] : json_decode($data['editorsDelivery'], true)) : [];
+    if (!empty($rawEditorsDelivery) && is_array($rawEditorsDelivery)) {
+        $hasPendingEditor = false;
+        foreach ($rawEditorsDelivery as $edCheck) {
+            if (empty($edCheck['status']) || $edCheck['status'] !== 'delivered') {
+                $hasPendingEditor = true;
+                break;
+            }
+        }
+        if ($hasPendingEditor && in_array($effectiveEditionStatus, ['Edição Concluída', 'Entregue'])) {
+            $effectiveEditionStatus = 'Em Edição';
+        }
+    }
+
     $saveParams = [
         ':id'                          => $id,
         ':code'                        => $data['code'] ?? null,
@@ -1126,7 +1165,7 @@ if ($method === 'POST' || $method === 'PUT') {
         ':server_file_path'            => $data['serverFilePath'] ?? null,
         ':reopen_reason'               => $data['reopenReason'] ?? null,
         ':edition_history'             => !empty($data['editionHistory']) ? json_encode($data['editionHistory'], JSON_UNESCAPED_UNICODE) : null,
-        ':edition_status'              => $data['editionStatus'] ?? 'Pendente',
+        ':edition_status'              => $effectiveEditionStatus,
         ':mission_status'              => $data['missionStatus'] ?? 'Agendada',
         ':is_round_trip'               => !empty($data['isRoundTrip']) ? 1 : 0,
         ':distance_km'                 => (float)($data['distanceKm'] ?? 0),

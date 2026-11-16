@@ -2277,7 +2277,8 @@ export default function ServiceBoard({
         const detailAllocations = getMissionAllocations(detailMission, vehicles, members);
         const drv = resolveMissionDriver(detailMission);
         const teamMembers = resolveMissionTeamMembers(detailMission);
-        const assignedEditors = resolveMissionEditors(detailMission);
+        const assignedEditors = resolveMissionEditors(detailMission, members);
+        const deliverySummary = getMissionEditionDeliverySummary(detailMission, members);
         const isDetailOverdue = checkIsMissionOverdue(detailMission);
         const isDetailEditor = checkIsAssignedEditor(detailMission);
         const canConcludeDetail = isDetailEditor || canAdminManageEdition;
@@ -2337,7 +2338,7 @@ export default function ServiceBoard({
                     </span>
 
                     <span className="mdm-edition-badge">
-                      Pós-Produção: <strong>{detailMission.editionStatus || 'Pendente'}</strong>
+                      Pós-Produção: <strong>{deliverySummary.hasMultipleEditors ? (deliverySummary.isFullyDelivered ? 'Edição Concluída' : deliverySummary.summaryBadgeText) : (detailMission.editionStatus || 'Pendente')}</strong>
                     </span>
 
                     <span className="mdm-roundtrip-badge">
@@ -2806,21 +2807,40 @@ export default function ServiceBoard({
                         </label>
                         {assignedEditors.length > 0 ? (
                           <div className="mdm-editor-tags">
-                            {assignedEditors.map((ed, idx) => (
-                              <div key={ed.id || idx} className="mdm-editor-tag">
-                                <span className="mdm-editor-avatar">
-                                  {ed.photoUrl ? (
-                                    <img src={ed.photoUrl} alt={ed.name} />
-                                  ) : (
-                                    <span>{ed.name.slice(0, 2).toUpperCase()}</span>
-                                  )}
-                                </span>
-                                <div className="mdm-editor-info">
-                                  <strong>{ed.name}</strong>
-                                  <small>{ed.role || 'Editor de Vídeo'}</small>
+                            {assignedEditors.map((ed, idx) => {
+                              const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
+                              const isDone = edDeliv && edDeliv.status === 'delivered';
+                              return (
+                                <div key={ed.id || idx} className="mdm-editor-tag" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span className="mdm-editor-avatar">
+                                      {ed.photoUrl ? (
+                                        <img src={ed.photoUrl} alt={ed.name} />
+                                      ) : (
+                                        <span>{ed.name.slice(0, 2).toUpperCase()}</span>
+                                      )}
+                                    </span>
+                                    <div className="mdm-editor-info">
+                                      <strong>{ed.name}</strong>
+                                      <small>{ed.role || 'Editor de Vídeo'}</small>
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{
+                                      fontSize: '0.72rem',
+                                      padding: '3px 8px',
+                                      borderRadius: '4px',
+                                      background: isDone ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                      color: isDone ? '#34d399' : '#fbbf24',
+                                      border: `1px solid ${isDone ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                                      fontWeight: 700
+                                    }}>
+                                      {isDone ? '✅ Concluído' : '⏳ Pendente'}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : (
                           <div className="mdm-pp-empty">
@@ -2866,29 +2886,51 @@ export default function ServiceBoard({
                     <div className="mdm-pp-status-bar">
                       <div className="mdm-pp-status-left">
                         <span className="mdm-pp-label-sm">Situação da Pós-Produção:</span>
-                        <span className={`status-badge-inline status-${(detailMission.editionStatus || 'Pendente').toLowerCase().replace(/\s+/g, '-')}`}>
-                          {detailMission.editionStatus || 'Pendente'}
+                        <span className={`status-badge-inline status-${(deliverySummary.hasMultipleEditors ? (deliverySummary.isFullyDelivered ? 'edicao-concluida' : 'em-edicao') : (detailMission.editionStatus || 'Pendente')).toLowerCase().replace(/\s+/g, '-')}`}>
+                          {deliverySummary.hasMultipleEditors ? deliverySummary.summaryBadgeText : (detailMission.editionStatus || 'Pendente')}
                         </span>
-                        {detailMission.editionCompletedAt && (
+                        {deliverySummary.isFullyDelivered && detailMission.editionCompletedAt && (
                           <small className="mdm-pp-completed-info">
                             Concluído em {formatDateBR(detailMission.editionCompletedAt.slice(0, 10))} às {detailMission.editionCompletedAt.slice(11, 16)} por {detailMission.editionCompletedBy || 'Editor'}
                           </small>
                         )}
                       </div>
 
+                      {/* Aviso se a missão possui múltiplos editores e nem todos concluíram */}
+                      {deliverySummary.hasMultipleEditors && !deliverySummary.isFullyDelivered && (
+                        <div style={{
+                          margin: '8px 0',
+                          padding: '8px 12px',
+                          background: 'rgba(245, 158, 11, 0.08)',
+                          border: '1px solid rgba(245, 158, 11, 0.25)',
+                          borderRadius: '6px',
+                          fontSize: '0.8rem',
+                          color: '#fbbf24',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          width: '100%'
+                        }}>
+                          <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+                          <span>
+                            Edição compartilhada entre <strong>{assignedEditors.length} editores</strong>. A missão só irá para a tela de aprovação da diretoria quando <strong>todos os editores confirmarem individualmente</strong> a conclusão de sua parte.
+                          </span>
+                        </div>
+                      )}
+
                       <div className="mdm-pp-actions">
-                        {/* Concluir Tarefa de Edição */}
-                        {detailMission.editionStatus !== 'Edição Concluída' && detailMission.editionStatus !== 'Entregue' && detailMission.editionStatus !== 'Não se aplica' && (
+                        {/* Concluir Tarefa de Edição (Individual para cada editor) */}
+                        {!deliverySummary.isFullyDelivered && detailMission.editionStatus !== 'Não se aplica' && (
                           <>
                             {canConcludeDetail ? (
                               <button
                                 type="button"
                                 className="btn-pp-conclude"
                                 onClick={() => handleConcludeEdition(detailMission)}
-                                title="Concluir tarefa de edição e enviar para confirmação da gestão"
+                                title={deliverySummary.hasMultipleEditors ? "Entregar minha parte na edição" : "Concluir tarefa de edição e enviar para confirmação da gestão"}
                               >
                                 <CheckCircle2 size={13} />
-                                <span>Concluir Tarefa de Edição</span>
+                                <span>{deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa de Edição'}</span>
                               </button>
                             ) : (
                               <span className="status-badge-inline status-pendente">
@@ -2898,13 +2940,13 @@ export default function ServiceBoard({
                           </>
                         )}
 
-                        {/* Ações após conclusão do material: Apenas Administradores podem aceitar ou rejeitar */}
-                        {detailMission.editionStatus === 'Edição Concluída' && detailMission.missionStatus !== 'Finalizada' && (
+                        {/* Ações após conclusão de TODOS os editores: Apenas Administradores podem aceitar ou rejeitar */}
+                        {deliverySummary.isFullyDelivered && detailMission.missionStatus !== 'Finalizada' && (
                           <>
                             {!canAdminManageEdition ? (
                               <div
                                 className="btn-pp-waiting"
-                                title="Material entregue pelo editor. Aguardando aceitação e confirmação pelo Administrador."
+                                title="Material entregue por todos os editores. Aguardando aceitação e confirmação pelo Administrador."
                               >
                                 <Clock size={13} />
                                 <span>Aguardando Confirmação</span>
@@ -3001,8 +3043,19 @@ export default function ServiceBoard({
                   {canEditMission && detailMission.missionStatus !== 'Finalizada' && detailMission.missionStatus !== 'Finalizado' ? (
                     <select
                       className="status-dropdown"
-                      value={detailMission.editionStatus || 'Pendente'}
-                      onChange={(e) => onUpdateEditionStatus(detailMission.id, e.target.value)}
+                      value={deliverySummary.hasMultipleEditors && !deliverySummary.isFullyDelivered ? 'Em Edição' : (detailMission.editionStatus || 'Pendente')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if ((val === 'Edição Concluída' || val === 'Entregue') && deliverySummary.hasMultipleEditors && !deliverySummary.isFullyDelivered) {
+                          alertDialog({
+                            title: 'Edição Coletiva Pendente',
+                            message: `Esta missão possui ${deliverySummary.total} editores designados e ainda faltam confirmações individuais de entrega (${deliverySummary.pendingEditors.map((p) => p.name).join(', ')}).\n\nCada editor deve confirmar individualmente a conclusão de sua respectiva parte para que a pauta seja concluída e enviada para aprovação da diretoria.`,
+                            variant: 'warning'
+                          });
+                          return;
+                        }
+                        onUpdateEditionStatus(detailMission.id, val);
+                      }}
                     >
                       <option value="Pendente">Pendente</option>
                       <option value="Em Edição">Em Edição</option>

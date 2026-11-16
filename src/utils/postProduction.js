@@ -103,16 +103,20 @@ export function resolveMissionEditors(mission, members = []) {
   }
 
   // 4. AUTO-CURA ESPECÍFICA SOLICITADA PELO DIRETOR:
-  // Missão #202611131 (ENSAIO FOTOGRAFICO EXTERNO ABC SESI em 13/11/2026):
-  // São 2 editores designados para pós-produção: Mateus e Pedro.
+  // Missão #202611131 (ENSAIO FOTOGRAFICO EXTERNO ABC SESI):
+  // São 2 editores designados para pós-produção: Mateus Henrique e João Pedro (Pedro).
+  const descClean = cleanStr(mission.description || '');
+  const codeClean = String(mission.code || '');
+  const idClean = String(mission.id || '');
   const isSesi202611131 =
-    String(mission.code || '').includes('202611131') ||
-    (String(mission.date || '').includes('2026-11-13') &&
-      cleanStr(mission.description || '').includes('sesi'));
+    codeClean.includes('202611131') ||
+    idClean.includes('202611131') ||
+    descClean.includes('202611131') ||
+    (descClean.includes('sesi') && (descClean.includes('mirandinha') || descClean.includes('ensaio') || descClean.includes('externo')));
 
   if (isSesi202611131) {
     const mateusMem = members.find((m) => cleanStr(m.name).includes('mateus'));
-    const pedroMem = members.find((m) => cleanStr(m.name).includes('pedro'));
+    const pedroMem = members.find((m) => cleanStr(m.name).includes('pedro') || cleanStr(m.name).includes('joao pedro'));
 
     if (mateusMem) addMember(mateusMem);
     else if (!Array.from(foundMap.values()).some((e) => cleanStr(e.name).includes('mateus'))) {
@@ -121,7 +125,7 @@ export function resolveMissionEditors(mission, members = []) {
 
     if (pedroMem) addMember(pedroMem);
     else if (!Array.from(foundMap.values()).some((e) => cleanStr(e.name).includes('pedro'))) {
-      foundMap.set('pedro-auto', { id: 'pedro-auto', name: 'Pedro', role: 'Editor de Vídeo', avatar: null });
+      foundMap.set('pedro-auto', { id: 'pedro-auto', name: 'João Pedro', role: 'Editor de Vídeo', avatar: null });
     }
   }
 
@@ -143,34 +147,29 @@ export function getMissionEditorsDeliveryMap(mission, members = []) {
 
   const resultMap = {};
 
+  const descClean = cleanStr(mission.description || '');
+  const codeClean = String(mission.code || '');
+  const idClean = String(mission.id || '');
   const isSesi202611131 =
-    String(mission.code || '').includes('202611131') ||
-    (String(mission.date || '').includes('2026-11-13') &&
-      cleanStr(mission.description || '').includes('sesi'));
+    codeClean.includes('202611131') ||
+    idClean.includes('202611131') ||
+    descClean.includes('202611131') ||
+    (descClean.includes('sesi') && (descClean.includes('mirandinha') || descClean.includes('ensaio') || descClean.includes('externo')));
 
   assigned.forEach((editor) => {
     const eKey = String(editor.id);
     const existing = rawMap[eKey] || rawMap[editor.name] || rawMap[cleanStr(editor.name)];
 
-    if (existing && existing.status) {
-      resultMap[eKey] = {
-        ...existing,
-        editorId: eKey,
-        editorName: editor.name,
-      };
-      return;
-    }
-
-    // Caso especial #202611131: Mateus concluiu e Pedro está pendente
+    // Caso especial #202611131: Mateus concluiu e Pedro/João Pedro está pendente
     if (isSesi202611131) {
       if (cleanStr(editor.name).includes('mateus')) {
         resultMap[eKey] = {
           editorId: eKey,
           editorName: editor.name,
           status: 'delivered',
-          deliveredAt: mission.editionCompletedAt || '2026-11-14T12:00:00',
-          serverFilePath: mission.serverFilePath || 'S:\\MEGA FILMES\\ABC 2026\\EXTERNA SESI 13-11\\CARD 01\\LR_01_',
-          notes: 'MINHA PASTA OK, SO FALTA SUBIR PARA A RAW FX',
+          deliveredAt: (existing && existing.deliveredAt) || mission.editionCompletedAt || '2026-11-14T15:58:00',
+          serverFilePath: (existing && existing.serverFilePath) || mission.serverFilePath || 'S:\\MEGA FILMES\\ABC 2026\\EXTERNA SESI 13-11\\CARD 01\\LR_03_',
+          notes: (existing && existing.notes) || 'MINHA PASTA OK, SO FALTA SUBIR PARA A BANLEK',
           isLate: false,
         };
         return;
@@ -179,14 +178,23 @@ export function getMissionEditorsDeliveryMap(mission, members = []) {
         resultMap[eKey] = {
           editorId: eKey,
           editorName: editor.name,
-          status: 'pending',
-          deliveredAt: null,
-          serverFilePath: null,
-          notes: null,
+          status: (existing && existing.status === 'delivered') ? 'delivered' : 'pending',
+          deliveredAt: (existing && existing.deliveredAt) || null,
+          serverFilePath: (existing && existing.serverFilePath) || null,
+          notes: (existing && existing.notes) || null,
           isLate: false,
         };
         return;
       }
+    }
+
+    if (existing && existing.status) {
+      resultMap[eKey] = {
+        ...existing,
+        editorId: eKey,
+        editorName: editor.name,
+      };
+      return;
     }
 
     // Caso genérico: se a missão tiver somente 1 editor e já estiver com status Edição Concluída
@@ -340,44 +348,50 @@ export function normalizeMissionMultiEditors(mission, members = []) {
   if (!mission) return mission;
   if (!hasMissionPostProduction(mission)) return mission;
 
+  const descClean = cleanStr(mission.description || '');
+  const codeClean = String(mission.code || '');
+  const idClean = String(mission.id || '');
   const isSesi202611131 =
-    String(mission.code || '').includes('202611131') ||
-    (String(mission.date || '').includes('2026-11-13') &&
-      cleanStr(mission.description || '').includes('sesi'));
+    codeClean.includes('202611131') ||
+    idClean.includes('202611131') ||
+    descClean.includes('202611131') ||
+    (descClean.includes('sesi') && (descClean.includes('mirandinha') || descClean.includes('ensaio') || descClean.includes('externo')));
 
-  if (!isSesi202611131) {
-    // Para missões comuns, se possuir editorsDelivery estruturado, verifica se todos concluíram
-    if (mission.editorsDelivery && typeof mission.editorsDelivery === 'object') {
-      const summary = getMissionEditionDeliverySummary(mission, members);
-      if (summary.hasMultipleEditors) {
-        if (!summary.isFullyDelivered && (mission.editionStatus === 'Edição Concluída' || mission.editionStatus === 'Entregue')) {
-          return {
-            ...mission,
-            editionStatus: 'Em Edição',
-            missionStatus: 'Pendente',
-          };
-        }
-      }
-    }
-    return mission;
+  if (isSesi202611131) {
+    // Tratamento específico #202611131: Mateus Henrique (entregue) e João Pedro (pendente)
+    const assigned = resolveMissionEditors(mission, members);
+    const deliveryMap = getMissionEditorsDeliveryMap(mission, members);
+    const summary = getMissionEditionDeliverySummary(mission, members);
+
+    const editorIds = assigned.map((e) => e.id);
+    const editorNamesDisplay = assigned.map((e) => e.name).join(', ');
+    const shouldBeInEdition = !summary.isFullyDelivered;
+
+    return {
+      ...mission,
+      editorIds,
+      editorNamesDisplay,
+      editorsDelivery: deliveryMap,
+      editionStatus: shouldBeInEdition ? 'Em Edição' : (mission.editionStatus || 'Edição Concluída'),
+      missionStatus: 'Pendente',
+    };
   }
 
-  // Tratamento específico #202611131
+  // Regra universal para QUALQUER missão com múltiplos editores designados:
   const assigned = resolveMissionEditors(mission, members);
-  const deliveryMap = getMissionEditorsDeliveryMap(mission, members);
-  const summary = getMissionEditionDeliverySummary(mission, members);
+  if (assigned.length > 1) {
+    const summary = getMissionEditionDeliverySummary(mission, members);
+    if (!summary.isFullyDelivered && (mission.editionStatus === 'Edição Concluída' || mission.editionStatus === 'Entregue')) {
+      return {
+        ...mission,
+        editorIds: assigned.map((e) => e.id),
+        editorNamesDisplay: assigned.map((e) => e.name).join(', '),
+        editorsDelivery: summary.deliveryMap,
+        editionStatus: 'Em Edição',
+        missionStatus: 'Pendente',
+      };
+    }
+  }
 
-  const editorIds = assigned.map((e) => e.id);
-  const editorNamesDisplay = assigned.map((e) => e.name).join(', ');
-
-  const shouldBeInEdition = !summary.isFullyDelivered;
-
-  return {
-    ...mission,
-    editorIds,
-    editorNamesDisplay,
-    editorsDelivery: deliveryMap,
-    editionStatus: shouldBeInEdition ? 'Em Edição' : (mission.editionStatus || 'Edição Concluída'),
-    missionStatus: 'Pendente',
-  };
+  return mission;
 }
