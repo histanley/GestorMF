@@ -87,7 +87,13 @@ export async function apiRequest(endpoint, options = {}) {
           errorMsg = `Erro HTTP ${res.status}`;
         }
       }
-      return { success: false, error: errorMsg, status: res.status, rawText: text };
+      return {
+        ...(data && typeof data === 'object' ? data : {}),
+        success: false,
+        error: errorMsg,
+        status: res.status,
+        rawText: text
+      };
     }
 
     return data || { success: true };

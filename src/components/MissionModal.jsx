@@ -117,7 +117,7 @@ export function getScheduleConflicts(formData, missions = [], editingMissionId =
   if (!targetStart) return result;
 
   const targetEndDate = formData?.isMultiDay && formData?.endDate ? formData.endDate : formDate;
-  let targetEnd = parseTime(targetEndDate, formData.returnTimeEstimated || formData.arrivalTimeEstimated);
+  let targetEnd = parseTime(targetEndDate, formData.returnTimeEstimated || formData.eventEndTime || formData.arrivalTimeEstimated);
   if (!targetEnd || targetEnd <= targetStart) {
     if (formData?.isMultiDay && formData?.endDate && formData.endDate > formDate) {
       targetEnd = parseTime(formData.endDate, '23:59:59');
@@ -143,7 +143,7 @@ export function getScheduleConflicts(formData, missions = [], editingMissionId =
     const mStart = parseTime(mDate, mDep);
     if (!mStart) continue;
 
-    let mEnd = parseTime(mEndDate, m.returnTimeEstimated || m.arrivalTimeEstimated);
+    let mEnd = parseTime(mEndDate, m.returnTimeEstimated || m.eventEndTime || m.arrivalTimeEstimated);
     if (!mEnd || mEnd <= mStart) {
       if (m.isMultiDay && m.endDate && m.endDate > mDate) {
         mEnd = parseTime(m.endDate, '23:59:59');
@@ -1533,11 +1533,13 @@ export default function MissionModal({
 
     const res = await onSaveMission(missionPayload);
     if (res && !res.success) {
-      if (res.hasConflict) {
+      if (res.hasConflict || res.status === 422 || (res.error && String(res.error).toLowerCase().includes('conflito de escala'))) {
+        const rawMsg = res.conflictMessage || res.error || 'Conflito de escala ou sobreposição de horários detectada.';
+        const cleanMsg = rawMsg.replace(/^Conflito de Escala:\s*/i, '');
         const proceed = await confirmDialog({
           title: '⚠️ Conflito de Escala Detectado',
-          message: res.conflictMessage,
-          description: 'Deseja salvar a missão mesmo com essa sobreposição de horários nesta data?',
+          message: cleanMsg,
+          description: 'Deseja autorizar a participação compartilhada e salvar a missão mesmo com essa sobreposição de horários nesta data?',
           confirmText: 'Salvar Mesmo Assim',
           cancelText: 'Revisar Escala',
           variant: 'warning',
@@ -1546,7 +1548,8 @@ export default function MissionModal({
           const resForce = await onSaveMission({
             ...missionPayload,
             ignoreConflicts: true,
-            overrideReason: 'Conflito de escala analisado e aprovado pelo gestor'
+            forceSharedResources: true,
+            overrideReason: 'Conflito de escala analisado e aprovado pelo gestor: ' + cleanMsg
           });
           if (resForce && resForce.success) {
             onClose();

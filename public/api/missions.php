@@ -382,7 +382,7 @@ function checkRosterConflicts($db, $targetMissionId, $data) {
     $date = $data['date'] ?? date('Y-m-d');
     $endDate = !empty($data['endDate']) ? $data['endDate'] : $date;
     $depTime = $data['departureTime'] ?? '08:00';
-    $retTime = $data['returnTimeEstimated'] ?? $data['arrivalTimeEstimated'] ?? null;
+    $retTime = $data['returnTimeEstimated'] ?? $data['eventEndTime'] ?? $data['arrivalTimeEstimated'] ?? null;
     list($depTs, $retTs) = getMissionTimeRangeTs($date, $depTime, $retTime, $endDate);
 
     // Coleta todos os veículos da missão
@@ -417,7 +417,7 @@ function checkRosterConflicts($db, $targetMissionId, $data) {
     $maxDate = date('Y-m-d', $retTs + 86400);
 
     $stmtOther = $db->prepare("
-        SELECT id, code, description, date, end_date, departure_time, return_time_estimated, arrival_time_estimated,
+        SELECT id, code, description, date, end_date, departure_time, return_time_estimated, arrival_time_estimated, event_end_time,
                vehicle_id, vehicle_name_display, vehicle_allocations,
                driver_id, driver_name, team_ids, team_names_display
         FROM missions
@@ -434,7 +434,7 @@ function checkRosterConflicts($db, $targetMissionId, $data) {
         $oDate = $other['date'] ?? $date;
         $oEndDate = $other['end_date'] ?? null;
         $oDepTime = $other['departure_time'] ?? '08:00';
-        $oRetTime = $other['return_time_estimated'] ?: ($other['arrival_time_estimated'] ?: null);
+        $oRetTime = $other['return_time_estimated'] ?: ($other['event_end_time'] ?: ($other['arrival_time_estimated'] ?: null));
         list($oDepTs, $oRetTs) = getMissionTimeRangeTs($oDate, $oDepTime, $oRetTime, $oEndDate);
 
         // Verifica sobreposição temporal exata: max(A, C) < min(B, D)
@@ -957,7 +957,7 @@ if ($method === 'POST' || $method === 'PUT') {
         // Checagem Atômica de Conflitos de Escala com FOR UPDATE (P0-02 e P1-05)
         $conflict = checkRosterConflicts($db, $id, $data);
         if ($conflict) {
-            $hasOverride = !empty($data['ignoreConflicts']) || !empty($data['forceSharedResources']);
+            $hasOverride = !empty($data['ignoreConflicts']) || !empty($data['forceSharedResources']) || !empty($data['overrideConflicts']);
             if ($hasOverride) {
                 logAudit('OVERRIDE_ROSTER_CONFLICT', 'MISSIONS', $id, [
                     'conflict' => $conflict['message'],
