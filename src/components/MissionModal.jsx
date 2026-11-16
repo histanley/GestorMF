@@ -33,6 +33,7 @@ import {
 import {
   OFFICIAL_COMPANY_ROLES,
   ROLE_ICONS_MAP,
+  ROLE_COLORS_MAP,
   normalizeToOfficialRole,
 } from '../utils/companyRoles';
 import { calculateMissionOffHours, calculateExtraHoursRemuneration, checkMemberExtraHoursAvailability } from '../utils/workHours';
