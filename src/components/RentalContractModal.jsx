@@ -78,122 +78,12 @@ export default function RentalContractModal({ rental, currentUser = null, onClos
   const handlePrint = () => {
     if (!sheetRef.current) return;
 
-    // Criar um iframe invisível para isolar a folha A4 e garantir impressão direta sem tela em branco
-    const existingFrame = document.getElementById('rc-print-frame');
-    if (existingFrame) existingFrame.remove();
-
-    const iframe = document.createElement('iframe');
-    iframe.id = 'rc-print-frame';
-    iframe.style.position = 'fixed';
-    iframe.style.top = '-10000px';
-    iframe.style.left = '-10000px';
-    iframe.style.width = '210mm';
-    iframe.style.height = '297mm';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow.document;
-
-    // Coleta todos os estilos da aplicação
-    let stylesHtml = '';
-    document.querySelectorAll('style, link[rel="stylesheet"]').forEach((el) => {
-      stylesHtml += el.outerHTML;
-    });
-
-    const sheetHtml = sheetRef.current.outerHTML;
-
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html lang="pt-BR">
-        <head>
-          <meta charset="utf-8" />
-          <title>${isReserved ? 'Reserva' : 'Contrato'}_${rental.code}</title>
-          ${stylesHtml}
-          <style>
-            @page {
-              size: A4 portrait;
-              margin: 4mm 6mm;
-            }
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              box-sizing: border-box !important;
-            }
-            html, body {
-              background: #ffffff !important;
-              color: #0f172a !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              width: 100% !important;
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-            }
-            .rc-document-sheet {
-              display: block !important;
-              width: 100% !important;
-              max-width: 100% !important;
-              margin: 0 auto !important;
-              padding: 0 !important;
-              background: #ffffff !important;
-              color: #0f172a !important;
-              box-shadow: none !important;
-              border: none !important;
-            }
-          </style>
-        </head>
-        <body>
-          ${sheetHtml}
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    const triggerPrint = () => {
-      setTimeout(() => {
-        try {
-          iframe.contentWindow.focus();
-          iframe.contentWindow.print();
-        } catch (e) {
-          console.warn('Fallback para window.print():', e);
-          document.body.classList.add('printing-rental-contract');
-          window.print();
-          setTimeout(() => {
-            document.body.classList.remove('printing-rental-contract');
-          }, 1500);
-        } finally {
-          setTimeout(() => {
-            if (document.body.contains(iframe)) {
-              iframe.remove();
-            }
-          }, 4000);
-        }
-      }, 350);
-    };
-
-    // Aguardar imagens carregarem no iframe
-    const imgs = Array.from(doc.images);
-    if (imgs.length === 0) {
-      triggerPrint();
-    } else {
-      let loaded = 0;
-      const checkLoaded = () => {
-        loaded++;
-        if (loaded >= imgs.length) triggerPrint();
-      };
-      imgs.forEach((img) => {
-        if (img.complete) {
-          loaded++;
-        } else {
-          img.onload = checkLoaded;
-          img.onerror = checkLoaded;
-        }
-      });
-      if (loaded >= imgs.length) {
-        triggerPrint();
-      } else {
-        setTimeout(triggerPrint, 700);
-      }
-    }
+    // Aciona a impressão nativa A4 direta via CSS @media print perfeitamente isolado
+    document.body.classList.add('printing-rental-contract');
+    window.print();
+    setTimeout(() => {
+      document.body.classList.remove('printing-rental-contract');
+    }, 1500);
   };
 
   const handleDownloadPdf = async () => {
@@ -436,7 +326,7 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
                 <div className="rc-ci-row">Endereço: Alameda dos Tatus 155 Dr. Silvio Leite</div>
                 <div className="rc-ci-row">Cep: 69314318 - Boa Vista Roraima</div>
                 <div className="rc-ci-row">Fone: 95 99815-1738</div>
-                <div className="rc-ci-row rc-ci-email">megafilmeseftografia@gmail.com</div>
+                <div className="rc-ci-row rc-ci-email">megafilmesefotografia@gmail.com</div>
               </div>
             </div>
 
@@ -448,7 +338,14 @@ _R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR_`;
                 <strong className="rc-meta-code-val">{rental.code}</strong>
                 <span className="rc-meta-legal-ref">Lei Federal nº 10.406 (Código Civil)</span>
                 <span className="rc-meta-issue-date">
-                  Emissão: {formatDateBR((rental.createdAt || rental.startDate || '').split(/[T ]/)[0])}
+                  Emissão: {(() => {
+                    const raw = rental.createdAt || rental.startDate || '';
+                    if (!raw) return new Date().toLocaleDateString('pt-BR');
+                    const datePart = raw.split(/[T ]/)[0];
+                    const parts = datePart.split('-');
+                    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    return datePart;
+                  })()}
                 </span>
               </div>
             </div>

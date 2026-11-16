@@ -82,6 +82,7 @@ export default function RentalInspectionModal({
       const newPhotoObj = {
         id: photoId,
         url: serverPhotoUrl,
+        backup: compressedDataUrl, // Backup perpétuo em base64 contra qualquer wipe de deploy
         caption: photoCaption.trim() || (photoCondition === 'damage' ? 'Avaria identificada' : 'Equipamento conferido'),
         equipmentName: selectedEquipName,
         condition: photoCondition,
@@ -373,9 +374,15 @@ export default function RentalInspectionModal({
                           title="Clique para ampliar"
                         >
                           <img
-                            src={photo.url}
+                            src={photo.url || photo.backup}
                             alt={photo.caption}
-                            onError={(e) => handleRentalPhotoError(e, photo.url)}
+                            onError={(e) => {
+                              if (photo.backup && e.target.src !== photo.backup) {
+                                e.target.src = photo.backup;
+                              } else {
+                                handleRentalPhotoError(e, photo.url);
+                              }
+                            }}
                           />
                           <button type="button" className="ic-zoom-btn">
                             <Maximize2 size={14} />
@@ -545,9 +552,15 @@ export default function RentalInspectionModal({
                           title="Clique para ampliar"
                         >
                           <img
-                            src={photo.url}
+                            src={photo.url || photo.backup}
                             alt={photo.caption}
-                            onError={(e) => handleRentalPhotoError(e, photo.url)}
+                            onError={(e) => {
+                              if (photo.backup && e.target.src !== photo.backup) {
+                                e.target.src = photo.backup;
+                              } else {
+                                handleRentalPhotoError(e, photo.url);
+                              }
+                            }}
                           />
                           <button type="button" className="ic-zoom-btn">
                             <Maximize2 size={14} />
@@ -652,9 +665,15 @@ export default function RentalInspectionModal({
                           >
                             <div className="sbs-img-box">
                               <img
-                            src={photo.url}
+                            src={photo.url || photo.backup}
                             alt={photo.caption}
-                            onError={(e) => handleRentalPhotoError(e, photo.url)}
+                            onError={(e) => {
+                              if (photo.backup && e.target.src !== photo.backup) {
+                                e.target.src = photo.backup;
+                              } else {
+                                handleRentalPhotoError(e, photo.url);
+                              }
+                            }}
                           />
                               <span className="sbs-badge-tag ok">Saída</span>
                             </div>
@@ -692,9 +711,15 @@ export default function RentalInspectionModal({
                           >
                             <div className="sbs-img-box">
                               <img
-                            src={photo.url}
+                            src={photo.url || photo.backup}
                             alt={photo.caption}
-                            onError={(e) => handleRentalPhotoError(e, photo.url)}
+                            onError={(e) => {
+                              if (photo.backup && e.target.src !== photo.backup) {
+                                e.target.src = photo.backup;
+                              } else {
+                                handleRentalPhotoError(e, photo.url);
+                              }
+                            }}
                           />
                               <span
                                 className={`sbs-badge-tag ${
@@ -760,9 +785,15 @@ export default function RentalInspectionModal({
               <X size={24} />
             </button>
             <img
-              src={lightboxPhoto.url}
+              src={lightboxPhoto.url || lightboxPhoto.backup}
               alt={lightboxPhoto.caption}
-              onError={(e) => handleRentalPhotoError(e, lightboxPhoto.url)}
+              onError={(e) => {
+                if (lightboxPhoto.backup && e.target.src !== lightboxPhoto.backup) {
+                  e.target.src = lightboxPhoto.backup;
+                } else {
+                  handleRentalPhotoError(e, lightboxPhoto.url);
+                }
+              }}
             />
             <div className="ilb-caption">
               <strong>{lightboxPhoto.equipmentName}</strong>

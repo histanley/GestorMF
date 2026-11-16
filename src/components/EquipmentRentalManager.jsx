@@ -461,8 +461,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       ? 0
       : (rentalForm.paidAmount !== '' ? Math.max(0, cartTotalAmount - paidVal) : cartTotalAmount);
 
-    // Se o usuário selecionou status explicitamente ou se paymentStatus não for 'Pago', permite 'reserved' (Agendamento/Reserva)
-    const statusToApply = intendedStatus || (rentalForm.paymentStatus === 'Pago' ? 'active' : 'reserved');
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isFutureStartDate = rentalForm.startDate > todayStr;
+    // Se a data de início for futura, é SEMPRE um Agendamento / Reserva ('reserved'),
+    // independentemente do pagamento estar quitado. O item não sai do estoque físico de hoje.
+    const statusToApply = isFutureStartDate ? 'reserved' : (intendedStatus || (rentalForm.paymentStatus === 'Pago' ? 'active' : 'reserved'));
     const isReservation = statusToApply === 'reserved';
 
     const payload = {
@@ -590,12 +593,12 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     }
   };
 
-  // Ativar Reserva (Confirmar Pagamento e Iniciar Locação Oficial)
+  // Confirmar Retirada / Entregar Equipamento (Inicia Locação Oficial e dá baixa no estoque)
   const handleActivateReservation = async (rental) => {
     const confirmed = await confirmDialog({
-      title: 'Confirmar Pagamento & Iniciar Locação',
-      message: `Deseja ativar a reserva "${rental.code}" para o cliente "${rental.clientName}"? O status será alterado para Locação Ativa (Em Andamento) e o pagamento será marcado como "Pago".`,
-      confirmLabel: 'Sim, Iniciar Locação',
+      title: '📦 Confirmar Retirada & Entregar Equipamentos',
+      message: `Deseja registrar a entrega e retirada física dos equipamentos para "${rental.clientName}" (${rental.code})?\n\nIsso atualizará a locação para "Em Andamento" e baixará os itens do estoque físico disponível.`,
+      confirmLabel: 'Sim, Entregar Equipamento',
       cancelLabel: 'Voltar',
       variant: 'primary',
     });
@@ -604,7 +607,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     try {
       const res = await apiRequest('/rentals.php?action=activate_reservation', {
         method: 'POST',
-        body: JSON.stringify({ rentalId: rental.id, markPaid: true }),
+        body: JSON.stringify({ rentalId: rental.id, markPaid: rental.paymentStatus === 'Pago' }),
       });
       if (res && res.success) {
         fetchRentalsData();
@@ -613,13 +616,13 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       console.warn('Ativando reserva localmente:', e);
     }
 
-    const updated = { ...rental, status: 'active', paymentStatus: 'Pago' };
+    const updated = { ...rental, status: 'active' };
     setRentalsList((prev) => prev.map((r) => (r.id === rental.id ? updated : r)));
     setSelectedRentalForContract(updated);
 
     alertDialog({
-      title: '🚀 Locação Ativada com Sucesso!',
-      message: `Reserva ${rental.code} foi confirmada e iniciada. O termo oficial de responsabilidade está aberto para assinatura.`,
+      title: '🚀 Retirada Confirmada com Sucesso!',
+      message: `A locação ${rental.code} agora está Em Andamento. O termo oficial de responsabilidade está aberto para conferência.`,
       variant: 'success',
     });
   };
@@ -1948,7 +1951,22 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     <span className="cs-total-val">{formatCurrency(cartTotalAmount)}</span>
                   </div>
 
-                  {rentalForm.paymentStatus !== 'Pago' ? (
+                  {rentalForm.startDate > new Date().toISOString().split('T')[0] ? (
+                    <div className="reservation-action-group">
+                      <button
+                        type="button"
+                        className="btn-primary btn-reserve-contract"
+                        disabled={cartItems.length === 0}
+                        onClick={(e) => handleCreateRental(e, 'reserved')}
+                      >
+                        <Calendar size={17} />
+                        <span>Agendar / Reservar Equipamentos</span>
+                      </button>
+                      <p className="cs-future-note" style={{ fontSize: '0.74rem', color: '#fbbf24', textAlign: 'center', margin: '4px 0 0 0' }}>
+                        📅 Data de retirada futura ({formatDateBR(rentalForm.startDate)}). O item fica agendado e só sai do estoque físico no dia da entrega.
+                      </p>
+                    </div>
+                  ) : rentalForm.paymentStatus !== 'Pago' ? (
                     <div className="reservation-action-group">
                       <button
                         type="button"
@@ -1978,7 +1996,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                       onClick={(e) => handleCreateRental(e, 'active')}
                     >
                       <FileText size={18} />
-                      <span>Gerar Locação &amp; Emitir Termo</span>
+                      <span>Entregar no Balcão &amp; Emitir Termo</span>
                     </button>
                   )}
                 </div>
@@ -2245,9 +2263,9 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                               type="button"
                               className="btn-primary btn-sm btn-activate-reservation"
                               onClick={() => handleActivateReservation(rental)}
-                              title="Confirma pagamento e transforma a reserva em locação ativa"
+                              title="Registra a retirada física do equipamento e altera status para Em Andamento"
                             >
-                              <CheckCircle2 size={14} /> Confirmar Pagamento &amp; Iniciar Locação
+                              <Package size={14} /> Confirmar Retirada / Entregar Equipamento
                             </button>
                             <button
                               type="button"

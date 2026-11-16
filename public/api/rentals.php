@@ -98,7 +98,15 @@ function ensureRentalsTables($db)
     ");
 
     try {
-        $db->exec("ALTER TABLE rentals ADD COLUMN auth_signature VARCHAR(64) NULL");
+        $db->exec("ALTER TABLE equipment ADD COLUMN photo_backup LONGTEXT NULL");
+    } catch (Exception $e) {
+    }
+
+    // Auto-Migração: Garantir que agendamentos futuros fiquem como 'reserved' (inclusive Mikaele 27/12)
+    // e restaurar estoque de hoje se foi abatido indevidamente antes da data
+    try {
+        $db->exec("UPDATE rentals SET status = 'reserved', code = 'RES-202611-001' WHERE (code = 'LOC-202611-001' OR code = 'RES-202611-001') AND start_date > '2026-11-16'");
+        $db->exec("UPDATE equipment SET available_qty = total_qty WHERE id IN ('eq-006', 'eq-018') AND available_qty < total_qty");
     } catch (Exception $e) {
     }
 
@@ -605,7 +613,7 @@ function ensureEquipmentUploadStorage()
     return $targetDir;
 }
 
-// Processa fotos de vistoria (salva em disco em images/rentals ou preserva base64)
+// Processa fotos de vistoria (salva em disco em images/rentals E preserva base64 de backup perpétuo)
 function processRentalPhotos($photos, $rentalCode, $type)
 {
     if (!is_array($photos))
@@ -615,7 +623,10 @@ function processRentalPhotos($photos, $rentalCode, $type)
 
     foreach ($photos as $idx => $p) {
         $url = $p['url'] ?? '';
+        $backup = $p['backup'] ?? '';
+
         if (!empty($url) && strpos($url, 'data:image/') === 0) {
+            $backup = $url; // Guarda o base64 para auto-recuperação perpétua
             $parts = explode(',', $url, 2);
             if (count($parts) === 2) {
                 $imageData = base64_decode($parts[1]);
@@ -631,11 +642,28 @@ function processRentalPhotos($photos, $rentalCode, $type)
                     }
                 }
             }
+        } elseif (!empty($backup) && strpos($backup, 'data:image/') === 0) {
+            // Se já tem URL mas o arquivo físico não existe no disco, recria na hora
+            $parsedFilename = basename(explode('?', $url)[0]);
+            if (!empty($parsedFilename)) {
+                $destPath = $targetDir . '/' . $parsedFilename;
+                if (!file_exists($destPath)) {
+                    $parts = explode(',', $backup, 2);
+                    if (count($parts) === 2) {
+                        $bin = base64_decode($parts[1]);
+                        if ($bin !== false && strlen($bin) > 0) {
+                            @file_put_contents($destPath, $bin);
+                            @chmod($destPath, 0644);
+                        }
+                    }
+                }
+            }
         }
 
         $processed[] = [
             'id' => $p['id'] ?? ('photo-' . bin2hex(random_bytes(4))),
             'url' => $url,
+            'backup' => $backup,
             'caption' => trim($p['caption'] ?? ''),
             'equipmentName' => trim($p['equipmentName'] ?? ''),
             'condition' => trim($p['condition'] ?? 'ok'), // 'ok' ou 'damage'
@@ -660,10 +688,14 @@ if ($method === 'GET' && ($action === 'view_photo' || $action === 'get_photo')) 
     }
 
     $targetDir = ensureRentalStorage();
+    $equipDir = ensureEquipmentUploadStorage();
     $candidatePaths = [
         $targetDir . '/' . $file,
+        $equipDir . '/' . $file,
         dirname(__DIR__) . '/images/rentals/' . $file,
+        dirname(__DIR__) . '/images/uploads/equipment/' . $file,
         __DIR__ . '/../images/rentals/' . $file,
+        __DIR__ . '/../images/uploads/equipment/' . $file,
     ];
 
     $foundPath = null;
@@ -674,8 +706,61 @@ if ($method === 'GET' && ($action === 'view_photo' || $action === 'get_photo')) 
         }
     }
 
+    // Auto-Recuperação 1: Se o arquivo físico não estiver em disco, recupera do MySQL em rentals
+    if (!$foundPath) {
+        try {
+            $stmtRentPhoto = $db->prepare("SELECT pickup_photos_json, return_photos_json FROM rentals WHERE pickup_photos_json LIKE ? OR return_photos_json LIKE ?");
+            $stmtRentPhoto->execute(['%' . $file . '%', '%' . $file . '%']);
+            $rentRows = $stmtRentPhoto->fetchAll();
+            foreach ($rentRows as $rw) {
+                $allPhotos = array_merge(
+                    !empty($rw['pickup_photos_json']) ? json_decode($rw['pickup_photos_json'], true) : [],
+                    !empty($rw['return_photos_json']) ? json_decode($rw['return_photos_json'], true) : []
+                );
+                foreach ($allPhotos as $ap) {
+                    if ((strpos($ap['url'] ?? '', $file) !== false || ($ap['id'] ?? '') === pathinfo($file, PATHINFO_FILENAME)) && !empty($ap['backup'])) {
+                        $parts = explode(',', $ap['backup'], 2);
+                        if (count($parts) === 2) {
+                            $bin = base64_decode($parts[1]);
+                            if ($bin !== false && strlen($bin) > 0) {
+                                $saveDest = $targetDir . '/' . $file;
+                                @file_put_contents($saveDest, $bin);
+                                @chmod($saveDest, 0644);
+                                $foundPath = $saveDest;
+                                break 2;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception $e) {
+        }
+    }
+
+    // Auto-Recuperação 2: Tenta recuperar do backup de foto do acervo em equipment
+    if (!$foundPath) {
+        try {
+            $stmtEqPhoto = $db->prepare("SELECT photo_backup FROM equipment WHERE photo_backup IS NOT NULL AND (photo_url LIKE ? OR id LIKE ?)");
+            $stmtEqPhoto->execute(['%' . $file . '%', '%' . pathinfo($file, PATHINFO_FILENAME) . '%']);
+            $eqBackup = $stmtEqPhoto->fetchColumn();
+            if ($eqBackup && strpos($eqBackup, 'data:image/') === 0) {
+                $parts = explode(',', $eqBackup, 2);
+                if (count($parts) === 2) {
+                    $bin = base64_decode($parts[1]);
+                    if ($bin !== false && strlen($bin) > 0) {
+                        $saveDest = $equipDir . '/' . $file;
+                        @file_put_contents($saveDest, $bin);
+                        @chmod($saveDest, 0644);
+                        $foundPath = $saveDest;
+                    }
+                }
+            }
+        } catch (Exception $e) {
+        }
+    }
+
     if ($foundPath) {
-        if ($foundPath !== $targetDir . '/' . $file && is_dir($targetDir)) {
+        if ($foundPath !== $targetDir . '/' . $file && is_dir($targetDir) && strpos($foundPath, 'rentals') !== false) {
             @copy($foundPath, $targetDir . '/' . $file);
             @chmod($targetDir . '/' . $file, 0644);
         }
@@ -862,17 +947,40 @@ if ($method === 'GET') {
     } catch (Exception $e) {
     }
 
-    $equipment = array_map(function ($e) use ($missionAllocationsByEquipId) {
+    $targetDir = ensureRentalStorage();
+    $equipDir = ensureEquipmentUploadStorage();
+
+    $equipment = array_map(function ($e) use ($missionAllocationsByEquipId, $equipDir) {
         $eqId = $e['id'];
+        $daily = (float) $e['daily_rate'];
         $assetVal = (float) ($e['asset_value'] ?? 0);
         if ($assetVal <= 0) {
-            $assetVal = getBenchmarkAssetValue($e['name'], $e['category'], (float) $e['daily_rate']);
+            $assetVal = getBenchmarkAssetValue($e['name'], $e['category'], $daily);
         }
+
+        $photoUrl = $e['photo_url'] ?? '';
+        $photoBackup = $e['photo_backup'] ?? '';
+
+        // Auto-Cura de foto do acervo
+        if (!empty($photoUrl) && !empty($photoBackup) && strpos($photoUrl, '/images/') === 0) {
+            $parsedFile = basename(explode('?', $photoUrl)[0]);
+            if (!empty($parsedFile) && !file_exists($equipDir . '/' . $parsedFile)) {
+                $parts = explode(',', $photoBackup, 2);
+                if (count($parts) === 2) {
+                    $bin = base64_decode($parts[1]);
+                    if ($bin !== false && strlen($bin) > 0) {
+                        @file_put_contents($equipDir . '/' . $parsedFile, $bin);
+                        @chmod($equipDir . '/' . $parsedFile, 0644);
+                    }
+                }
+            }
+        }
+
         return [
             'id' => $eqId,
             'name' => $e['name'],
             'category' => $e['category'],
-            'dailyRate' => (float) $e['daily_rate'],
+            'dailyRate' => $daily,
             'rateUnit' => $e['rate_unit'] ?? 'diária',
             'assetValue' => $assetVal,
             'totalQty' => (int) $e['total_qty'],
@@ -880,7 +988,8 @@ if ($method === 'GET') {
             'maintenanceQty' => (int) ($e['maintenance_qty'] ?? 0),
             'maintenanceNotes' => $e['maintenance_notes'] ?? '',
             'serialNumber' => $e['serial_number'] ?? '',
-            'photoUrl' => $e['photo_url'] ?? '',
+            'photoUrl' => $photoUrl,
+            'photoBackup' => $photoBackup,
             'description' => $e['description'] ?? '',
             'status' => $e['status'] ?? 'available',
             'missionAllocations' => $missionAllocationsByEquipId[$eqId] ?? [],
@@ -893,8 +1002,47 @@ if ($method === 'GET') {
     $stmtRent = $db->query("SELECT * FROM rentals ORDER BY created_at DESC");
     $rawRent = $stmtRent->fetchAll();
 
-    $rentals = array_map(function ($r) {
+    $rentals = array_map(function ($r) use ($targetDir) {
         $items = !empty($r['items_json']) ? json_decode($r['items_json'], true) : [];
+        $pickupPhotos = !empty($r['pickup_photos_json']) ? json_decode($r['pickup_photos_json'], true) : [];
+        $returnPhotos = !empty($r['return_photos_json']) ? json_decode($r['return_photos_json'], true) : [];
+
+        // Auto-Cura de fotos de vistoria em disco
+        if (is_array($pickupPhotos)) {
+            foreach ($pickupPhotos as &$p) {
+                if (!empty($p['url']) && !empty($p['backup']) && strpos($p['url'], '/images/rentals/') === 0) {
+                    $pFilename = basename(explode('?', $p['url'])[0]);
+                    if (!empty($pFilename) && !file_exists($targetDir . '/' . $pFilename)) {
+                        $pParts = explode(',', $p['backup'], 2);
+                        if (count($pParts) === 2) {
+                            $pBin = base64_decode($pParts[1]);
+                            if ($pBin !== false && strlen($pBin) > 0) {
+                                @file_put_contents($targetDir . '/' . $pFilename, $pBin);
+                                @chmod($targetDir . '/' . $pFilename, 0644);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (is_array($returnPhotos)) {
+            foreach ($returnPhotos as &$rp) {
+                if (!empty($rp['url']) && !empty($rp['backup']) && strpos($rp['url'], '/images/rentals/') === 0) {
+                    $rpFilename = basename(explode('?', $rp['url'])[0]);
+                    if (!empty($rpFilename) && !file_exists($targetDir . '/' . $rpFilename)) {
+                        $rpParts = explode(',', $rp['backup'], 2);
+                        if (count($rpParts) === 2) {
+                            $rpBin = base64_decode($rpParts[1]);
+                            if ($rpBin !== false && strlen($rpBin) > 0) {
+                                @file_put_contents($targetDir . '/' . $rpFilename, $rpBin);
+                                @chmod($targetDir . '/' . $rpFilename, 0644);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return [
             'id' => $r['id'],
             'code' => $r['code'],
@@ -916,8 +1064,8 @@ if ($method === 'GET') {
             'status' => $r['status'] ?? 'active',
             'notes' => $r['notes'] ?? '',
             'items' => is_array($items) ? $items : [],
-            'pickupPhotos' => !empty($r['pickup_photos_json']) ? json_decode($r['pickup_photos_json'], true) : [],
-            'returnPhotos' => !empty($r['return_photos_json']) ? json_decode($r['return_photos_json'], true) : [],
+            'pickupPhotos' => is_array($pickupPhotos) ? $pickupPhotos : [],
+            'returnPhotos' => is_array($returnPhotos) ? $returnPhotos : [],
             'pickupNotes' => $r['pickup_notes'] ?? '',
             'inspectionNotes' => $r['inspection_notes'] ?? '',
             'hasDamage' => !empty($r['has_damage']),
@@ -1151,8 +1299,13 @@ if ($method === 'POST' && $action === 'update_equipment_photo') {
     }
 
     try {
-        $stmtPhoto = $db->prepare("UPDATE equipment SET photo_url = ? WHERE id = ?");
-        $stmtPhoto->execute([$photoUrl, $id]);
+        if (!empty($photoData) && strpos($photoData, 'data:image/') === 0) {
+            $stmtPhoto = $db->prepare("UPDATE equipment SET photo_url = ?, photo_backup = ? WHERE id = ?");
+            $stmtPhoto->execute([$photoUrl, $photoData, $id]);
+        } else {
+            $stmtPhoto = $db->prepare("UPDATE equipment SET photo_url = ? WHERE id = ?");
+            $stmtPhoto->execute([$photoUrl, $id]);
+        }
         bumpSyncVersion('update_equipment_photo');
 
         jsonResponse([
@@ -1298,9 +1451,12 @@ if ($method === 'POST' && $action === 'create_rental') {
             $remainingAmount = 0;
         }
 
-        // Define status: 'reserved' (Agendamento/Reserva) ou 'active' (Locação ativa)
+        // Define status: Se a data de início for futura (startDate > today), é SEMPRE um Agendamento / Reserva ('reserved')
+        // mesmo que já esteja quitado antecipadamente. Só vai para 'active' (Em Andamento) quando o cliente efetivamente retirar os itens.
         $status = trim($data['status'] ?? '');
-        if (!in_array($status, ['active', 'reserved'])) {
+        if ($startDate > $todayStr) {
+            $status = 'reserved';
+        } elseif (!in_array($status, ['active', 'reserved'])) {
             $status = ($paymentStatus === 'Pago') ? 'active' : 'reserved';
         }
 
@@ -1740,6 +1896,28 @@ if ($method === 'POST' && $action === 'activate_reservation') {
     $stmtUp = $db->prepare("UPDATE rentals SET status = 'active', payment_status = ?, payment_receipt_url = ? WHERE id = ?");
     $stmtUp->execute([$newPayStatus, $receiptUrl, $rentalId]);
 
+    // Ao ativar e entregar fisicamente os equipamentos no balcão, baixa o estoque disponível
+    if ($rental['status'] === 'reserved') {
+        $items = !empty($rental['items_json']) ? json_decode($rental['items_json'], true) : [];
+        if (is_array($items)) {
+            foreach ($items as $it) {
+                $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
+                $qty = max(1, (int) ($it['quantity'] ?? 1));
+                if (!empty($eqId)) {
+                    $stmtEq = $db->prepare("SELECT total_qty, available_qty FROM equipment WHERE id = ?");
+                    $stmtEq->execute([$eqId]);
+                    $eq = $stmtEq->fetch();
+                    if ($eq) {
+                        $newAvail = max(0, (int) $eq['available_qty'] - $qty);
+                        $newStatus = $newAvail == 0 ? 'rented' : 'available';
+                        $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
+                            ->execute([$newAvail, $newStatus, $eqId]);
+                    }
+                }
+            }
+        }
+    }
+
     logAudit('ACTIVATE_RESERVATION', 'RENTALS', $rentalId, "Reserva {$rental['code']} confirmada e ativada como locação por {$user['name']}.", $user['id'], $user['name']);
     bumpSyncVersion('activate_reservation');
 
@@ -1808,8 +1986,8 @@ if ($method === 'POST' && $action === 'cancel_rental') {
             throw new Exception("Este registro já se encontra cancelado.");
         }
 
-        // Se estiver reservada ou ativa, devolve os itens de volta ao estoque disponível
-        if ($rental['status'] === 'reserved' || $rental['status'] === 'active') {
+        // Devolve os itens ao estoque disponível apenas se a locação estiver ativa (saída física já realizada)
+        if ($rental['status'] === 'active') {
             $items = !empty($rental['items_json']) ? json_decode($rental['items_json'], true) : [];
             foreach ($items as $it) {
                 $eqId = $it['equipmentId'] ?? $it['id'] ?? '';

@@ -236,6 +236,32 @@ export default function SmartHeaderGreeting({
       return false;
     };
 
+    const isUpcomingScheduled = (m) => {
+      if (!m) return false;
+      const s = String(m.missionStatus || 'Agendada').trim().toLowerCase();
+      if (
+        s === 'pendente' ||
+        s === 'pendente (pós-prod.)' ||
+        s === 'pós-produção' ||
+        s === 'finalizada' ||
+        s === 'finalizado' ||
+        s === 'concluída' ||
+        s === 'concluida' ||
+        s === 'cancelada'
+      ) {
+        return false;
+      }
+      // Deve ser missão ativa/agendada para hoje ou data futura (nunca pauta passada)
+      const mDate = String(m.date || '');
+      return mDate >= todayStr;
+    };
+
+    const sortUpcoming = (a, b) => {
+      const dComp = String(a.date || '').localeCompare(String(b.date || ''));
+      if (dComp !== 0) return dComp;
+      return (a.departureTime || '00:00').localeCompare(b.departureTime || '00:00');
+    };
+
     if (!isAdminUser) {
       // Procura primeiro missão em execução do colaborador
       const executing = missions.find(
@@ -251,12 +277,8 @@ export default function SmartHeaderGreeting({
 
       // Depois próxima missão agendada
       const scheduledToday = missions
-        .filter((m) => isUserAssigned(m) && (!m.missionStatus || m.missionStatus === 'Agendada'))
-        .sort((a, b) => {
-          const dComp = String(a.date || '').localeCompare(String(b.date || ''));
-          if (dComp !== 0) return dComp;
-          return (a.departureTime || '').localeCompare(b.departureTime || '');
-        });
+        .filter((m) => isUserAssigned(m) && isUpcomingScheduled(m))
+        .sort(sortUpcoming);
 
       if (scheduledToday.length > 0) {
         return { mission: scheduledToday[0], type: 'scheduled' };
@@ -273,14 +295,10 @@ export default function SmartHeaderGreeting({
       const preparing = missions.find((m) => m.missionStatus === 'Em Preparo');
       if (preparing) return { mission: preparing, type: 'preparing' };
 
-      // Próxima missão agendada de campo (exclui Pendentes de pós-produção)
+      // Próxima missão agendada de campo (exclui datas passadas e Pendentes de pós-produção)
       const nextScheduled = missions
-        .filter((m) => !m.missionStatus || m.missionStatus === 'Agendada')
-        .sort((a, b) => {
-          const dComp = String(a.date || '').localeCompare(String(b.date || ''));
-          if (dComp !== 0) return dComp;
-          return (a.departureTime || '').localeCompare(b.departureTime || '');
-        });
+        .filter(isUpcomingScheduled)
+        .sort(sortUpcoming);
 
       if (nextScheduled.length > 0) {
         return { mission: nextScheduled[0], type: 'scheduled' };

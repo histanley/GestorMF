@@ -1242,12 +1242,14 @@ export default function MissionModal({
 
     const allConflictMsgs = [...conflictingVehicles, ...conflictingDrivers, ...conflictingTeam];
     if (allConflictMsgs.length > 0) {
-      await alertDialog({
-        title: 'Conflito de Escala Detectado',
-        message: `Não é possível salvar a missão devido a conflitos de horário com outra escala ativa:\n\n${allConflictMsgs.join('\n')}\n\nPor favor, escolha veículos e colaboradores disponíveis ou altere o horário da missão.`,
-        variant: 'danger',
+      const proceed = await confirmDialog({
+        title: '⚠️ Aviso de Sobreposição de Escala',
+        message: `Foram detectadas sobreposições de escala com outra missão:\n\n${allConflictMsgs.join('\n')}\n\nDeseja autorizar a escala simultânea / deslocamento direto deste(s) colaborador(es)?`,
+        confirmText: 'Autorizar e Salvar Missão',
+        cancelText: 'Revisar Escala',
+        variant: 'warning',
       });
-      return;
+      if (!proceed) return;
     }
 
     const primaryAlloc = validAllocations[0] || null;

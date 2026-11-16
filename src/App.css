@@ -36904,8 +36904,8 @@ body.light-theme .kpi-card.kpi-red {
 }
 
 .rc-doc-header-official {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 200px 1fr 200px;
   align-items: center;
   border-bottom: 2px solid #0f172a;
   padding-bottom: 12px;
@@ -36914,7 +36914,7 @@ body.light-theme .kpi-card.kpi-red {
 }
 
 .rc-header-logo-col {
-  width: 195px;
+  width: 200px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -36965,7 +36965,7 @@ body.light-theme .kpi-card.kpi-red {
 }
 
 .rc-header-meta-col {
-  width: 195px;
+  width: 200px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -37703,6 +37703,22 @@ body.light-theme .kpi-card.kpi-red {
     display: none !important;
   }
 
+  body.printing-rental-contract .app-header,
+  body.printing-rental-contract .map-view-layout,
+  body.printing-rental-contract .service-board-container,
+  body.printing-rental-contract .admin-center-container > *:not(.ac-rentals-view),
+  body.printing-rental-contract .erm-main-header,
+  body.printing-rental-contract .erm-tab-nav,
+  body.printing-rental-contract .erm-kpi-grid,
+  body.printing-rental-contract .erm-category-breakdown,
+  body.printing-rental-contract .erm-rentals-toolbar,
+  body.printing-rental-contract .erm-rentals-list,
+  body.printing-rental-contract .erm-catalog-view,
+  body.printing-rental-contract .erm-new-rental-view,
+  body.printing-rental-contract .print-wall-sheet {
+    display: none !important;
+  }
+
   body,
   html,
   #root,
@@ -37771,8 +37787,8 @@ body.light-theme .kpi-card.kpi-red {
   }
 
   .rc-doc-header-official {
-    display: flex !important;
-    justify-content: space-between !important;
+    display: grid !important;
+    grid-template-columns: 180px 1fr 180px !important;
     align-items: center !important;
     border-bottom: 2px solid #0f172a !important;
     padding-bottom: 6px !important;

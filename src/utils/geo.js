@@ -1143,6 +1143,11 @@ export function getMissionLiveProgress(mission) {
     mStatus === 'finalizada' ||
     mStatus === 'finalizado' ||
     mStatus === 'concluída' ||
+    mStatus === 'concluida' ||
+    mStatus === 'pendente' ||
+    mStatus === 'pendente (pós-prod.)' ||
+    mStatus === 'pós-produção' ||
+    mStatus === 'pos-producao' ||
     mStatus === 'cancelada'
   ) {
     return {
