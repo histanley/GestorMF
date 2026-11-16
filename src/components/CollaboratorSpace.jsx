@@ -860,7 +860,10 @@ export default function CollaboratorSpace({
           ) : (
             <>
               <div className="cs-pix-info">
-                <span className="cs-pix-label">Chave PIX Cadastrada</span>
+                <span className="cs-pix-label">
+                  <CreditCard size={12} className="text-cyan icon-shrink" style={{ verticalAlign: 'middle', marginRight: '5px' }} />
+                  Chave PIX Cadastrada
+                </span>
                 <strong className={`cs-pix-value ${!myMember?.pixKey ? 'is-empty' : ''}`}>
                   {myMember?.pixKey || 'Não cadastrada'}
                 </strong>
@@ -926,10 +929,10 @@ export default function CollaboratorSpace({
                 style={{
                   borderColor: userLevel.color || '#f59e0b',
                   color: userLevel.color || '#f59e0b',
-                  boxShadow: `0 0 14px ${userLevel.color ? userLevel.color + '40' : 'rgba(245, 158, 11, 0.25)'}`,
+                  boxShadow: `0 0 16px ${userLevel.color ? userLevel.color + '45' : 'rgba(245, 158, 11, 0.3)'}`,
                 }}
               >
-                <Trophy size={18} />
+                <Trophy size={22} />
               </div>
               <div className="cs-xp-tier-text">
                 <div className="cs-xp-tier-badge-row">
@@ -985,7 +988,7 @@ export default function CollaboratorSpace({
           {/* Funções em que está pontuando ativamente */}
           <div className="cs-xp-active-roles-row">
             <span className="cs-xp-roles-label">
-              <Target size={13} />
+              <Target size={14} className="text-amber" />
               <span>Pontuando em:</span>
             </span>
 
