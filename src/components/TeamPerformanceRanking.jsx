@@ -45,6 +45,8 @@ import {
   computeMemberRoleCounts,
   calculateMemberPerformanceProfile,
   isMissionCompleted,
+  getCareerProgression,
+  MAX_CAREER_XP,
 } from '../utils/companyRoles';
 
 // Formata data ISO para PT-BR (dd/mm/aaaa)
@@ -192,6 +194,10 @@ export default function TeamPerformanceRanking({
   const top1 = rankedMembers[0] || null;
   const top2 = rankedMembers[1] || null;
   const top3 = rankedMembers[2] || null;
+
+  const tierTop1 = top1 ? getCareerProgression(top1.score) : null;
+  const tierTop2 = top2 ? getCareerProgression(top2.score) : null;
+  const tierTop3 = top3 ? getCareerProgression(top3.score) : null;
 
   // Pontuação máxima para escala de barra percentual
   const maxScore = top1 ? Math.max(top1.score, 100) : 100;
@@ -469,7 +475,7 @@ export default function TeamPerformanceRanking({
                     <span>2º Lugar</span>
                   </div>
 
-                  <div className="podium-avatar-wrap silver-glow">
+                  <div className="podium-avatar-wrap silver-glow" style={{ borderColor: tierTop2?.color }}>
                     {top2.photoUrl ? (
                       <img src={top2.photoUrl} alt={top2.name} className="podium-avatar-img" />
                     ) : (
@@ -477,10 +483,25 @@ export default function TeamPerformanceRanking({
                         {top2.name.slice(0, 2).toUpperCase()}
                       </div>
                     )}
+                    {/* Insígnia Oficial de Patente sobre a Foto */}
+                    <div
+                      className="podium-insignia-badge"
+                      title={`Patente Nível ${tierTop2?.level} • ${tierTop2?.title}`}
+                      style={{
+                        borderColor: tierTop2?.color || '#38bdf8',
+                        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                      }}
+                    >
+                      <span className="pib-icon">{tierTop2?.icon}</span>
+                      <small className="pib-lvl" style={{ color: tierTop2?.color }}>N{tierTop2?.level}</small>
+                    </div>
                   </div>
 
                   <h4 className="podium-member-name">{top2.name}</h4>
                   <span className="podium-member-role">{top2.role}</span>
+                  <span className="podium-member-tier" style={{ color: tierTop2?.color }}>
+                    {tierTop2?.icon} {tierTop2?.title}
+                  </span>
 
                   <div className="podium-score-pill">
                     <Zap size={13} />
@@ -515,7 +536,7 @@ export default function TeamPerformanceRanking({
                     <span>1º Lugar • Campeão</span>
                   </div>
 
-                  <div className="podium-avatar-wrap gold-glow">
+                  <div className="podium-avatar-wrap gold-glow" style={{ borderColor: tierTop1?.color }}>
                     {top1.photoUrl ? (
                       <img src={top1.photoUrl} alt={top1.name} className="podium-avatar-img" />
                     ) : (
@@ -523,10 +544,25 @@ export default function TeamPerformanceRanking({
                         {top1.name.slice(0, 2).toUpperCase()}
                       </div>
                     )}
+                    {/* Insígnia Oficial de Patente sobre a Foto */}
+                    <div
+                      className="podium-insignia-badge"
+                      title={`Patente Nível ${tierTop1?.level} • ${tierTop1?.title}`}
+                      style={{
+                        borderColor: tierTop1?.color || '#fbbf24',
+                        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                      }}
+                    >
+                      <span className="pib-icon">{tierTop1?.icon}</span>
+                      <small className="pib-lvl" style={{ color: tierTop1?.color }}>N{tierTop1?.level}</small>
+                    </div>
                   </div>
 
                   <h4 className="podium-member-name">{top1.name}</h4>
                   <span className="podium-member-role">{top1.role}</span>
+                  <span className="podium-member-tier" style={{ color: tierTop1?.color }}>
+                    {tierTop1?.icon} {tierTop1?.title}
+                  </span>
 
                   <div className="podium-score-pill gold-score">
                     <Sparkles size={14} />
@@ -558,7 +594,7 @@ export default function TeamPerformanceRanking({
                     <span>3º Lugar</span>
                   </div>
 
-                  <div className="podium-avatar-wrap bronze-glow">
+                  <div className="podium-avatar-wrap bronze-glow" style={{ borderColor: tierTop3?.color }}>
                     {top3.photoUrl ? (
                       <img src={top3.photoUrl} alt={top3.name} className="podium-avatar-img" />
                     ) : (
@@ -566,10 +602,25 @@ export default function TeamPerformanceRanking({
                         {top3.name.slice(0, 2).toUpperCase()}
                       </div>
                     )}
+                    {/* Insígnia Oficial de Patente sobre a Foto */}
+                    <div
+                      className="podium-insignia-badge"
+                      title={`Patente Nível ${tierTop3?.level} • ${tierTop3?.title}`}
+                      style={{
+                        borderColor: tierTop3?.color || '#cd7f32',
+                        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                      }}
+                    >
+                      <span className="pib-icon">{tierTop3?.icon}</span>
+                      <small className="pib-lvl" style={{ color: tierTop3?.color }}>N{tierTop3?.level}</small>
+                    </div>
                   </div>
 
                   <h4 className="podium-member-name">{top3.name}</h4>
                   <span className="podium-member-role">{top3.role}</span>
+                  <span className="podium-member-tier" style={{ color: tierTop3?.color }}>
+                    {tierTop3?.icon} {tierTop3?.title}
+                  </span>
 
                   <div className="podium-score-pill">
                     <Zap size={13} />
@@ -619,6 +670,7 @@ export default function TeamPerformanceRanking({
         <div className="ranking-members-grid">
           {rankedMembers.map((member, index) => {
             const rankPosition = index + 1;
+            const memberTier = getCareerProgression(member.score);
             const progressPercent = Math.min(Math.round((member.score / maxScore) * 100), 100);
 
             let rankClass = 'rank-regular';
@@ -639,21 +691,45 @@ export default function TeamPerformanceRanking({
                   </div>
                 </div>
 
-                {/* Avatar e Perfil */}
+                {/* Avatar e Perfil com Insígnia Flutuante */}
                 <div className="rmc-avatar-col">
-                  {member.photoUrl ? (
-                    <img src={member.photoUrl} alt={member.name} className="rmc-avatar-img" />
-                  ) : (
-                    <div className="rmc-avatar-placeholder">
-                      {member.name.slice(0, 2).toUpperCase()}
+                  <div className="rmc-avatar-wrap-insignia">
+                    {member.photoUrl ? (
+                      <img src={member.photoUrl} alt={member.name} className="rmc-avatar-img" />
+                    ) : (
+                      <div className="rmc-avatar-placeholder">
+                        {member.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div
+                      className="rmc-avatar-insignia-badge"
+                      title={`Insígnia: Nível ${memberTier.level} • ${memberTier.title}`}
+                      style={{
+                        borderColor: memberTier.color,
+                        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                      }}
+                    >
+                      <span className="rmc-insignia-icon">{memberTier.icon}</span>
+                      <small className="rmc-insignia-lvl" style={{ color: memberTier.color }}>N{memberTier.level}</small>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Informações e Funções */}
                 <div className="rmc-info-col">
                   <div className="rmc-name-row">
                     <strong className="rmc-name">{member.name}</strong>
+                    <span
+                      className="rmc-tier-badge"
+                      style={{
+                        color: memberTier.color,
+                        borderColor: `${memberTier.color}45`,
+                        background: `${memberTier.color}15`,
+                      }}
+                      title={memberTier.description}
+                    >
+                      {memberTier.icon} Nível {memberTier.level} • {memberTier.title}
+                    </span>
                     <span className="rmc-company-tag">{member.company}</span>
                     {member.canDrive && (
                       <span className="rmc-cnh-tag" title={`Habilitado CNH ${member.cnhCategory || 'AB'}`}>
@@ -673,7 +749,7 @@ export default function TeamPerformanceRanking({
                   <div className="rmc-roles-chips-strip">
                     {OFFICIAL_COMPANY_ROLES.filter((r) => (member.roleCounts?.[r] || 0) > 0).map((r) => {
                       const count = member.roleCounts[r];
-                      const pts = member.rolePoints?.[r] || (count * (ROLE_XP_POINTS[r] || 15));
+                      const pts = member.rolePoints?.[r] || (count * (ROLE_XP_POINTS[r] || 20));
                       const icon = ROLE_ICONS_MAP[r] || '💼';
                       const color = ROLE_COLORS_MAP[r] || '#3b82f6';
                       return (
@@ -694,12 +770,25 @@ export default function TeamPerformanceRanking({
                     })}
                   </div>
 
-                  {/* Barra de Engajamento */}
-                  <div className="rmc-progress-track">
+                  {/* Barra de Engajamento Rumo a 10.000 XP */}
+                  <div className="rmc-progress-track" title={`${member.score} / 10.000 XP (${memberTier.overallPercent}% do Hall da Fama)`}>
                     <div
                       className="rmc-progress-fill"
-                      style={{ width: `${Math.max(progressPercent, 4)}%` }}
+                      style={{
+                        width: `${Math.max(memberTier.overallPercent, 3)}%`,
+                        background: `linear-gradient(90deg, #06b6d4 0%, ${memberTier.color || '#f59e0b'} 100%)`,
+                      }}
                     />
+                  </div>
+                  <div className="rmc-progress-meta-row">
+                    <span className="rmc-progress-meta-text">
+                      Meta 10.000 XP: <strong>{memberTier.overallPercent}%</strong> ({member.score} XP)
+                    </span>
+                    <span className="rmc-progress-meta-next" style={{ color: memberTier.color }}>
+                      {memberTier.level >= 10
+                        ? '🌟 Hall da Fama Conquistado'
+                        : `Faltam ${memberTier.remainingForNext} XP para Nível ${memberTier.level + 1}`}
+                    </span>
                   </div>
                 </div>
 
@@ -779,87 +868,115 @@ export default function TeamPerformanceRanking({
       {/* ============================================================== */}
       {/* 5. MODAL DE RAIO-X COMPLETO DO COLABORADOR COM EXTRATO FIEL     */}
       {/* ============================================================== */}
-      {selectedMemberDetail && (
-        <div className="modal-overlay" onClick={() => setSelectedMemberDetail(null)}>
-          <div
-            className="modal-box ranking-ray-modal"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '820px' }}
-          >
-            <div className="modal-header">
-              <div className="ray-header-info">
-                <div className="ray-avatar-large">
-                  {selectedMemberDetail.photoUrl ? (
-                    <img src={selectedMemberDetail.photoUrl} alt={selectedMemberDetail.name} />
-                  ) : (
-                    <div className="ray-avatar-placeholder">
-                      {selectedMemberDetail.name.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="ray-title-row">
-                    <h2>{selectedMemberDetail.name}</h2>
-                    <span className="ray-company-pill">{selectedMemberDetail.company}</span>
-                    {selectedMemberDetail.canDrive && (
-                      <span className="ray-cnh-pill">🚗 CNH {selectedMemberDetail.cnhCategory || 'AB'}</span>
+      {selectedMemberDetail && (() => {
+        const detailTier = getCareerProgression(selectedMemberDetail.score);
+        return (
+          <div className="modal-overlay" onClick={() => setSelectedMemberDetail(null)}>
+            <div
+              className="modal-box ranking-ray-modal"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: '840px' }}
+            >
+              <div className="modal-header">
+                <div className="ray-header-info">
+                  <div className="ray-avatar-large" style={{ borderColor: detailTier.color, boxShadow: `0 0 20px ${detailTier.color}35` }}>
+                    {selectedMemberDetail.photoUrl ? (
+                      <img src={selectedMemberDetail.photoUrl} alt={selectedMemberDetail.name} />
+                    ) : (
+                      <div className="ray-avatar-placeholder">
+                        {selectedMemberDetail.name.slice(0, 2).toUpperCase()}
+                      </div>
                     )}
+                    {/* Insígnia Flutuante Sobre o Avatar */}
+                    <div
+                      className="ray-avatar-insignia"
+                      title={`Insígnia Oficial: Nível ${detailTier.level} • ${detailTier.title}`}
+                      style={{
+                        borderColor: detailTier.color,
+                        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                      }}
+                    >
+                      <span className="rai-icon">{detailTier.icon}</span>
+                      <small style={{ color: detailTier.color }}>N{detailTier.level}</small>
+                    </div>
                   </div>
-                  <div className="ray-roles-list">
-                    <span className="ray-role-main">💼 {selectedMemberDetail.role}</span>
-                    {Array.isArray(selectedMemberDetail.secondaryRoles) &&
-                      selectedMemberDetail.secondaryRoles.map((sr) => (
-                        <span key={sr} className="ray-sec-role">+{sr}</span>
-                      ))}
+                  <div>
+                    <div className="ray-title-row">
+                      <h2>{selectedMemberDetail.name}</h2>
+                      <span
+                        className="ray-tier-pill"
+                        style={{
+                          borderColor: `${detailTier.color}50`,
+                          color: detailTier.color,
+                          background: `${detailTier.color}15`,
+                        }}
+                      >
+                        {detailTier.icon} Nível {detailTier.level} • {detailTier.title}
+                      </span>
+                      <span className="ray-company-pill">{selectedMemberDetail.company}</span>
+                      {selectedMemberDetail.canDrive && (
+                        <span className="ray-cnh-pill">🚗 CNH {selectedMemberDetail.cnhCategory || 'AB'}</span>
+                      )}
+                    </div>
+                    <div className="ray-roles-list">
+                      <span className="ray-role-main">💼 {selectedMemberDetail.role}</span>
+                      {Array.isArray(selectedMemberDetail.secondaryRoles) &&
+                        selectedMemberDetail.secondaryRoles.map((sr) => (
+                          <span key={sr} className="ray-sec-role">+{sr}</span>
+                        ))}
+                    </div>
                   </div>
                 </div>
+
+                <button className="modal-close" onClick={() => setSelectedMemberDetail(null)}>
+                  ✕
+                </button>
               </div>
 
-              <button className="modal-close" onClick={() => setSelectedMemberDetail(null)}>
-                ✕
-              </button>
-            </div>
+              <div className="modal-form ray-modal-body">
+                {/* Placar de Pontuação e Assiduidade */}
+                <div className="ray-score-banner">
+                  <div className="rsb-score-col">
+                    <span className="rsb-tier-tag" style={{ color: detailTier.color, borderColor: `${detailTier.color}45` }}>
+                      {detailTier.icon} NÍVEL {detailTier.level} • {detailTier.title.toUpperCase()}
+                    </span>
+                    <div className="rsb-score-number">
+                      <Trophy size={26} className="text-gold" />
+                      <strong>{selectedMemberDetail.score}</strong>
+                      <span>XP</span>
+                    </div>
+                    <span className="rsb-score-hint">
+                      Meta 10.000 XP: <strong>{detailTier.overallPercent}%</strong> • {detailTier.level >= 10 ? 'Hall da Fama' : `Faltam ${detailTier.remainingForNext} XP para o próximo nível`}
+                    </span>
+                  </div>
 
-            <div className="modal-form ray-modal-body">
-              {/* Placar de Pontuação e Assiduidade */}
-              <div className="ray-score-banner">
-                <div className="rsb-score-col">
-                  <span className="rsb-score-title">Pontuação Operacional Total</span>
-                  <div className="rsb-score-number">
-                    <Trophy size={26} className="text-gold" />
-                    <strong>{selectedMemberDetail.score}</strong>
-                    <span>XP</span>
-                  </div>
-                  <span className="rsb-score-hint">Pontuação fiel de todas as 11 funções oficiais e atividades de campo</span>
-                </div>
-
-                <div className="rsb-kpi-grid">
-                  <div className="rsb-kpi-item">
-                    <span className="rsb-kpi-num">{selectedMemberDetail.totalMissions}</span>
-                    <span className="rsb-kpi-lbl">Missões Totais</span>
-                  </div>
-                  <div className="rsb-kpi-item">
-                    <span className="rsb-kpi-num text-cyan">{selectedMemberDetail.drivingCount}</span>
-                    <span className="rsb-kpi-lbl">Ao Volante</span>
-                  </div>
-                  <div className="rsb-kpi-item">
-                    <span className="rsb-kpi-num text-amber">{selectedMemberDetail.multiDayCount}</span>
-                    <span className="rsb-kpi-lbl">Viagens (+1d)</span>
-                  </div>
-                  <div className="rsb-kpi-item">
-                    <span className="rsb-kpi-num text-green">{selectedMemberDetail.estimatedDistanceKm}</span>
-                    <span className="rsb-kpi-lbl">Km Guiados</span>
-                  </div>
-                  <div className="rsb-kpi-item">
-                    <span className="rsb-kpi-num text-amber">+{selectedMemberDetail.totalApprovedExtraHours}h</span>
-                    <span className="rsb-kpi-lbl">Horas Extras</span>
-                  </div>
-                  <div className="rsb-kpi-item">
-                    <span className="rsb-kpi-num text-purple">{selectedMemberDetail.completedCount}</span>
-                    <span className="rsb-kpi-lbl">Concluídas</span>
+                  <div className="rsb-kpi-grid">
+                    <div className="rsb-kpi-item">
+                      <span className="rsb-kpi-num">{selectedMemberDetail.totalMissions}</span>
+                      <span className="rsb-kpi-lbl">Missões Totais</span>
+                    </div>
+                    <div className="rsb-kpi-item">
+                      <span className="rsb-kpi-num text-cyan">{selectedMemberDetail.drivingCount}</span>
+                      <span className="rsb-kpi-lbl">Ao Volante</span>
+                    </div>
+                    <div className="rsb-kpi-item">
+                      <span className="rsb-kpi-num text-amber">{selectedMemberDetail.multiDayCount}</span>
+                      <span className="rsb-kpi-lbl">Viagens (+1d)</span>
+                    </div>
+                    <div className="rsb-kpi-item">
+                      <span className="rsb-kpi-num text-green">{selectedMemberDetail.estimatedDistanceKm}</span>
+                      <span className="rsb-kpi-lbl">Km Guiados</span>
+                    </div>
+                    <div className="rsb-kpi-item">
+                      <span className="rsb-kpi-num text-amber">+{selectedMemberDetail.totalApprovedExtraHours}h</span>
+                      <span className="rsb-kpi-lbl">Horas Extras</span>
+                    </div>
+                    <div className="rsb-kpi-item">
+                      <span className="rsb-kpi-num text-purple">{selectedMemberDetail.completedCount}</span>
+                      <span className="rsb-kpi-lbl">Concluídas</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
               {/* EXTRATO DISCRIMINADO DE PONTUAÇÃO XP */}
               <div className="ray-breakdown-card">
@@ -976,19 +1093,33 @@ export default function TeamPerformanceRanking({
                 </div>
               </div>
 
-              {/* Badges / Conquistas */}
-              {selectedMemberDetail.badges.length > 0 && (
+              {/* Conquistas & Desafios */}
+              {selectedMemberDetail.allAchievements && selectedMemberDetail.allAchievements.length > 0 && (
                 <div className="ray-badges-section">
-                  <h4 className="ray-sub-heading">
-                    <Award size={15} /> Conquistas &amp; Selos de Reconhecimento
-                  </h4>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <h4 className="ray-sub-heading" style={{ margin: 0 }}>
+                      <Award size={15} /> Conquistas &amp; Insígnias ({selectedMemberDetail.unlockedCount} de {selectedMemberDetail.totalAchievementsCount} Desbloqueadas)
+                    </h4>
+                  </div>
                   <div className="ray-badges-grid">
-                    {selectedMemberDetail.badges.map((b) => (
-                      <div key={b.id} className="ray-badge-item">
+                    {selectedMemberDetail.allAchievements.map((b) => (
+                      <div
+                        key={b.id}
+                        className={`ray-badge-item ${b.isUnlocked ? 'is-unlocked' : 'is-locked'}`}
+                        style={{ borderColor: b.isUnlocked ? (b.color || '#f59e0b') : 'rgba(255,255,255,0.06)' }}
+                      >
                         <span className="ray-badge-icon">{b.icon}</span>
-                        <div>
-                          <strong className="ray-badge-name">{b.name}</strong>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                            <strong className="ray-badge-name" style={{ color: b.isUnlocked ? (b.color || '#f59e0b') : '#94a3b8' }}>{b.name}</strong>
+                            <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', color: b.color || '#94a3b8' }}>
+                              {b.rarity}
+                            </span>
+                          </div>
                           <span className="ray-badge-desc">{b.desc}</span>
+                          <div style={{ fontSize: '0.68rem', marginTop: '2px', color: b.isUnlocked ? '#34d399' : '#64748b' }}>
+                            {b.isUnlocked ? '✅ Conquistado' : `🔒 Progresso: ${b.current || 0}/${b.target}`}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1080,7 +1211,8 @@ export default function TeamPerformanceRanking({
             </div>
           </div>
         </div>
-      )}
+      );
+    })()}
     </div>
   );
 }

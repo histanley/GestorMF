@@ -820,13 +820,13 @@ export default function CollaboratorSpace({
 
         {/* 1. SEÇÃO SUPERIOR: IDENTIDADE, FUNÇÕES E CHAVE PIX */}
         <div className="cs-upc-top-grid">
-          {/* Avatar com Halo e Badge de Patente */}
+          {/* Avatar com Halo Épico e Insígnia Oficial de Patente */}
           <div className="cs-upc-avatar-wrap">
             <div
-              className="cs-upc-avatar"
+              className={`cs-upc-avatar ${userLevel.insigniaClass || ''}`}
               style={{
                 borderColor: userLevel.color || '#f59e0b',
-                boxShadow: `0 0 24px ${userLevel.color ? userLevel.color + '45' : 'rgba(245, 158, 11, 0.35)'}`,
+                boxShadow: `0 0 28px ${userLevel.color ? userLevel.color + '55' : 'rgba(245, 158, 11, 0.45)'}`,
               }}
             >
               {myMember.photoUrl ? (
@@ -835,12 +835,21 @@ export default function CollaboratorSpace({
                 <span>{myMember.name.slice(0, 2).toUpperCase()}</span>
               )}
             </div>
+            
+            {/* Insígnia Flutuante Sobre o Avatar com Ícone e Nível */}
             <div
-              className="cs-upc-avatar-badge"
-              title={`Patente Nível ${userLevel.level}: ${userLevel.title}`}
-              style={{ background: userLevel.color || '#f59e0b' }}
+              className="cs-upc-avatar-insignia"
+              title={`Insígnia Oficial: Nível ${userLevel.level} • ${userLevel.title}`}
+              style={{
+                borderColor: userLevel.color || '#f59e0b',
+                background: `linear-gradient(135deg, #1e293b 0%, #0f172a 100%)`,
+                boxShadow: `0 4px 14px ${userLevel.color ? userLevel.color + '70' : 'rgba(0,0,0,0.5)'}`,
+              }}
             >
-              <Trophy size={11} color="#0f172a" />
+              <span className="cs-insignia-icon">{userLevel.icon || '🎖️'}</span>
+              <span className="cs-insignia-level-tag" style={{ color: userLevel.color || '#f59e0b' }}>
+                N{userLevel.level}
+              </span>
             </div>
           </div>
 
@@ -1023,12 +1032,12 @@ export default function CollaboratorSpace({
             <div className="cs-upc-progress-labels">
               <span className="cs-upc-progress-pct">
                 <Zap size={12} className="text-cyan-bright" />
-                {userLevel.progressPercent}% para o próximo nível
+                {userLevel.progressPercent}% no Nível {userLevel.level} • {userLevel.overallPercent}% rumo a 10.000 XP
               </span>
               <span className="cs-upc-progress-rem">
-                {userLevel.level >= 6
-                  ? '🌟 Patente Máxima da MegaFilmes'
-                  : `Faltam ${userLevel.remainingForNext} XP para o Nível ${userLevel.level + 1}`}
+                {userLevel.level >= 10
+                  ? '🌟 Patente Lendária Máxima da MegaFilmes (Hall da Fama)'
+                  : `Faltam ${userLevel.remainingForNext} XP para o Nível ${userLevel.level + 1} (${userLevel.nextTier?.title || ''})`}
               </span>
             </div>
           </div>
@@ -1081,6 +1090,57 @@ export default function CollaboratorSpace({
               )}
             </div>
           </div>
+
+          {/* Vitrine de Conquistas & Insígnias */}
+          {performanceProfile?.allAchievements && (
+            <div className="cs-upc-achievements-tray">
+              <div className="cs-upc-achievements-header">
+                <div className="cs-upc-achievements-title">
+                  <Award size={15} className="text-amber" />
+                  <span>Conquistas &amp; Insígnias</span>
+                  <span className="cs-upc-achievements-count">
+                    ({performanceProfile.unlockedCount} de {performanceProfile.totalAchievementsCount} desbloqueadas)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="cs-upc-achievements-see-all"
+                  onClick={() => setIsXpModalOpen(true)}
+                  title="Ver todas as 16 conquistas e requisitos"
+                >
+                  <span>Ver Todos os Desafios</span>
+                  <ChevronRight size={13} />
+                </button>
+              </div>
+
+              <div className="cs-upc-achievements-grid">
+                {performanceProfile.allAchievements.map((ach) => (
+                  <div
+                    key={ach.id}
+                    className={`cs-upc-ach-badge ${ach.isUnlocked ? 'is-unlocked' : 'is-locked'}`}
+                    title={`${ach.name} (${ach.rarity}): ${ach.desc}. Progresso: ${ach.current}/${ach.target}`}
+                    onClick={() => setIsXpModalOpen(true)}
+                  >
+                    <span className="cs-ach-icon">{ach.icon}</span>
+                    <div className="cs-ach-info">
+                      <strong className="cs-ach-name">{ach.name}</strong>
+                      <span className="cs-ach-status">
+                        {ach.isUnlocked ? (
+                          <span className="ach-unlocked-lbl" style={{ color: ach.color }}>
+                            ✅ Conquistado
+                          </span>
+                        ) : (
+                          <span className="ach-locked-lbl">
+                            🔒 {ach.current}/{ach.target}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1552,258 +1612,258 @@ export default function CollaboratorSpace({
         ) : (
           <>
             <div className="cs-missions-list">
-            {displayedMissions.map((m) => {
-              const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
-              const memberMode = (m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
-                || m.remunerationType
-                || (isMDay ? 'daily' : 'off_hours');
-              const requests = Array.isArray(m.extraHoursRequests) ? m.extraHoursRequests : [];
-              const myRequests = requests.filter((r) => String(r.memberId) === String(myMember.id));
-              const mStatus = String(m.missionStatus || 'Agendada').trim().toLowerCase();
-              const isClosed = (
-                mStatus === 'finalizada' ||
-                mStatus === 'finalizado' ||
-                mStatus === 'concluída' ||
-                mStatus === 'concluida' ||
-                mStatus === 'concluída (homologada)' ||
-                mStatus === 'concluida (homologada)' ||
-                mStatus === 'pendente' ||
-                mStatus === 'pendente (pós-prod.)' ||
-                mStatus === 'cancelada' ||
-                mStatus === 'cancelado' ||
-                Boolean(m.date && (m.endDate || m.date) < new Date().toISOString().slice(0, 10) && mStatus !== 'em execução' && mStatus !== 'em andamento')
-              );
-              const progress = getMissionLiveProgress(m);
+              {displayedMissions.map((m) => {
+                const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
+                const memberMode = (m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
+                  || m.remunerationType
+                  || (isMDay ? 'daily' : 'off_hours');
+                const requests = Array.isArray(m.extraHoursRequests) ? m.extraHoursRequests : [];
+                const myRequests = requests.filter((r) => String(r.memberId) === String(myMember.id));
+                const mStatus = String(m.missionStatus || 'Agendada').trim().toLowerCase();
+                const isClosed = (
+                  mStatus === 'finalizada' ||
+                  mStatus === 'finalizado' ||
+                  mStatus === 'concluída' ||
+                  mStatus === 'concluida' ||
+                  mStatus === 'concluída (homologada)' ||
+                  mStatus === 'concluida (homologada)' ||
+                  mStatus === 'pendente' ||
+                  mStatus === 'pendente (pós-prod.)' ||
+                  mStatus === 'cancelada' ||
+                  mStatus === 'cancelado' ||
+                  Boolean(m.date && (m.endDate || m.date) < new Date().toISOString().slice(0, 10) && mStatus !== 'em execução' && mStatus !== 'em andamento')
+                );
+                const progress = getMissionLiveProgress(m);
 
-              return (
-                <div
-                  key={m.id}
-                  className={`cs-mission-card ${progress.isUrgentOffHours ? 'card-urgent-final-hours' : progress.isUrgentInHours ? 'card-urgent-inhours' : progress.isHappeningNow ? 'card-happening-now' : ''}`}
-                >
-                  {/* Faixa Superior de Destaque em Tempo Real */}
-                  {progress.isUrgentOffHours ? (
-                    <div className="cs-urgent-top-badge badge-offhours">
-                      <AlertTriangle size={14} className="icon-pulse-urgent" />
-                      <span>
-                        🚨 RETA FINAL DO HORÁRIO • {progress.remainingMinutes > 0 ? `Restam apenas ${progress.remainingMinutes} min (Até ${progress.effectiveEndTimeStr})` : `Horário limite atingido (${progress.effectiveEndTimeStr})!`}
-                      </span>
-                    </div>
-                  ) : progress.isUrgentInHours ? (
-                    <div className="cs-urgent-top-badge badge-inhours">
-                      <Clock size={14} className="icon-pulse-inhours" />
-                      <span>
-                        ⏱️ RETA FINAL DA PAUTA • {progress.remainingMinutes > 0 ? `Restam apenas ${progress.remainingMinutes} min (Até ${progress.effectiveEndTimeStr})` : `Horário previsto atingido (${progress.effectiveEndTimeStr})`}
-                      </span>
-                    </div>
-                  ) : progress.isHappeningNow ? (
-                    <div className="cs-live-top-badge">
-                      <span className="cs-live-dot" />
-                      <span>🟢 Acontecendo Agora (Em Campo) • Retorno previsto às {progress.effectiveEndTimeStr}</span>
-                    </div>
-                  ) : null}
-
-                  <div className="cs-mission-card-content">
-                    <div className="cs-mission-card-left">
-                      <div className="cs-mission-meta-row">
-                        <span className="cs-mission-code">{m.code || `#${m.id}`}</span>
-                        <span className="cs-mission-date">
-                          📅 {formatDateBR(m.date)} {isMDay && m.endDate ? ` a ${formatDateBR(m.endDate)}` : ''}
-                        </span>
-                        {memberMode === 'custom' ? (
-                          <span className="cs-badge-custom" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
-                            🎯 Personalizada
-                          </span>
-                        ) : isMDay ? (
-                          <span className="cs-badge-mday">
-                            🏕️ Viagem (+1d)
-                          </span>
-                        ) : memberMode === 'daily' ? (
-                          <span className="cs-badge-mday" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-                            📅 Diária
-                          </span>
-                        ) : (
-                          <span className={`cs-badge-hours ${progress.isUrgentOffHours ? 'badge-hours-urgent' : progress.isUrgentInHours ? 'badge-hours-inhours' : ''}`}>
-                            🕒 {m.departureTime || '--:--'} às {progress.effectiveEndTimeStr || m.returnTimeEstimated || '--:--'}
-                            {progress.approvedExtraHours > 0 && ` (+${progress.approvedExtraHours}h extras)`}
-                          </span>
-                        )}
-                        <span className={`cs-badge-status ${isClosed ? 'closed' : progress.isUrgentOffHours ? 'urgent' : progress.isUrgentInHours ? 'inhours-urgent' : progress.isHappeningNow ? 'live' : 'open'}`}>
-                          {progress.isUrgentOffHours ? '🚨 Reta Final (H.E.)' : progress.isUrgentInHours ? '⏱️ Reta Final da Pauta' : progress.isHappeningNow ? '🟢 Em Campo' : (m.missionStatus || 'Agendada')}
+                return (
+                  <div
+                    key={m.id}
+                    className={`cs-mission-card ${progress.isUrgentOffHours ? 'card-urgent-final-hours' : progress.isUrgentInHours ? 'card-urgent-inhours' : progress.isHappeningNow ? 'card-happening-now' : ''}`}
+                  >
+                    {/* Faixa Superior de Destaque em Tempo Real */}
+                    {progress.isUrgentOffHours ? (
+                      <div className="cs-urgent-top-badge badge-offhours">
+                        <AlertTriangle size={14} className="icon-pulse-urgent" />
+                        <span>
+                          🚨 RETA FINAL DO HORÁRIO • {progress.remainingMinutes > 0 ? `Restam apenas ${progress.remainingMinutes} min (Até ${progress.effectiveEndTimeStr})` : `Horário limite atingido (${progress.effectiveEndTimeStr})!`}
                         </span>
                       </div>
+                    ) : progress.isUrgentInHours ? (
+                      <div className="cs-urgent-top-badge badge-inhours">
+                        <Clock size={14} className="icon-pulse-inhours" />
+                        <span>
+                          ⏱️ RETA FINAL DA PAUTA • {progress.remainingMinutes > 0 ? `Restam apenas ${progress.remainingMinutes} min (Até ${progress.effectiveEndTimeStr})` : `Horário previsto atingido (${progress.effectiveEndTimeStr})`}
+                        </span>
+                      </div>
+                    ) : progress.isHappeningNow ? (
+                      <div className="cs-live-top-badge">
+                        <span className="cs-live-dot" />
+                        <span>🟢 Acontecendo Agora (Em Campo) • Retorno previsto às {progress.effectiveEndTimeStr}</span>
+                      </div>
+                    ) : null}
 
-                      <strong className="cs-mission-title">
-                        {m.description}
-                      </strong>
-                      <span className="cs-mission-loc">📍 {m.locationName}</span>
-
-                      {/* Bloco Operacional de Pós-Produção para o Editor Responsável */}
-                      {(() => {
-                        const deliverySummary = getMissionEditionDeliverySummary(m, members);
-                        if (!deliverySummary.hasPostProduction) return null;
-
-                        const myMemIdStr = myMember ? String(myMember.id) : '';
-                        const myMemNameNorm = myMember?.name ? myMember.name.trim().toLowerCase() : '';
-                        const isMyEdition = deliverySummary.assignedEditors.some(
-                          (ed) => String(ed.id) === myMemIdStr || ed.name?.toLowerCase().includes(myMemNameNorm)
-                        );
-                        if (!isMyEdition) return null;
-
-                        const matchedEditorObj = deliverySummary.assignedEditors.find(
-                          (ed) => String(ed.id) === myMemIdStr || ed.name?.toLowerCase().includes(myMemNameNorm)
-                        );
-                        const edKey = matchedEditorObj ? String(matchedEditorObj.id) : myMemIdStr;
-                        const myDeliv = deliverySummary.deliveryMap[edKey];
-                        const isMyPartDone = myDeliv && myDeliv.status === 'delivered';
-                        const isMissionApprovedOrDone = (
-                          mStatus === 'finalizada' ||
-                          mStatus === 'finalizado' ||
-                          mStatus === 'concluída' ||
-                          mStatus === 'concluida' ||
-                          m.post_production_status === 'approved' ||
-                          m.editionStatus === 'Aprovado'
-                        );
-
-                        return (
-                          <div className="cs-pp-edition-block" style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(56, 189, 248, 0.06)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '8px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Film size={15} style={{ color: '#38bdf8' }} />
-                                <strong style={{ fontSize: '0.84rem', color: '#f8fafc' }}>
-                                  Sua Atuação nesta Pauta: Pós-Produção & Edição
-                                </strong>
-                              </div>
-                              <span style={{ fontSize: '0.74rem', padding: '2px 8px', borderRadius: '4px', background: isMyPartDone ? 'rgba(16, 185, 129, 0.18)' : 'rgba(245, 158, 11, 0.18)', color: isMyPartDone ? '#34d399' : '#fbbf24', border: `1px solid ${isMyPartDone ? 'rgba(16, 185, 129, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`, fontWeight: 700 }}>
-                                {isMyPartDone ? '✅ Sua Parte Entregue' : '⏳ Sua Parte Pendente'}
-                              </span>
-                            </div>
-
-                            {deliverySummary.hasMultipleEditors && (
-                              <div style={{ marginTop: '6px', fontSize: '0.76rem', color: '#94a3b8' }}>
-                                👥 Status da Equipe: <strong>{deliverySummary.summaryBadgeText}</strong>
-                              </div>
-                            )}
-
-                            {isMyPartDone ? (
-                              <div style={{ marginTop: '6px' }}>
-                                <small style={{ color: '#34d399', fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <CheckCircle2 size={13} />
-                                  <span>
-                                    {isMissionApprovedOrDone
-                                      ? '🏆 Pós-produção finalizada e aprovada pela Diretoria.'
-                                      : deliverySummary.isFullyDelivered
-                                      ? '🎉 Todos os editores entregaram! A pauta está na fila de aprovação da Diretoria.'
-                                      : '✅ Sua parte foi entregue com sucesso! Aguardando a conclusão dos demais editores.'}
-                                  </span>
-                                </small>
-                              </div>
-                            ) : isMissionApprovedOrDone ? (
-                              <div style={{ marginTop: '6px' }}>
-                                <small style={{ color: '#94a3b8', fontSize: '0.76rem' }}>
-                                  Missão finalizada pela gestão.
-                                </small>
-                              </div>
-                            ) : (
-                              <div style={{ marginTop: '8px' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => setConcludeModal({ isOpen: true, mission: m })}
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: '1px solid rgba(16, 185, 129, 0.5)', borderRadius: '8px', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)' }}
-                                >
-                                  <CheckCircle2 size={14} />
-                                  <span>Entregar Minha Parte da Edição</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                      {/* Histórico de solicitações de horas extras nesta missão */}
-                      {myRequests.length > 0 && (
-                        <div className="cs-requests-chips">
-                          {myRequests.map((req, rIdx) => {
-                            const isPending = req.status === 'PENDING';
-                            const isApproved = req.status === 'APPROVED';
-                            return (
-                              <span
-                                key={rIdx}
-                                className={`cs-req-chip ${isPending ? 'pending' : isApproved ? 'approved' : 'rejected'}`}
-                              >
-                                {isPending ? <Clock size={11} /> : isApproved ? <Check size={11} /> : <XCircle size={11} />}
-                                +{req.hoursRequested}h {isPending ? 'Aguardando Aprovação' : isApproved ? 'Aprovada' : 'Recusada'}
-                              </span>
-                            );
-                          })}
+                    <div className="cs-mission-card-content">
+                      <div className="cs-mission-card-left">
+                        <div className="cs-mission-meta-row">
+                          <span className="cs-mission-code">{m.code || `#${m.id}`}</span>
+                          <span className="cs-mission-date">
+                            📅 {formatDateBR(m.date)} {isMDay && m.endDate ? ` a ${formatDateBR(m.endDate)}` : ''}
+                          </span>
+                          {memberMode === 'custom' ? (
+                            <span className="cs-badge-custom" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
+                              🎯 Personalizada
+                            </span>
+                          ) : isMDay ? (
+                            <span className="cs-badge-mday">
+                              🏕️ Viagem (+1d)
+                            </span>
+                          ) : memberMode === 'daily' ? (
+                            <span className="cs-badge-mday" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                              📅 Diária
+                            </span>
+                          ) : (
+                            <span className={`cs-badge-hours ${progress.isUrgentOffHours ? 'badge-hours-urgent' : progress.isUrgentInHours ? 'badge-hours-inhours' : ''}`}>
+                              🕒 {m.departureTime || '--:--'} às {progress.effectiveEndTimeStr || m.returnTimeEstimated || '--:--'}
+                              {progress.approvedExtraHours > 0 && ` (+${progress.approvedExtraHours}h extras)`}
+                            </span>
+                          )}
+                          <span className={`cs-badge-status ${isClosed ? 'closed' : progress.isUrgentOffHours ? 'urgent' : progress.isUrgentInHours ? 'inhours-urgent' : progress.isHappeningNow ? 'live' : 'open'}`}>
+                            {progress.isUrgentOffHours ? '🚨 Reta Final (H.E.)' : progress.isUrgentInHours ? '⏱️ Reta Final da Pauta' : progress.isHappeningNow ? '🟢 Em Campo' : (m.missionStatus || 'Agendada')}
+                          </span>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Ação: Solicitar Horas Extras ou Prorrogar Retorno
+                        <strong className="cs-mission-title">
+                          {m.description}
+                        </strong>
+                        <span className="cs-mission-loc">📍 {m.locationName}</span>
+
+                        {/* Bloco Operacional de Pós-Produção para o Editor Responsável */}
+                        {(() => {
+                          const deliverySummary = getMissionEditionDeliverySummary(m, members);
+                          if (!deliverySummary.hasPostProduction) return null;
+
+                          const myMemIdStr = myMember ? String(myMember.id) : '';
+                          const myMemNameNorm = myMember?.name ? myMember.name.trim().toLowerCase() : '';
+                          const isMyEdition = deliverySummary.assignedEditors.some(
+                            (ed) => String(ed.id) === myMemIdStr || ed.name?.toLowerCase().includes(myMemNameNorm)
+                          );
+                          if (!isMyEdition) return null;
+
+                          const matchedEditorObj = deliverySummary.assignedEditors.find(
+                            (ed) => String(ed.id) === myMemIdStr || ed.name?.toLowerCase().includes(myMemNameNorm)
+                          );
+                          const edKey = matchedEditorObj ? String(matchedEditorObj.id) : myMemIdStr;
+                          const myDeliv = deliverySummary.deliveryMap[edKey];
+                          const isMyPartDone = myDeliv && myDeliv.status === 'delivered';
+                          const isMissionApprovedOrDone = (
+                            mStatus === 'finalizada' ||
+                            mStatus === 'finalizado' ||
+                            mStatus === 'concluída' ||
+                            mStatus === 'concluida' ||
+                            m.post_production_status === 'approved' ||
+                            m.editionStatus === 'Aprovado'
+                          );
+
+                          return (
+                            <div className="cs-pp-edition-block" style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(56, 189, 248, 0.06)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <Film size={15} style={{ color: '#38bdf8' }} />
+                                  <strong style={{ fontSize: '0.84rem', color: '#f8fafc' }}>
+                                    Sua Atuação nesta Pauta: Pós-Produção & Edição
+                                  </strong>
+                                </div>
+                                <span style={{ fontSize: '0.74rem', padding: '2px 8px', borderRadius: '4px', background: isMyPartDone ? 'rgba(16, 185, 129, 0.18)' : 'rgba(245, 158, 11, 0.18)', color: isMyPartDone ? '#34d399' : '#fbbf24', border: `1px solid ${isMyPartDone ? 'rgba(16, 185, 129, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`, fontWeight: 700 }}>
+                                  {isMyPartDone ? '✅ Sua Parte Entregue' : '⏳ Sua Parte Pendente'}
+                                </span>
+                              </div>
+
+                              {deliverySummary.hasMultipleEditors && (
+                                <div style={{ marginTop: '6px', fontSize: '0.76rem', color: '#94a3b8' }}>
+                                  👥 Status da Equipe: <strong>{deliverySummary.summaryBadgeText}</strong>
+                                </div>
+                              )}
+
+                              {isMyPartDone ? (
+                                <div style={{ marginTop: '6px' }}>
+                                  <small style={{ color: '#34d399', fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <CheckCircle2 size={13} />
+                                    <span>
+                                      {isMissionApprovedOrDone
+                                        ? '🏆 Pós-produção finalizada e aprovada pela Diretoria.'
+                                        : deliverySummary.isFullyDelivered
+                                          ? '🎉 Todos os editores entregaram! A pauta está na fila de aprovação da Diretoria.'
+                                          : '✅ Sua parte foi entregue com sucesso! Aguardando a conclusão dos demais editores.'}
+                                    </span>
+                                  </small>
+                                </div>
+                              ) : isMissionApprovedOrDone ? (
+                                <div style={{ marginTop: '6px' }}>
+                                  <small style={{ color: '#94a3b8', fontSize: '0.76rem' }}>
+                                    Missão finalizada pela gestão.
+                                  </small>
+                                </div>
+                              ) : (
+                                <div style={{ marginTop: '8px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConcludeModal({ isOpen: true, mission: m })}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: '1px solid rgba(16, 185, 129, 0.5)', borderRadius: '8px', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)' }}
+                                  >
+                                    <CheckCircle2 size={14} />
+                                    <span>Entregar Minha Parte da Edição</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Histórico de solicitações de horas extras nesta missão */}
+                        {myRequests.length > 0 && (
+                          <div className="cs-requests-chips">
+                            {myRequests.map((req, rIdx) => {
+                              const isPending = req.status === 'PENDING';
+                              const isApproved = req.status === 'APPROVED';
+                              return (
+                                <span
+                                  key={rIdx}
+                                  className={`cs-req-chip ${isPending ? 'pending' : isApproved ? 'approved' : 'rejected'}`}
+                                >
+                                  {isPending ? <Clock size={11} /> : isApproved ? <Check size={11} /> : <XCircle size={11} />}
+                                  +{req.hoursRequested}h {isPending ? 'Aguardando Aprovação' : isApproved ? 'Aprovada' : 'Recusada'}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Ação: Solicitar Horas Extras ou Prorrogar Retorno
                         Regra Oficial: Exclusivo para equipe em campo e SOMENTE quando a missão estiver acontecendo
                         e prestes a finalizar (15 min antes de finalizar).
                         Missões que já aconteceram ou que ainda irão acontecer NÃO exibem este botão.
                     */}
-                    {!isClosed && progress.isUrgentEnd && isMemberEligibleForExtraHours(myMember, m) && (
-                      <button
-                        type="button"
-                        onClick={() => setRequestModalMission(m)}
-                        className={`cs-btn-request-extra ${progress.isUrgentOffHours ? 'btn-urgent-extra' : 'btn-inhours-extend'}`}
-                      >
-                        {progress.isUrgentOffHours ? (
-                          <>
-                            <Zap size={14} />
-                            <span>⚡ Solicitar Hora Extra (+1h, +2h)</span>
-                          </>
-                        ) : (
-                          <>
-                            <Clock size={14} />
-                            <span>⏱️ Prorrogar Horário de Retorno</span>
-                          </>
-                        )}
-                      </button>
-                    )}
+                      {!isClosed && progress.isUrgentEnd && isMemberEligibleForExtraHours(myMember, m) && (
+                        <button
+                          type="button"
+                          onClick={() => setRequestModalMission(m)}
+                          className={`cs-btn-request-extra ${progress.isUrgentOffHours ? 'btn-urgent-extra' : 'btn-inhours-extend'}`}
+                        >
+                          {progress.isUrgentOffHours ? (
+                            <>
+                              <Zap size={14} />
+                              <span>⚡ Solicitar Hora Extra (+1h, +2h)</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock size={14} />
+                              <span>⏱️ Prorrogar Horário de Retorno</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Paginação: Mostrar mais de 10 em 10 missões já concluídas */}
-          {concludedMissions.length > 0 && (
-            <div className="cs-show-more-missions-wrap">
-              {displayedConcluded.length < concludedMissions.length ? (
-                <button
-                  type="button"
-                  className="cs-btn-show-more-missions"
-                  onClick={() => setAdditionalConcluded((prev) => prev + 10)}
-                >
-                  <ChevronDown size={16} />
-                  <span>Mostrar mais (+10 missões concluídas)</span>
-                  <span className="cs-show-more-count-pill">
-                    Exibindo {displayedConcluded.length} de {concludedMissions.length} concluídas
-                  </span>
-                </button>
-              ) : (
-                <div className="cs-all-missions-shown-badge">
-                  <CheckCircle2 size={14} className="text-emerald" />
-                  <span>Todas as {concludedMissions.length} missões concluídas estão visíveis</span>
-                </div>
-              )}
-
-              {additionalConcluded > 0 && (
-                <button
-                  type="button"
-                  className="cs-btn-collapse-missions"
-                  onClick={() => setAdditionalConcluded(0)}
-                  title="Recolher lista para as 5 missões iniciais"
-                >
-                  <ChevronUp size={14} />
-                  <span>Recolher para 5 missões</span>
-                </button>
-              )}
+                );
+              })}
             </div>
-          )}
+
+            {/* Paginação: Mostrar mais de 10 em 10 missões já concluídas */}
+            {concludedMissions.length > 0 && (
+              <div className="cs-show-more-missions-wrap">
+                {displayedConcluded.length < concludedMissions.length ? (
+                  <button
+                    type="button"
+                    className="cs-btn-show-more-missions"
+                    onClick={() => setAdditionalConcluded((prev) => prev + 10)}
+                  >
+                    <ChevronDown size={16} />
+                    <span>Mostrar mais (+10 missões concluídas)</span>
+                    <span className="cs-show-more-count-pill">
+                      Exibindo {displayedConcluded.length} de {concludedMissions.length} concluídas
+                    </span>
+                  </button>
+                ) : (
+                  <div className="cs-all-missions-shown-badge">
+                    <CheckCircle2 size={14} className="text-emerald" />
+                    <span>Todas as {concludedMissions.length} missões concluídas estão visíveis</span>
+                  </div>
+                )}
+
+                {additionalConcluded > 0 && (
+                  <button
+                    type="button"
+                    className="cs-btn-collapse-missions"
+                    onClick={() => setAdditionalConcluded(0)}
+                    title="Recolher lista para as 5 missões iniciais"
+                  >
+                    <ChevronUp size={14} />
+                    <span>Recolher para 5 missões</span>
+                  </button>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -2012,8 +2072,8 @@ export default function CollaboratorSpace({
                       {userLevel.title}
                     </span>
                     <p className="cs-xp-modal-tier-phrase">
-                      {userLevel.level >= 6
-                        ? 'Parabéns! Você alcançou o nível lendário de excelência e liderança operacional na MegaFilmes.'
+                      {userLevel.level >= 10
+                        ? 'Parabéns! Você alcançou o nível lendário de consagração e excelência máxima na MegaFilmes (Hall da Fama).'
                         : `Você já conquistou ${userLevel.currentLevelXP} XP nesta patente. Faltam ${userLevel.remainingForNext} XP para o próximo nível.`}
                     </p>
                   </div>
@@ -2030,10 +2090,10 @@ export default function CollaboratorSpace({
                     />
                   </div>
                   <div className="cs-xp-progress-meta">
-                    <span>{userLevel.progressPercent}% concluído</span>
+                    <span>{userLevel.progressPercent}% no Nível {userLevel.level} • {userLevel.overallPercent}% do Hall da Fama (10.000 XP)</span>
                     <span>
-                      {userLevel.level >= 6
-                        ? '🌟 Nível Máximo'
+                      {userLevel.level >= 10
+                        ? '🌟 Nível Máximo (Hall da Fama)'
                         : `${userLevel.score} / ${userLevel.score + userLevel.remainingForNext} XP`}
                     </span>
                   </div>
@@ -2179,7 +2239,7 @@ export default function CollaboratorSpace({
                                   NÍVEL {tier.level}
                                 </span>
                                 <span className="cs-xp-career-card-range">
-                                  {tier.level === 6 ? `${tier.min}+ XP` : `${tier.min} a ${tier.max} XP`}
+                                  {tier.level === 10 ? `${tier.min}+ XP` : `${tier.min} a ${tier.max} XP`}
                                 </span>
                                 <span className="cs-xp-career-card-subtag">{tier.badgeLabel}</span>
                               </div>
@@ -2320,24 +2380,59 @@ export default function CollaboratorSpace({
                 })}
               </div>
 
-              {/* Insígnias e Reconhecimentos */}
-              {performanceProfile.badges && performanceProfile.badges.length > 0 && (
+              {/* Galeria Completa de Conquistas & Insígnias */}
+              {performanceProfile.allAchievements && performanceProfile.allAchievements.length > 0 && (
                 <div className="cs-xp-badges-wrapper">
                   <div className="cs-xp-section-title-row">
-                    <h4 className="cs-xp-modal-heading">
-                      <Award size={18} className="text-amber" />
-                      Insígnias &amp; Conquistas Desbloqueadas ({performanceProfile.badges.length})
-                    </h4>
+                    <div>
+                      <h4 className="cs-xp-modal-heading">
+                        <Award size={18} className="text-amber" />
+                        Galeria de Conquistas &amp; Insígnias ({performanceProfile.unlockedCount} de {performanceProfile.totalAchievementsCount} Desbloqueadas)
+                      </h4>
+                      <span className="cs-xp-modal-heading-sub">
+                        Cumpra pautas operacionais, dirija viaturas e atue com excelência para desbloquear todas as insígnias
+                      </span>
+                    </div>
                   </div>
                   <div className="cs-xp-badges-grid">
-                    {performanceProfile.badges.map((b, idx) => (
-                      <div key={idx} className="cs-xp-badge-card" style={{ borderColor: b.color || '#f59e0b' }}>
-                        <span className="cs-xp-badge-card-icon">{b.icon || '🏅'}</span>
+                    {performanceProfile.allAchievements.map((b) => (
+                      <div
+                        key={b.id}
+                        className={`cs-xp-badge-card ${b.isUnlocked ? 'is-unlocked' : 'is-locked'}`}
+                        style={{ borderColor: b.isUnlocked ? (b.color || '#f59e0b') : 'rgba(255, 255, 255, 0.08)' }}
+                      >
+                        <div className="cs-xp-badge-card-top-row">
+                          <span className="cs-xp-badge-card-icon">{b.icon || '🏅'}</span>
+                          <span
+                            className="cs-badge-rarity-pill"
+                            style={{
+                              borderColor: b.color ? `${b.color}40` : 'rgba(255,255,255,0.1)',
+                              color: b.color || '#94a3b8',
+                              background: b.color ? `${b.color}15` : 'transparent',
+                            }}
+                          >
+                            {b.rarity} • {b.category}
+                          </span>
+                        </div>
                         <div className="cs-xp-badge-card-content">
-                          <strong className="cs-xp-badge-card-title" style={{ color: b.color || '#f59e0b' }}>
-                            {b.title}
+                          <strong className="cs-xp-badge-card-title" style={{ color: b.isUnlocked ? (b.color || '#f59e0b') : '#94a3b8' }}>
+                            {b.name}
                           </strong>
                           <p className="cs-xp-badge-card-desc">{b.desc}</p>
+                          <div className="cs-badge-progress-wrap">
+                            <div className="cs-badge-progress-track">
+                              <div
+                                className="cs-badge-progress-fill"
+                                style={{
+                                  width: `${Math.min(100, Math.round(((b.current || 0) / b.target) * 100))}%`,
+                                  background: b.isUnlocked ? (b.color || '#10b981') : '#38bdf8',
+                                }}
+                              />
+                            </div>
+                            <span className="cs-badge-progress-text">
+                              {b.isUnlocked ? '✅ Conquistado' : `Progresso: ${b.current || 0} / ${b.target}`}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     ))}

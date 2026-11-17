@@ -1,4 +1,4 @@
-import { isMemberEligibleForExtraHours } from './workHours';
+import { isMemberEligibleForExtraHours } from './workHours.js';
 
 // ==============================================================================
 // 12 FUNÇÕES OFICIAIS DA EMPRESA (MEGA FILMES & MEGA GESTÃO)
@@ -54,26 +54,28 @@ export const ROLE_COLORS_MAP = {
 // ==============================================================================
 
 export const ROLE_XP_POINTS = {
-  'Diretor(a) de Cena': 25,       // Liderança de set e coordenação técnica
-  'Piloto de Drone': 25,          // Operação aérea técnica homologada
-  'Transmissão (Streamer)': 25,   // Operação de lives, link e switchers de streaming
-  'Editor de Vídeo': 25,          // Pós-produção, montagem e finalização
-  'Cinegrafista': 20,             // Captação de imagens e operação de câmeras
-  'Fotógrafo(a)': 20,             // Cobertura fotográfica oficial / ensaios
-  'Operador de Totem': 20,        // Operação técnica de totem fotográfico e impressão
-  'Operador de Áudio': 20,        // Captação de áudio direto, estúdio e microfonação
-  'Designer Gráfico': 20,         // Identidade visual, cartelas, artes e motions
-  'Motorista / Produção': 15,     // Condução de viaturas e logística de set
-  'Social Mídia': 15,             // Cobertura rápida e publicações em tempo real
+  'Diretor(a) de Cena': 35,       // Liderança de set e coordenação técnica
+  'Piloto de Drone': 35,          // Operação aérea técnica homologada
+  'Transmissão (Streamer)': 30,   // Operação de lives, link e switchers de streaming
+  'Editor de Vídeo': 30,          // Pós-produção, montagem e finalização
+  'Cinegrafista': 30,             // Captação de imagens e operação de câmeras
+  'Fotógrafo(a)': 25,             // Cobertura fotográfica oficial / ensaios
+  'Operador de Totem': 25,        // Operação técnica de totem fotográfico e impressão
+  'Operador de Áudio': 25,        // Captação de áudio direto, estúdio e microfonação
+  'Designer Gráfico': 25,         // Identidade visual, cartelas, artes e motions
+  'Motorista / Produção': 20,     // Condução de viaturas e logística de set
+  'Social Mídia': 20,             // Cobertura rápida e publicações em tempo real
   'Assistente Geral': 15,         // Apoio operacional, iluminação e montagem
 };
 
 export const ACTIVITY_XP_POINTS = {
-  missionBase: 10,                // Pela presença e participação operacional confirmada
-  multiDayExpedition: 30,         // Viagens e expedições de longa duração (+1 dia / diária fora)
-  drivingKmPer10: 1,              // Bônus de quilometragem: +1 XP a cada 10 km rodados como condutor
+  missionBase: 15,                // Pela presença e participação operacional confirmada
+  missionCompleted: 15,           // Bônus por entrega com êxito (missão finalizada)
+  multiDayExpedition: 50,         // Viagens e expedições de longa duração (+1 dia / diária fora)
+  drivingMissionBonus: 10,        // Bônus fixo por missão exercida como condutor
+  drivingKmPer5: 1,               // Bônus de quilometragem: +1 XP a cada 5 km rodados ao volante
   extraHourApproved: 10,          // Por hora extra de campo dedicada e aprovada
-  missionCompleted: 10,           // Bônus por entrega com êxito (missão finalizada)
+  polyvalentBonus: 15,            // Bônus por polivalência técnica (2+ funções na mesma missão)
 };
 
 /**
@@ -295,6 +297,7 @@ export function calculateMemberPerformanceProfile(member, missions = []) {
   let multiDayCount = 0;
   let totalApprovedExtraHours = 0;
   let completedCount = 0;
+  let polyvalentCount = 0;
   const missionHistory = [];
 
   // FILTRO ESTRITO: Apenas missões que foram realmente concluídas/finalizadas
@@ -307,10 +310,15 @@ export function calculateMemberPerformanceProfile(member, missions = []) {
       totalMissions++;
       completedCount++;
 
+      // Bônus de polivalência: exerceu 2 ou mais especialidades distintas na mesma missão
+      if (rolesExercised.length >= 2) {
+        polyvalentCount++;
+      }
+
       // Atualiza contagem e pontos das funções exercidas nesta missão concluída
       rolesExercised.forEach((r) => {
         roleCounts[r] = (roleCounts[r] || 0) + 1;
-        rolePoints[r] = (rolePoints[r] || 0) + (ROLE_XP_POINTS[r] || 15);
+        rolePoints[r] = (rolePoints[r] || 0) + (ROLE_XP_POINTS[r] || 20);
       });
 
       // Checa motorista
@@ -352,63 +360,264 @@ export function calculateMemberPerformanceProfile(member, missions = []) {
     }
   });
 
-  // Cálculo Discriminado do Score XP:
-  // 1. Pontos diretos das 11 funções oficiais exercidas em missões concluídas
+  // Cálculo Discriminado e Balanceado do Score XP (Escala Rumo a 10.000 XP):
+  // 1. Pontos diretos das especialidades oficiais exercidas
   const rolesTotalXP = Object.values(rolePoints).reduce((acc, pts) => acc + pts, 0);
 
-  // 2. Pontos base por participação operacional em missão concluída
+  // 2. Pontos base por participação operacional em missão concluída (+15 XP por escala)
   const missionBaseXP = totalMissions * ACTIVITY_XP_POINTS.missionBase;
 
-  // 3. Pontos por expedições de longa duração (+1 dia) realizadas
-  const multiDayXP = multiDayCount * ACTIVITY_XP_POINTS.multiDayExpedition;
-
-  // 4. Bônus por quilometragem rodada ao volante (+1 XP a cada 10 km)
-  const drivingKmXP = Math.round(estimatedDistanceKm * 0.1);
-
-  // 5. Pontos por horas extras aprovadas e cumpridas em campo
-  const extraHoursXP = Math.round(totalApprovedExtraHours * ACTIVITY_XP_POINTS.extraHourApproved);
-
-  // 6. Bônus de entrega por missões concluídas com sucesso
+  // 3. Bônus de entrega por missões concluídas com êxito (+15 XP por entrega)
   const completedBonusXP = completedCount * ACTIVITY_XP_POINTS.missionCompleted;
 
-  // SCORE FINAL TOTAL REAL
-  const score = rolesTotalXP + missionBaseXP + multiDayXP + drivingKmXP + extraHoursXP + completedBonusXP;
+  // 4. Bônus por condução de viatura: +10 XP por missão ao volante + 1 XP a cada 5 km guiados
+  const drivingMissionXP = drivingCount * ACTIVITY_XP_POINTS.drivingMissionBonus;
+  const drivingKmXP = Math.round(estimatedDistanceKm * 0.2);
+  const totalDrivingXP = drivingMissionXP + drivingKmXP;
 
-  // Badges e Reconhecimentos Oficiais
-  const badges = [];
-  if (roleCounts['Cinegrafista'] >= 3) {
-    badges.push({ id: 'cine-gold', icon: '🎥', name: 'Lente de Ouro', desc: `${roleCounts['Cinegrafista']}x atuações como Cinegrafista em missões concluídas` });
-  }
-  if (roleCounts['Motorista / Produção'] >= 3) {
-    badges.push({ id: 'driver-gold', icon: '🚗', name: 'Ás da Frota', desc: `${roleCounts['Motorista / Produção']}x ao volante (${Math.round(estimatedDistanceKm)} km guiados em missões concluídas)` });
-  }
-  if (roleCounts['Editor de Vídeo'] >= 2) {
-    badges.push({ id: 'editor-gold', icon: '✂️', name: 'Mestre da Ilha', desc: `${roleCounts['Editor de Vídeo']}x pautas de pós-produção finalizadas` });
-  }
-  if (roleCounts['Transmissão (Streamer)'] >= 1) {
-    badges.push({ id: 'stream-gold', icon: '📡', name: 'Voz & Sinal', desc: `${roleCounts['Transmissão (Streamer)']}x coberturas ao vivo transmitidas e concluídas` });
-  }
-  if (roleCounts['Piloto de Drone'] >= 1) {
-    badges.push({ id: 'drone-gold', icon: '🚁', name: 'Ás dos Ares', desc: `${roleCounts['Piloto de Drone']}x voos aéreos concluídos` });
-  }
-  if (roleCounts['Operador de Totem'] >= 1) {
-    badges.push({ id: 'totem-gold', icon: '🖼️', name: 'Mestre do Totem', desc: `${roleCounts['Operador de Totem']}x operações de totem fotográfico concluídas` });
-  }
-  if (roleCounts['Fotógrafo(a)'] >= 2) {
-    badges.push({ id: 'photo-gold', icon: '📸', name: 'Foco Perfeito', desc: `${roleCounts['Fotógrafo(a)']}x ensaios e coberturas concluídas` });
-  }
-  if (roleCounts['Diretor(a) de Cena'] >= 1) {
-    badges.push({ id: 'dir-gold', icon: '🎬', name: 'Direção Geral', desc: `${roleCounts['Diretor(a) de Cena']}x sets dirigidos com êxito` });
-  }
-  if (multiDayCount >= 1) {
-    badges.push({ id: 'explorer-gold', icon: '🧭', name: 'Desbravador', desc: `${multiDayCount}x viagens de campo realizadas (+1 dia / diárias)` });
-  }
-  if (totalApprovedExtraHours >= 2) {
-    badges.push({ id: 'extra-gold', icon: '⚡', name: 'Guardião da Pauta', desc: `${totalApprovedExtraHours}h extras cumpridas em missões concluídas` });
-  }
-  if (totalMissions >= 5) {
-    badges.push({ id: 'vet-gold', icon: '⭐', name: 'Veterano de Campo', desc: `${totalMissions} missões operacionais concluídas com sucesso` });
-  }
+  // 5. Pontos por expedições de longa duração (+1 dia / diária fora: +50 XP)
+  const multiDayXP = multiDayCount * ACTIVITY_XP_POINTS.multiDayExpedition;
+
+  // 6. Pontos por horas extras aprovadas e cumpridas em campo (+10 XP / hora)
+  const extraHoursXP = Math.round(totalApprovedExtraHours * ACTIVITY_XP_POINTS.extraHourApproved);
+
+  // 7. Bônus de polivalência técnica (+15 XP por missão com 2+ funções simultâneas)
+  const polyvalentXP = polyvalentCount * ACTIVITY_XP_POINTS.polyvalentBonus;
+
+  // SCORE FINAL TOTAL REAL
+  const score = rolesTotalXP + missionBaseXP + completedBonusXP + totalDrivingXP + multiDayXP + extraHoursXP + polyvalentXP;
+
+  // Funções ativas distintas exercidas
+  const distinctRolesCount = Object.values(roleCounts).filter((c) => c > 0).length;
+
+  // --------------------------------------------------------------------------
+  // SISTEMA COMPLETO DE CONQUISTAS & INSÍGNIAS (MEGAFILMES ACHIEVEMENTS)
+  // --------------------------------------------------------------------------
+  const allAchievements = [
+    {
+      id: 'cine-gold',
+      icon: '🎥',
+      name: 'Lente de Ouro',
+      category: 'Câmera',
+      rarity: 'Rara',
+      color: '#38bdf8',
+      desc: 'Atuar como Cinegrafista em missões de campo concluídas com sucesso',
+      requirement: '3x missões como Cinegrafista',
+      current: roleCounts['Cinegrafista'] || 0,
+      target: 3,
+      isUnlocked: (roleCounts['Cinegrafista'] || 0) >= 3,
+    },
+    {
+      id: 'editor-gold',
+      icon: '✂️',
+      name: 'Mestre da Ilha',
+      category: 'Pós-Produção',
+      rarity: 'Rara',
+      color: '#ec4899',
+      desc: 'Concluir a pós-produção de vídeos e pautas com aprovação formal',
+      requirement: '2x pautas de pós-produção finalizadas',
+      current: roleCounts['Editor de Vídeo'] || 0,
+      target: 2,
+      isUnlocked: (roleCounts['Editor de Vídeo'] || 0) >= 2,
+    },
+    {
+      id: 'driver-gold',
+      icon: '🚗',
+      name: 'Ás da Frota',
+      category: 'Logística',
+      rarity: 'Rara',
+      color: '#10b981',
+      desc: 'Conduzir viaturas com segurança em missões da produtora',
+      requirement: '3x missões ao volante',
+      current: drivingCount,
+      target: 3,
+      isUnlocked: drivingCount >= 3,
+    },
+    {
+      id: 'drone-gold',
+      icon: '🚁',
+      name: 'Soberano dos Ares',
+      category: 'Aéreo',
+      rarity: 'Épica',
+      color: '#a855f7',
+      desc: 'Operar drone em missões de cobertura aérea técnica com êxito',
+      requirement: '1x voo de drone concluído',
+      current: roleCounts['Piloto de Drone'] || 0,
+      target: 1,
+      isUnlocked: (roleCounts['Piloto de Drone'] || 0) >= 1,
+    },
+    {
+      id: 'photo-gold',
+      icon: '📸',
+      name: 'Foco Perfeito',
+      category: 'Fotografia',
+      rarity: 'Rara',
+      color: '#f59e0b',
+      desc: 'Realizar coberturas fotográficas oficiais e ensaios com excelência',
+      requirement: '2x coberturas fotográficas concluídas',
+      current: roleCounts['Fotógrafo(a)'] || 0,
+      target: 2,
+      isUnlocked: (roleCounts['Fotógrafo(a)'] || 0) >= 2,
+    },
+    {
+      id: 'stream-gold',
+      icon: '📡',
+      name: 'Voz & Sinal',
+      category: 'Streaming',
+      rarity: 'Épica',
+      color: '#06b6d4',
+      desc: 'Operar transmissões ao vivo, lives e switchers sem interrupção',
+      requirement: '1x transmissão ao vivo entregue',
+      current: roleCounts['Transmissão (Streamer)'] || 0,
+      target: 1,
+      isUnlocked: (roleCounts['Transmissão (Streamer)'] || 0) >= 1,
+    },
+    {
+      id: 'totem-gold',
+      icon: '🖼️',
+      name: 'Mestre do Totem',
+      category: 'Eventos',
+      rarity: 'Comum',
+      color: '#6366f1',
+      desc: 'Operar totem fotográfico interativo e impressões em eventos sociais',
+      requirement: '1x operação de totem concluída',
+      current: roleCounts['Operador de Totem'] || 0,
+      target: 1,
+      isUnlocked: (roleCounts['Operador de Totem'] || 0) >= 1,
+    },
+    {
+      id: 'dir-gold',
+      icon: '🎬',
+      name: 'Direção Geral',
+      category: 'Direção',
+      rarity: 'Lendária',
+      color: '#e11d48',
+      desc: 'Comandar a direção de cena em sets comerciais, campanhas ou institucionais',
+      requirement: '1x set dirigido com êxito',
+      current: roleCounts['Diretor(a) de Cena'] || 0,
+      target: 1,
+      isUnlocked: (roleCounts['Diretor(a) de Cena'] || 0) >= 1,
+    },
+    {
+      id: 'explorer-gold',
+      icon: '🧭',
+      name: 'Desbravador',
+      category: 'Expedição',
+      rarity: 'Épica',
+      color: '#d97706',
+      desc: 'Participar de missões e viagens de longa duração (+1 dia fora de sede)',
+      requirement: '1x viagem de campo realizada (+1 dia)',
+      current: multiDayCount,
+      target: 1,
+      isUnlocked: multiDayCount >= 1,
+    },
+    {
+      id: 'extra-gold',
+      icon: '⚡',
+      name: 'Plantão de Elite',
+      category: 'Dedicação',
+      rarity: 'Rara',
+      color: '#eab308',
+      desc: 'Cumprir horas extras operacionais em missões de alta demanda',
+      requirement: '2h extras aprovadas em campo',
+      current: totalApprovedExtraHours,
+      target: 2,
+      isUnlocked: totalApprovedExtraHours >= 2,
+    },
+    {
+      id: 'poly-gold',
+      icon: '🛡️',
+      name: 'Polivalente / Camaleão',
+      category: 'Versatilidade',
+      rarity: 'Épica',
+      color: '#14b8a6',
+      desc: 'Exercer atuações em 3 ou mais especialidades oficiais distintas',
+      requirement: 'Atuação em 3 especialidades distintas',
+      current: distinctRolesCount,
+      target: 3,
+      isUnlocked: distinctRolesCount >= 3,
+    },
+    {
+      id: 'vet-gold',
+      icon: '⭐',
+      name: 'Veterano de Campo',
+      category: 'Carreira',
+      rarity: 'Comum',
+      color: '#3b82f6',
+      desc: 'Alcançar a marca de 5 missões operacionais concluídas com sucesso',
+      requirement: '5 missões concluídas com sucesso',
+      current: totalMissions,
+      target: 5,
+      isUnlocked: totalMissions >= 5,
+    },
+    {
+      id: 'elite-gold',
+      icon: '🔥',
+      name: 'Constância de Elite',
+      category: 'Carreira',
+      rarity: 'Épica',
+      color: '#f97316',
+      desc: 'Alcançar a expressiva marca de 15 missões concluídas na produtora',
+      requirement: '15 missões concluídas com sucesso',
+      current: totalMissions,
+      target: 15,
+      isUnlocked: totalMissions >= 15,
+    },
+    {
+      id: 'pillar-gold',
+      icon: '💎',
+      name: 'Pilar da Produtora',
+      category: 'Carreira',
+      rarity: 'Lendária',
+      color: '#8b5cf6',
+      desc: 'Histórico consagrado de 30 missões concluídas com excelência',
+      requirement: '30 missões concluídas com sucesso',
+      current: totalMissions,
+      target: 30,
+      isUnlocked: totalMissions >= 30,
+    },
+    {
+      id: 'highway-gold',
+      icon: '🛣️',
+      name: 'Estrada Infinita',
+      category: 'Logística',
+      rarity: 'Rara',
+      color: '#059669',
+      desc: 'Acumular mais de 100 km rodados guiando viaturas em missões',
+      requirement: '100 km conduzidos ao volante',
+      current: Math.round(estimatedDistanceKm),
+      target: 100,
+      isUnlocked: estimatedDistanceKm >= 100,
+    },
+    {
+      id: 'master-gold',
+      icon: '👑',
+      name: 'Patente de Ouro',
+      category: 'Gamificação',
+      rarity: 'Lendária',
+      color: '#eab308',
+      desc: 'Superar o marco de 1.200 XP e alcançar a patente Especialista Ouro',
+      requirement: 'Alcançar 1.200 XP acumulados',
+      current: score,
+      target: 1200,
+      isUnlocked: score >= 1200,
+    },
+  ];
+
+  // Apenas as conquistas desbloqueadas para badges rápidos
+  const badges = allAchievements
+    .filter((a) => a.isUnlocked)
+    .map((a) => ({
+      id: a.id,
+      icon: a.icon,
+      name: a.name,
+      desc: a.desc,
+      color: a.color,
+      rarity: a.rarity,
+    }));
+
+  const unlockedCount = badges.length;
+  const totalAchievementsCount = allAchievements.length;
 
   // Lista de funções oficiais que o colaborador realmente exerceu em missões concluídas
   const activeRolesSummary = OFFICIAL_COMPANY_ROLES
@@ -437,115 +646,189 @@ export function calculateMemberPerformanceProfile(member, missions = []) {
     multiDayCount,
     totalApprovedExtraHours,
     completedCount,
+    polyvalentCount,
     score,
     rolesTotalXP,
     missionBaseXP,
-    multiDayXP,
-    drivingKmXP,
-    extraHoursXP,
     completedBonusXP,
+    drivingMissionXP,
+    drivingKmXP,
+    totalDrivingXP,
+    multiDayXP,
+    extraHoursXP,
+    polyvalentXP,
     breakdown: {
       rolesTotalXP,
       missionBaseXP,
-      multiDayXP,
-      drivingKmXP,
-      extraHoursXP,
       completedBonusXP,
+      drivingMissionXP,
+      drivingKmXP,
+      totalDrivingXP,
+      multiDayXP,
+      extraHoursXP,
+      polyvalentXP,
     },
     badges,
+    allAchievements,
+    unlockedCount,
+    totalAchievementsCount,
+    distinctRolesCount,
     missionHistory: missionHistory.sort((a, b) => String(b.date).localeCompare(String(a.date))),
   };
 }
 
 // ==============================================================================
-// PATENTES DE CARREIRA, NÍVEIS E PROGRESSÃO GAMIFICADA (MEGAFILMES)
+// PATENTES DE CARREIRA, NÍVEIS E PROGRESSÃO GAMIFICADA (MEGAFILMES - 10.000 XP)
 // ==============================================================================
+
+export const MAX_CAREER_XP = 10000;
 
 export const CAREER_TIERS = [
   {
     level: 1,
     min: 0,
-    max: 60,
-    title: 'Iniciante de Campo',
+    max: 250,
+    title: 'Recruta Operacional',
     color: '#94a3b8',
     icon: '🌱',
-    badgeLabel: 'Nível Inicial • Integração',
-    description: 'Início da jornada na MegaFilmes. Fase de ambientação técnica, conhecimento da rotina dos equipamentos, pontualidade nas escalas e primeiros registros de atuação.',
-    overcomeMessage: 'Você já superou o período de integração e novato! Sua base inicial de disciplina, pontualidade e primeiros registros operacionais está conquistada.',
-    skillsDemonstrated: 'Pontualidade, familiaridade com equipamentos e primeiros deslocamentos.',
+    insigniaClass: 'insignia-recruta',
+    badgeLabel: 'Nível 1 • Integração e Campo',
+    description: 'Início da jornada na MegaFilmes. Fase de ambientação técnica, conhecimento dos processos da produtora, pontualidade nas escalas e primeiros registros operacionais de campo.',
+    overcomeMessage: 'Você superou com sucesso o período de integração inicial! Provou disciplina, pontualidade e primeiros registros operacionais com afinco.',
+    skillsDemonstrated: 'Pontualidade em escalas, zelo pelos equipamentos e adaptação rápida ao fluxo de trabalho.',
   },
   {
     level: 2,
-    min: 60,
-    max: 150,
-    title: 'Operador Prata',
-    color: '#38bdf8',
+    min: 250,
+    max: 600,
+    title: 'Operador Bronze',
+    color: '#cd7f32',
     icon: '⚡',
-    badgeLabel: 'Autonomia Operacional',
-    description: 'Autonomia e segurança prática. O colaborador cumpre pautas com desenvoltura, domina a operação diária e atua com firmeza e constância nas gravações e suporte.',
-    overcomeMessage: 'Você já superou a fase de operador básico! Conquistou independência operacional e confiança comprovada nas saídas de rotina.',
-    skillsDemonstrated: 'Autonomia em pautas de rotina, agilidade de set e postura confiável.',
+    insigniaClass: 'insignia-bronze',
+    badgeLabel: 'Nível 2 • Autonomia de Campo',
+    description: 'Autonomia e agilidade operacional. Cumpre pautas de rotina com desenvoltura, cuida dos kits de gravação e demonstra firmeza e prontidão nas escalas diárias.',
+    overcomeMessage: 'Você superou o estágio de operador bronze! Conquistou independência operacional e consistência nas saídas de rotina da produtora.',
+    skillsDemonstrated: 'Autonomia em pautas diárias, dinamismo de set e postura confiável.',
   },
   {
     level: 3,
-    min: 150,
-    max: 300,
-    title: 'Especialista Ouro',
-    color: '#fbbf24',
-    icon: '🥇',
-    badgeLabel: 'Alta Performance Técnica',
-    description: 'Maturidade profissional e polivalência. Colaborador com domínio consolidado em múltiplas especialidades (como Câmera, Edição de Vídeo e Direção), entregas de alto padrão estético e confiabilidade nas escalas.',
-    overcomeMessage: 'Você já superou os níveis básicos e intermediários, consolidando seu nome entre os especialistas de alta performance da MegaFilmes.',
-    skillsDemonstrated: 'Polivalência em múltiplas funções, rigor estético, pontualidade e resolução rápida.',
+    min: 600,
+    max: 1200,
+    title: 'Operador Prata',
+    color: '#38bdf8',
+    icon: '🥈',
+    insigniaClass: 'insignia-prata',
+    badgeLabel: 'Nível 3 • Firmeza Técnica',
+    description: 'Firmeza técnica e rapidez de resposta. Domina os equipamentos da produtora, soluciona imprevistos com velocidade e mantém estabilidade sob prazos apertados.',
+    overcomeMessage: 'Patente prata superada com louvor! Você provou constância técnica e capacidade de entrega sob pressão.',
+    skillsDemonstrated: 'Agilidade de set, resolução prática de problemas e qualidade técnica consistente.',
   },
   {
     level: 4,
-    min: 300,
-    max: 550,
-    title: 'Mestre Diamante',
-    color: '#a855f7',
-    icon: '💎',
-    badgeLabel: 'Referência e Domínio',
-    description: 'Elite técnica e referência para os colegas. Assume coberturas de alta responsabilidade, soluciona imprevistos com velocidade e garante padrão impecável em qualquer cenário.',
-    overcomeMessage: 'Patente de mestre superada! Reconhecimento consolidado como uma das maiores referências técnicas da produtora.',
-    skillsDemonstrated: 'Coberturas de alta complexidade, precisão sob pressão e mentoria prática de set.',
+    min: 1200,
+    max: 2000,
+    title: 'Especialista Ouro',
+    color: '#fbbf24',
+    icon: '🥇',
+    insigniaClass: 'insignia-ouro',
+    badgeLabel: 'Nível 4 • Alta Performance & Polivalência',
+    description: 'Maturidade profissional consolidada e polivalência. Domínio em mais de uma especialidade (Câmera, Edição, Direção ou Condução), entregas de alto padrão e precisão estética.',
+    overcomeMessage: 'Patente de ouro superada com mérito! Você se consolidou entre os especialistas de alta performance da MegaFilmes.',
+    skillsDemonstrated: 'Polivalência em múltiplas funções, rigor estético, pontualidade britânica e resolução rápida.',
   },
   {
     level: 5,
-    min: 550,
-    max: 900,
-    title: 'Comandante de Set',
-    color: '#f43f5e',
-    icon: '🔥',
-    badgeLabel: 'Liderança Estratégica',
-    description: 'Liderança e gestão operacional de campo. Confiança máxima da Diretoria para comandar grandes coberturas simultâneas, liderar transmissões críticas e coordenar equipes inteiras.',
-    overcomeMessage: 'Liderança máxima de set superada! Você provou capacidade de gestão sob as maiores pressões do mercado.',
-    skillsDemonstrated: 'Coordenação de equipes, gestão de crises em tempo real e decisões estratégicas de set.',
+    min: 2000,
+    max: 3200,
+    title: 'Técnico Platina',
+    color: '#2dd4bf',
+    icon: '💎',
+    insigniaClass: 'insignia-platina',
+    badgeLabel: 'Nível 5 • Precisão & Zero Refação',
+    description: 'Precisão milimétrica e zero retrabalho. Confiabilidade absoluta para gravações exigentes, coberturas institucionais críticas e transmissões sem margem de erro.',
+    overcomeMessage: 'Patente de platina superada! Seu rigor operacional e padrão visual são referências de excelência na produtora.',
+    skillsDemonstrated: 'Perfeição técnica, entregas de primeira sem refação e controle rigoroso de qualidade.',
   },
   {
     level: 6,
-    min: 900,
-    max: 999999,
-    title: 'Lenda MegaFilmes',
-    color: '#10b981',
+    min: 3200,
+    max: 4600,
+    title: 'Mestre Diamante',
+    color: '#a855f7',
+    icon: '🔮',
+    insigniaClass: 'insignia-diamante',
+    badgeLabel: 'Nível 6 • Elite de Produção',
+    description: 'Elite técnica e referência para a equipe. Assume coberturas de alta complexidade com serenidade, soluciona impasses de set sob pressão e auxilia os operadores mais novos.',
+    overcomeMessage: 'Patente de diamante superada! Reconhecimento consolidado como uma das maiores referências técnicas da produtora.',
+    skillsDemonstrated: 'Coberturas de alta complexidade, precisão sob pressão e mentoria prática aos colegas.',
+  },
+  {
+    level: 7,
+    min: 4600,
+    max: 6200,
+    title: 'Comandante de Set',
+    color: '#f43f5e',
+    icon: '🎖️',
+    insigniaClass: 'insignia-comandante',
+    badgeLabel: 'Nível 7 • Liderança Operacional',
+    description: 'Liderança operacional de grandes coberturas. Lidera equipes no campo, gerencia a logística e a sintonia de múltiplos profissionais em tempo real com firmeza e calma.',
+    overcomeMessage: 'Liderança de set superada! Você comanda operações complexas de ponta a ponta com respeito unânime.',
+    skillsDemonstrated: 'Coordenação de equipes, gestão de crises em tempo real e visão estratégica de set.',
+  },
+  {
+    level: 8,
+    min: 6200,
+    max: 7800,
+    title: 'Guardião Audiovisual',
+    color: '#ec4899',
+    icon: '🛡️',
+    insigniaClass: 'insignia-guardiao',
+    badgeLabel: 'Nível 8 • Pilar Estratégico',
+    description: 'Pilar de confiança máxima da Diretoria. Responsável pelas maiores contas e pautas de maior responsabilidade institucional, comercial e artística da produtora.',
+    overcomeMessage: 'Guardião superado! Sua trajetória é sinônimo de solidez, lealdade e sucesso para a MegaFilmes.',
+    skillsDemonstrated: 'Visão de negócio, liderança exemplar e execução impecável nas contas mais estratégicas.',
+  },
+  {
+    level: 9,
+    min: 7800,
+    max: 9500,
+    title: 'Grão-Mestre da Produtora',
+    color: '#eab308',
     icon: '👑',
-    badgeLabel: 'Patente Lendária Máxima',
-    description: 'O topo supremo da consagração profissional. Legado gravado na história da MegaFilmes, dezenas de grandes produções entregues com louvor e respeito unânime de toda a equipe e diretoria.',
-    overcomeMessage: 'O topo absoluto da carreira na MegaFilmes!',
-    skillsDemonstrated: 'Mestria técnica absoluta, legado profissional e referência permanente.',
+    insigniaClass: 'insignia-graomestre',
+    badgeLabel: 'Nível 9 • Notório Saber & Maestria',
+    description: 'Notório saber em todas as etapas da cadeia audiovisual: pré-produção, captação cinematográfica, switcher ao vivo, pós e entrega de grandes obras.',
+    overcomeMessage: 'Grão-Mestre superado! Você está a um passo da consagração eterna no Hall da Fama da MegaFilmes.',
+    skillsDemonstrated: 'Mestria completa da cadeia audiovisual, inovação e prestígio consolidado.',
+  },
+  {
+    level: 10,
+    min: 9500,
+    max: 1000000,
+    title: 'Lenda Viva MegaFilmes',
+    color: '#10b981',
+    icon: '🏆',
+    insigniaClass: 'insignia-lenda',
+    badgeLabel: 'Nível 10 • Hall da Fama & Consagração Máxima',
+    description: 'O topo supremo e definitivo do audiovisual. História gravada nos anais da produtora, centenas de grandes produções entregues com louvor e respeito unânime de toda a equipe e diretoria.',
+    overcomeMessage: 'O topo absoluto da carreira na MegaFilmes! Você é uma lenda viva do audiovisual.',
+    skillsDemonstrated: 'Legado permanente, mestria inquestionável e consagração máxima da carreira.',
   },
 ];
 
 /**
  * Calcula a progressão completa de carreira com níveis superados, nível atual e próximos marcos.
+ * Escala voltada para 10.000 XP com 10 patentes operacionais.
  */
 export function getCareerProgression(score = 0) {
   const s = Math.max(0, Number(score) || 0);
   const currentTier = CAREER_TIERS.find((t) => s >= t.min && s < t.max) || CAREER_TIERS[CAREER_TIERS.length - 1];
   const span = Math.max(1, currentTier.max - currentTier.min);
   const currentLevelXP = Math.max(0, s - currentTier.min);
-  const remainingForNext = Math.max(0, currentTier.max - s);
-  const progressPercent = Math.min(100, Math.max(0, Math.round((currentLevelXP / span) * 100)));
+  const isMaxTier = currentTier.level >= 10;
+  const remainingForNext = isMaxTier ? 0 : Math.max(0, currentTier.max - s);
+  const progressPercent = isMaxTier ? 100 : Math.min(100, Math.max(0, Math.round((currentLevelXP / span) * 100)));
+  const overallPercent = Math.min(100, Math.max(0, Math.round((s / MAX_CAREER_XP) * 100)));
 
   const tiersWithStatus = CAREER_TIERS.map((tier) => {
     let status = 'locked'; // 'completed' | 'current' | 'locked'
@@ -572,6 +855,7 @@ export function getCareerProgression(score = 0) {
     title: currentTier.title,
     color: currentTier.color,
     icon: currentTier.icon,
+    insigniaClass: currentTier.insigniaClass,
     badgeLabel: currentTier.badgeLabel,
     description: currentTier.description,
     score: s,
@@ -579,6 +863,8 @@ export function getCareerProgression(score = 0) {
     neededForNextLevel: span,
     remainingForNext,
     progressPercent,
+    overallPercent,
+    overallMaxXP: MAX_CAREER_XP,
     tiers: tiersWithStatus,
     completedTiers,
     nextTier,
