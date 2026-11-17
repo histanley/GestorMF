@@ -166,6 +166,18 @@ function ensureRentalsTables($db)
         $db->exec("ALTER TABLE rentals ADD COLUMN payment_receipt_backup LONGTEXT NULL");
     } catch (Exception $e) {
     }
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN damage_cost DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
+    } catch (Exception $e) {
+    }
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN damage_type VARCHAR(64) NULL DEFAULT ''");
+    } catch (Exception $e) {
+    }
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN damage_notes TEXT NULL");
+    } catch (Exception $e) {
+    }
 
     // 1.1 Tabela de migrações internas
     $db->exec("
@@ -1163,6 +1175,9 @@ if ($method === 'GET') {
             'pickupNotes' => $r['pickup_notes'] ?? '',
             'inspectionNotes' => $r['inspection_notes'] ?? '',
             'hasDamage' => !empty($r['has_damage']),
+            'damageCost' => (float) ($r['damage_cost'] ?? 0),
+            'damageType' => $r['damage_type'] ?? '',
+            'damageNotes' => $r['damage_notes'] ?? '',
             'paidAmount' => (float) ($r['paid_amount'] ?? 0),
             'remainingAmount' => (float) ($r['remaining_amount'] ?? 0),
             'remainingDueTerms' => $r['remaining_due_terms'] ?? '',
@@ -1751,6 +1766,19 @@ if ($method === 'POST' && $action === 'return_rental') {
         $sqlReturn .= ", has_damage = ?";
         $paramsReturn[] = $hasDamage;
 
+        if (isset($data['damageCost'])) {
+            $sqlReturn .= ", damage_cost = ?";
+            $paramsReturn[] = max(0, (float) $data['damageCost']);
+        }
+        if (isset($data['damageType'])) {
+            $sqlReturn .= ", damage_type = ?";
+            $paramsReturn[] = trim($data['damageType']);
+        }
+        if (isset($data['damageNotes'])) {
+            $sqlReturn .= ", damage_notes = ?";
+            $paramsReturn[] = trim($data['damageNotes']);
+        }
+
         if ($sendToMaintenance || !empty($maintenanceItemsRecord)) {
             $sqlReturn .= ", sent_to_maintenance = 1, maintenance_items_json = ?";
             $paramsReturn[] = json_encode($maintenanceItemsRecord, JSON_UNESCAPED_UNICODE);
@@ -1948,6 +1976,18 @@ if ($method === 'POST' && $action === 'save_inspection') {
         $fields[] = "has_damage = ?";
         $params[] = $hasDamage;
     }
+    if (isset($data['damageCost'])) {
+        $fields[] = "damage_cost = ?";
+        $params[] = max(0, (float) $data['damageCost']);
+    }
+    if (isset($data['damageType'])) {
+        $fields[] = "damage_type = ?";
+        $params[] = trim($data['damageType']);
+    }
+    if (isset($data['damageNotes'])) {
+        $fields[] = "damage_notes = ?";
+        $params[] = trim($data['damageNotes']);
+    }
 
     if (!empty($fields)) {
         $params[] = $rentalId;
@@ -1970,7 +2010,78 @@ if ($method === 'POST' && $action === 'save_inspection') {
         'pickupNotes' => $updated['pickup_notes'] ?? '',
         'returnNotes' => $updated['return_notes'] ?? '',
         'inspectionNotes' => $updated['inspection_notes'] ?? '',
-        'hasDamage' => !empty($updated['has_damage'])
+        'hasDamage' => !empty($updated['has_damage']),
+        'damageCost' => (float) ($updated['damage_cost'] ?? 0),
+        'damageType' => $updated['damage_type'] ?? '',
+        'damageNotes' => $updated['damage_notes'] ?? ''
+    ]);
+}
+
+// ==============================================================================
+// 5.4 ATUALIZAR PREJUÍZOS, AVARIAS OU DADOS FINANCEIROS DA LOCAÇÃO (POST action=update_rental_financial)
+// ==============================================================================
+if ($method === 'POST' && $action === 'update_rental_financial') {
+    $rentalId = trim($data['rentalId'] ?? $data['id'] ?? '');
+    if (empty($rentalId)) {
+        jsonResponse(['success' => false, 'error' => 'ID da locação não informado.'], 400);
+    }
+
+    $stmt = $db->prepare("SELECT * FROM rentals WHERE id = ? OR code = ?");
+    $stmt->execute([$rentalId, $rentalId]);
+    $rental = $stmt->fetch();
+    if (!$rental) {
+        jsonResponse(['success' => false, 'error' => 'Locação não encontrada.'], 404);
+    }
+
+    $fields = [];
+    $params = [];
+
+    if (isset($data['damageCost'])) {
+        $dmgCost = max(0, (float) $data['damageCost']);
+        $fields[] = "damage_cost = ?";
+        $params[] = $dmgCost;
+        if ($dmgCost > 0 && !isset($data['hasDamage'])) {
+            $fields[] = "has_damage = ?";
+            $params[] = 1;
+        }
+    }
+    if (isset($data['damageType'])) {
+        $fields[] = "damage_type = ?";
+        $params[] = trim($data['damageType']);
+    }
+    if (isset($data['damageNotes'])) {
+        $fields[] = "damage_notes = ?";
+        $params[] = trim($data['damageNotes']);
+    }
+    if (isset($data['hasDamage'])) {
+        $fields[] = "has_damage = ?";
+        $params[] = $data['hasDamage'] ? 1 : 0;
+    }
+    if (isset($data['paymentStatus'])) {
+        $fields[] = "payment_status = ?";
+        $params[] = trim($data['paymentStatus']);
+    }
+    if (isset($data['paidAmount'])) {
+        $fields[] = "paid_amount = ?";
+        $params[] = max(0, (float) $data['paidAmount']);
+    }
+    if (isset($data['remainingAmount'])) {
+        $fields[] = "remaining_amount = ?";
+        $params[] = max(0, (float) $data['remainingAmount']);
+    }
+
+    if (!empty($fields)) {
+        $params[] = $rental['id'];
+        $sql = "UPDATE rentals SET " . implode(", ", $fields) . " WHERE id = ?";
+        $db->prepare($sql)->execute($params);
+    }
+
+    logAudit('UPDATE_RENTAL_FINANCIAL', 'RENTALS', $rental['id'], "Dados financeiros / prejuízos atualizados na locação {$rental['code']} por {$user['name']}.", $user['id'], $user['name']);
+    bumpSyncVersion('update_rental_financial');
+
+    jsonResponse([
+        'success' => true,
+        'message' => "Registro financeiro da locação {$rental['code']} atualizado com sucesso!"
     ]);
 }
 

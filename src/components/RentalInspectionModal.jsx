@@ -35,6 +35,9 @@ export default function RentalInspectionModal({
   const [returnNotes, setReturnNotes] = useState(rental?.returnNotes || '');
   const [inspectionNotes, setInspectionNotes] = useState(rental?.inspectionNotes || '');
   const [hasDamage, setHasDamage] = useState(Boolean(rental?.hasDamage));
+  const [damageCost, setDamageCost] = useState(rental?.damageCost || '');
+  const [damageType, setDamageType] = useState(rental?.damageType || 'Avaria / Reparo Técnico');
+  const [damageNotes, setDamageNotes] = useState(rental?.damageNotes || '');
 
   // Form states para novo upload
   const [selectedEquipName, setSelectedEquipName] = useState(
@@ -142,6 +145,7 @@ export default function RentalInspectionModal({
   const handleSaveInspection = async () => {
     try {
       setIsSaving(true);
+      const parsedDamageCost = hasDamage ? (parseFloat(damageCost) || 0) : 0;
       const payload = {
         rentalId: rental.id,
         pickupPhotos,
@@ -150,6 +154,9 @@ export default function RentalInspectionModal({
         returnNotes,
         inspectionNotes,
         hasDamage,
+        damageCost: parsedDamageCost,
+        damageType: hasDamage ? damageType : '',
+        damageNotes: hasDamage ? damageNotes : '',
       };
 
       const res = await apiRequest('/rentals.php?action=save_inspection', {
@@ -167,12 +174,15 @@ export default function RentalInspectionModal({
             returnNotes,
             inspectionNotes,
             hasDamage: res.hasDamage !== undefined ? res.hasDamage : hasDamage,
+            damageCost: res.damageCost !== undefined ? res.damageCost : parsedDamageCost,
+            damageType: res.damageType !== undefined ? res.damageType : (hasDamage ? damageType : ''),
+            damageNotes: res.damageNotes !== undefined ? res.damageNotes : (hasDamage ? damageNotes : ''),
           });
         }
 
         alertDialog({
           title: '✅ Vistoria Gravada no Histórico!',
-          message: `Fotos e apontamentos da locação ${rental.code} foram arquivados com sucesso no banco de dados.`,
+          message: `Fotos, custos de avaria e apontamentos da locação ${rental.code} foram arquivados com sucesso no banco de dados.`,
           variant: 'success',
         });
       } else {
@@ -180,6 +190,7 @@ export default function RentalInspectionModal({
       }
     } catch (err) {
       console.warn('Salvando localmente em caso de offline:', err);
+      const parsedDamageCost = hasDamage ? (parseFloat(damageCost) || 0) : 0;
       if (onUpdated) {
         onUpdated({
           ...rental,
@@ -189,11 +200,14 @@ export default function RentalInspectionModal({
           returnNotes,
           inspectionNotes,
           hasDamage,
+          damageCost: parsedDamageCost,
+          damageType: hasDamage ? damageType : '',
+          damageNotes: hasDamage ? damageNotes : '',
         });
       }
       alertDialog({
         title: 'Vistoria Salva Localmente',
-        message: 'Os registros fotográficos foram atualizados.',
+        message: 'Os registros fotográficos e financeiros foram atualizados.',
         variant: 'info',
       });
     } finally {
@@ -524,6 +538,47 @@ export default function RentalInspectionModal({
                   {hasDamage ? '🚨 Avaria Marcada' : '🟢 100% Sem Avarias'}
                 </button>
               </div>
+
+              {hasDamage && (
+                <div className="inspection-damage-financial-box">
+                  <div className="idfb-header">
+                    <AlertTriangle size={15} className="text-red" />
+                    <strong>Apuração de Prejuízo / Custo de Reparo da Avaria</strong>
+                  </div>
+                  <div className="idfb-grid">
+                    <div className="form-group">
+                      <label>Valor do Prejuízo / Custo de Reparo (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Ex: 150.00"
+                        value={damageCost}
+                        onChange={(e) => setDamageCost(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Tipo de Ocorrência / Prejuízo</label>
+                      <select value={damageType} onChange={(e) => setDamageType(e.target.value)}>
+                        <option value="Avaria / Reparo Técnico">🛠️ Avaria / Reparo Técnico</option>
+                        <option value="Falta de Cabo / Acessório">🔌 Falta de Cabo / Acessório</option>
+                        <option value="Quebra / Perda Total">💥 Quebra / Perda Total</option>
+                        <option value="Extravio de Equipamento">🚨 Extravio de Equipamento</option>
+                        <option value="Inadimplência / Desconto">💸 Inadimplência / Desconto</option>
+                      </select>
+                    </div>
+                    <div className="form-group idfb-full">
+                      <label>Detalhamento do Prejuízo / Peça Danificada</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Troca de cabo HDMI rompido ou reparo de sapata do flash..."
+                        value={damageNotes}
+                        onChange={(e) => setDamageNotes(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Galeria de Fotos de Devolução */}
               <div className="inspection-gallery-section">

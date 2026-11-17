@@ -35,6 +35,9 @@ import {
   ExternalLink,
   Download,
   Paperclip,
+  TrendingUp,
+  TrendingDown,
+  ChevronLeft,
 } from 'lucide-react';
 import {
   CATEGORY_LABELS,
@@ -116,6 +119,23 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   const [returningRental, setReturningRental] = useState(null); // null ou objeto
   const [sendToMaintenance, setSendToMaintenance] = useState(false);
   const [returnNotes, setReturnNotes] = useState('');
+  const [returnDamageCost, setReturnDamageCost] = useState('');
+  const [returnDamageType, setReturnDamageType] = useState('Avaria / Reparo Técnico');
+
+  // Filtros e Estados do Painel Financeiro (Receitas & Prejuízos Total e por Período)
+  const [financialPeriodType, setFinancialPeriodType] = useState('all'); // 'all' | 'month' | 'last_30' | 'year' | 'custom'
+  const [selectedFinancialMonth, setSelectedFinancialMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState(() => String(new Date().getFullYear()));
+  const [customDateStart, setCustomDateStart] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [customDateEnd, setCustomDateEnd] = useState(() => new Date().toISOString().split('T')[0]);
+  const [financialDateMode, setFinancialDateMode] = useState('rental_or_created'); // 'rental_or_created' | 'start_date' | 'created_at'
+  const [filterRentalsListByPeriod, setFilterRentalsListByPeriod] = useState(false);
+
+  // Modal de Lançamento / Ajuste de Prejuízo, Avaria ou Financeiro da Locação
+  const [financialModalData, setFinancialModalData] = useState(null); // { rentalId, code, clientName, totalAmount, paymentStatus, paidAmount, damageCost, damageType, damageNotes, hasDamage, isSaving }
 
   // Estado do Carrinho / Formulário de Nova Locação
   const [rentalForm, setRentalForm] = useState({
@@ -257,6 +277,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       return (r.status === 'active' || r.status === 'overdue') && r.endDate === todayStr;
     }).length;
 
+    const validRentalsAll = rentalsList.filter((r) => r.status !== 'cancelled');
+    const totalRevenueAllTime = validRentalsAll.reduce((acc, r) => acc + (Number(r.totalAmount) || 0), 0);
+    const totalLossAllTime = rentalsList.reduce((acc, r) => acc + (Number(r.damageCost) || 0), 0);
+
     return {
       totalUnits,
       availableUnits,
@@ -268,8 +292,175 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       reservedCount,
       overdueCount,
       dueTodayCount,
+      totalRevenueAllTime,
+      totalLossAllTime,
     };
   }, [equipmentList, rentalsList]);
+
+  // Helpers de Formatação e Navegação de Período Financeiro
+  const formatMonthLabelPT = (ym) => {
+    if (!ym || !ym.includes('-')) return ym;
+    const [y, m] = ym.split('-').map(Number);
+    const months = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+    ];
+    return `${months[(m - 1) % 12] || m} de ${y}`;
+  };
+
+  const handleChangeFinancialMonth = (delta) => {
+    const [y, m] = (selectedFinancialMonth || '2026-11').split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    const nextYm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    setSelectedFinancialMonth(nextYm);
+    setFinancialPeriodType('month');
+  };
+
+  // Verifica se uma locação pertence ao período financeiro selecionado
+  const matchesSelectedPeriod = (r) => {
+    if (financialPeriodType === 'all') return true;
+    const startStr = (r.startDate || '').slice(0, 10);
+    const createdStr = (r.createdAt || '').slice(0, 10) || startStr;
+
+    const checkDateInRange = (dStr) => {
+      if (!dStr) return false;
+      if (financialPeriodType === 'month') {
+        return dStr.startsWith(selectedFinancialMonth);
+      }
+      if (financialPeriodType === 'year') {
+        return dStr.startsWith(selectedFinancialYear);
+      }
+      if (financialPeriodType === 'last_30') {
+        const limit = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+        return dStr >= limit;
+      }
+      if (financialPeriodType === 'custom') {
+        const fromOk = !customDateStart || dStr >= customDateStart;
+        const toOk = !customDateEnd || dStr <= customDateEnd;
+        return fromOk && toOk;
+      }
+      return true;
+    };
+
+    if (financialDateMode === 'start_date') return checkDateInRange(startStr);
+    if (financialDateMode === 'created_at') return checkDateInRange(createdStr);
+    return checkDateInRange(startStr) || checkDateInRange(createdStr);
+  };
+
+  // Inteligência Financeira Completa: Valores Obtidos & Prejuízos (Total Geral e Por Período)
+  const financialAnalytics = useMemo(() => {
+    const computeMetrics = (list) => {
+      const validList = list.filter((r) => r.status !== 'cancelled');
+      const cancelledList = list.filter((r) => r.status === 'cancelled');
+
+      let grossRevenue = 0;
+      let receivedRevenue = 0;
+      let pendingRevenue = 0;
+      let damageLosses = 0;
+      let cancelledAmount = 0;
+      let damagedContractsCount = 0;
+
+      validList.forEach((r) => {
+        const total = Number(r.totalAmount) || 0;
+        const paid = r.paymentStatus === 'Pago'
+          ? (Number(r.paidAmount) > 0 ? Number(r.paidAmount) : total)
+          : (Number(r.paidAmount) || 0);
+        const rem = Math.max(0, total - paid);
+
+        grossRevenue += total;
+        receivedRevenue += paid;
+        pendingRevenue += rem;
+      });
+
+      cancelledList.forEach((r) => {
+        cancelledAmount += Number(r.totalAmount) || 0;
+      });
+
+      list.forEach((r) => {
+        const dmg = Number(r.damageCost) || 0;
+        damageLosses += dmg;
+        if (dmg > 0 || r.hasDamage || r.sentToMaintenance) {
+          damagedContractsCount += 1;
+        }
+      });
+
+      // Valor de patrimônio atualmente parado em manutenção técnica
+      const maintenanceAssetExposure = equipmentList.reduce((acc, eq) => {
+        const mQty = Number(eq.maintenanceQty) || 0;
+        if (mQty <= 0) return acc;
+        const uVal = Number(eq.assetValue) || ((Number(eq.dailyRate) || 0) * 18);
+        return acc + uVal * mQty;
+      }, 0);
+
+      const netContracted = grossRevenue - damageLosses;
+      const netCash = receivedRevenue - damageLosses;
+
+      return {
+        totalContracts: validList.length,
+        cancelledCount: cancelledList.length,
+        grossRevenue,
+        receivedRevenue,
+        pendingRevenue,
+        damageLosses,
+        cancelledAmount,
+        damagedContractsCount,
+        maintenanceAssetExposure,
+        netContracted,
+        netCash,
+      };
+    };
+
+    const allTime = computeMetrics(rentalsList);
+    const periodList = rentalsList.filter(matchesSelectedPeriod);
+    const period = computeMetrics(periodList);
+
+    // Quebra detalhada por Período (Mês a Mês)
+    const monthsMap = {};
+    const curYm = new Date().toISOString().slice(0, 7);
+    monthsMap[curYm] = [];
+
+    rentalsList.forEach((r) => {
+      const refDate = financialDateMode === 'created_at'
+        ? ((r.createdAt || '').slice(0, 7) || (r.startDate || '').slice(0, 7))
+        : ((r.startDate || '').slice(0, 7) || (r.createdAt || '').slice(0, 7));
+      const ym = refDate || curYm;
+      if (!monthsMap[ym]) monthsMap[ym] = [];
+      monthsMap[ym].push(r);
+    });
+
+    const byMonth = Object.keys(monthsMap)
+      .sort((a, b) => b.localeCompare(a))
+      .map((ym) => ({
+        ym,
+        label: formatMonthLabelPT(ym),
+        ...computeMetrics(monthsMap[ym]),
+      }));
+
+    let periodLabel = 'Todo o Período (Acumulado Geral)';
+    if (financialPeriodType === 'month') periodLabel = formatMonthLabelPT(selectedFinancialMonth);
+    else if (financialPeriodType === 'year') periodLabel = `Ano de ${selectedFinancialYear}`;
+    else if (financialPeriodType === 'last_30') periodLabel = 'Últimos 30 Dias';
+    else if (financialPeriodType === 'custom') {
+      periodLabel = `${formatDateBR(customDateStart)} até ${formatDateBR(customDateEnd)}`;
+    }
+
+    return {
+      allTime,
+      period,
+      periodLabel,
+      byMonth,
+      periodListCount: periodList.length,
+    };
+  }, [
+    rentalsList,
+    equipmentList,
+    financialPeriodType,
+    selectedFinancialMonth,
+    selectedFinancialYear,
+    customDateStart,
+    customDateEnd,
+    financialDateMode,
+  ]);
 
   // Catálogo Filtrado
   const filteredEquipment = useMemo(() => {
@@ -305,6 +496,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
 
       if (!matchesStatus) return false;
 
+      if (filterRentalsListByPeriod && financialPeriodType !== 'all') {
+        if (!matchesSelectedPeriod(r)) return false;
+      }
+
       if (q) {
         const matchCode = (r.code || '').toLowerCase().includes(q);
         const matchClient = (r.clientName || '').toLowerCase().includes(q);
@@ -315,7 +510,18 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
 
       return true;
     });
-  }, [rentalsList, rentalStatusFilter, searchTerm]);
+  }, [
+    rentalsList,
+    rentalStatusFilter,
+    searchTerm,
+    filterRentalsListByPeriod,
+    financialPeriodType,
+    selectedFinancialMonth,
+    selectedFinancialYear,
+    customDateStart,
+    customDateEnd,
+    financialDateMode,
+  ]);
 
   // Cálculo de Dias do Formulário de Locação
   const rentalDays = useMemo(() => {
@@ -825,6 +1031,9 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   const handleConfirmReturn = async () => {
     if (!returningRental) return;
 
+    const parsedDamageCost = parseFloat(returnDamageCost) || (Number(returningRental.damageCost) || 0);
+    const hasDmgFlag = sendToMaintenance || parsedDamageCost > 0 || Boolean(returningRental.hasDamage);
+
     try {
       const res = await apiRequest('/rentals.php?action=return_rental', {
         method: 'POST',
@@ -832,6 +1041,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
           rentalId: returningRental.id,
           returnNotes,
           sendToMaintenance,
+          hasDamage: hasDmgFlag,
+          damageCost: parsedDamageCost,
+          damageType: hasDmgFlag ? returnDamageType : '',
+          damageNotes: hasDmgFlag ? returnNotes : '',
         }),
       });
       if (res && res.success) {
@@ -875,7 +1088,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             status: 'returned',
             returnedAt: new Date().toISOString(),
             returnNotes: returnNotes,
-            hasDamage: sendToMaintenance ? true : r.hasDamage,
+            hasDamage: hasDmgFlag,
+            damageCost: parsedDamageCost,
+            damageType: hasDmgFlag ? returnDamageType : (r.damageType || ''),
+            damageNotes: hasDmgFlag ? returnNotes : (r.damageNotes || ''),
             sentToMaintenance: sendToMaintenance,
           }
           : r
@@ -886,6 +1102,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     const sentMaint = sendToMaintenance;
     setReturningRental(null);
     setReturnNotes('');
+    setReturnDamageCost('');
+    setReturnDamageType('Avaria / Reparo Técnico');
     setSendToMaintenance(false);
 
     alertDialog({
@@ -894,6 +1112,99 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
         ? `A locação ${rCode} foi finalizada. O equipamento com avaria foi encaminhado para Manutenção Técnica e NÃO estará disponível para novas locações até a conclusão do reparo.`
         : `A locação ${rCode} foi finalizada. Todos os equipamentos retornaram para o status DISPONÍVEL no estoque.`,
       variant: sentMaint ? 'warning' : 'success',
+    });
+  };
+
+  // Abrir Modal de Registro / Ajuste de Prejuízo, Avaria ou Financeiro da Locação
+  const handleOpenFinancialModal = (rental = null) => {
+    const target = rental || rentalsList[0];
+    if (!target) {
+      alertDialog({
+        title: 'Sem Locações Cadastradas',
+        message: 'Cadastre ao menos uma locação para vincular receitas ou prejuízos.',
+        variant: 'info',
+      });
+      return;
+    }
+
+    const total = Number(target.totalAmount) || 0;
+    const paid = target.paymentStatus === 'Pago'
+      ? (Number(target.paidAmount) > 0 ? Number(target.paidAmount) : total)
+      : (Number(target.paidAmount) || 0);
+
+    setFinancialModalData({
+      rentalId: target.id,
+      code: target.code,
+      clientName: target.clientName,
+      totalAmount: total,
+      paymentStatus: target.paymentStatus || 'Pendente',
+      paidAmount: String(paid),
+      damageCost: target.damageCost !== undefined && Number(target.damageCost) > 0 ? String(target.damageCost) : '',
+      damageType: target.damageType || 'Avaria / Reparo Técnico',
+      damageNotes: target.damageNotes || target.returnNotes || '',
+      hasDamage: Boolean(target.hasDamage || Number(target.damageCost) > 0),
+      isSaving: false,
+    });
+  };
+
+  // Salvar Prejuízo / Avaria / Financeiro da Locação
+  const handleSaveFinancialModal = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!financialModalData) return;
+
+    const dmgVal = Math.max(0, parseFloat(financialModalData.damageCost) || 0);
+    const total = Number(financialModalData.totalAmount) || 0;
+    const paidVal = financialModalData.paymentStatus === 'Pago'
+      ? total
+      : Math.max(0, parseFloat(financialModalData.paidAmount) || 0);
+    const remVal = Math.max(0, total - paidVal);
+    const hasDmg = dmgVal > 0 || Boolean(financialModalData.hasDamage);
+
+    setFinancialModalData((prev) => ({ ...prev, isSaving: true }));
+
+    try {
+      await apiRequest('/rentals.php?action=update_rental_financial', {
+        method: 'POST',
+        body: JSON.stringify({
+          rentalId: financialModalData.rentalId,
+          damageCost: dmgVal,
+          damageType: hasDmg ? financialModalData.damageType : '',
+          damageNotes: financialModalData.damageNotes || '',
+          hasDamage: hasDmg,
+          paymentStatus: financialModalData.paymentStatus,
+          paidAmount: paidVal,
+          remainingAmount: remVal,
+        }),
+      });
+    } catch (err) {
+      console.warn('Atualizando financeiro localmente:', err);
+    }
+
+    setRentalsList((prev) =>
+      prev.map((r) =>
+        r.id === financialModalData.rentalId
+          ? {
+            ...r,
+            damageCost: dmgVal,
+            damageType: hasDmg ? financialModalData.damageType : '',
+            damageNotes: financialModalData.damageNotes || '',
+            hasDamage: hasDmg,
+            paymentStatus: financialModalData.paymentStatus,
+            paidAmount: paidVal,
+            remainingAmount: remVal,
+          }
+          : r
+      )
+    );
+
+    const code = financialModalData.code;
+    setFinancialModalData(null);
+    fetchRentalsData();
+
+    alertDialog({
+      title: '💰 Balanço Financeiro Atualizado!',
+      message: `Os valores de receita e prejuízos da locação ${code} foram salvos e contabilizados no painel por período e total.`,
+      variant: 'success',
     });
   };
 
@@ -993,6 +1304,48 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             </div>
             <span className="erm-kpi-sub">
               {kpiStats.overdueCount > 0 ? `🚨 ${kpiStats.overdueCount} em atraso` : 'contratos em curso'}
+            </span>
+          </div>
+
+          <div
+            className="erm-kpi-card kpi-revenue pointer-card"
+            onClick={() => setActiveTab('rentals')}
+            title="Clique para abrir o demonstrativo completo de receitas e prejuízos por período"
+          >
+            <div className="erm-kpi-top">
+              <div className="erm-kpi-icon-wrap icon-emerald">
+                <TrendingUp size={15} />
+              </div>
+              <span className="erm-kpi-lbl">Receita Total</span>
+            </div>
+            <div className="erm-kpi-val text-emerald">
+              {formatCurrency(kpiStats.totalRevenueAllTime)}
+            </div>
+            <span className="erm-kpi-sub">
+              {kpiStats.totalLossAllTime > 0
+                ? `Líquido: ${formatCurrency(kpiStats.totalRevenueAllTime - kpiStats.totalLossAllTime)}`
+                : 'obtido com locações'}
+            </span>
+          </div>
+
+          <div
+            className={`erm-kpi-card kpi-losses pointer-card ${kpiStats.totalLossAllTime > 0 ? 'card-overdue-pulse' : ''}`}
+            onClick={() => setActiveTab('rentals')}
+            title="Clique para ver o detalhamento de prejuízos e avarias por período"
+          >
+            <div className="erm-kpi-top">
+              <div className="erm-kpi-icon-wrap icon-red">
+                <TrendingDown size={15} />
+              </div>
+              <span className="erm-kpi-lbl">Prejuízos Total</span>
+            </div>
+            <div className={`erm-kpi-val ${kpiStats.totalLossAllTime > 0 ? 'text-red' : 'text-muted'}`}>
+              {formatCurrency(kpiStats.totalLossAllTime)}
+            </div>
+            <span className="erm-kpi-sub">
+              {financialAnalytics.allTime.damagedContractsCount > 0
+                ? `${financialAnalytics.allTime.damagedContractsCount} ocorrência(s) de avaria`
+                : 'sem avarias / perdas'}
             </span>
           </div>
         </div>
@@ -2014,6 +2367,393 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
         {/* ================================================================== */}
         {activeTab === 'rentals' && (
           <div className="erm-rentals-view">
+            {/* ============================================================== */}
+            {/* PAINEL FINANCEIRO DE ALUGUÉIS & PREJUÍZOS (TOTAL E POR PERÍODO) */}
+            {/* ============================================================== */}
+            <div className="erm-financial-dashboard">
+              <div className="efd-header">
+                <div className="efd-title-block">
+                  <div className="efd-badge">
+                    <DollarSign size={13} />
+                    <span>Balanço Financeiro de Aluguéis &amp; Prejuízos</span>
+                  </div>
+                  <h3>
+                    Valores Obtidos &amp; Prejuízos — <span className="text-gold">{financialAnalytics.periodLabel}</span>
+                  </h3>
+                  <p>
+                    Acompanhe o faturamento obtido com as locações, valores recebidos em caixa, saldo a receber e eventuais prejuízos ou avarias por período e no acumulado total.
+                  </p>
+                </div>
+
+                <div className="efd-top-actions">
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm efd-btn-register-loss"
+                    onClick={() => handleOpenFinancialModal()}
+                    title="Registrar ou editar prejuízo, avaria ou baixa financeira em uma locação"
+                  >
+                    <AlertTriangle size={14} className="text-red" />
+                    <span>💸 Lançar / Editar Prejuízo ou Avaria</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Barra de Filtro de Período */}
+              <div className="efd-period-bar">
+                <div className="efd-period-pills">
+                  <button
+                    type="button"
+                    className={`efd-period-pill ${financialPeriodType === 'all' ? 'active' : ''}`}
+                    onClick={() => setFinancialPeriodType('all')}
+                  >
+                    Todo o Período (Total)
+                  </button>
+                  <button
+                    type="button"
+                    className={`efd-period-pill ${financialPeriodType === 'month' ? 'active' : ''}`}
+                    onClick={() => setFinancialPeriodType('month')}
+                  >
+                    📅 Por Mês
+                  </button>
+                  <button
+                    type="button"
+                    className={`efd-period-pill ${financialPeriodType === 'last_30' ? 'active' : ''}`}
+                    onClick={() => setFinancialPeriodType('last_30')}
+                  >
+                    ⏱️ Últimos 30 Dias
+                  </button>
+                  <button
+                    type="button"
+                    className={`efd-period-pill ${financialPeriodType === 'year' ? 'active' : ''}`}
+                    onClick={() => setFinancialPeriodType('year')}
+                  >
+                    🗓️ Por Ano
+                  </button>
+                  <button
+                    type="button"
+                    className={`efd-period-pill ${financialPeriodType === 'custom' ? 'active' : ''}`}
+                    onClick={() => setFinancialPeriodType('custom')}
+                  >
+                    🔍 Período Personalizado
+                  </button>
+                </div>
+
+                {/* Seletores dinâmicos conforme o tipo de período */}
+                <div className="efd-period-controls">
+                  {financialPeriodType === 'month' && (
+                    <div className="efd-month-stepper">
+                      <button
+                        type="button"
+                        className="efd-step-btn"
+                        onClick={() => handleChangeFinancialMonth(-1)}
+                        title="Mês anterior"
+                      >
+                        <ChevronLeft size={15} />
+                      </button>
+                      <input
+                        type="month"
+                        value={selectedFinancialMonth}
+                        onChange={(e) => setSelectedFinancialMonth(e.target.value)}
+                        className="efd-month-input"
+                      />
+                      <span className="efd-month-label">{formatMonthLabelPT(selectedFinancialMonth)}</span>
+                      <button
+                        type="button"
+                        className="efd-step-btn"
+                        onClick={() => handleChangeFinancialMonth(1)}
+                        title="Próximo mês"
+                      >
+                        <ChevronRight size={15} />
+                      </button>
+                    </div>
+                  )}
+
+                  {financialPeriodType === 'year' && (
+                    <div className="efd-year-selector">
+                      <select
+                        value={selectedFinancialYear}
+                        onChange={(e) => setSelectedFinancialYear(e.target.value)}
+                        className="efd-select"
+                      >
+                        {['2024', '2025', '2026', '2027', '2028'].map((yr) => (
+                          <option key={yr} value={yr}>Ano de {yr}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {financialPeriodType === 'custom' && (
+                    <div className="efd-custom-dates">
+                      <div className="efd-date-field">
+                        <span>De:</span>
+                        <input
+                          type="date"
+                          value={customDateStart}
+                          onChange={(e) => setCustomDateStart(e.target.value)}
+                        />
+                      </div>
+                      <div className="efd-date-field">
+                        <span>Até:</span>
+                        <input
+                          type="date"
+                          value={customDateEnd}
+                          onChange={(e) => setCustomDateEnd(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="efd-criterion-group">
+                    <select
+                      value={financialDateMode}
+                      onChange={(e) => setFinancialDateMode(e.target.value)}
+                      className="efd-select efd-select-sm"
+                      title="Critério de data para apuração do período"
+                    >
+                      <option value="rental_or_created">Critério: Contrato ou Execução</option>
+                      <option value="start_date">Critério: Data da Locação</option>
+                      <option value="created_at">Critério: Data da Emissão / Caixa</option>
+                    </select>
+
+                    {financialPeriodType !== 'all' && (
+                      <label className="efd-filter-list-toggle" title="Filtrar também a listagem de contratos abaixo pelo período selecionado">
+                        <input
+                          type="checkbox"
+                          checked={filterRentalsListByPeriod}
+                          onChange={(e) => setFilterRentalsListByPeriod(e.target.checked)}
+                        />
+                        <span>Filtrar lista abaixo</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 Cards Principais: No Período Selecionado vs. Total Geral Acumulado */}
+              <div className="efd-cards-grid">
+                {/* CARD 1: VALORES OBTIDOS COM ALUGUÉIS */}
+                <div className="efd-metric-card card-revenue">
+                  <div className="emc-top">
+                    <span className="emc-label">Valores Obtidos (No Período)</span>
+                    <div className="emc-icon icon-emerald">
+                      <TrendingUp size={16} />
+                    </div>
+                  </div>
+                  <div className="emc-main-val text-emerald">
+                    {formatCurrency(financialAnalytics.period.grossRevenue)}
+                  </div>
+                  <div className="emc-breakdown">
+                    <div className="emc-br-row">
+                      <span>✅ Recebido / Quitado:</span>
+                      <strong className="text-emerald">{formatCurrency(financialAnalytics.period.receivedRevenue)}</strong>
+                    </div>
+                    <div className="emc-br-row">
+                      <span>⏳ Pendente a Receber:</span>
+                      <strong className="text-amber">{formatCurrency(financialAnalytics.period.pendingRevenue)}</strong>
+                    </div>
+                    <div className="emc-br-row">
+                      <span>📋 Contratos no Período:</span>
+                      <strong>{financialAnalytics.period.totalContracts} locação(ões)</strong>
+                    </div>
+                  </div>
+                  <div className="emc-total-footer">
+                    <span>Total Geral Obtido (Acumulado):</span>
+                    <strong className="text-emerald">{formatCurrency(financialAnalytics.allTime.grossRevenue)}</strong>
+                  </div>
+                </div>
+
+                {/* CARD 2: PREJUÍZOS, AVARIAS & PERDAS */}
+                <div className="efd-metric-card card-losses">
+                  <div className="emc-top">
+                    <span className="emc-label">Prejuízos &amp; Avarias (No Período)</span>
+                    <div className="emc-icon icon-red">
+                      <TrendingDown size={16} />
+                    </div>
+                  </div>
+                  <div className={`emc-main-val ${financialAnalytics.period.damageLosses > 0 ? 'text-red' : 'text-muted'}`}>
+                    {formatCurrency(financialAnalytics.period.damageLosses)}
+                  </div>
+                  <div className="emc-breakdown">
+                    <div className="emc-br-row">
+                      <span>🛠️ Ocorrências de Avaria:</span>
+                      <strong className={financialAnalytics.period.damagedContractsCount > 0 ? 'text-red' : ''}>
+                        {financialAnalytics.period.damagedContractsCount} registro(s)
+                      </strong>
+                    </div>
+                    <div className="emc-br-row">
+                      <span>❌ Locações Canceladas:</span>
+                      <strong>
+                        {financialAnalytics.period.cancelledCount} ({formatCurrency(financialAnalytics.period.cancelledAmount)})
+                      </strong>
+                    </div>
+                    <div className="emc-br-row">
+                      <span>🔧 Ativos em Manutenção:</span>
+                      <strong className="text-amber">
+                        {kpiStats.maintenanceUnits} un. ({formatCurrency(financialAnalytics.allTime.maintenanceAssetExposure)})
+                      </strong>
+                    </div>
+                  </div>
+                  <div className="emc-total-footer footer-danger">
+                    <span>Prejuízo Total Acumulado:</span>
+                    <strong className="text-red">{formatCurrency(financialAnalytics.allTime.damageLosses)}</strong>
+                  </div>
+                </div>
+
+                {/* CARD 3: SALDO LÍQUIDO (VALORES OBTIDOS - PREJUÍZOS) */}
+                <div className="efd-metric-card card-net">
+                  <div className="emc-top">
+                    <span className="emc-label">Resultado Líquido (No Período)</span>
+                    <div className="emc-icon icon-gold">
+                      <DollarSign size={16} />
+                    </div>
+                  </div>
+                  <div className={`emc-main-val ${financialAnalytics.period.netContracted >= 0 ? 'text-gold' : 'text-red'}`}>
+                    {formatCurrency(financialAnalytics.period.netContracted)}
+                  </div>
+                  <div className="emc-breakdown">
+                    <div className="emc-br-row">
+                      <span>💵 Caixa Líquido Realizado:</span>
+                      <strong className={financialAnalytics.period.netCash >= 0 ? 'text-emerald' : 'text-red'}>
+                        {formatCurrency(financialAnalytics.period.netCash)}
+                      </strong>
+                    </div>
+                    <div className="emc-br-row">
+                      <span>📈 Aproveitamento Líquido:</span>
+                      <strong>
+                        {financialAnalytics.period.grossRevenue > 0
+                          ? `${Math.max(0, Math.round((financialAnalytics.period.netContracted / financialAnalytics.period.grossRevenue) * 100))}%`
+                          : '100%'}
+                      </strong>
+                    </div>
+                    <div className="emc-br-row">
+                      <span>🛡️ Cauções Retidas:</span>
+                      <strong className="text-cyan">
+                        {formatCurrency(
+                          rentalsList
+                            .filter(matchesSelectedPeriod)
+                            .reduce((acc, r) => acc + (Number(r.securityDeposit) || 0), 0)
+                        )}
+                      </strong>
+                    </div>
+                  </div>
+                  <div className="emc-total-footer footer-gold">
+                    <span>Saldo Líquido Total Geral:</span>
+                    <strong className="text-gold">{formatCurrency(financialAnalytics.allTime.netContracted)}</strong>
+                  </div>
+                </div>
+
+                {/* CARD 4: CONSOLIDAÇÃO GERAL (TOTAL HISTÓRICO COMPLETO) */}
+                <div className="efd-metric-card card-alltime-summary">
+                  <div className="emc-top">
+                    <span className="emc-label">Resumo Total Acumulado</span>
+                    <div className="emc-icon icon-purple">
+                      <Sparkles size={16} />
+                    </div>
+                  </div>
+                  <div className="emc-alltime-rows">
+                    <div className="ear-item item-green">
+                      <span>Total Obtido (Bruto):</span>
+                      <strong>{formatCurrency(financialAnalytics.allTime.grossRevenue)}</strong>
+                    </div>
+                    <div className="ear-item item-cyan">
+                      <span>Total Já Recebido (Caixa):</span>
+                      <strong>{formatCurrency(financialAnalytics.allTime.receivedRevenue)}</strong>
+                    </div>
+                    <div className="ear-item item-amber">
+                      <span>Total A Receber:</span>
+                      <strong>{formatCurrency(financialAnalytics.allTime.pendingRevenue)}</strong>
+                    </div>
+                    <div className="ear-item item-red">
+                      <span>Total de Prejuízos:</span>
+                      <strong>{formatCurrency(financialAnalytics.allTime.damageLosses)}</strong>
+                    </div>
+                    <div className="ear-item item-net">
+                      <span>Lucro Líquido Total:</span>
+                      <strong>{formatCurrency(financialAnalytics.allTime.netContracted)}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quadro Demonstrativo por Período (Mês a Mês + Total Geral) */}
+              {financialAnalytics.byMonth.length > 0 && (
+                <div className="efd-periods-table-wrap">
+                  <div className="ept-header">
+                    <div className="ept-title">
+                      <Calendar size={14} className="text-gold" />
+                      <strong>Demonstrativo de Valores Obtidos &amp; Prejuízos por Período (Mês a Mês e Total)</strong>
+                    </div>
+                    <small className="text-muted">Clique em qualquer período abaixo para filtrar os indicadores</small>
+                  </div>
+                  <div className="ept-table-scroll">
+                    <table className="ept-table">
+                      <thead>
+                        <tr>
+                          <th>Período</th>
+                          <th>Contratos</th>
+                          <th>Valores Obtidos (Bruto)</th>
+                          <th>Recebido em Caixa</th>
+                          <th>A Receber</th>
+                          <th>Prejuízos / Avarias</th>
+                          <th>Saldo Líquido</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {financialAnalytics.byMonth.map((mRow) => {
+                          const isSelectedMonth =
+                            financialPeriodType === 'month' && selectedFinancialMonth === mRow.ym;
+                          return (
+                            <tr
+                              key={mRow.ym}
+                              className={`ept-row ${isSelectedMonth ? 'row-selected' : ''}`}
+                              onClick={() => {
+                                setSelectedFinancialMonth(mRow.ym);
+                                setFinancialPeriodType('month');
+                              }}
+                              title={`Clique para focar em ${mRow.label}`}
+                            >
+                              <td>
+                                <span className="ept-period-name">{mRow.label}</span>
+                                {isSelectedMonth && <span className="ept-active-tag">Selecionado</span>}
+                              </td>
+                              <td>{mRow.totalContracts} locação(ões)</td>
+                              <td className="text-emerald font-bold">{formatCurrency(mRow.grossRevenue)}</td>
+                              <td className="text-cyan">{formatCurrency(mRow.receivedRevenue)}</td>
+                              <td className="text-amber">{formatCurrency(mRow.pendingRevenue)}</td>
+                              <td className={mRow.damageLosses > 0 ? 'text-red font-bold' : 'text-muted'}>
+                                {formatCurrency(mRow.damageLosses)}
+                                {mRow.damagedContractsCount > 0 && (
+                                  <small className="ept-dmg-count"> ({mRow.damagedContractsCount} avaria)</small>
+                                )}
+                              </td>
+                              <td className={mRow.netContracted >= 0 ? 'text-gold font-bold' : 'text-red font-bold'}>
+                                {formatCurrency(mRow.netContracted)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr
+                          className={`ept-total-row ${financialPeriodType === 'all' ? 'row-selected' : ''}`}
+                          onClick={() => setFinancialPeriodType('all')}
+                          title="Clique para ver Todo o Período (Total Geral)"
+                        >
+                          <td><strong>TOTAL GERAL ACUMULADO</strong></td>
+                          <td><strong>{financialAnalytics.allTime.totalContracts} locação(ões)</strong></td>
+                          <td className="text-emerald"><strong>{formatCurrency(financialAnalytics.allTime.grossRevenue)}</strong></td>
+                          <td className="text-cyan"><strong>{formatCurrency(financialAnalytics.allTime.receivedRevenue)}</strong></td>
+                          <td className="text-amber"><strong>{formatCurrency(financialAnalytics.allTime.pendingRevenue)}</strong></td>
+                          <td className="text-red"><strong>{formatCurrency(financialAnalytics.allTime.damageLosses)}</strong></td>
+                          <td className="text-gold"><strong>{formatCurrency(financialAnalytics.allTime.netContracted)}</strong></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Toolbar com Filtros de Status */}
             <div className="erm-rentals-toolbar">
               <div className="erm-filter-pills">
@@ -2123,6 +2863,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                           {rental.securityDeposit > 0 && (
                             <span className="erc-deposit-badge">
                               🛡️ Caução: {formatCurrency(rental.securityDeposit)}
+                            </span>
+                          )}
+                          {Number(rental.damageCost) > 0 && (
+                            <span className="erc-loss-badge">
+                              🚨 Prejuízo / Avaria: -{formatCurrency(rental.damageCost)} • Líquido: {formatCurrency((Number(rental.totalAmount) || 0) - (Number(rental.damageCost) || 0))}
                             </span>
                           )}
                         </div>
@@ -2238,6 +2983,21 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                           {rental.hasDamage && <span className="erc-damage-badge">🚨 AVARIA</span>}
                         </button>
 
+                        {/* Botão de Prejuízo / Avaria / Financeiro */}
+                        <button
+                          type="button"
+                          className={`btn-secondary btn-sm ${Number(rental.damageCost) > 0 ? 'btn-has-damage' : ''}`}
+                          onClick={() => handleOpenFinancialModal(rental)}
+                          title="Registrar ou editar valor de prejuízo/avaria ou status de pagamento desta locação"
+                        >
+                          <DollarSign size={14} className={Number(rental.damageCost) > 0 ? 'text-red' : 'text-emerald'} />
+                          <span>
+                            {Number(rental.damageCost) > 0
+                              ? `💸 Prejuízo (${formatCurrency(rental.damageCost)})`
+                              : '💸 Prejuízo / Financeiro'}
+                          </span>
+                        </button>
+
                         {/* Botão de Comprovante de Pagamento (Visualizar ou Anexar) */}
                         {rental.paymentReceiptUrl ? (
                           <button
@@ -2312,6 +3072,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                                     );
                                     setReturningRental(rental);
                                     setReturnNotes(rental.returnNotes || (hasDmg ? 'Avaria constatada na devolução. Encaminhado para reparo.' : ''));
+                                    setReturnDamageCost(rental.damageCost && Number(rental.damageCost) > 0 ? String(rental.damageCost) : '');
+                                    setReturnDamageType(rental.damageType || 'Avaria / Reparo Técnico');
                                     setSendToMaintenance(hasDmg);
                                   }}
                                 >
@@ -2741,6 +3503,35 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     <small>Marque caso tenham ocorrido avarias, quebras, riscos severos ou necessidade de conserto pós-locação.</small>
                   </span>
                 </label>
+
+                <div className="checkin-loss-fields" style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="form-group-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: '0.78rem', color: '#fca5a5' }}>💸 Valor do Prejuízo / Custo de Reparo (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0,00 (Opcional)"
+                        value={returnDamageCost}
+                        onChange={(e) => setReturnDamageCost(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Tipo de Ocorrência / Prejuízo</label>
+                      <select
+                        value={returnDamageType}
+                        onChange={(e) => setReturnDamageType(e.target.value)}
+                      >
+                        <option value="Avaria / Reparo Técnico">🛠️ Avaria / Reparo Técnico</option>
+                        <option value="Falta de Cabo / Acessório">🔌 Falta de Cabo / Acessório</option>
+                        <option value="Quebra / Perda Total">💥 Quebra / Perda Total</option>
+                        <option value="Extravio de Equipamento">🚨 Extravio de Equipamento</option>
+                        <option value="Inadimplência / Desconto">💸 Inadimplência / Desconto</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="modal-footer">
@@ -3075,6 +3866,229 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* MODAL 8: LANÇAR / EDITAR PREJUÍZO, AVARIA OU BAIXA FINANCEIRA        */}
+      {/* ==================================================================== */}
+      {financialModalData && (
+        <div
+          className="modal-overlay"
+          onClick={() => setFinancialModalData(null)}
+          style={{ zIndex: 1300 }}
+        >
+          <div
+            className="modal-box"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 580, width: '94%' }}
+          >
+            <div className="modal-header">
+              <div className="modal-header-text">
+                <h2>💸 Registro de Prejuízos, Avarias &amp; Recebimento</h2>
+                <p>
+                  Atualize valores obtidos em caixa ou registre custos de reparo, avarias e perdas desta locação.
+                </p>
+              </div>
+              <button type="button" className="modal-close" onClick={() => setFinancialModalData(null)}>
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFinancialModal} className="modal-form" style={{ padding: 20 }}>
+              {/* Seletor de Contrato de Locação */}
+              <div className="form-group">
+                <label>Contrato / Locação de Referência *</label>
+                <select
+                  value={financialModalData.rentalId}
+                  onChange={(e) => {
+                    const selected = rentalsList.find((r) => r.id === e.target.value);
+                    if (selected) {
+                      handleOpenFinancialModal(selected);
+                    }
+                  }}
+                >
+                  {rentalsList.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.code} — {r.clientName} ({formatDateBR(r.startDate)} • {formatCurrency(r.totalAmount)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Bloco 1: Valores Obtidos / Recebimento */}
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: 'rgba(16, 185, 129, 0.06)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  marginBottom: 16,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <strong style={{ color: '#34d399', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <TrendingUp size={15} /> 1. Valores Obtidos na Locação
+                  </strong>
+                  <span style={{ fontSize: '0.82rem', color: '#f8fafc', fontWeight: 700 }}>
+                    Valor do Contrato: {formatCurrency(financialModalData.totalAmount)}
+                  </span>
+                </div>
+
+                <div className="form-group-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Status do Pagamento</label>
+                    <select
+                      value={financialModalData.paymentStatus}
+                      onChange={(e) => {
+                        const newSt = e.target.value;
+                        setFinancialModalData((prev) => ({
+                          ...prev,
+                          paymentStatus: newSt,
+                          paidAmount: newSt === 'Pago' ? String(prev.totalAmount) : prev.paidAmount,
+                        }));
+                      }}
+                    >
+                      <option value="Pago">✅ Pago (Quitado 100%)</option>
+                      <option value="Caução Recebido">🟡 Parcial / Entrada Recebida</option>
+                      <option value="Pendente">⏳ Pendente a Receber</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Valor Efetivamente Recebido (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={financialModalData.paymentStatus === 'Pago' ? financialModalData.totalAmount : financialModalData.paidAmount}
+                      disabled={financialModalData.paymentStatus === 'Pago'}
+                      onChange={(e) =>
+                        setFinancialModalData((prev) => ({
+                          ...prev,
+                          paidAmount: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloco 2: Prejuízos, Avarias ou Perdas */}
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: 'rgba(239, 68, 68, 0.06)',
+                  border: '1px solid rgba(239, 68, 68, 0.28)',
+                  marginBottom: 16,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <strong style={{ color: '#f87171', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <TrendingDown size={15} /> 2. Prejuízos, Avarias &amp; Custos de Manutenção
+                  </strong>
+                  <span style={{ fontSize: '0.76rem', color: '#fca5a5' }}>
+                    Abatido do saldo líquido do período
+                  </span>
+                </div>
+
+                <div className="form-group-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Valor do Prejuízo / Reparo (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Ex: 150.00 (0 para sem prejuízo)"
+                      value={financialModalData.damageCost}
+                      onChange={(e) =>
+                        setFinancialModalData((prev) => ({
+                          ...prev,
+                          damageCost: e.target.value,
+                          hasDamage: parseFloat(e.target.value) > 0 ? true : prev.hasDamage,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Categoria do Prejuízo</label>
+                    <select
+                      value={financialModalData.damageType}
+                      onChange={(e) =>
+                        setFinancialModalData((prev) => ({
+                          ...prev,
+                          damageType: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="Avaria / Reparo Técnico">🛠️ Avaria / Reparo Técnico</option>
+                      <option value="Falta de Cabo / Acessório">🔌 Falta de Cabo / Acessório</option>
+                      <option value="Quebra / Perda Total">💥 Quebra / Perda Total</option>
+                      <option value="Extravio de Equipamento">🚨 Extravio de Equipamento</option>
+                      <option value="Inadimplência / Desconto">💸 Inadimplência / Desconto</option>
+                      <option value="Outro Custo Operacional">📋 Outro Custo Operacional</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginTop: 12, marginBottom: 0 }}>
+                  <label>Descrição / Observações do Prejuízo ou Avaria</label>
+                  <textarea
+                    rows="2"
+                    placeholder="Ex: Reparo de conector HDMI danificado ou reposição de tampa de lente..."
+                    value={financialModalData.damageNotes}
+                    onChange={(e) =>
+                      setFinancialModalData((prev) => ({
+                        ...prev,
+                        damageNotes: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Resumo Líquido Instantâneo do Contrato */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  background: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  marginBottom: 18,
+                  fontSize: '0.85rem',
+                }}
+              >
+                <span style={{ color: '#cbd5e1' }}>Resultado Líquido deste Contrato:</span>
+                <strong
+                  style={{
+                    fontSize: '1rem',
+                    color:
+                      (Number(financialModalData.totalAmount) || 0) - (parseFloat(financialModalData.damageCost) || 0) >= 0
+                        ? '#fbbf24'
+                        : '#f87171',
+                  }}
+                >
+                  {formatCurrency(
+                    (Number(financialModalData.totalAmount) || 0) - (parseFloat(financialModalData.damageCost) || 0)
+                  )}
+                </strong>
+              </div>
+
+              <div className="modal-footer" style={{ padding: 0 }}>
+                <button type="button" className="btn-secondary" onClick={() => setFinancialModalData(null)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary" disabled={financialModalData.isSaving}>
+                  {financialModalData.isSaving ? 'Salvando...' : 'Salvar Balanço Financeiro'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -47648,3 +47648,547 @@ body.light-theme .ray-badge-item,
   background: #ffffff !important;
   border-color: #e2e8f0 !important;
 }
+
+/* ==========================================================================
+   PAINEL FINANCEIRO DE ALUGUÉIS & PREJUÍZOS (TOTAL E POR PERÍODO)
+   ========================================================================== */
+.erm-financial-dashboard {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px 22px;
+  margin-bottom: 18px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.efd-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.efd-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.efd-title-block h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.efd-title-block p {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.efd-btn-register-loss {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  color: #fca5a5 !important;
+  font-weight: 700 !important;
+}
+
+.efd-btn-register-loss:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.65) !important;
+}
+
+.efd-period-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(9, 14, 26, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 18px;
+}
+
+.efd-period-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.efd-period-pill {
+  padding: 6px 13px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.efd-period-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+.efd-period-pill.active {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-color: #fbbf24;
+  color: #0f172a;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.efd-period-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.efd-month-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.efd-step-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.efd-step-btn:hover {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+}
+
+.efd-month-input {
+  background: transparent;
+  border: none;
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 700;
+  width: 118px;
+  cursor: pointer;
+}
+
+.efd-month-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fbbf24;
+  padding-right: 4px;
+}
+
+.efd-custom-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.efd-date-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+
+.efd-date-field input {
+  background: transparent;
+  border: none;
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.efd-criterion-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.efd-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.efd-filter-list-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.efd-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 1200px) {
+  .efd-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .efd-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.efd-metric-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.efd-metric-card.card-revenue {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: linear-gradient(160deg, rgba(16, 185, 129, 0.08), rgba(15, 23, 42, 0.85));
+}
+
+.efd-metric-card.card-losses {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: linear-gradient(160deg, rgba(239, 68, 68, 0.08), rgba(15, 23, 42, 0.85));
+}
+
+.efd-metric-card.card-net {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(160deg, rgba(245, 158, 11, 0.08), rgba(15, 23, 42, 0.85));
+}
+
+.efd-metric-card.card-alltime-summary {
+  border-color: rgba(168, 85, 247, 0.28);
+  background: linear-gradient(160deg, rgba(168, 85, 247, 0.08), rgba(15, 23, 42, 0.85));
+}
+
+.emc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.emc-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.emc-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emc-main-val {
+  font-size: 1.55rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+
+.emc-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 10px;
+}
+
+.emc-br-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #cbd5e1;
+}
+
+.emc-total-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 9px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+
+.emc-alltime-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.ear-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.76rem;
+  color: #cbd5e1;
+}
+
+.ear-item.item-green strong { color: #34d399; }
+.ear-item.item-cyan strong { color: #38bdf8; }
+.ear-item.item-amber strong { color: #fbbf24; }
+.ear-item.item-red strong { color: #f87171; }
+.ear-item.item-net {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.ear-item.item-net strong {
+  color: #fbbf24;
+  font-size: 0.84rem;
+}
+
+.efd-periods-table-wrap {
+  border-radius: 12px;
+  background: rgba(9, 14, 26, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.ept-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ept-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+  color: #f8fafc;
+}
+
+.ept-table-scroll {
+  overflow-x: auto;
+}
+
+.ept-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.ept-table th {
+  text-align: left;
+  padding: 9px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ept-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+}
+
+.ept-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ept-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ept-row.row-selected {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.ept-period-name {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.ept-active-tag {
+  margin-left: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.ept-total-row {
+  background: rgba(15, 23, 42, 0.9);
+  border-top: 2px solid rgba(245, 158, 11, 0.35);
+  cursor: pointer;
+}
+
+.ept-total-row td {
+  padding: 11px 14px;
+  border-bottom: none;
+}
+
+.erc-loss-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 0.73rem;
+  font-weight: 700;
+}
+
+.inspection-damage-financial-box {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.idfb-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #fca5a5;
+  font-size: 0.85rem;
+}
+
+.idfb-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.idfb-full {
+  grid-column: 1 / -1;
+}
+
+/* Light theme overrides para o Painel Financeiro de Aluguéis */
+body.light-theme .erm-financial-dashboard,
+[data-theme='light'] .erm-financial-dashboard {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+body.light-theme .efd-title-block h3,
+body.light-theme .ept-title,
+body.light-theme .ept-period-name,
+[data-theme='light'] .efd-title-block h3,
+[data-theme='light'] .ept-title,
+[data-theme='light'] .ept-period-name {
+  color: #0f172a;
+}
+
+body.light-theme .efd-period-bar,
+body.light-theme .efd-periods-table-wrap,
+[data-theme='light'] .efd-period-bar,
+[data-theme='light'] .efd-periods-table-wrap {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+body.light-theme .efd-metric-card,
+[data-theme='light'] .efd-metric-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+body.light-theme .emc-breakdown,
+body.light-theme .ear-item,
+[data-theme='light'] .emc-breakdown,
+[data-theme='light'] .ear-item {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+
+body.light-theme .emc-br-row,
+body.light-theme .ept-table td,
+[data-theme='light'] .emc-br-row,
+[data-theme='light'] .ept-table td {
+  color: #334155;
+}
+
+body.light-theme .ept-total-row,
+[data-theme='light'] .ept-total-row {
+  background: #f1f5f9;
+}
+
