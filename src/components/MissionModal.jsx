@@ -1668,69 +1668,121 @@ export default function MissionModal({
               />
             </div>
 
-            <div className="form-row mm-four-cols">
-              <div className="form-group flex-1">
-                <label><Calendar size={13} /> {isMultiDay ? 'Data de Início da Missão' : 'Data da Missão'} <span className="req-star">*</span></label>
-                <input
-                  type="date"
-                  required
-                  value={formData.date}
-                  onChange={(e) => {
-                    const newDate = e.target.value;
-                    setFormData((prev) => {
-                      const shouldSyncDeadline = !prev.deliveryDeadlineDate || prev.deliveryDeadlineDate === prev.date;
-                      return {
-                        ...prev,
-                        date: newDate,
-                        ...(shouldSyncDeadline && hasMissionPostProduction(prev) ? { deliveryDeadlineDate: newDate } : {}),
-                      };
-                    });
-                  }}
-                />
+            {/* PAINEL DE CRONOGRAMA & HORÁRIOS OPERACIONAIS */}
+            <div className="mm-schedule-timeline-container">
+              {/* Faixa de Categorias / Agrupamento Visual */}
+              <div className={`mm-schedule-categories-bar ${isMultiDay ? 'is-multiday' : ''}`}>
+                <div className="mm-cat-pill mm-cat-date">
+                  <Calendar size={12} />
+                  <span>Data da Missão</span>
+                </div>
+                <div className="mm-cat-pill mm-cat-event">
+                  <Film size={12} />
+                  <span>No Local do Evento (Cliente)</span>
+                </div>
+                <div className="mm-cat-pill mm-cat-base">
+                  <Car size={12} />
+                  <span>Deslocamento &amp; Base (Viatura)</span>
+                </div>
               </div>
-              <div className="form-group flex-1">
-                <label><Clock size={13} /> Início do Evento / No Local</label>
-                <input
-                  type="time"
-                  placeholder="Ex: 18:00"
-                  value={formData.eventStartTime || ''}
-                  onChange={(e) => handleEventStartTimeChange(e.target.value)}
-                  title="Horário em que o evento começa ou que a equipe já deve estar posicionada no local"
-                />
-                <small className="field-hint-sub">Início no local</small>
-              </div>
-              <div className="form-group flex-1">
-                <label><Clock size={13} /> Término do Evento</label>
-                <input
-                  type="time"
-                  placeholder="Ex: 22:00"
-                  value={formData.eventEndTime || ''}
-                  onChange={(e) => handleEventEndTimeChange(e.target.value)}
-                  title="Horário oficial de término do evento no local (base exclusiva para o cálculo de horas extras)"
-                />
-                <small className="field-hint-sub">Fim no local (sem percurso)</small>
-              </div>
-              <div className="form-group flex-1">
-                <label><Clock size={13} /> Saída da Base <span className="req-star">*</span></label>
-                <input
-                  type="time"
-                  required
-                  value={formData.departureTime || ''}
-                  onChange={(e) => setFormData({ ...formData, departureTime: e.target.value })}
-                />
-                <small className="field-hint-sub">Partida da viatura</small>
-              </div>
-              {!isMultiDay && (
-                <div className="form-group flex-1">
-                  <label><Clock size={13} /> Previsão de Retorno</label>
+
+              {/* Grid Principal dos Campos */}
+              <div className={`mm-schedule-grid ${isMultiDay ? 'is-multiday' : ''}`}>
+                {/* 1. DATA DA MISSÃO */}
+                <div className="mm-sched-col mm-sched-date">
+                  <label className="mm-sched-label">
+                    <Calendar size={13} className="text-amber" />
+                    <span>{isMultiDay ? 'Data de Início' : 'Data da Missão'}</span>
+                    <span className="req-star">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    className="mm-sched-input"
+                    value={formData.date}
+                    onChange={(e) => {
+                      const newDate = e.target.value;
+                      setFormData((prev) => {
+                        const shouldSyncDeadline = !prev.deliveryDeadlineDate || prev.deliveryDeadlineDate === prev.date;
+                        return {
+                          ...prev,
+                          date: newDate,
+                          ...(shouldSyncDeadline && hasMissionPostProduction(prev) ? { deliveryDeadlineDate: newDate } : {}),
+                        };
+                      });
+                    }}
+                  />
+                  <small className="mm-sched-hint">Dia da execução</small>
+                </div>
+
+                {/* 2. INÍCIO DO EVENTO */}
+                <div className="mm-sched-col mm-sched-event-start">
+                  <label className="mm-sched-label" title="Horário em que a equipe deve estar posicionada ou início do evento no local">
+                    <Clock size={13} className="text-sky" />
+                    <span>Início no Local</span>
+                  </label>
                   <input
                     type="time"
-                    value={formData.returnTimeEstimated || ''}
-                    onChange={(e) => setFormData({ ...formData, returnTimeEstimated: e.target.value })}
+                    className="mm-sched-input"
+                    placeholder="Ex: 18:00"
+                    value={formData.eventStartTime || ''}
+                    onChange={(e) => handleEventStartTimeChange(e.target.value)}
+                    title="Horário em que o evento começa ou que a equipe já deve estar posicionada no local"
                   />
-                  <small className="field-hint-sub">Término na base</small>
+                  <small className="mm-sched-hint">Início da cobertura</small>
                 </div>
-              )}
+
+                {/* 3. TÉRMINO DO EVENTO */}
+                <div className="mm-sched-col mm-sched-event-end">
+                  <label className="mm-sched-label" title="Horário oficial de término do evento no local (base para horas extras)">
+                    <Clock size={13} className="text-sky" />
+                    <span>Término no Local</span>
+                  </label>
+                  <input
+                    type="time"
+                    className="mm-sched-input"
+                    placeholder="Ex: 22:00"
+                    value={formData.eventEndTime || ''}
+                    onChange={(e) => handleEventEndTimeChange(e.target.value)}
+                    title="Horário oficial de término do evento no local (base exclusiva para o cálculo de horas extras)"
+                  />
+                  <small className="mm-sched-hint">Fim no local</small>
+                </div>
+
+                {/* 4. SAÍDA DA BASE */}
+                <div className="mm-sched-col mm-sched-base-dep">
+                  <label className="mm-sched-label" title="Horário de partida da viatura e equipe da sede da produtora">
+                    <Clock size={13} className="text-emerald" />
+                    <span>Saída da Base</span>
+                    <span className="req-star">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    className="mm-sched-input"
+                    value={formData.departureTime || ''}
+                    onChange={(e) => setFormData({ ...formData, departureTime: e.target.value })}
+                  />
+                  <small className="mm-sched-hint">Partida da viatura</small>
+                </div>
+
+                {/* 5. PREVISÃO DE RETORNO */}
+                {!isMultiDay && (
+                  <div className="mm-sched-col mm-sched-base-ret">
+                    <label className="mm-sched-label" title="Horário previsto de término da missão e chegada da viatura à base">
+                      <Clock size={13} className="text-emerald" />
+                      <span>Retorno à Base</span>
+                    </label>
+                    <input
+                      type="time"
+                      className="mm-sched-input"
+                      value={formData.returnTimeEstimated || ''}
+                      onChange={(e) => setFormData({ ...formData, returnTimeEstimated: e.target.value })}
+                    />
+                    <small className="mm-sched-hint">Término na base</small>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* BOX DE SUGESTÃO INTELIGENTE DE SAÍDA (ANTECEDÊNCIA + TRAJETO) */}

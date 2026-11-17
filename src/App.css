@@ -23139,6 +23139,186 @@ body.light-theme .mdm-smart-schedule-desc {
 }
 
 /* ==========================================================================
+   PAINEL DE CRONOGRAMA & HORÁRIOS DA MISSÃO (MissionModal)
+   Alinhamento perfeito, baseline uniforme e categorização visual clara
+   ========================================================================== */
+.mm-schedule-timeline-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+body.light-theme .mm-schedule-timeline-container {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+/* Faixa superior de contexto/categorias */
+.mm-schedule-categories-bar {
+  display: grid;
+  grid-template-columns: 1.25fr 2fr 2fr;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+.mm-schedule-categories-bar.is-multiday {
+  grid-template-columns: 1.25fr 2fr 1fr;
+}
+
+.mm-cat-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.mm-cat-pill.mm-cat-date {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+}
+
+.mm-cat-pill.mm-cat-event {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+}
+
+.mm-cat-pill.mm-cat-base {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #34d399;
+}
+
+body.light-theme .mm-cat-pill.mm-cat-date {
+  background: #fef3c7;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+body.light-theme .mm-cat-pill.mm-cat-event {
+  background: #e0f2fe;
+  border-color: #bae6fd;
+  color: #0369a1;
+}
+
+body.light-theme .mm-cat-pill.mm-cat-base {
+  background: #dcfce7;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+/* Grid de campos com alinhamento rigoroso */
+.mm-schedule-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr 1fr 1fr;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.mm-schedule-grid.is-multiday {
+  grid-template-columns: 1.25fr 1fr 1fr 1fr;
+}
+
+.mm-sched-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mm-sched-label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  height: 24px !important;
+  line-height: 24px !important;
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  color: #94a3b8 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin-bottom: 5px !important;
+}
+
+body.light-theme .mm-sched-label {
+  color: #475569 !important;
+}
+
+.mm-sched-label .req-star {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.mm-sched-input {
+  width: 100% !important;
+  height: 42px !important;
+  line-height: 42px !important;
+  padding: 6px 10px !important;
+  box-sizing: border-box !important;
+  border-radius: 8px !important;
+  font-size: 0.88rem !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+  transition: all 0.2s ease !important;
+}
+
+.mm-sched-input:focus {
+  border-color: #38bdf8 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+}
+
+body.light-theme .mm-sched-input {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.mm-sched-hint {
+  display: block !important;
+  font-size: 0.68rem !important;
+  color: #64748b !important;
+  margin-top: 4px !important;
+  height: 16px !important;
+  line-height: 16px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+body.light-theme .mm-sched-hint {
+  color: #64748b !important;
+}
+
+/* Responsividade Mobile / Tablet */
+@media (max-width: 768px) {
+  .mm-schedule-categories-bar {
+    display: none;
+  }
+  .mm-schedule-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .mm-sched-date {
+    grid-column: span 2;
+  }
+}
+
+/* ==========================================================================
    CONVIDADOS EXTERNOS & FREELANCERS NA EQUIPE DE CAMPO
    ========================================================================== */
 .mm-guests-section {
