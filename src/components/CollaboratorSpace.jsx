@@ -2445,15 +2445,17 @@ export default function CollaboratorSpace({
                 onClick={() => window.print()}
                 title="Imprimir Extrato de XP e Pontuações"
               >
-                <Printer size={15} />
+                <Printer size={16} />
                 <span>Imprimir Extrato</span>
               </button>
               <button
                 type="button"
                 className="cs-btn-close-xp-modal"
                 onClick={() => setIsXpModalOpen(false)}
+                title="Fechar janela de extrato"
               >
-                Fechar Extrato
+                <X size={16} />
+                <span>Fechar Extrato</span>
               </button>
             </div>
           </div>

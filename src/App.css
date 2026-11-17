@@ -44531,12 +44531,57 @@ body.light-theme .cs-xp-role-card-footer {
 
 .cs-xp-badge-card {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
   background: rgba(15, 23, 42, 0.75);
-  border: 1.5px solid;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.cs-xp-badge-card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.cs-badge-rarity-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.cs-badge-progress-wrap {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cs-badge-progress-track {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.cs-badge-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.cs-badge-progress-text {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
 body.light-theme .cs-xp-badge-card {
@@ -44570,16 +44615,20 @@ body.light-theme .cs-xp-badge-card-desc {
   color: #475569;
 }
 
-/* Footer do modal */
+/* Footer do modal - Botões Modernizados e Harmoniosos */
 .cs-xp-modal-footer {
-  padding: 16px 24px;
+  padding: 18px 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  background: rgba(255, 255, 255, 0.02);
+  gap: 14px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.85) 100%);
+  backdrop-filter: blur(10px);
 }
 
-body.light-theme .cs-xp-modal-footer {
+body.light-theme .cs-xp-modal-footer,
+[data-theme="light"] .cs-xp-modal-footer {
   border-top-color: #e2e8f0;
   background: #f8fafc;
 }
@@ -44587,79 +44636,91 @@ body.light-theme .cs-xp-modal-footer {
 .cs-btn-print-xp-modal {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1.5px solid rgba(245, 158, 11, 0.38);
   color: #fbbf24;
-  font-size: 0.84rem;
+  font-size: 0.88rem;
   font-weight: 700;
-  padding: 8px 16px;
-  border-radius: 8px;
+  padding: 10px 22px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
 }
 
 .cs-btn-print-xp-modal:hover {
-  background: rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.22);
   border-color: #f59e0b;
   color: #ffffff;
   transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.25);
 }
 
-body.light-theme .cs-btn-print-xp-modal {
-  background: #fef3c7;
-  border-color: #fde68a;
-  color: #b45309;
+.cs-btn-print-xp-modal:active {
+  transform: translateY(0);
 }
 
 .cs-btn-close-xp-modal {
-  padding: 9px 20px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  color: #f8fafc;
+  font-size: 0.88rem;
   font-weight: 700;
-  font-size: 0.85rem;
+  padding: 10px 24px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .cs-btn-close-xp-modal:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-body.light-theme .cs-btn-print-xp-modal {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fbbf24;
-  font-size: 0.84rem;
-  font-weight: 700;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.cs-btn-print-xp-modal:hover {
-  background: rgba(245, 158, 11, 0.25);
-  border-color: #f59e0b;
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  border-color: rgba(255, 255, 255, 0.35);
   color: #ffffff;
   transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
 }
 
-body.light-theme .cs-btn-print-xp-modal {
+.cs-btn-close-xp-modal:active {
+  transform: translateY(0);
+}
+
+body.light-theme .cs-btn-print-xp-modal,
+[data-theme="light"] .cs-btn-print-xp-modal {
   background: #fef3c7;
   border-color: #fde68a;
   color: #b45309;
+  box-shadow: 0 2px 6px rgba(180, 83, 9, 0.1);
 }
 
-.cs-btn-close-xp-modal {
-  background: #e2e8f0;
+body.light-theme .cs-btn-print-xp-modal:hover,
+[data-theme="light"] .cs-btn-print-xp-modal:hover {
+  background: #fde68a;
+  border-color: #f59e0b;
+  color: #78350f;
+  box-shadow: 0 4px 12px rgba(180, 83, 9, 0.2);
+}
+
+body.light-theme .cs-btn-close-xp-modal,
+[data-theme="light"] .cs-btn-close-xp-modal {
+  background: #ffffff;
   border-color: #cbd5e1;
+  color: #1e293b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .cs-btn-close-xp-modal:hover,
+[data-theme="light"] .cs-btn-close-xp-modal:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
   color: #0f172a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 
