@@ -1598,20 +1598,18 @@ export default function CollaboratorSpace({
 
                             {isMyPartDone ? (
                               <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-                                <small style={{ color: '#34d399', fontSize: '0.76rem' }}>
-                                  {deliverySummary.isFullyDelivered
-                                    ? '🎉 Todos os editores entregaram! A pauta está na fila de aprovação da Diretoria.'
-                                    : 'Aguardando entrega dos outros editores para envio à aprovação da Diretoria.'}
+                                <small style={{ color: '#34d399', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                  <CheckCircle2 size={13} />
+                                  <span>
+                                    {isClosed
+                                      ? 'Pós-produção concluída e missão homologada pela Diretoria.'
+                                      : deliverySummary.isFullyDelivered
+                                        ? 'Todos os editores entregaram! A pauta está na fila de aprovação da Diretoria.'
+                                        : 'Sua parte foi entregue com sucesso! Aguardando demais editores da equipe.'}
+                                  </span>
                                 </small>
-                                <button
-                                  type="button"
-                                  onClick={() => setConcludeModal({ isOpen: true, mission: m })}
-                                  style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#cbd5e1', fontSize: '0.75rem', cursor: 'pointer' }}
-                                >
-                                  Editar / Reenviar Entrega
-                                </button>
                               </div>
-                            ) : (
+                            ) : !isClosed ? (
                               <div style={{ marginTop: '8px' }}>
                                 <button
                                   type="button"
@@ -1621,6 +1619,12 @@ export default function CollaboratorSpace({
                                   <CheckCircle2 size={14} />
                                   <span>Entregar Minha Parte da Edição</span>
                                 </button>
+                              </div>
+                            ) : (
+                              <div style={{ marginTop: '6px' }}>
+                                <small style={{ color: '#94a3b8', fontSize: '0.76rem' }}>
+                                  Missão finalizada pela Diretoria.
+                                </small>
                               </div>
                             )}
                           </div>

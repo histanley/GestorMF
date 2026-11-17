@@ -99,6 +99,7 @@ export default function ConcludePostProductionModal({
   // Verifica se esta entrega fechará a última pendência dos editores
   const selectedDeliv = deliverySummary.deliveryMap[selectedEditorId];
   const isAlreadyDelivered = selectedDeliv && selectedDeliv.status === 'delivered';
+  const isMissionFinalized = mission.missionStatus === 'Finalizada' || mission.missionStatus === 'Finalizado' || mission.missionStatus === 'Concluída';
   const otherPending = deliverySummary.pendingEditors.filter((e) => String(e.id) !== String(selectedEditorId));
   const willCompleteEntireMission = otherPending.length === 0;
 
@@ -107,6 +108,7 @@ export default function ConcludePostProductionModal({
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
+    if (isMissionFinalized) return;
     setIsSubmitting(true);
     try {
       if (onConfirmConclude) {
@@ -326,15 +328,20 @@ export default function ConcludePostProductionModal({
               type="submit"
               className="mrh-btn-confirm"
               style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                borderColor: 'rgba(16, 185, 129, 0.6)',
-                boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)',
+                background: isMissionFinalized
+                  ? 'rgba(100, 116, 139, 0.4)'
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                borderColor: isMissionFinalized ? 'rgba(100, 116, 139, 0.3)' : 'rgba(16, 185, 129, 0.6)',
+                boxShadow: isMissionFinalized ? 'none' : '0 4px 16px rgba(16, 185, 129, 0.35)',
+                cursor: isMissionFinalized ? 'not-allowed' : 'pointer',
               }}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isMissionFinalized}
             >
               <Send size={14} />
               <span>
-                {isSubmitting
+                {isMissionFinalized
+                  ? 'Missão Já Finalizada'
+                  : isSubmitting
                   ? 'Salvando Entrega...'
                   : hasMultipleEditors
                   ? `Entregar Parte de ${editorName.split(' ')[0]}`
