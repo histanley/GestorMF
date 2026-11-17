@@ -6224,7 +6224,7 @@ body.light-theme .marker-label {
 
 @page {
   size: A4 landscape;
-  margin: 10mm;
+  margin: 6mm 8mm;
 }
 
 @media print {
@@ -6255,12 +6255,18 @@ body.light-theme .marker-label {
   .board-filter-toolbar,
   .table-responsive-wrapper,
   .board-pagination-bar,
+  .service-board-week-view,
+  .service-board-month-view,
+  .admin-center-container,
+  .map-view-layout,
+  .cs-my-space-container,
   .modal-overlay:not(.rental-contract-overlay):not(.statement-modal-overlay),
   .screen-only-block {
     display: none !important;
   }
 
   .service-board-container {
+    display: block !important;
     padding: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;
@@ -6457,7 +6463,7 @@ body.light-theme .marker-label {
 
   /* Proporção exata das 6 colunas (soma = 100%) */
   .print-schedule-table .pcol-desc {
-    width: 23% !important;
+    width: 22% !important;
   }
 
   .print-schedule-table .pcol-local {
@@ -6465,7 +6471,7 @@ body.light-theme .marker-label {
   }
 
   .print-schedule-table .pcol-datetime {
-    width: 12% !important;
+    width: 14% !important;
   }
 
   .print-schedule-table .pcol-team {
@@ -6473,28 +6479,29 @@ body.light-theme .marker-label {
   }
 
   .print-schedule-table .pcol-status {
-    width: 12% !important;
+    width: 13% !important;
   }
 
   .print-schedule-table .pcol-vehicle {
-    width: 18% !important;
+    width: 16% !important;
   }
 
   .print-schedule-table td {
-    padding: 8px 8px !important;
+    padding: 6px 8px !important;
     vertical-align: top !important;
     border-bottom: 1px solid #cbd5e1 !important;
     border-right: 1px solid #cbd5e1 !important;
     color: #0f172a !important;
     word-wrap: break-word !important;
     overflow-wrap: anywhere !important;
+    background: #ffffff !important;
   }
 
   .print-schedule-table td:last-child {
     border-right: none !important;
   }
 
-  .print-schedule-table tbody tr:nth-child(even) {
+  .print-schedule-table tbody tr:nth-child(even) td {
     background: #f8fafc !important;
   }
 
@@ -6512,22 +6519,30 @@ body.light-theme .marker-label {
   }
 
   .print-row.prow-finalizado td:first-child,
+  .print-row.prow-finalizada td:first-child,
   .print-row.prow-concluida td:first-child {
     border-left: 4px solid #059669 !important;
   }
 
-  /* Célula 1: Código & Descrição */
-  .pcell-desc {
+  /* Célula 1: Código & Pauta */
+  .print-schedule-table .desc-cell-compact {
     display: flex !important;
     flex-direction: column !important;
     gap: 3px !important;
   }
 
-  .print-code-badge {
+  .print-schedule-table .desc-top-meta {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+  }
+
+  .print-schedule-table .mission-code-pill {
     display: inline-block !important;
     width: fit-content !important;
     font-family: var(--font-mono), monospace !important;
-    font-size: 0.64rem !important;
+    font-size: 0.65rem !important;
     font-weight: 800 !important;
     color: #0369a1 !important;
     background: #e0f2fe !important;
@@ -6536,42 +6551,57 @@ body.light-theme .marker-label {
     border-radius: 4px !important;
   }
 
-  .print-mission-title {
+  .print-schedule-table .row-recurring-badge {
+    font-size: 0.60rem !important;
+    font-weight: 700 !important;
+    color: #7c3aed !important;
+    background: #f5f3ff !important;
+    border: 1px solid #ddd6fe !important;
+    padding: 1px 5px !important;
+    border-radius: 4px !important;
+  }
+
+  .print-schedule-table .mission-name-compact {
     font-size: 0.78rem !important;
     font-weight: 800 !important;
     color: #0f172a !important;
     line-height: 1.25 !important;
   }
 
-  .print-mission-notes {
-    font-size: 0.66rem !important;
+  .print-schedule-table .mission-notes-compact {
+    font-size: 0.65rem !important;
     color: #475569 !important;
     margin: 0 !important;
-    line-height: 1.3 !important;
+    line-height: 1.25 !important;
   }
 
   /* Célula 2: Local & Percurso */
-  .pcell-local {
+  .print-schedule-table .local-cell-compact {
     display: flex !important;
     flex-direction: column !important;
     gap: 3px !important;
   }
 
-  .print-loc-name {
+  .print-schedule-table .location-name-compact {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
     font-size: 0.74rem !important;
     font-weight: 700 !important;
     color: #0f172a !important;
     line-height: 1.25 !important;
   }
 
-  .print-loc-addr {
-    font-size: 0.65rem !important;
+  .print-schedule-table .location-address-compact {
+    font-size: 0.64rem !important;
     color: #475569 !important;
     line-height: 1.25 !important;
   }
 
-  .print-km-badge {
-    display: inline-block !important;
+  .print-schedule-table .location-distance-pill-compact {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
     width: fit-content !important;
     font-size: 0.62rem !important;
     font-weight: 700 !important;
@@ -6583,72 +6613,141 @@ body.light-theme .marker-label {
     margin-top: 2px !important;
   }
 
-  /* Célula 3: Data & Horários */
-  .pcell-datetime {
+  /* Célula 3: Agenda & Horários (Caixa com Grid) */
+  .print-schedule-table .agenda-compact-box {
     display: flex !important;
     flex-direction: column !important;
     gap: 4px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    padding: 4px 6px !important;
   }
 
-  .print-date-badge {
-    display: inline-block !important;
-    width: fit-content !important;
+  .print-schedule-table .agenda-date-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
     font-family: var(--font-mono), monospace !important;
     font-size: 0.68rem !important;
     font-weight: 800 !important;
     color: #0f172a !important;
-    background: #f1f5f9 !important;
-    border: 1px solid #cbd5e1 !important;
-    padding: 1px 6px !important;
-    border-radius: 4px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding-bottom: 2px !important;
   }
 
-  .print-times-list {
+  .print-schedule-table .agenda-times-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 2px !important;
+  }
+
+  .print-schedule-table .ag-time-item {
     display: flex !important;
     flex-direction: column !important;
-    gap: 1px !important;
-    font-size: 0.67rem !important;
-    color: #334155 !important;
+    align-items: center !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 3px !important;
+    padding: 2px 1px !important;
   }
 
-  .print-times-list strong {
+  .print-schedule-table .ag-time-item span {
+    font-size: 0.52rem !important;
+    font-weight: 700 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+  }
+
+  .print-schedule-table .ag-time-item strong {
     font-family: var(--font-mono), monospace !important;
+    font-size: 0.63rem !important;
+    font-weight: 800 !important;
     color: #0f172a !important;
   }
 
-  /* Célula 4: Equipe Escalada */
-  .pcell-team {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 4px !important;
+  .print-schedule-table .ag-time-item.highlight strong {
+    color: #b45309 !important;
   }
 
-  .print-member-chip {
-    display: inline-block !important;
-    font-size: 0.65rem !important;
+  .print-schedule-table .ag-time-item.cyan strong {
+    color: #0284c7 !important;
+  }
+
+  .print-schedule-table .ag-time-item.amber strong {
+    color: #d97706 !important;
+  }
+
+  /* Célula 4: Equipe Escalada */
+  .print-schedule-table .equipe-cell-compact {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+
+  .print-schedule-table .equipe-compact-wrap {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 3px !important;
+  }
+
+  .print-schedule-table .member-tag-compact {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    font-size: 0.64rem !important;
     font-weight: 700 !important;
     color: #1e293b !important;
-    background: #f1f5f9 !important;
-    border: 1px solid #94a3b8 !important;
-    padding: 2px 6px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 1px 5px !important;
     border-radius: 4px !important;
   }
 
-  .print-member-chip.is-driver {
-    background: #fef3c7 !important;
-    border-color: #f59e0b !important;
+  .print-schedule-table .member-tag-compact.is-driver-first {
+    background: #fffbeb !important;
+    border: 1.5px solid #f59e0b !important;
     color: #92400e !important;
   }
 
-  /* Célula 5: Status & Pós-Produção */
-  .pcell-status {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 5px !important;
+  .print-schedule-table .driver-role-tag {
+    font-size: 0.52rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    background: #fef3c7 !important;
+    border: 1px solid #fde68a !important;
+    color: #92400e !important;
+    padding: 0 4px !important;
+    border-radius: 3px !important;
   }
 
-  .print-status-pill {
-    display: inline-block !important;
+  .print-schedule-table .member-tag-compact.is-guest-tag {
+    background: #f5f3ff !important;
+    border: 1px solid #c4b5fd !important;
+    color: #6b21a8 !important;
+  }
+
+  .print-schedule-table .guest-role-tag {
+    font-size: 0.52rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    background: #ede9fe !important;
+    color: #6b21a8 !important;
+    padding: 0 3px !important;
+    border-radius: 3px !important;
+  }
+
+  /* Célula 5: Status & Edição */
+  .print-schedule-table .edicao-cell-compact {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+
+  .print-schedule-table .board-mission-status-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
     width: fit-content !important;
     font-size: 0.63rem !important;
     font-weight: 800 !important;
@@ -6661,137 +6760,229 @@ body.light-theme .marker-label {
     color: #0f172a !important;
   }
 
-  .print-status-pill.pstatus-em-execucao {
-    background: #fee2e2 !important;
-    border-color: #ef4444 !important;
-    color: #b91c1c !important;
+  .print-schedule-table .status-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
   }
 
-  .print-status-pill.pstatus-em-preparo {
-    background: #fef3c7 !important;
-    border-color: #f59e0b !important;
-    color: #b45309 !important;
-  }
-
-  .print-status-pill.pstatus-agendada {
+  .print-schedule-table .board-mission-status-pill.pill-agendada {
     background: #e0f2fe !important;
     border-color: #0284c7 !important;
     color: #0369a1 !important;
   }
 
-  .print-status-pill.pstatus-finalizado,
-  .print-status-pill.pstatus-concluida {
+  .print-schedule-table .status-dot.dot-agendada {
+    background: #0284c7 !important;
+  }
+
+  .print-schedule-table .board-mission-status-pill.pill-em-execucao {
+    background: #fee2e2 !important;
+    border-color: #ef4444 !important;
+    color: #b91c1c !important;
+  }
+
+  .print-schedule-table .status-dot.dot-em-execucao {
+    background: #ef4444 !important;
+  }
+
+  .print-schedule-table .board-mission-status-pill.pill-em-preparo {
+    background: #fef3c7 !important;
+    border-color: #f59e0b !important;
+    color: #b45309 !important;
+  }
+
+  .print-schedule-table .status-dot.dot-em-preparo {
+    background: #f59e0b !important;
+  }
+
+  .print-schedule-table .board-mission-status-pill.pill-finalizado,
+  .print-schedule-table .board-mission-status-pill.pill-finalizada,
+  .print-schedule-table .board-mission-status-pill.pill-concluida {
     background: #d1fae5 !important;
     border-color: #10b981 !important;
     color: #047857 !important;
   }
 
-  .print-edition-box {
-    font-size: 0.65rem !important;
-    color: #475569 !important;
-    background: #f8fafc !important;
-    border: 1px solid #cbd5e1 !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
-    width: fit-content !important;
+  .print-schedule-table .status-dot.dot-finalizado,
+  .print-schedule-table .status-dot.dot-finalizada,
+  .print-schedule-table .status-dot.dot-concluida {
+    background: #10b981 !important;
   }
 
-  .print-edition-box strong {
-    color: #0f172a !important;
-  }
-
-  /* Célula 6: Viatura, Motorista & Combustível */
-  .pcell-vehicle {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
-  }
-
-  .print-veh-block {
+  .print-schedule-table .postprod-compact-strip {
     display: flex !important;
     flex-direction: column !important;
     gap: 2px !important;
-    padding-bottom: 4px !important;
-    border-bottom: 1px dashed #cbd5e1 !important;
   }
 
-  .print-veh-block:last-of-type {
-    border-bottom: none !important;
-    padding-bottom: 0 !important;
+  .print-schedule-table .pp-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    width: fit-content !important;
+    font-size: 0.62rem !important;
+    padding: 1px 5px !important;
+    border-radius: 3px !important;
   }
 
-  .print-veh-header {
+  .print-schedule-table .pp-badge-not-applicable {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #64748b !important;
+  }
+
+  .print-schedule-table .pp-badge-editor {
+    background: #f0f9ff !important;
+    border: 1px solid #bae6fd !important;
+    color: #0369a1 !important;
+    font-weight: 700 !important;
+  }
+
+  .print-schedule-table .pp-badge-deadline {
+    background: #fffbeb !important;
+    border: 1px solid #fde68a !important;
+    color: #92400e !important;
+    font-weight: 700 !important;
+  }
+
+  .print-schedule-table .pp-badge-delivery.ontime {
+    background: #d1fae5 !important;
+    border: 1px solid #a7f3d0 !important;
+    color: #047857 !important;
+    font-weight: 700 !important;
+  }
+
+  .print-schedule-table .pp-badge-delivery.late {
+    background: #fee2e2 !important;
+    border: 1px solid #fecaca !important;
+    color: #b91c1c !important;
+    font-weight: 700 !important;
+  }
+
+  .print-schedule-table .pp-badge-server-path {
+    background: #f0f9ff !important;
+    border: 1px solid #bae6fd !important;
+    color: #0284c7 !important;
+    font-size: 0.58rem !important;
+  }
+
+  /* Célula 6: Viatura, Motorista & Tanque */
+  .print-schedule-table .viatura-cell-compact {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+
+  .print-schedule-table .veh-mini-cards-stack {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+
+  .print-schedule-table .veh-mini-card {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 5px !important;
+    padding: 3px 5px !important;
+  }
+
+  .print-schedule-table .vmc-top-row {
     display: flex !important;
     align-items: center !important;
-    flex-wrap: wrap !important;
-    gap: 5px !important;
-    font-size: 0.73rem !important;
+    justify-content: space-between !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    padding-bottom: 2px !important;
+  }
+
+  .print-schedule-table .vmc-ident {
+    display: flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+  }
+
+  .print-schedule-table .vmc-name-full {
+    font-size: 0.69rem !important;
+    font-weight: 800 !important;
     color: #0f172a !important;
   }
 
-  .print-veh-plate {
+  .print-schedule-table .vmc-plate {
     font-family: var(--font-mono), monospace !important;
-    font-size: 0.62rem !important;
+    font-size: 0.58rem !important;
     font-weight: 700 !important;
-    background: #e2e8f0 !important;
-    border: 1px solid #94a3b8 !important;
-    padding: 0 5px !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 0 4px !important;
     border-radius: 3px !important;
-    color: #0f172a !important;
-  }
-
-  .print-veh-driver {
-    font-size: 0.66rem !important;
     color: #334155 !important;
   }
 
-  .print-veh-driver strong {
-    color: #0369a1 !important;
+  .print-schedule-table .vmc-middle-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 3px !important;
   }
 
-  .print-veh-tank {
-    font-size: 0.62rem !important;
-    font-weight: 700 !important;
-    padding: 1px 5px !important;
+  .print-schedule-table .vmc-driver-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    font-size: 0.63rem !important;
+    background: #f0f9ff !important;
+    border: 1px solid #bae6fd !important;
+    padding: 1px 4px !important;
     border-radius: 3px !important;
-    width: fit-content !important;
   }
 
-  .print-veh-tank.tank-ok {
-    background: #d1fae5 !important;
-    border: 1px solid #10b981 !important;
+  .print-schedule-table .vmc-driver-label {
+    color: #0284c7 !important;
+    font-size: 0.58rem !important;
+  }
+
+  .print-schedule-table .vmc-driver-name-full {
+    color: #0369a1 !important;
+    font-weight: 800 !important;
+  }
+
+  .print-schedule-table .veh-tank-mini-pill {
+    font-size: 0.58rem !important;
+    font-weight: 700 !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+    white-space: nowrap !important;
+  }
+
+  .print-schedule-table .veh-tank-mini-pill.pill-ok {
+    background: #ecfdf5 !important;
+    border: 1px solid #a7f3d0 !important;
     color: #065f46 !important;
   }
 
-  .print-veh-tank.tank-reserve {
-    background: #fee2e2 !important;
-    border: 1px solid #ef4444 !important;
+  .print-schedule-table .veh-tank-mini-pill.pill-reserve {
+    background: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
     color: #991b1b !important;
   }
 
-  .print-veh-excess {
-    font-size: 0.61rem !important;
+  .print-schedule-table .vmc-bottom-row {
+    font-size: 0.60rem !important;
     font-weight: 700 !important;
-    background: #fef3c7 !important;
-    border: 1px solid #f59e0b !important;
-    color: #92400e !important;
-    padding: 1px 5px !important;
+    color: #b45309 !important;
+    background: #fffbeb !important;
+    border: 1px solid #fde68a !important;
+    padding: 1px 4px !important;
     border-radius: 3px !important;
   }
 
-  .print-fuel-summary {
-    font-size: 0.64rem !important;
-    color: #92400e !important;
-    background: #fffbeb !important;
-    border: 1px solid #fcd34d !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
-    margin-top: 2px !important;
-  }
-
-  .print-muted {
-    font-size: 0.66rem !important;
-    color: #64748b !important;
+  .print-schedule-table .unassigned-badge {
+    font-size: 0.65rem !important;
+    color: #94a3b8 !important;
     font-style: italic !important;
   }
 
@@ -39135,40 +39326,18 @@ body.light-theme .kpi-card.kpi-red {
   box-shadow: 0 5px 14px rgba(16, 185, 129, 0.4);
 }
 
-/* REGRAS DE IMPRESSÃO / PDF DO TERMO EM 1 PÁGINA A4 */
+/* REGRAS DE IMPRESSÃO / PDF DO TERMO EM 1 PÁGINA A4 (ISOLADO PARA CONTRATOS) */
 @media print {
-  @page {
-    size: A4 portrait;
-    margin: 4mm 6mm;
+  body.printing-rental-contract {
+    background: #ffffff !important;
+    color: #0f172a !important;
   }
 
-  /* Oculta apenas os elementos externos à folha, preservando a árvore DOM ativa */
-  .app-header,
-  .global-fuel-reserve-bar,
-  .admin-header,
-  .ac-tabs-bar,
-  .erm-main-header,
-  .erm-tab-nav,
-  .erm-kpi-grid,
-  .erm-category-breakdown,
-  .erm-rentals-toolbar,
-  .erm-rentals-list,
-  .erm-catalog-view,
-  .erm-new-rental-view,
-  .service-board-container,
-  .board-header,
-  .board-kpi-strip,
-  .board-filter-toolbar,
-  .modal-overlay:not(.rental-contract-overlay):not(.statement-modal-overlay),
-  .no-print,
-  .rc-modal-topbar {
-    display: none !important;
-  }
-
+  /* Oculta apenas os elementos externos à folha durante a impressão do contrato */
   body.printing-rental-contract .app-header,
-  body.printing-rental-contract .map-view-layout,
-  body.printing-rental-contract .service-board-container,
-  body.printing-rental-contract .admin-center-container > *:not(.ac-rentals-view),
+  body.printing-rental-contract .global-fuel-reserve-bar,
+  body.printing-rental-contract .admin-header,
+  body.printing-rental-contract .ac-tabs-bar,
   body.printing-rental-contract .erm-main-header,
   body.printing-rental-contract .erm-tab-nav,
   body.printing-rental-contract .erm-kpi-grid,
@@ -39177,6 +39346,15 @@ body.light-theme .kpi-card.kpi-red {
   body.printing-rental-contract .erm-rentals-list,
   body.printing-rental-contract .erm-catalog-view,
   body.printing-rental-contract .erm-new-rental-view,
+  body.printing-rental-contract .service-board-container,
+  body.printing-rental-contract .board-header,
+  body.printing-rental-contract .board-kpi-strip,
+  body.printing-rental-contract .board-filter-toolbar,
+  body.printing-rental-contract .modal-overlay:not(.rental-contract-overlay),
+  body.printing-rental-contract .no-print,
+  body.printing-rental-contract .rc-modal-topbar,
+  body.printing-rental-contract .map-view-layout,
+  body.printing-rental-contract .admin-center-container > *:not(.ac-rentals-view),
   body.printing-rental-contract .print-wall-sheet {
     display: none !important;
   }

@@ -796,8 +796,18 @@ export default function ServiceBoard({
   };
 
   const handlePrint = () => {
+    document.body.classList.add('printing-service-board');
     window.print();
+    setTimeout(() => {
+      document.body.classList.remove('printing-service-board');
+    }, 1500);
   };
+
+  // Missões a serem impressas no relatório de parede (todas as missões daquele recorte, sem corte de paginação)
+  const wallSheetMissions = useMemo(() => {
+    const list = filteredMissions.length > 0 ? filteredMissions : missions;
+    return sortMissionsByStatusPriority(list);
+  }, [filteredMissions, missions]);
 
   const emittedAtStr = new Date().toLocaleString('pt-BR', {
     day: '2-digit',
@@ -844,7 +854,7 @@ export default function ServiceBoard({
             <div className="print-meta-row">
               <span>Total Listado:</span>
               <strong>
-                {filteredMissions.length} {filteredMissions.length === 1 ? 'pauta' : 'pautas'}
+                {wallSheetMissions.length} {wallSheetMissions.length === 1 ? 'pauta' : 'pautas'}
               </strong>
             </div>
           </div>
@@ -854,7 +864,7 @@ export default function ServiceBoard({
         <section className="print-summary-strip">
           <div className="print-summary-card">
             <span className="psc-label">PAUTAS NO DOCUMENTO</span>
-            <strong className="psc-value">{filteredMissions.length} Missões</strong>
+            <strong className="psc-value">{wallSheetMissions.length} Missões</strong>
           </div>
           <div className="print-summary-card">
             <span className="psc-label">EM EXECUÇÃO / PREPARO</span>
@@ -880,23 +890,23 @@ export default function ServiceBoard({
         <table className="print-schedule-table">
           <thead>
             <tr>
-              <th className="pcol-desc">CÓDIGO &amp; DESCRIÇÃO DA MISSÃO</th>
+              <th className="pcol-desc">CÓDIGO &amp; PAUTA DA MISSÃO</th>
               <th className="pcol-local">LOCAL &amp; PERCURSO</th>
-              <th className="pcol-datetime">DATA &amp; HORÁRIOS</th>
+              <th className="pcol-datetime">AGENDA &amp; HORÁRIOS</th>
               <th className="pcol-team">EQUIPE ESCALADA</th>
-              <th className="pcol-status">STATUS &amp; PÓS-PRODUÇÃO</th>
-              <th className="pcol-vehicle">VIATURA, MOTORISTA &amp; COMBUSTÍVEL</th>
+              <th className="pcol-status">STATUS &amp; EDIÇÃO</th>
+              <th className="pcol-vehicle">VIATURA, MOTORISTA &amp; TANQUE</th>
             </tr>
           </thead>
           <tbody>
-            {filteredMissions.length === 0 ? (
+            {wallSheetMissions.length === 0 ? (
               <tr>
                 <td colSpan="6" className="print-empty-row">
                   Nenhuma missão ou pauta encontrada para os filtros selecionados.
                 </td>
               </tr>
             ) : (
-              filteredMissions.map((mission) => {
+              wallSheetMissions.map((mission) => {
                 const missionCode = getMissionCode(mission, missions);
                 const allocations = getMissionAllocations(mission, vehicles, members);
                 const driverInfo = resolveMissionDriver(mission);
@@ -910,83 +920,105 @@ export default function ServiceBoard({
 
                 return (
                   <tr key={`print-${mission.id}`} className={`print-row prow-${statusSlug}`}>
-                    {/* 1. CÓDIGO & DESCRIÇÃO */}
+                    {/* 1. CÓDIGO & PAUTA */}
                     <td className="pcol-desc">
-                      <div className="pcell-desc">
-                        <span className="print-code-badge">#{missionCode}</span>
-                        {mission.isRecurring && (
-                          <span className="print-rec-badge">🔁 {mission.recurrenceDays || 'Recorrente'}</span>
+                      <div className="desc-cell-compact">
+                        <div className="desc-top-meta">
+                          <span className="mission-code-pill">#{missionCode}</span>
+                          {mission.isRecurring && (
+                            <span className="row-recurring-badge">
+                              🔁 {mission.recurrenceDays || 'Recorrente'}
+                            </span>
+                          )}
+                        </div>
+                        <strong className="mission-name-compact">{mission.description}</strong>
+                        {mission.notes && (
+                          <span className="mission-notes-compact">{mission.notes}</span>
                         )}
-                        <strong className="print-mission-title">{mission.description}</strong>
-                        {mission.notes && <p className="print-mission-notes">{mission.notes}</p>}
                       </div>
                     </td>
 
                     {/* 2. LOCAL & PERCURSO */}
                     <td className="pcol-local">
-                      <div className="pcell-local">
-                        <strong className="print-loc-name">
-                          {mission.locationName || 'Local não informado'}
-                        </strong>
+                      <div className="local-cell-compact">
+                        <div className="location-name-compact">
+                          <MapPin size={12} className="pin-icon" />
+                          <span>{mission.locationName || 'Local não informado'}</span>
+                        </div>
                         {mission.address && (
-                          <span className="print-loc-addr">{mission.address}</span>
+                          <span className="location-address-compact">{mission.address}</span>
                         )}
                         {mission.distanceKm > 0 && (
-                          <span className="print-km-badge">
-                            Ida/Volta: {totalKm} km ({mission.distanceKm} km/trecho)
-                          </span>
+                          <div className="location-distance-pill-compact">
+                            <Navigation size={10} />
+                            <span>
+                              <strong>{totalKm} km</strong> ida e volta ({mission.distanceKm} km/trecho)
+                            </span>
+                          </div>
                         )}
                       </div>
                     </td>
 
-                    {/* 3. DATA & HORÁRIOS */}
+                    {/* 3. AGENDA & HORÁRIOS */}
                     <td className="pcol-datetime">
-                      <div className="pcell-datetime">
-                        <span className="print-date-badge">
-                          {Boolean(mission.isMultiDay && mission.endDate && mission.endDate !== mission.date)
-                            ? `${formatDateBR(mission.date)} a ${formatDateBR(mission.endDate)}`
-                            : formatDateBR(mission.date)}
-                        </span>
-                        <div className="print-times-list">
-                          <div>
-                            <span>Saída:</span> <strong>{mission.departureTime || '--:--'}</strong>
+                      <div className="agenda-compact-box">
+                        <div className="agenda-date-header">
+                          <Calendar size={11} className="date-icon" />
+                          <strong>
+                            {Boolean(mission.isMultiDay && mission.endDate && mission.endDate !== mission.date)
+                              ? `${formatDateBR(mission.date)} a ${formatDateBR(mission.endDate)}`
+                              : formatDateBR(mission.date)}
+                          </strong>
+                        </div>
+                        <div className={`agenda-times-grid ${mission.eventStartTime ? 'has-event-slot' : ''}`}>
+                          <div className="ag-time-item highlight">
+                            <span>Saída</span>
+                            <strong>{mission.departureTime || '--:--'}</strong>
                           </div>
-                          <div>
-                            <span>Chegada:</span>{' '}
+                          <div className="ag-time-item cyan">
+                            <span>Chegada</span>
                             <strong>{mission.arrivalTimeEstimated || '--:--'}</strong>
                           </div>
-                          {mission.returnTimeEstimated && (
-                            <div>
-                              <span>Retorno:</span> <strong>{mission.returnTimeEstimated}</strong>
+                          {mission.eventStartTime && (
+                            <div className="ag-time-item amber">
+                              <span>Evento</span>
+                              <strong>{mission.eventStartTime}</strong>
                             </div>
                           )}
+                          <div className="ag-time-item muted">
+                            <span>Retorno</span>
+                            <strong>{mission.returnTimeEstimated || '--:--'}</strong>
+                          </div>
                         </div>
                       </div>
                     </td>
 
                     {/* 4. EQUIPE ESCALADA */}
                     <td className="pcol-team">
-                      <div className="pcell-team">
+                      <div className="equipe-cell-compact">
                         {(teamList.length > 0 || (Array.isArray(mission.guests) && mission.guests.length > 0)) ? (
-                          <>
+                          <div className="equipe-compact-wrap">
                             {teamList.map((mem, i) => {
-                              const isDriver =
-                                allocations.some(
-                                  (a) =>
-                                    (a.driverId && a.driverId === mem.id) ||
-                                    (a.driverName &&
-                                      a.driverName.toLowerCase() === mem.name.toLowerCase())
-                                ) ||
-                                (mission.driverId && mem.id === mission.driverId) ||
-                                (driverInfo.name &&
-                                  mem.name.toLowerCase() === driverInfo.name.toLowerCase());
+                              const isDriver = isMemberMissionDriver(
+                                mem,
+                                mission,
+                                allocations,
+                                driverInfo
+                              );
                               return (
                                 <span
                                   key={`pmem-${mem.id || i}`}
-                                  className={`print-member-chip ${isDriver ? 'is-driver' : ''}`}
+                                  className={`member-tag-compact ${isDriver ? 'is-driver-first' : ''}`}
                                 >
-                                  {mem.name}
-                                  {isDriver ? ' (Motorista)' : ''}
+                                  {isDriver ? (
+                                    <span className="driver-badge-inline">🛞</span>
+                                  ) : (
+                                    <Users size={10} className="member-icon-sm" />
+                                  )}
+                                  <span className="member-name-full">{mem.name}</span>
+                                  {isDriver && (
+                                    <span className="driver-role-tag">Motorista</span>
+                                  )}
                                 </span>
                               );
                             })}
@@ -995,36 +1027,100 @@ export default function ServiceBoard({
                               return (
                                 <span
                                   key={`pguest-${gi}`}
-                                  className="print-member-chip is-guest"
+                                  className="member-tag-compact is-guest-tag"
                                 >
-                                  👤 {gName} (Convidado)
+                                  <span className="guest-badge-inline">👤</span>
+                                  <span className="member-name-full">{gName}</span>
+                                  <span className="guest-role-tag">Convidado</span>
                                 </span>
                               );
                             })}
-                          </>
+                          </div>
                         ) : (
-                          <span className="print-muted">Sem equipe escalada</span>
+                          <span className="unassigned-badge">Sem equipe</span>
                         )}
                       </div>
                     </td>
 
-                    {/* 5. STATUS & PÓS-PRODUÇÃO */}
+                    {/* 5. STATUS & EDIÇÃO */}
                     <td className="pcol-status">
-                      <div className="pcell-status">
-                        <span className={`print-status-pill pstatus-${statusSlug}`}>
-                          {mission.missionStatus || 'Agendada'}
-                        </span>
-                        <span className="print-edition-box">
-                          Pós-Prod.: <strong>{mission.editionStatus || 'Pendente'}</strong>
-                        </span>
+                      <div className="edicao-cell-compact">
+                        <div className={`board-mission-status-pill pill-${statusSlug}`}>
+                          <span
+                            className={`status-dot dot-${(mission.missionStatus || 'Agendada')
+                              .toLowerCase()
+                              .replace(/\s+/g, '-')}`}
+                          ></span>
+                          <span>{mission.missionStatus || 'Agendada'}</span>
+                        </div>
+
+                        {!hasMissionPostProduction(mission) ? (
+                          <div className="postprod-compact-strip">
+                            <div className="pp-badge pp-badge-not-applicable">
+                              <span>Pós-Produção: Não se aplica</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="postprod-compact-strip">
+                            {mission.editorNamesDisplay || mission.editorName ? (
+                              <div className="pp-badge pp-badge-editor">
+                                <Film size={10} />
+                                <span>{mission.editorNamesDisplay || mission.editorName}</span>
+                              </div>
+                            ) : (
+                              <div className="pp-badge pp-badge-unassigned">
+                                <Film size={10} />
+                                <em>Sem Editor</em>
+                              </div>
+                            )}
+
+                            {mission.deliveryDeadlineDate && (
+                              <div className="pp-badge pp-badge-deadline">
+                                <Clock size={10} />
+                                <span>
+                                  {formatDateBR(mission.deliveryDeadlineDate).slice(0, 5)}{' '}
+                                  {mission.deliveryDeadlineTime || '18:00'}
+                                </span>
+                              </div>
+                            )}
+
+                            {mission.editionDeliveryStatus && (
+                              <div
+                                className={`pp-badge pp-badge-delivery ${
+                                  mission.editionDeliveryStatus === 'Dentro do Prazo' ? 'ontime' : 'late'
+                                }`}
+                              >
+                                {mission.editionDeliveryStatus === 'Dentro do Prazo'
+                                  ? '✅ No Prazo'
+                                  : '⚠️ Fora do Prazo'}
+                              </div>
+                            )}
+
+                            {mission.serverFilePath && (
+                              <div className="pp-badge pp-badge-server-path">
+                                <Folder size={10} />
+                                <span
+                                  style={{
+                                    maxWidth: '120px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {mission.serverFilePath}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
 
-                    {/* 6. VIATURA, MOTORISTA & COMBUSTÍVEL */}
+                    {/* 6. VIATURA, MOTORISTA & TANQUE */}
                     <td className="pcol-vehicle">
-                      <div className="pcell-vehicle">
+                      <div className="viatura-cell-compact">
                         {allocations.length > 0 ? (
-                          <>
+                          <div className="veh-mini-cards-stack">
                             {allocations.map((alloc, aIdx) => {
                               const vObj = alloc.vehicle;
                               const vTel = vObj
@@ -1032,50 +1128,70 @@ export default function ServiceBoard({
                                 : null;
                               const mBd = vObj
                                 ? computeMissionVehicleFuelBreakdown({
-                                  vehicle: vObj,
-                                  totalRoundTripKm: totalKm,
-                                  currentTelemetry: vTel,
-                                  fuelPricePerLiter: fuelSettings,
-                                })
+                                    vehicle: vObj,
+                                    totalRoundTripKm: totalKm,
+                                    currentTelemetry: vTel,
+                                    fuelPricePerLiter: fuelSettings,
+                                  })
                                 : null;
 
+                              const isElecV = isElectricVehicle(vObj);
+                              const unitV = isElecV ? 'kWh' : 'L';
+                              const iconV = isElecV ? '⚡' : '⛽';
+                              const litersUsed =
+                                mBd && mBd.litersNeeded > 0
+                                  ? mBd.litersNeeded
+                                  : Number(mission.estimatedFuelLiters || 0);
+                              const costUsed =
+                                mBd && mBd.totalCost > 0
+                                  ? mBd.totalCost
+                                  : Number(mission.estimatedFuelCost || 0);
+
                               return (
-                                <div key={`pveh-${aIdx}`} className="print-veh-block">
-                                  <div className="print-veh-header">
-                                    <strong>{vObj ? vObj.name : alloc.vehicleName}</strong>
-                                    {vObj && <span className="print-veh-plate">{vObj.plate}</span>}
+                                <div key={`pveh-${aIdx}`} className="veh-mini-card">
+                                  <div className="vmc-top-row">
+                                    <div className="vmc-ident">
+                                      <Car size={12} className="veh-car-icon" />
+                                      <strong className="vmc-name-full">
+                                        {vObj ? vObj.name : alloc.vehicleName}
+                                      </strong>
+                                    </div>
+                                    {vObj && <span className="vmc-plate">{vObj.plate}</span>}
                                   </div>
-                                  <div className="print-veh-driver">
-                                    Motorista:{' '}
-                                    <strong>
-                                      {alloc.driverName || driverInfo.name || 'A definir'}
-                                    </strong>
-                                  </div>
-                                  {vTel && (
-                                    <div
-                                      className={`print-veh-tank ${vTel.isReserveAlert ? 'tank-reserve' : 'tank-ok'
+
+                                  <div className="vmc-middle-row">
+                                    <div className="vmc-driver-chip">
+                                      <span className="veh-driver-wheel">🛞</span>
+                                      <span className="vmc-driver-label">Motorista:</span>
+                                      <strong className="vmc-driver-name-full">
+                                        {alloc.driverName || driverInfo.name || 'Definir'}
+                                      </strong>
+                                    </div>
+
+                                    {vTel && (
+                                      <span
+                                        className={`veh-tank-mini-pill ${
+                                          vTel.isReserveAlert ? 'pill-reserve' : 'pill-ok'
                                         }`}
-                                    >
-                                      Tanque: {vTel.currentPercent}% ({vTel.currentLiters}L /{' '}
-                                      {vTel.tankCapacity}L)
-                                    </div>
-                                  )}
-                                  {mBd && mBd.exceedsFullTankCapacity && (
-                                    <div className="print-veh-excess">
-                                      Excedente &gt; 1 Tanque: +{mBd.excessOverFullTankLiters}L (+R${' '}
-                                      {Number(mBd.excessOverFullTankCost || 0).toFixed(2)})
-                                    </div>
-                                  )}
+                                      >
+                                        {iconV} {vTel.currentPercent}% ({vTel.currentLiters}{unitV})
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="vmc-bottom-row">
+                                    <span className="vmc-fuel-stat">
+                                      {iconV} Consumo: ~{litersUsed}{unitV} • R$ {costUsed.toFixed(2)}
+                                    </span>
+                                  </div>
                                 </div>
                               );
                             })}
-                            <div className="print-fuel-summary">
-                              Consumo Missão: <strong>-{mission.estimatedFuelLiters || 0}L</strong> •{' '}
-                              <strong>R$ {Number(mission.estimatedFuelCost || 0).toFixed(2)}</strong>
-                            </div>
-                          </>
+                          </div>
                         ) : (
-                          <span className="print-muted">Sem viatura alocada</span>
+                          <span className="unassigned-badge" style={{ color: '#64748b' }}>
+                            Sem viatura
+                          </span>
                         )}
                       </div>
                     </td>
