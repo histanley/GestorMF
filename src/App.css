@@ -45553,3 +45553,755 @@ body.light-theme .cs-pix-edit-title {
 body.light-theme .cs-pix-live-val {
   color: #0f172a !important;
 }
+
+/* ============================================================================== */
+/* CARD UNIFICADO DE IDENTIDADE OPERACIONAL & CARREIRA (MEU ESPAÇO)               */
+/* Design Moderno, VIP Pass, Sem Caixas Aninhadas (Uma só Janela Integrada)       */
+/* ============================================================================== */
+
+.cs-unified-profile-card {
+  position: relative !important;
+  width: 100% !important;
+  background: radial-gradient(circle at 50% -10%, rgba(56, 189, 248, 0.08) 0%, transparent 55%),
+              linear-gradient(168deg, rgba(18, 28, 48, 0.98) 0%, rgba(10, 15, 28, 0.99) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 24px !important;
+  padding: 30px 32px 28px 32px !important;
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(20px) !important;
+  overflow: hidden !important;
+  margin-bottom: 2rem !important;
+  box-sizing: border-box !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.cs-unified-profile-card:hover {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 30px 70px -12px rgba(0, 0, 0, 0.75), 0 0 30px rgba(56, 189, 248, 0.08) !important;
+}
+
+body.light-theme .cs-unified-profile-card,
+[data-theme="light"] .cs-unified-profile-card {
+  background: radial-gradient(circle at 50% -10%, rgba(56, 189, 248, 0.05) 0%, transparent 60%),
+              linear-gradient(168deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-color: rgba(15, 23, 42, 0.09) !important;
+  box-shadow: 0 16px 45px rgba(15, 23, 42, 0.07), 0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+}
+
+.cs-upc-ambient-glow {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 200px !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+/* 1. Header: Avatar + Identidade + PIX */
+.cs-upc-top-grid {
+  position: relative !important;
+  z-index: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 24px !important;
+  flex-wrap: wrap !important;
+}
+
+.cs-upc-avatar-wrap {
+  position: relative !important;
+  flex-shrink: 0 !important;
+}
+
+.cs-upc-avatar {
+  width: 90px !important;
+  height: 90px !important;
+  border-radius: 50% !important;
+  border: 3px solid #f59e0b !important;
+  background: #1e293b !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.35) !important;
+}
+
+.cs-upc-avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.cs-upc-avatar span {
+  font-size: 1.85rem !important;
+  font-weight: 800 !important;
+  color: #f8fafc !important;
+}
+
+.cs-upc-avatar-badge {
+  position: absolute !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 50% !important;
+  border: 2.5px solid #0b1329 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.light-theme .cs-upc-avatar-badge {
+  border-color: #ffffff !important;
+}
+
+/* Identidade: Nome e Funções */
+.cs-upc-identity {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  flex: 1 !important;
+  min-width: 260px !important;
+}
+
+.cs-upc-name-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.cs-upc-name {
+  font-size: 1.6rem !important;
+  font-weight: 850 !important;
+  color: #ffffff !important;
+  letter-spacing: -0.02em !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+body.light-theme .cs-upc-name {
+  color: #0f172a !important;
+}
+
+.cs-upc-company-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 3px 10px !important;
+  border-radius: 20px !important;
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  background: rgba(56, 189, 248, 0.12) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+body.light-theme .cs-upc-company-pill {
+  background: #f0f9ff !important;
+  color: #0284c7 !important;
+  border-color: #bae6fd !important;
+}
+
+/* Funções Profissionais (Principal + Adicionais + CNH) */
+.cs-upc-roles-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+.cs-upc-role-main {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 12px !important;
+  border-radius: 10px !important;
+  font-size: 0.8rem !important;
+  font-weight: 750 !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.1) 100%) !important;
+  color: #fbbf24 !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15) !important;
+}
+
+.cs-upc-role-sec {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  font-size: 0.76rem !important;
+  font-weight: 650 !important;
+  background: rgba(56, 189, 248, 0.08) !important;
+  color: #7dd3fc !important;
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+}
+
+body.light-theme .cs-upc-role-sec {
+  background: #f0fdf4 !important;
+  color: #0369a1 !important;
+  border-color: #bae6fd !important;
+}
+
+.cs-upc-cnh-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.cs-upc-role-tag {
+  font-size: 0.65rem !important;
+  text-transform: uppercase !important;
+  padding: 1px 5px !important;
+  border-radius: 4px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.03em !important;
+}
+
+.cs-upc-role-tag.main {
+  background: #f59e0b !important;
+  color: #0f172a !important;
+}
+
+.cs-upc-role-tag.sec {
+  background: rgba(56, 189, 248, 0.22) !important;
+  color: #38bdf8 !important;
+}
+
+/* Chave PIX Integrada */
+.cs-upc-pix-box {
+  flex-shrink: 0 !important;
+  min-width: 250px !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+  padding: 9px 14px !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+body.light-theme .cs-upc-pix-box {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+}
+
+.cs-upc-pix-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  color: #94a3b8 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 4px !important;
+}
+
+.cs-upc-pix-body {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.cs-upc-pix-val {
+  font-family: var(--font-mono, monospace) !important;
+  font-size: 0.88rem !important;
+  font-weight: 750 !important;
+  color: #38bdf8 !important;
+  max-width: 170px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.cs-upc-pix-val.empty {
+  color: #64748b !important;
+  font-style: italic !important;
+  font-size: 0.8rem !important;
+}
+
+.cs-upc-pix-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+.cs-upc-pix-action-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #cbd5e1 !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+}
+
+.cs-upc-pix-action-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+.cs-upc-pix-action-btn.copy {
+  background: rgba(56, 189, 248, 0.1) !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+  color: #38bdf8 !important;
+}
+
+.cs-upc-pix-action-btn.copy:hover,
+.cs-upc-pix-action-btn.copy.copied {
+  background: #10b981 !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+}
+
+.cs-upc-pix-action-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #f87171 !important;
+}
+
+.cs-upc-pix-add-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 5px 10px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  background: rgba(56, 189, 248, 0.1) !important;
+  color: #38bdf8 !important;
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
+.cs-upc-pix-edit {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
+
+.cs-upc-pix-input {
+  flex: 1 !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  border-radius: 8px !important;
+  padding: 5px 9px !important;
+  font-size: 0.8rem !important;
+  color: #ffffff !important;
+  outline: none !important;
+  font-family: var(--font-mono, monospace) !important;
+}
+
+.cs-upc-pix-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 6px 9px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  cursor: pointer !important;
+  font-weight: 700 !important;
+}
+
+.cs-upc-pix-btn.save {
+  background: #10b981 !important;
+  color: #ffffff !important;
+}
+
+.cs-upc-pix-btn.cancel {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+}
+
+/* Divisor Orgânico Integrado */
+.cs-upc-divider {
+  position: relative !important;
+  z-index: 1 !important;
+  width: 100% !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.08) 25%, rgba(245, 158, 11, 0.28) 50%, rgba(255, 255, 255, 0.08) 75%, transparent 100%) !important;
+  margin: 22px 0 18px 0 !important;
+}
+
+body.light-theme .cs-upc-divider {
+  background: linear-gradient(90deg, transparent 0%, rgba(15, 23, 42, 0.06) 25%, rgba(245, 158, 11, 0.3) 50%, rgba(15, 23, 42, 0.06) 75%, transparent 100%) !important;
+}
+
+/* 2. Gamificação & Patente Integrada */
+.cs-upc-gamification {
+  position: relative !important;
+  z-index: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+.cs-upc-tier-row {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  flex-wrap: wrap !important;
+}
+
+.cs-upc-tier-lead {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  flex: 1 !important;
+  min-width: 280px !important;
+}
+
+.cs-upc-tier-badge {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+.cs-upc-tier-pill {
+  padding: 3px 9px !important;
+  border-radius: 6px !important;
+  font-size: 0.74rem !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.04em !important;
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+.cs-upc-tier-sub {
+  font-size: 0.72rem !important;
+  color: #94a3b8 !important;
+  font-weight: 650 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.cs-upc-tier-heading {
+  font-size: 1.45rem !important;
+  font-weight: 850 !important;
+  margin: 0 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.25 !important;
+}
+
+.cs-upc-tier-desc {
+  font-size: 0.84rem !important;
+  color: #cbd5e1 !important;
+  line-height: 1.45 !important;
+  margin: 0 !important;
+  max-width: 720px !important;
+}
+
+body.light-theme .cs-upc-tier-desc {
+  color: #475569 !important;
+}
+
+/* Placar de XP */
+.cs-upc-score-lead {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.cs-upc-score-display {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+}
+
+.cs-upc-score-val {
+  font-size: 2.3rem !important;
+  font-weight: 900 !important;
+  color: #fbbf24 !important;
+  text-shadow: 0 0 24px rgba(245, 158, 11, 0.45) !important;
+  line-height: 1 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.cs-upc-score-unit {
+  font-size: 0.95rem !important;
+  font-weight: 850 !important;
+  color: #f59e0b !important;
+}
+
+.cs-upc-extrato-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 14px !important;
+  border-radius: 10px !important;
+  font-size: 0.8rem !important;
+  font-weight: 750 !important;
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.cs-upc-extrato-btn:hover {
+  background: rgba(245, 158, 11, 0.24) !important;
+  border-color: #f59e0b !important;
+  color: #ffffff !important;
+  transform: translateX(2px) !important;
+}
+
+/* Barra de Progresso de XP */
+.cs-upc-progress-section {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.cs-upc-progress-track {
+  width: 100% !important;
+  height: 9px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+body.light-theme .cs-upc-progress-track {
+  background: #e2e8f0 !important;
+}
+
+.cs-upc-progress-bar {
+  height: 100% !important;
+  border-radius: 999px !important;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.cs-upc-progress-labels {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 0.78rem !important;
+  font-weight: 650 !important;
+  color: #94a3b8 !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.cs-upc-progress-pct {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  color: #38bdf8 !important;
+}
+
+.cs-upc-progress-rem {
+  color: #cbd5e1 !important;
+  font-weight: 700 !important;
+}
+
+body.light-theme .cs-upc-progress-rem {
+  color: #475569 !important;
+}
+
+/* Timeline de Níveis Superados */
+.cs-upc-timeline-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  padding: 8px 14px !important;
+  border-radius: 10px !important;
+  background: rgba(16, 185, 129, 0.06) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+body.light-theme .cs-upc-timeline-row {
+  background: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+}
+
+.cs-upc-timeline-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 0.74rem !important;
+  font-weight: 750 !important;
+  color: #34d399 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+.cs-upc-timeline-chips {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+}
+
+.cs-upc-timeline-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-size: 0.74rem !important;
+  font-weight: 650 !important;
+  color: #cbd5e1 !important;
+}
+
+body.light-theme .cs-upc-timeline-chip {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+.cs-upc-timeline-current-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+}
+
+/* Especialidades Pontuando em Tempo Real */
+.cs-upc-roles-scoring {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  margin-top: 2px !important;
+}
+
+.cs-upc-roles-scoring-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  color: #f59e0b !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+.cs-upc-roles-scoring-list {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  flex: 1 !important;
+}
+
+.cs-upc-role-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 11px !important;
+  border-radius: 9px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  color: #e2e8f0 !important;
+  font-size: 0.77rem !important;
+  font-weight: 650 !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.cs-upc-role-chip:hover {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+body.light-theme .cs-upc-role-chip {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+.cs-upc-role-chip .chip-pts {
+  color: #fbbf24 !important;
+  font-weight: 850 !important;
+  background: rgba(245, 158, 11, 0.16) !important;
+  padding: 1px 6px !important;
+  border-radius: 5px !important;
+  font-size: 0.72rem !important;
+}
+
+.cs-upc-role-empty {
+  font-size: 0.78rem !important;
+  color: #94a3b8 !important;
+  font-style: italic !important;
+}
+
+/* Responsividade Mobile */
+@media (max-width: 768px) {
+  .cs-unified-profile-card {
+    padding: 20px 16px 18px 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .cs-upc-top-grid {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 16px !important;
+  }
+
+  .cs-upc-identity {
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  .cs-upc-name-row {
+    justify-content: center !important;
+  }
+
+  .cs-upc-roles-wrap {
+    justify-content: center !important;
+  }
+
+  .cs-upc-pix-box {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .cs-upc-tier-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+  }
+
+  .cs-upc-score-lead {
+    align-items: flex-start !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+  }
+
+  .cs-upc-roles-scoring {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+}
+

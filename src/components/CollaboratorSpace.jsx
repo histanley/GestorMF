@@ -806,60 +806,84 @@ export default function CollaboratorSpace({
   return (
     <div className="collaborator-space-container">
       {/* ============================================================== */}
-      {/* 1. HERO BANNER DO COLABORADOR                                  */}
+      {/* 1. CARD UNIFICADO: PASSE DE IDENTIDADE OPERACIONAL & CARREIRA  */}
+      {/* Visual moderno, elegante e sem caixas aninhadas (uma só janela)*/}
       {/* ============================================================== */}
-      <div className="cs-hero-card">
-        <div className="cs-hero-profile-wrap">
-          <div className="cs-hero-avatar">
-            {myMember.photoUrl ? (
-              <img src={myMember.photoUrl} alt={myMember.name} />
-            ) : (
-              <span>{myMember.name.slice(0, 2).toUpperCase()}</span>
-            )}
+      <div className="cs-unified-profile-card">
+        {/* Glow de iluminação de fundo sutil conforme o nível */}
+        <div
+          className="cs-upc-ambient-glow"
+          style={{
+            background: `radial-gradient(circle at 50% -20%, ${userLevel.color ? userLevel.color + '26' : 'rgba(56, 189, 248, 0.16)'} 0%, transparent 70%)`
+          }}
+        />
+
+        {/* 1. SEÇÃO SUPERIOR: IDENTIDADE, FUNÇÕES E CHAVE PIX */}
+        <div className="cs-upc-top-grid">
+          {/* Avatar com Halo e Badge de Patente */}
+          <div className="cs-upc-avatar-wrap">
+            <div
+              className="cs-upc-avatar"
+              style={{
+                borderColor: userLevel.color || '#f59e0b',
+                boxShadow: `0 0 24px ${userLevel.color ? userLevel.color + '45' : 'rgba(245, 158, 11, 0.35)'}`,
+              }}
+            >
+              {myMember.photoUrl ? (
+                <img src={myMember.photoUrl} alt={myMember.name} />
+              ) : (
+                <span>{myMember.name.slice(0, 2).toUpperCase()}</span>
+              )}
+            </div>
+            <div
+              className="cs-upc-avatar-badge"
+              title={`Patente Nível ${userLevel.level}: ${userLevel.title}`}
+              style={{ background: userLevel.color || '#f59e0b' }}
+            >
+              <Trophy size={11} color="#0f172a" />
+            </div>
           </div>
 
-          <div className="cs-hero-text">
-            <div className="cs-hero-name-row">
-              <h2 className="cs-hero-name">{myMember.name}</h2>
-              <span className="cs-company-pill">
+          {/* Nome, Empresa e Tags de Funções Oficiais */}
+          <div className="cs-upc-identity">
+            <div className="cs-upc-name-row">
+              <h2 className="cs-upc-name">{myMember.name}</h2>
+              <span className="cs-upc-company-pill">
+                <Sparkles size={11} className="text-cyan-bright" />
                 {myMember.company || 'MegaFilmes'}
               </span>
             </div>
-            <div className="cs-hero-badges-row">
-              <span className="cs-hero-role" title="Função Principal na Empresa (Somente Leitura)">
+
+            {/* Funções do Colaborador (Principal + Adicionais + CNH) */}
+            <div className="cs-upc-roles-wrap">
+              <span className="cs-upc-role-main" title="Função Principal na Empresa">
                 💼 {myMember.role || 'Colaborador'}
-                <span className="cs-role-tag-badge">Principal</span>
+                <span className="cs-upc-role-tag main">Principal</span>
               </span>
+
               {Array.isArray(myMember.secondaryRoles) && myMember.secondaryRoles.map((secRole) => (
-                <span key={secRole} className="cs-hero-role-secondary" title="Função Adicional habilitada na Empresa (Somente Leitura)">
+                <span key={secRole} className="cs-upc-role-sec" title="Função Adicional habilitada na Empresa">
                   🎯 {secRole}
-                  <span className="cs-role-tag-badge sec">Adicional</span>
+                  <span className="cs-upc-role-tag sec">Adicional</span>
                 </span>
               ))}
+
               {myMember.canDrive && (
-                <span className="cs-hero-cnh">
+                <span className="cs-upc-cnh-pill" title="Habilitação ativa para condução de frotas">
                   🚗 CNH {myMember.cnhCategory || 'AB'}
                 </span>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Divisor Visual Sutil para Harmonia Central */}
-        <div className="cs-hero-divider" />
-
-        {/* Chave PIX com Cadastro, Edição e Exclusão */}
-        <div className="cs-pix-box">
-          {isEditingPix ? (
-            <div className="cs-pix-edit-wrap">
-              <span className="cs-pix-edit-title">
-                {myMember?.pixKey ? '✏️ Editar Chave PIX' : '➕ Cadastrar Chave PIX'}
-              </span>
-              <div className="cs-pix-edit-row">
+          {/* Chave PIX Integrada em Linha Limpa */}
+          <div className="cs-upc-pix-box">
+            {isEditingPix ? (
+              <div className="cs-upc-pix-edit">
                 <input
                   type="text"
-                  className="cs-pix-input"
-                  placeholder="CPF, celular, e-mail ou aleatória..."
+                  className="cs-upc-pix-input"
+                  placeholder="Chave PIX (CPF, celular, e-mail...)"
                   value={pixInput}
                   autoFocus
                   onChange={(e) => setPixInput(e.target.value)}
@@ -873,17 +897,16 @@ export default function CollaboratorSpace({
                 />
                 <button
                   type="button"
-                  className="cs-btn-pix-save"
+                  className="cs-upc-pix-btn save"
                   onClick={handleSavePix}
                   disabled={isSavingPix}
                   title="Salvar Chave PIX"
                 >
                   <Check size={13} />
-                  <span>Salvar</span>
                 </button>
                 <button
                   type="button"
-                  className="cs-btn-pix-cancel"
+                  className="cs-upc-pix-btn cancel"
                   onClick={handleCancelEditPix}
                   disabled={isSavingPix}
                   title="Cancelar"
@@ -891,107 +914,91 @@ export default function CollaboratorSpace({
                   <X size={13} />
                 </button>
               </div>
-            </div>
-          ) : (
-            <>
-              <div className="cs-pix-info">
-                <span className="cs-pix-label">
-                  <CreditCard size={12} className="text-cyan icon-shrink" style={{ verticalAlign: 'middle', marginRight: '5px' }} />
-                  Chave PIX Cadastrada
-                </span>
-                <strong className={`cs-pix-value ${!myMember?.pixKey ? 'is-empty' : ''}`}>
-                  {myMember?.pixKey || 'Não cadastrada'}
-                </strong>
-              </div>
-
-              <div className="cs-pix-actions">
-                {myMember?.pixKey ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleCopyPix}
-                      className={`cs-btn-copy-pix ${copiedPix ? 'copied' : ''}`}
-                      title="Copiar Chave PIX"
-                    >
-                      {copiedPix ? <Check size={13} /> : <Copy size={13} />}
-                      <span>{copiedPix ? 'Copiado!' : 'Copiar'}</span>
-                    </button>
+            ) : (
+              <div className="cs-upc-pix-display">
+                <div className="cs-upc-pix-header">
+                  <CreditCard size={12} className="text-cyan-bright" />
+                  <span>CHAVE PIX</span>
+                </div>
+                <div className="cs-upc-pix-body">
+                  <strong className={`cs-upc-pix-val ${!myMember?.pixKey ? 'empty' : ''}`} title={myMember?.pixKey || 'Nenhuma chave cadastrada'}>
+                    {myMember?.pixKey || 'Não cadastrada'}
+                  </strong>
+                  {myMember?.pixKey ? (
+                    <div className="cs-upc-pix-actions">
+                      <button
+                        type="button"
+                        onClick={handleCopyPix}
+                        className={`cs-upc-pix-action-btn copy ${copiedPix ? 'copied' : ''}`}
+                        title="Copiar Chave PIX"
+                      >
+                        {copiedPix ? <Check size={11} /> : <Copy size={11} />}
+                        <span>{copiedPix ? 'Copiado!' : 'Copiar'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleStartEditPix}
+                        className="cs-upc-pix-action-btn edit"
+                        title="Editar Chave PIX"
+                      >
+                        <Edit2 size={11} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeletePix}
+                        className="cs-upc-pix-action-btn delete"
+                        title="Excluir Chave PIX"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       type="button"
                       onClick={handleStartEditPix}
-                      className="cs-btn-pix-action btn-edit"
-                      title="Editar Chave PIX"
+                      className="cs-upc-pix-add-btn"
                     >
-                      <Edit2 size={13} />
-                      <span>Editar</span>
+                      <Plus size={11} /> Cadastrar PIX
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleDeletePix}
-                      className="cs-btn-pix-action btn-delete"
-                      title="Excluir Chave PIX"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleStartEditPix}
-                    className="cs-btn-pix-add"
-                    title="Cadastrar Chave PIX para recebimentos"
-                  >
-                    <Plus size={13} />
-                    <span>Cadastrar PIX</span>
-                  </button>
-                )}
+                  )}
+                </div>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Divisor Visual Sutil */}
-        <div className="cs-hero-divider" />
+        {/* Separador Orgânico com Efeito de Luz */}
+        <div className="cs-upc-divider" />
 
-        {/* ============================================================== */}
-        {/* WIDGET EXECUTIVO DE XP, NÍVEL E PONTUAÇÃO POR FUNÇÃO           */}
-        {/* ============================================================== */}
-        <div className="cs-hero-xp-card">
-          <div className="cs-xp-card-header">
-            <div className="cs-xp-tier-info">
-              <div
-                className="cs-xp-badge-icon"
-                style={{
-                  borderColor: userLevel.color || '#f59e0b',
-                  color: userLevel.color || '#f59e0b',
-                  boxShadow: `0 0 16px ${userLevel.color ? userLevel.color + '45' : 'rgba(245, 158, 11, 0.3)'}`,
-                }}
-              >
-                <Trophy size={22} />
+        {/* 2. SEÇÃO DE GAMIFICAÇÃO & PATENTE INTEGRADA NA MESMA JANELA */}
+        <div className="cs-upc-gamification">
+          <div className="cs-upc-tier-row">
+            {/* Bloco Esquerda: Patente & Descrição */}
+            <div className="cs-upc-tier-lead">
+              <div className="cs-upc-tier-badge">
+                <span className="cs-upc-tier-pill" style={{ color: userLevel.color || '#f59e0b', borderColor: userLevel.color ? userLevel.color + '45' : 'rgba(245, 158, 11, 0.4)' }}>
+                  NÍVEL {userLevel.level} • {userLevel.title.toUpperCase()}
+                </span>
+                <span className="cs-upc-tier-sub">Patente Operacional</span>
               </div>
-              <div className="cs-xp-tier-text">
-                <div className="cs-xp-tier-badge-row">
-                  <span className="cs-xp-tier-level" style={{ color: userLevel.color || '#f59e0b' }}>
-                    NÍVEL {userLevel.level}
-                  </span>
-                  <span className="cs-xp-tier-tag">Patente Operacional</span>
-                </div>
-                <strong className="cs-xp-tier-title">{userLevel.title}</strong>
-                {userLevel.description && (
-                  <p className="cs-xp-tier-quick-desc">{userLevel.description}</p>
-                )}
-              </div>
+              <h3 className="cs-upc-tier-heading" style={{ color: userLevel.color || '#f59e0b' }}>
+                {userLevel.title}
+              </h3>
+              {userLevel.description && (
+                <p className="cs-upc-tier-desc">{userLevel.description}</p>
+              )}
             </div>
 
-            <div className="cs-xp-score-block">
-              <div className="cs-xp-score-digits">
-                <Sparkles size={16} className="text-amber" />
-                <span>{userLevel.score}</span>
-                <small>XP</small>
+            {/* Bloco Direita: Contador de XP e Botão Ver Extrato */}
+            <div className="cs-upc-score-lead">
+              <div className="cs-upc-score-display">
+                <Sparkles size={20} className="text-amber" />
+                <span className="cs-upc-score-val">{userLevel.score}</span>
+                <span className="cs-upc-score-unit">XP</span>
               </div>
               <button
                 type="button"
-                className="cs-btn-xp-details"
+                className="cs-upc-extrato-btn"
                 onClick={() => setIsXpModalOpen(true)}
                 title="Abrir Extrato Completo de Pontuação, Horas e Funções"
               >
@@ -1001,63 +1008,74 @@ export default function CollaboratorSpace({
             </div>
           </div>
 
-          {/* Barra de Progresso de XP da Patente */}
-          <div className="cs-xp-progress-wrap">
-            <div className="cs-xp-progress-bar-bg">
+          {/* Barra de Progresso com Glow Neon */}
+          <div className="cs-upc-progress-section">
+            <div className="cs-upc-progress-track">
               <div
-                className="cs-xp-progress-fill"
+                className="cs-upc-progress-bar"
                 style={{
                   width: `${userLevel.progressPercent}%`,
                   background: `linear-gradient(90deg, #06b6d4 0%, ${userLevel.color || '#f59e0b'} 100%)`,
-                  boxShadow: `0 0 10px ${userLevel.color ? userLevel.color + '60' : 'rgba(245, 158, 11, 0.4)'}`,
+                  boxShadow: `0 0 14px ${userLevel.color ? userLevel.color + '70' : 'rgba(245, 158, 11, 0.5)'}`,
                 }}
               />
             </div>
-            <div className="cs-xp-progress-meta">
-              <span className="cs-xp-progress-pct">{userLevel.progressPercent}% para o próximo nível</span>
-              <span className="cs-xp-progress-remaining">
+            <div className="cs-upc-progress-labels">
+              <span className="cs-upc-progress-pct">
+                <Zap size={12} className="text-cyan-bright" />
+                {userLevel.progressPercent}% para o próximo nível
+              </span>
+              <span className="cs-upc-progress-rem">
                 {userLevel.level >= 6
                   ? '🌟 Patente Máxima da MegaFilmes'
                   : `Faltam ${userLevel.remainingForNext} XP para o Nível ${userLevel.level + 1}`}
               </span>
             </div>
-            {userLevel.completedTiers && userLevel.completedTiers.length > 0 && (
-              <div className="cs-xp-hero-overcome-row">
-                <span className="cs-xp-hero-overcome-badge">
-                  <CheckCircle2 size={13} className="text-emerald" />
-                  <span>Níveis superados:</span>
-                </span>
-                <span className="cs-xp-hero-overcome-names">
-                  {userLevel.completedTiers.map((t) => `${t.icon} Nível ${t.level} (${t.title})`).join(' • ')}
-                </span>
-              </div>
-            )}
           </div>
 
+          {/* Timeline de Níveis Superados */}
+          {userLevel.completedTiers && userLevel.completedTiers.length > 0 && (
+            <div className="cs-upc-timeline-row">
+              <span className="cs-upc-timeline-label">
+                <CheckCircle2 size={13} className="text-emerald" />
+                <span>Níveis superados:</span>
+              </span>
+              <div className="cs-upc-timeline-chips">
+                {userLevel.completedTiers.map((t) => (
+                  <span key={t.level} className="cs-upc-timeline-chip">
+                    {t.icon} Nível {t.level} ({t.title})
+                  </span>
+                ))}
+                <span className="cs-upc-timeline-current-chip" style={{ color: userLevel.color || '#f59e0b', borderColor: userLevel.color ? userLevel.color + '50' : 'rgba(245, 158, 11, 0.4)' }}>
+                  👑 Nível {userLevel.level} (Atual)
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Funções em que está pontuando ativamente */}
-          <div className="cs-xp-active-roles-row">
-            <span className="cs-xp-roles-label">
-              <Target size={14} className="text-amber" />
+          <div className="cs-upc-roles-scoring">
+            <span className="cs-upc-roles-scoring-label">
+              <Target size={13} className="text-amber" />
               <span>Pontuando em:</span>
             </span>
-
-            <div className="cs-xp-roles-pills-list">
+            <div className="cs-upc-roles-scoring-list">
               {activeScoringRoles.length > 0 ? (
                 activeScoringRoles.map(({ role, points, count }) => (
                   <button
                     key={role}
                     type="button"
-                    className="cs-xp-role-pill"
+                    className="cs-upc-role-chip"
                     onClick={() => setIsXpModalOpen(true)}
-                    title={`${role}: ${count}x missões concluídas gerando ${points} XP. Clique para ver extrato completo.`}
+                    title={`${role}: ${count}x missões concluídas gerando ${points} XP.`}
                   >
-                    <span className="pill-icon">{ROLE_ICONS_MAP[role] || '💼'}</span>
-                    <span className="pill-name">{role}</span>
-                    <strong className="pill-pts">+{points} XP</strong>
+                    <span className="chip-ico">{ROLE_ICONS_MAP[role] || '💼'}</span>
+                    <span className="chip-txt">{role}</span>
+                    <strong className="chip-pts">+{points} XP</strong>
                   </button>
                 ))
               ) : (
-                <span className="cs-xp-role-pill-empty">
+                <span className="cs-upc-role-empty">
                   🚀 Participe de missões de campo e entregas para computar XP nas suas funções!
                 </span>
               )}
