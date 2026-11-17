@@ -196,6 +196,16 @@ export default function AdminCenter({
       ? [...mission.editionHistory, newEvent]
       : [newEvent];
 
+    const deliveryMap = getMissionEditorsDeliveryMap(mission, members);
+    const finalizedDelivery = { ...deliveryMap };
+    Object.keys(finalizedDelivery).forEach((k) => {
+      finalizedDelivery[k] = {
+        ...finalizedDelivery[k],
+        status: 'delivered',
+        deliveredAt: finalizedDelivery[k]?.deliveredAt || now.toISOString(),
+      };
+    });
+
     const mVer = (mission.version !== undefined && mission.version !== null) ? Number(mission.version) : 1;
     const updatedMission = {
       ...mission,
@@ -203,8 +213,10 @@ export default function AdminCenter({
       missionStatus: 'Finalizada',
       isOverdue: 0,
       reopenReason: '',
+      editorsDelivery: finalizedDelivery,
       editionHistory: updatedHistory,
       version: mVer,
+      forceOverwrite: true,
     };
 
     if (onSaveMission) {
@@ -218,6 +230,9 @@ export default function AdminCenter({
         return;
       }
       clearPostProductionNotification(mission.id);
+      if (reloadServerMissions) {
+        reloadServerMissions().catch(() => {});
+      }
       await alertDialog({
         title: '🎉 Missão Finalizada com Sucesso',
         message: `A pauta "${mission.description}" foi aprovada e finalizada com sucesso!`,
@@ -298,6 +313,7 @@ export default function AdminCenter({
       editorsDelivery: updatedDelivery,
       editionHistory: updatedHistory,
       version: mVer,
+      forceOverwrite: true,
     };
 
     if (onSaveMission) {

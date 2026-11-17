@@ -150,15 +150,6 @@ if ($method === 'GET') {
               AND mission_status NOT IN ('Finalizada', 'Finalizado', 'Cancelada')
         ");
 
-        // 2b. Correção retroativa: Se uma missão com pós-produção foi marcada como 'Finalizada' sem aprovação da gestão, mantê-la como 'Pendente'
-        $db->exec("
-            UPDATE missions
-            SET mission_status = 'Pendente', updated_at = NOW()
-            WHERE mission_status IN ('Finalizada', 'Finalizado')
-              AND {$hasPostProdCond}
-              AND (edition_history NOT LIKE '%\"type\":\"APPROVED\"%' OR edition_history IS NULL)
-        ");
-
         // 3. Missões de hoje cujo horário de saída já chegou -> Em Execução
         $db->exec("
             UPDATE missions
@@ -197,168 +188,99 @@ if ($method === 'GET') {
         if (!is_array($editorsDelivery))
             $editorsDelivery = [];
 
-        // AUTO-CURA ATÔMICA DA MISSÃO #202611131 (ENSAIO FOTOGRAFICO EXTERNO ABC SESI)
-        // Regra estrita: dois editores responsáveis (Mateus Henrique e João Pedro).
-        // Mateus concluiu sua parte, João Pedro está pendente. Logo, a missão NÃO está pronta para aprovação do admin.
-        $isSesiMission = (!empty($m['code']) && strpos($m['code'], '202611131') !== false) ||
-            (stripos($m['description'], 'SESI') !== false && stripos($m['description'], 'MIRANDINHA') !== false) ||
-            (stripos($m['description'], 'ENSAIO FOTOGRAFICO EXTERNO ABC SESI') !== false);
-
-        if ($isSesiMission) {
-            try {
-                $memStmt = $db->query("SELECT id, name FROM members WHERE name LIKE '%Mateus%' OR name LIKE '%Pedro%'");
-                $foundMems = $memStmt->fetchAll();
-                $mateusMem = null;
-                $pedroMem = null;
-                foreach ($foundMems as $fm) {
-                    if (stripos($fm['name'], 'Mateus') !== false && !$mateusMem)
-                        $mateusMem = $fm;
-                    if (stripos($fm['name'], 'Pedro') !== false && !$pedroMem)
-                        $pedroMem = $fm;
-                }
-                $mId = $mateusMem ? $mateusMem['id'] : 'mateus-henrique';
-                $mName = $mateusMem ? $mateusMem['name'] : 'Mateus Henrique';
-                $pId = $pedroMem ? $pedroMem['id'] : 'joao-pedro';
-                $pName = $pedroMem ? $pedroMem['name'] : 'João Pedro';
-
-                $currentMateusDeliv = $editorsDelivery[(string) $mId] ?? null;
-                $currentPedroDeliv = $editorsDelivery[(string) $pId] ?? null;
-
-                $editorsDelivery = [
-                    (string) $mId => [
-                        'editorId' => (string) $mId,
-                        'editorName' => $mName,
-                        'status' => 'delivered',
-                        'deliveredAt' => $currentMateusDeliv['deliveredAt'] ?? $m['edition_completed_at'] ?? '2026-11-14T15:58:00',
-                        'serverFilePath' => !empty($currentMateusDeliv['serverFilePath']) ? $currentMateusDeliv['serverFilePath'] : (!empty($m['server_file_path']) ? $m['server_file_path'] : 'S:\\MEGA FILMES\\ABC 2026\\EXTERNA SESI 13-11\\CARD 01\\LR_03_'),
-                        'notes' => $currentMateusDeliv['notes'] ?? 'MINHA PASTA OK, SO FALTA SUBIR PARA A BANLEK',
-                        'isLate' => false
-                    ],
-                    (string) $pId => [
-                        'editorId' => (string) $pId,
-                        'editorName' => $pName,
-                        'status' => ($currentPedroDeliv && ($currentPedroDeliv['status'] ?? '') === 'delivered') ? 'delivered' : 'pending',
-                        'deliveredAt' => $currentPedroDeliv['deliveredAt'] ?? null,
-                        'serverFilePath' => $currentPedroDeliv['serverFilePath'] ?? null,
-                        'notes' => $currentPedroDeliv['notes'] ?? null,
-                        'isLate' => false
-                    ]
-                ];
-
-                $updatedEditorIds = [(string) $mId, (string) $pId];
-                $updatedNamesDisplay = "{$pName}, {$mName}";
-                $isPedroDelivered = ($editorsDelivery[(string) $pId]['status'] === 'delivered');
-                $newEditionStatus = $isPedroDelivered ? 'Edição Concluída' : 'Em Edição';
-                $newMissionStatus = 'Pendente';
-
-                if ($m['edition_status'] !== $newEditionStatus || empty($m['editors_delivery']) || count(json_decode($m['editors_delivery'] ?? '[]', true) ?: []) < 2) {
-                    $db->prepare("
-                        UPDATE missions 
-                        SET editor_ids = ?, editor_names_display = ?, editors_delivery = ?, edition_status = ?, mission_status = ? 
-                        WHERE id = ?
-                    ")->execute([
-                                json_encode($updatedEditorIds, JSON_UNESCAPED_UNICODE),
-                                $updatedNamesDisplay,
-                                json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
-                                $newEditionStatus,
-                                $newMissionStatus,
-                                $m['id']
-                            ]);
-                }
-
-                $m['editor_ids'] = json_encode($updatedEditorIds);
-                $m['editor_names_display'] = $updatedNamesDisplay;
-                $m['editors_delivery'] = json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE);
-                $m['edition_status'] = $newEditionStatus;
-                $m['mission_status'] = $newMissionStatus;
-            } catch (Exception $e) {
-                error_log('[Auto-Cura SESI Error] ' . $e->getMessage());
-            }
-        } else {
-            // Regra universal para qualquer missão com múltiplos editores:
-            $assignedEditorIds = !empty($m['editor_ids']) ? json_decode($m['editor_ids'], true) : [];
-            if (!is_array($assignedEditorIds)) $assignedEditorIds = [];
-
-            // Auto-recuperação: se houver entregas registradas no edition_history que não estejam no editors_delivery
-            $edHistory = !empty($m['edition_history']) ? json_decode($m['edition_history'], true) : [];
-            if (is_array($edHistory) && !empty($edHistory) && !empty($assignedEditorIds)) {
-                foreach ($edHistory as $hist) {
-                    if (empty($hist) || !is_array($hist)) continue;
-                    $hUser = strtolower(trim($hist['user'] ?? ''));
-                    $hDesc = strtolower(trim($hist['description'] ?? ''));
-                    $hTitle = strtolower(trim($hist['title'] ?? ''));
-                    foreach ($assignedEditorIds as $aId) {
-                        $aIdStr = (string) $aId;
-                        if (empty($editorsDelivery[$aIdStr]) || ($editorsDelivery[$aIdStr]['status'] ?? '') !== 'delivered') {
-                            try {
-                                $memStmt = $db->prepare("SELECT id, name FROM members WHERE id = ?");
-                                $memStmt->execute([$aIdStr]);
-                                $memRow = $memStmt->fetch();
-                                if ($memRow) {
-                                    $memName = strtolower(trim($memRow['name']));
-                                    $firstWord = explode(' ', $memName)[0];
-                                    if (
-                                        ($memName !== '' && (strpos($hUser, $memName) !== false || strpos($hDesc, $memName) !== false || strpos($hTitle, $memName) !== false)) ||
-                                        ($firstWord && strlen($firstWord) >= 3 && (strpos($hUser, $firstWord) !== false || strpos($hDesc, $firstWord) !== false || strpos($hTitle, $firstWord) !== false))
-                                    ) {
-                                        $editorsDelivery[$aIdStr] = [
-                                            'editorId' => $aIdStr,
-                                            'editorName' => $memRow['name'],
-                                            'status' => 'delivered',
-                                            'deliveredAt' => $hist['timestamp'] ?? date('c'),
-                                            'serverFilePath' => $hist['serverFilePath'] ?? $m['server_file_path'] ?? null,
-                                            'notes' => $hist['message'] ?? $hist['description'] ?? null,
-                                            'isLate' => !empty($hist['isOverdue'])
-                                        ];
-                                    }
-                                }
-                            } catch (Exception $eH) {}
-                        }
-                    }
+        $isAlreadyFinished = in_array($m['mission_status'] ?? '', ['Finalizada', 'Finalizado', 'Concluída']);
+        $edHistory = !empty($m['edition_history']) ? json_decode($m['edition_history'], true) : [];
+        if (is_array($edHistory)) {
+            foreach ($edHistory as $ev) {
+                if (($ev['type'] ?? '') === 'APPROVED') {
+                    $isAlreadyFinished = true;
+                    break;
                 }
             }
+        }
 
-            if (!empty($editorsDelivery)) {
-                $hasPendingEditor = false;
-                if (count($assignedEditorIds) > 1) {
-                    foreach ($assignedEditorIds as $aId) {
-                        $aIdStr = (string) $aId;
-                        $deliv = $editorsDelivery[$aIdStr] ?? null;
-                        if (!$deliv) {
-                            foreach ($editorsDelivery as $item) {
-                                if (($item['editorId'] ?? '') === $aIdStr) {
-                                    $deliv = $item;
-                                    break;
+        // Regra universal para qualquer missão com múltiplos editores (somente se ainda não estiver finalizada/aprovada):
+        $assignedEditorIds = !empty($m['editor_ids']) ? json_decode($m['editor_ids'], true) : [];
+        if (!is_array($assignedEditorIds)) $assignedEditorIds = [];
+
+        // Auto-recuperação: se houver entregas registradas no edition_history que não estejam no editors_delivery
+        if (is_array($edHistory) && !empty($edHistory) && !empty($assignedEditorIds)) {
+            foreach ($edHistory as $hist) {
+                if (empty($hist) || !is_array($hist)) continue;
+                $hUser = strtolower(trim($hist['user'] ?? ''));
+                $hDesc = strtolower(trim($hist['description'] ?? ''));
+                $hTitle = strtolower(trim($hist['title'] ?? ''));
+                foreach ($assignedEditorIds as $aId) {
+                    $aIdStr = (string) $aId;
+                    if (empty($editorsDelivery[$aIdStr]) || ($editorsDelivery[$aIdStr]['status'] ?? '') !== 'delivered') {
+                        try {
+                            $memStmt = $db->prepare("SELECT id, name FROM members WHERE id = ?");
+                            $memStmt->execute([$aIdStr]);
+                            $memRow = $memStmt->fetch();
+                            if ($memRow) {
+                                $memName = strtolower(trim($memRow['name']));
+                                $firstWord = explode(' ', $memName)[0];
+                                if (
+                                    ($memName !== '' && (strpos($hUser, $memName) !== false || strpos($hDesc, $memName) !== false || strpos($hTitle, $memName) !== false)) ||
+                                    ($firstWord && strlen($firstWord) >= 3 && (strpos($hUser, $firstWord) !== false || strpos($hDesc, $firstWord) !== false || strpos($hTitle, $firstWord) !== false))
+                                ) {
+                                    $editorsDelivery[$aIdStr] = [
+                                        'editorId' => $aIdStr,
+                                        'editorName' => $memRow['name'],
+                                        'status' => 'delivered',
+                                        'deliveredAt' => $hist['timestamp'] ?? date('c'),
+                                        'serverFilePath' => $hist['serverFilePath'] ?? $m['server_file_path'] ?? null,
+                                        'notes' => $hist['message'] ?? $hist['description'] ?? null,
+                                        'isLate' => !empty($hist['isOverdue'])
+                                    ];
                                 }
                             }
-                        }
-                        if (empty($deliv) || ($deliv['status'] ?? '') !== 'delivered') {
-                            $hasPendingEditor = true;
-                            break;
-                        }
-                    }
-                } else {
-                    foreach ($editorsDelivery as $edItem) {
-                        if (empty($edItem['status']) || $edItem['status'] !== 'delivered') {
-                            $hasPendingEditor = true;
-                            break;
-                        }
+                        } catch (Exception $eH) {}
                     }
                 }
+            }
+        }
 
-                if ($hasPendingEditor && in_array($m['edition_status'], ['Edição Concluída', 'Entregue'])) {
-                    $m['edition_status'] = 'Em Edição';
-                    $db->prepare("UPDATE missions SET edition_status = 'Em Edição', editors_delivery = ? WHERE id = ?")->execute([
-                        json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
-                        $m['id']
-                    ]);
-                } elseif (!$hasPendingEditor && count($assignedEditorIds) > 1 && in_array($m['edition_status'], ['Em Edição', 'Pendente'])) {
-                    $m['edition_status'] = 'Edição Concluída';
-                    $db->prepare("UPDATE missions SET edition_status = 'Edição Concluída', editors_delivery = ? WHERE id = ?")->execute([
-                        json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
-                        $m['id']
-                    ]);
+        if (!$isAlreadyFinished && !empty($editorsDelivery)) {
+            $hasPendingEditor = false;
+            if (count($assignedEditorIds) > 1) {
+                foreach ($assignedEditorIds as $aId) {
+                    $aIdStr = (string) $aId;
+                    $deliv = $editorsDelivery[$aIdStr] ?? null;
+                    if (!$deliv) {
+                        foreach ($editorsDelivery as $item) {
+                            if (($item['editorId'] ?? '') === $aIdStr) {
+                                $deliv = $item;
+                                break;
+                            }
+                        }
+                    }
+                    if (empty($deliv) || ($deliv['status'] ?? '') !== 'delivered') {
+                        $hasPendingEditor = true;
+                        break;
+                    }
                 }
+            } else {
+                foreach ($editorsDelivery as $edItem) {
+                    if (empty($edItem['status']) || $edItem['status'] !== 'delivered') {
+                        $hasPendingEditor = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($hasPendingEditor && in_array($m['edition_status'], ['Edição Concluída', 'Entregue'])) {
+                $m['edition_status'] = 'Em Edição';
+                $db->prepare("UPDATE missions SET edition_status = 'Em Edição', editors_delivery = ? WHERE id = ?")->execute([
+                    json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
+                    $m['id']
+                ]);
+            } elseif (!$hasPendingEditor && count($assignedEditorIds) > 1 && in_array($m['edition_status'], ['Em Edição', 'Pendente'])) {
+                $m['edition_status'] = 'Edição Concluída';
+                $db->prepare("UPDATE missions SET edition_status = 'Edição Concluída', editors_delivery = ? WHERE id = ?")->execute([
+                    json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
+                    $m['id']
+                ]);
             }
         }
 
@@ -1334,8 +1256,21 @@ if ($method === 'POST' || $method === 'PUT') {
 
         // Blindagem de Pós-Produção para múltiplos editores:
         $effectiveEditionStatus = $data['editionStatus'] ?? 'Pendente';
+        $incomingMissionStatus = $data['missionStatus'] ?? 'Agendada';
+        $isBeingFinalized = in_array($incomingMissionStatus, ['Finalizada', 'Finalizado', 'Concluída']);
         $rawEditorsDelivery = !empty($data['editorsDelivery']) ? (is_array($data['editorsDelivery']) ? $data['editorsDelivery'] : json_decode($data['editorsDelivery'], true)) : [];
-        if (!empty($rawEditorsDelivery) && is_array($rawEditorsDelivery)) {
+        if ($isBeingFinalized && !empty($rawEditorsDelivery) && is_array($rawEditorsDelivery)) {
+            foreach ($rawEditorsDelivery as $edKey => &$edVal) {
+                if (is_array($edVal)) {
+                    $edVal['status'] = 'delivered';
+                    if (empty($edVal['deliveredAt'])) {
+                        $edVal['deliveredAt'] = date('c');
+                    }
+                }
+            }
+            unset($edVal);
+            $data['editorsDelivery'] = $rawEditorsDelivery;
+        } elseif (!$isBeingFinalized && !empty($rawEditorsDelivery) && is_array($rawEditorsDelivery)) {
             $hasPendingEditor = false;
             foreach ($rawEditorsDelivery as $edCheck) {
                 if (empty($edCheck['status']) || $edCheck['status'] !== 'delivered') {
