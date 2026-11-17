@@ -99,7 +99,9 @@ export default function ConcludePostProductionModal({
   // Verifica se esta entrega fechará a última pendência dos editores
   const selectedDeliv = deliverySummary.deliveryMap[selectedEditorId];
   const isAlreadyDelivered = selectedDeliv && selectedDeliv.status === 'delivered';
-  const isMissionFinalized = mission.missionStatus === 'Finalizada' || mission.missionStatus === 'Finalizado' || mission.missionStatus === 'Concluída';
+  const mStatus = String(mission.missionStatus || mission.status || '').trim().toLowerCase();
+  const isMissionFinalized = mStatus === 'finalizada' || mStatus === 'finalizado' || mStatus === 'concluída' || mStatus === 'concluida' || mission.post_production_status === 'approved' || mission.editionStatus === 'Aprovado';
+  const isBlocked = isMissionFinalized || isAlreadyDelivered;
   const otherPending = deliverySummary.pendingEditors.filter((e) => String(e.id) !== String(selectedEditorId));
   const willCompleteEntireMission = otherPending.length === 0;
 
@@ -108,7 +110,7 @@ export default function ConcludePostProductionModal({
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    if (isMissionFinalized) return;
+    if (isBlocked) return;
     setIsSubmitting(true);
     try {
       if (onConfirmConclude) {
@@ -173,8 +175,44 @@ export default function ConcludePostProductionModal({
 
         {/* CORPO */}
         <form onSubmit={handleSubmit} className="modern-reopen-body">
-          {/* Card de Pontualidade */}
-          {isLate ? (
+          {/* Card de Bloqueio para Entrega Já Realizada ou Missão Finalizada */}
+          {isMissionFinalized ? (
+            <div
+              className="mrh-warning-card"
+              style={{
+                background: 'rgba(100, 116, 139, 0.15)',
+                borderColor: 'rgba(100, 116, 139, 0.35)',
+                borderLeftColor: '#94a3b8',
+              }}
+            >
+              <div className="mrh-wc-icon" style={{ color: '#94a3b8' }}>
+                <CheckCircle2 size={18} />
+              </div>
+              <div className="mrh-wc-text" style={{ color: '#e2e8f0' }}>
+                <span>
+                  <strong>Missão Finalizada:</strong> Esta missão já foi finalizada pela gestão. Não é permitido editar ou reenviar novas entregas.
+                </span>
+              </div>
+            </div>
+          ) : isAlreadyDelivered ? (
+            <div
+              className="mrh-warning-card"
+              style={{
+                background: 'rgba(16, 185, 129, 0.14)',
+                borderColor: 'rgba(16, 185, 129, 0.35)',
+                borderLeftColor: '#10b981',
+              }}
+            >
+              <div className="mrh-wc-icon" style={{ color: '#34d399' }}>
+                <CheckCircle2 size={18} />
+              </div>
+              <div className="mrh-wc-text" style={{ color: '#d1fae5' }}>
+                <span>
+                  <strong>Entrega Já Concluída:</strong> A parte do editor <strong>{editorName}</strong> já foi entregue com sucesso e está na fila da Diretoria. Não é permitido editar ou reenviar a menos que haja solicitação de refação pela Administração.
+                </span>
+              </div>
+            </div>
+          ) : isLate ? (
             <div
               className="mrh-warning-card"
               style={{
@@ -282,7 +320,9 @@ export default function ConcludePostProductionModal({
                 placeholder="Ex: S:\MEGA FILMES\ANIVERSARIO\PASTA DO EDITOR"
                 value={serverFilePath}
                 onChange={(e) => setServerFilePath(e.target.value)}
-                autoFocus
+                readOnly={isBlocked}
+                disabled={isBlocked}
+                autoFocus={!isBlocked}
               />
             </div>
             <small className="mrh-hint">
@@ -307,6 +347,8 @@ export default function ConcludePostProductionModal({
                 placeholder="Ex: Minha pasta está pronta com cor e cortes finalizados..."
                 value={editorMessage}
                 onChange={(e) => setEditorMessage(e.target.value)}
+                readOnly={isBlocked}
+                disabled={isBlocked}
               />
             </div>
             <small className="mrh-hint">
@@ -328,19 +370,21 @@ export default function ConcludePostProductionModal({
               type="submit"
               className="mrh-btn-confirm"
               style={{
-                background: isMissionFinalized
+                background: isBlocked
                   ? 'rgba(100, 116, 139, 0.4)'
                   : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                borderColor: isMissionFinalized ? 'rgba(100, 116, 139, 0.3)' : 'rgba(16, 185, 129, 0.6)',
-                boxShadow: isMissionFinalized ? 'none' : '0 4px 16px rgba(16, 185, 129, 0.35)',
-                cursor: isMissionFinalized ? 'not-allowed' : 'pointer',
+                borderColor: isBlocked ? 'rgba(100, 116, 139, 0.3)' : 'rgba(16, 185, 129, 0.6)',
+                boxShadow: isBlocked ? 'none' : '0 4px 16px rgba(16, 185, 129, 0.35)',
+                cursor: isBlocked ? 'not-allowed' : 'pointer',
               }}
-              disabled={isSubmitting || isMissionFinalized}
+              disabled={isSubmitting || isBlocked}
             >
               <Send size={14} />
               <span>
                 {isMissionFinalized
                   ? 'Missão Já Finalizada'
+                  : isAlreadyDelivered
+                  ? 'Entrega Já Realizada'
                   : isSubmitting
                   ? 'Salvando Entrega...'
                   : hasMultipleEditors
