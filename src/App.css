@@ -25963,7 +25963,7 @@ body.light-theme .pf-search-input {
   border-radius: 14px;
   padding: 16px 20px;
   display: grid;
-  grid-template-columns: minmax(180px, 220px) minmax(130px, 170px) minmax(170px, 210px) minmax(200px, 260px) minmax(130px, 160px) minmax(180px, 220px);
+  grid-template-columns: minmax(190px, 1.2fr) minmax(130px, 0.9fr) minmax(230px, 1.5fr) minmax(190px, 1.2fr) minmax(125px, 0.8fr) minmax(190px, 1.1fr);
   align-items: center;
   gap: 16px;
   transition: all 0.2s ease;
@@ -26134,14 +26134,18 @@ body.light-theme .btn-edit-rates:hover {
 
 .pmc-prod-metric {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
+  white-space: nowrap;
+  flex-wrap: nowrap;
 }
 
 .pmc-prod-val {
-  font-size: 0.98rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #ffffff;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 body.light-theme .pmc-prod-val {
@@ -26151,6 +26155,8 @@ body.light-theme .pmc-prod-val {
 .pmc-prod-lbl {
   font-size: 0.72rem;
   color: #94a3b8;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Coluna Chave PIX Evidenciada */
@@ -26169,6 +26175,147 @@ body.light-theme .pmc-prod-val {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+
+/* Estrutura Vertical do PIX - Botão Copiar Embaixo */
+.pmc-pix-card-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+}
+
+.pmc-pix-card-vertical:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.pmc-pix-key-val {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #f8fafc;
+  text-align: center;
+  word-break: break-all;
+  line-height: 1.25;
+  padding: 2px 0;
+  user-select: all;
+}
+
+.btn-copy-pix-full {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn-copy-pix-full:hover {
+  background: rgba(56, 189, 248, 0.28);
+  border-color: #38bdf8;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
+}
+
+.btn-copy-pix-full.is-copied {
+  background: rgba(16, 185, 129, 0.22) !important;
+  border-color: #10b981 !important;
+  color: #34d399 !important;
+}
+
+.pmc-pix-empty-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+}
+
+.pmc-pix-empty-text {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.btn-add-pix-full {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn-add-pix-full:hover {
+  background: rgba(251, 191, 36, 0.24);
+  color: #fef08a;
+  border-color: #fbbf24;
+}
+
+body.light-theme .pmc-pix-card-vertical {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+body.light-theme .pmc-pix-key-val {
+  color: #0f172a;
+}
+
+body.light-theme .btn-copy-pix-full {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0369a1;
+}
+
+body.light-theme .pmc-pix-empty-vertical {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+/* Seletor de Ordenação */
+.pf-sort-wrap {
+  border-color: rgba(251, 191, 36, 0.25);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+.pf-select-sort {
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+body.light-theme .pf-select-sort {
+  color: #b45309;
 }
 
 .pmc-pix-box {
@@ -26423,6 +26570,8 @@ body.light-theme .spb-key {
 }
 
 .pmc-action-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #cbd5e1;
@@ -27500,6 +27649,7 @@ body.light-theme .mori-input {
 /* 10. BOTÃO ZERAR HORAS & BADGES DE QUITAÇÃO                     */
 /* ============================================================== */
 .btn-clear-hours {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -43001,6 +43151,8 @@ body.light-theme .pmc-prod-interactive:hover {
 }
 
 .pmc-xray-chip {
+  white-space: nowrap;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 3px;

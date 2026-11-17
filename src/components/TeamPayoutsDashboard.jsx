@@ -29,6 +29,8 @@ import {
   RotateCcw,
   Zap,
   ExternalLink,
+  ArrowUpDown,
+  Plus,
 } from 'lucide-react';
 import MissionDetailModal from './MissionDetailModal';
 import { apiGetPayouts, apiSavePayout } from '../utils/api';
@@ -101,10 +103,11 @@ export default function TeamPayoutsDashboard({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  // Filtros
+  // Filtros e Ordenação
   const [companyFilter, setCompanyFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all'); // all, pendente, pago
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('balance_desc'); // balance_desc (padrão com saldo no topo), name_asc, name_desc, hours_desc, daily_desc, missions_desc, planned_desc
 
   // Fechamentos de pagamento salvos no backend (memberId -> closure)
   const [closures, setClosures] = useState({});
@@ -474,10 +477,10 @@ export default function TeamPayoutsDashboard({
   }, [members, missions, selectedMonth, closures]);
 
   // --------------------------------------------------------------------------
-  // FILTRAGEM E BUSCA NA LISTA
+  // FILTRAGEM, BUSCA E ORDENAÇÃO NA LISTA
   // --------------------------------------------------------------------------
   const filteredPayouts = useMemo(() => {
-    return memberPayouts.filter((m) => {
+    const list = memberPayouts.filter((m) => {
       if (companyFilter !== 'all' && m.company !== companyFilter) return false;
       if (statusFilter !== 'all' && m.status.toLowerCase() !== statusFilter.toLowerCase()) return false;
       if (searchTerm.trim()) {
@@ -488,7 +491,61 @@ export default function TeamPayoutsDashboard({
       }
       return true;
     });
-  }, [memberPayouts, companyFilter, statusFilter, searchTerm]);
+
+    // Ordenação com regra padrão: colaboradores com saldo a receber pendente no topo absoluto
+    return list.sort((a, b) => {
+      if (sortBy === 'balance_desc') {
+        const aHasBalance = a.status !== 'Pago' && (a.totalAmount || 0) > 0;
+        const bHasBalance = b.status !== 'Pago' && (b.totalAmount || 0) > 0;
+        // Quem tem saldo a receber pendente fica no topo absoluto
+        if (aHasBalance && !bHasBalance) return -1;
+        if (!aHasBalance && bHasBalance) return 1;
+        // Entre os que têm saldo a receber, maior saldo primeiro
+        if (b.totalAmount !== a.totalAmount) {
+          return (b.totalAmount || 0) - (a.totalAmount || 0);
+        }
+        // Desempate por mais horas extras
+        if (b.totalHours !== a.totalHours) {
+          return (b.totalHours || 0) - (a.totalHours || 0);
+        }
+        return a.name.localeCompare(b.name, 'pt-BR');
+      }
+
+      if (sortBy === 'name_asc') {
+        return a.name.localeCompare(b.name, 'pt-BR');
+      }
+
+      if (sortBy === 'name_desc') {
+        return b.name.localeCompare(a.name, 'pt-BR');
+      }
+
+      if (sortBy === 'hours_desc') {
+        const diff = (b.totalHours || 0) - (a.totalHours || 0);
+        if (diff !== 0) return diff;
+        return (b.totalAmount || 0) - (a.totalAmount || 0);
+      }
+
+      if (sortBy === 'daily_desc') {
+        const diff = (b.totalTravelDays || 0) - (a.totalTravelDays || 0);
+        if (diff !== 0) return diff;
+        return (b.totalAmount || 0) - (a.totalAmount || 0);
+      }
+
+      if (sortBy === 'missions_desc') {
+        const diff = (b.missionCount || 0) - (a.missionCount || 0);
+        if (diff !== 0) return diff;
+        return a.name.localeCompare(b.name, 'pt-BR');
+      }
+
+      if (sortBy === 'planned_desc') {
+        const diff = (b.plannedHours || 0) - (a.plannedHours || 0);
+        if (diff !== 0) return diff;
+        return (b.totalAmount || 0) - (a.totalAmount || 0);
+      }
+
+      return 0;
+    });
+  }, [memberPayouts, companyFilter, statusFilter, searchTerm, sortBy]);
 
   // Totais Executivos da Folha
   const summaryTotals = useMemo(() => {
@@ -821,6 +878,23 @@ export default function TeamPayoutsDashboard({
               <option value="pago">✅ Apenas Pagos</option>
             </select>
           </div>
+
+          <div className="pf-select-wrap pf-sort-wrap" title="Ordenar lista de colaboradores">
+            <ArrowUpDown size={14} className="text-amber" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="pf-select pf-select-sort"
+            >
+              <option value="balance_desc">💰 Saldo a Receber (Padrão)</option>
+              <option value="name_asc">🔤 Ordem Alfabética (A → Z)</option>
+              <option value="name_desc">🔤 Ordem Alfabética (Z → A)</option>
+              <option value="hours_desc">⚡ Mais Horas Extras</option>
+              <option value="daily_desc">📅 Mais Diárias de Campo</option>
+              <option value="missions_desc">🎯 Mais Missões Concluídas</option>
+              <option value="planned_desc">⏳ Mais Horas a Cumprir</option>
+            </select>
+          </div>
         </div>
 
         <div className="pf-right">
@@ -910,7 +984,7 @@ export default function TeamPayoutsDashboard({
                     >
                       <span className="pmc-prod-val">{member.missionCount}</span>
                       <span className="pmc-prod-lbl">
-                        Concluídas {member.scheduledMissionCount > 0 && <span className="pmc-scheduled-count">({member.scheduledMissionCount} agend.)</span>}
+                        Concluídas {member.scheduledMissionCount > 0 && <span className="pmc-scheduled-count">({member.scheduledMissionCount}&nbsp;agend.)</span>}
                       </span>
                     </div>
 
@@ -919,10 +993,10 @@ export default function TeamPayoutsDashboard({
                       onClick={() => handleOpenStatement(member, 'extra_hours')}
                       title="⚡ Raio-X: Clique para ver todas as missões que geraram hora extra para este colaborador"
                     >
-                      <span className="pmc-prod-val text-amber">{member.totalHours} h</span>
-                      <span className="pmc-prod-lbl">Extras ({formatBRL(member.totalOffHoursAmount)})</span>
+                      <span className="pmc-prod-val text-amber">{member.totalHours}h</span>
+                      <span className="pmc-prod-lbl">Extras&nbsp;({formatBRL(member.totalOffHoursAmount)})</span>
                       <span className="pmc-xray-chip" title="Abrir Raio-X de Horas Extras">
-                        <Zap size={10} /> Raio-X
+                        <Zap size={10} />&nbsp;Raio-X
                       </span>
                     </div>
 
@@ -931,10 +1005,10 @@ export default function TeamPayoutsDashboard({
                       onClick={() => handleOpenStatement(member, 'daily')}
                       title="📅 Raio-X: Clique para ver todas as viagens e missões com diária deste colaborador"
                     >
-                      <span className="pmc-prod-val text-cyan">{member.totalTravelDays} d</span>
-                      <span className="pmc-prod-lbl">Diárias ({formatBRL(member.totalDailyAmount)})</span>
+                      <span className="pmc-prod-val text-cyan">{member.totalTravelDays}d</span>
+                      <span className="pmc-prod-lbl">Diárias&nbsp;({formatBRL(member.totalDailyAmount)})</span>
                       <span className="pmc-xray-chip chip-cyan" title="Abrir Raio-X de Diárias">
-                        <Calendar size={10} /> Raio-X
+                        <Calendar size={10} />&nbsp;Raio-X
                       </span>
                     </div>
 
@@ -945,9 +1019,9 @@ export default function TeamPayoutsDashboard({
                         title="🎯 Raio-X: Clique para ver todas as missões com remuneração personalizada/cachê deste colaborador"
                       >
                         <span className="pmc-prod-val text-purple">{member.totalCustomCount}</span>
-                        <span className="pmc-prod-lbl">Cachês ({formatBRL(member.totalCustomAmount)})</span>
+                        <span className="pmc-prod-lbl">Cachês&nbsp;({formatBRL(member.totalCustomAmount)})</span>
                         <span className="pmc-xray-chip chip-purple" title="Abrir Raio-X de Personalizadas">
-                          <Sparkles size={10} /> Raio-X
+                          <Sparkles size={10} />&nbsp;Raio-X
                         </span>
                       </div>
                     )}
@@ -958,50 +1032,52 @@ export default function TeamPayoutsDashboard({
                         onClick={() => handleOpenStatement(member, 'scheduled')}
                         title="Horas extras previstas em missões agendadas que ainda não aconteceram. Clique para ver."
                       >
-                        <span>⏳ {member.plannedHours}h a cumprir</span>
-                        <small>(Não homologadas)</small>
+                        <span>⏳&nbsp;{member.plannedHours}h a cumprir</span>
+                        <small>(Não&nbsp;homologadas)</small>
                       </div>
                     )}
                   </div>
 
-                  {/* Chave PIX Evidenciada com Cópia Rápida */}
+                  {/* Chave PIX Evidenciada com Botão de Cópia Embaixo */}
                   <div className="pmc-col-pix">
                     <span className="pmc-pix-header">
                       <CreditCard size={12} className="text-cyan" />
                       <span>CHAVE PIX</span>
                     </span>
                     {member.pixKey ? (
-                      <div className="pmc-pix-box" title={`Chave PIX: ${member.pixKey}`}>
-                        <span className="pmc-pix-key-text">{member.pixKey}</span>
+                      <div className="pmc-pix-card-vertical" title={`Chave PIX: ${member.pixKey}`}>
+                        <div className="pmc-pix-key-val">
+                          {member.pixKey}
+                        </div>
                         <button
                           type="button"
-                          className={`btn-copy-pix ${copiedPixMemberId === member.id ? 'is-copied' : ''}`}
+                          className={`btn-copy-pix-full ${copiedPixMemberId === member.id ? 'is-copied' : ''}`}
                           onClick={() => handleCopyPix(member.pixKey, member.id)}
                           title="Copiar Chave PIX para a área de transferência"
                         >
                           {copiedPixMemberId === member.id ? (
                             <>
                               <Check size={12} />
-                              <span>Copiado!</span>
+                              <span>Chave Copiada!</span>
                             </>
                           ) : (
                             <>
                               <Copy size={12} />
-                              <span>Copiar</span>
+                              <span>Copiar Chave PIX</span>
                             </>
                           )}
                         </button>
                       </div>
                     ) : (
-                      <div className="pmc-pix-empty">
-                        <span className="pmc-pix-empty-text">Sem chave PIX</span>
+                      <div className="pmc-pix-empty-vertical">
+                        <span className="pmc-pix-empty-text">Sem chave cadastrada</span>
                         <button
                           type="button"
-                          className="btn-add-pix-link"
+                          className="btn-add-pix-full"
                           onClick={() => handleOpenEditRates(member)}
                           title="Cadastrar chave PIX deste colaborador"
                         >
-                          + Cadastrar
+                          <Plus size={12} /> Cadastrar Chave
                         </button>
                       </div>
                     )}
@@ -1043,7 +1119,7 @@ export default function TeamPayoutsDashboard({
                         onClick={() => handleOpenStatement(member, 'all')}
                         title="Ver Raio-X e Espelho detalhado de todas as missões do mês"
                       >
-                        <Zap size={13} className="text-amber" /> Raio-X / Espelho
+                        <Zap size={13} className="text-amber" /> <span>Raio-X&nbsp;/&nbsp;Espelho</span>
                       </button>
 
                       <button
@@ -1052,7 +1128,7 @@ export default function TeamPayoutsDashboard({
                         onClick={() => handleShareWhatsApp(member)}
                         title="Enviar demonstrativo no WhatsApp do colaborador"
                       >
-                        <MessageCircle size={14} /> WhatsApp
+                        <MessageCircle size={14} /> <span>WhatsApp</span>
                       </button>
                     </div>
                   </div>
