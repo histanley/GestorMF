@@ -46473,17 +46473,26 @@ body.light-theme .cs-upc-role-chip {
   position: absolute !important;
   bottom: -4px !important;
   right: -4px !important;
+  width: 30px !important;
+  height: 30px !important;
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
   border: 2px solid #f59e0b;
-  border-radius: 999px !important;
+  border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;
-  gap: 3px !important;
-  padding: 3px 8px !important;
+  justify-content: center !important;
+  padding: 0 !important;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 10px rgba(245, 158, 11, 0.35) !important;
   z-index: 4 !important;
-  pointer-events: none !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
   animation: floatInsignia 3s ease-in-out infinite alternate;
+}
+
+.cs-upc-avatar-insignia:hover {
+  transform: scale(1.18) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.8), 0 0 14px rgba(245, 158, 11, 0.5) !important;
 }
 
 @keyframes floatInsignia {
@@ -46513,15 +46522,24 @@ body.light-theme .cs-upc-role-chip {
   position: absolute !important;
   bottom: -4px !important;
   right: -4px !important;
+  width: 26px !important;
+  height: 26px !important;
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
   border: 2px solid #f59e0b;
-  border-radius: 999px !important;
+  border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;
-  gap: 3px !important;
-  padding: 2px 7px !important;
+  justify-content: center !important;
+  padding: 0 !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
   z-index: 3 !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  transition: transform 0.2s ease !important;
+}
+
+.podium-insignia-badge:hover {
+  transform: scale(1.2) !important;
 }
 
 .podium-insignia-badge .pib-ico {
@@ -46567,17 +46585,26 @@ body.light-theme .cs-upc-role-chip {
 
 .rmc-avatar-insignia-badge {
   position: absolute !important;
-  bottom: -4px !important;
-  right: -4px !important;
+  bottom: -3px !important;
+  right: -3px !important;
+  width: 22px !important;
+  height: 22px !important;
   background: #0f172a !important;
   border: 1.5px solid #f59e0b;
-  border-radius: 999px !important;
+  border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;
-  gap: 2px !important;
-  padding: 1px 5px !important;
+  justify-content: center !important;
+  padding: 0 !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7) !important;
   z-index: 2 !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  transition: transform 0.2s ease !important;
+}
+
+.rmc-avatar-insignia-badge:hover {
+  transform: scale(1.25) !important;
 }
 
 .rmc-avatar-insignia-badge .raib-icon {
@@ -46623,14 +46650,23 @@ body.light-theme .cs-upc-role-chip {
   position: absolute !important;
   bottom: -4px !important;
   right: -4px !important;
+  width: 34px !important;
+  height: 34px !important;
   border: 2px solid #f59e0b;
-  border-radius: 999px !important;
+  border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;
-  gap: 4px !important;
-  padding: 3px 9px !important;
+  justify-content: center !important;
+  padding: 0 !important;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7) !important;
   z-index: 3 !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  transition: transform 0.2s ease !important;
+}
+
+.ray-avatar-insignia:hover {
+  transform: scale(1.15) !important;
 }
 
 .ray-avatar-insignia .rai-icon {

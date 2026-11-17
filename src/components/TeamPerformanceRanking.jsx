@@ -486,14 +486,14 @@ export default function TeamPerformanceRanking({
                     {/* Insígnia Oficial de Patente sobre a Foto */}
                     <div
                       className="podium-insignia-badge"
-                      title={`Patente Nível ${tierTop2?.level} • ${tierTop2?.title}`}
+                      title={`${tierTop2?.icon} ${tierTop2?.title}`}
                       style={{
                         borderColor: tierTop2?.color || '#38bdf8',
                         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                       }}
                     >
                       <span className="pib-icon">{tierTop2?.icon}</span>
-                      <small className="pib-lvl" style={{ color: tierTop2?.color }}>N{tierTop2?.level}</small>
+                      
                     </div>
                   </div>
 
@@ -547,14 +547,14 @@ export default function TeamPerformanceRanking({
                     {/* Insígnia Oficial de Patente sobre a Foto */}
                     <div
                       className="podium-insignia-badge"
-                      title={`Patente Nível ${tierTop1?.level} • ${tierTop1?.title}`}
+                      title={`${tierTop1?.icon} ${tierTop1?.title}`}
                       style={{
                         borderColor: tierTop1?.color || '#fbbf24',
                         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                       }}
                     >
                       <span className="pib-icon">{tierTop1?.icon}</span>
-                      <small className="pib-lvl" style={{ color: tierTop1?.color }}>N{tierTop1?.level}</small>
+                      
                     </div>
                   </div>
 
@@ -605,14 +605,14 @@ export default function TeamPerformanceRanking({
                     {/* Insígnia Oficial de Patente sobre a Foto */}
                     <div
                       className="podium-insignia-badge"
-                      title={`Patente Nível ${tierTop3?.level} • ${tierTop3?.title}`}
+                      title={`${tierTop3?.icon} ${tierTop3?.title}`}
                       style={{
                         borderColor: tierTop3?.color || '#cd7f32',
                         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                       }}
                     >
                       <span className="pib-icon">{tierTop3?.icon}</span>
-                      <small className="pib-lvl" style={{ color: tierTop3?.color }}>N{tierTop3?.level}</small>
+                      
                     </div>
                   </div>
 
@@ -703,14 +703,14 @@ export default function TeamPerformanceRanking({
                     )}
                     <div
                       className="rmc-avatar-insignia-badge"
-                      title={`Insígnia: Nível ${memberTier.level} • ${memberTier.title}`}
+                      title={`${memberTier.icon} ${memberTier.title}`}
                       style={{
                         borderColor: memberTier.color,
                         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                       }}
                     >
                       <span className="rmc-insignia-icon">{memberTier.icon}</span>
-                      <small className="rmc-insignia-lvl" style={{ color: memberTier.color }}>N{memberTier.level}</small>
+                      
                     </div>
                   </div>
                 </div>
@@ -728,7 +728,7 @@ export default function TeamPerformanceRanking({
                       }}
                       title={memberTier.description}
                     >
-                      {memberTier.icon} Nível {memberTier.level} • {memberTier.title}
+                      {memberTier.icon} {memberTier.title}
                     </span>
                     <span className="rmc-company-tag">{member.company}</span>
                     {member.canDrive && (
@@ -787,7 +787,7 @@ export default function TeamPerformanceRanking({
                     <span className="rmc-progress-meta-next" style={{ color: memberTier.color }}>
                       {memberTier.level >= 10
                         ? '🌟 Hall da Fama Conquistado'
-                        : `Faltam ${memberTier.remainingForNext} XP para Nível ${memberTier.level + 1}`}
+                        : `Faltam ${memberTier.remainingForNext} XP para ${memberTier.nextTier?.title || 'próxima patente'}`}
                     </span>
                   </div>
                 </div>
@@ -890,14 +890,14 @@ export default function TeamPerformanceRanking({
                     {/* Insígnia Flutuante Sobre o Avatar */}
                     <div
                       className="ray-avatar-insignia"
-                      title={`Insígnia Oficial: Nível ${detailTier.level} • ${detailTier.title}`}
+                      title={`${detailTier.icon} ${detailTier.title}`}
                       style={{
                         borderColor: detailTier.color,
                         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                       }}
                     >
                       <span className="rai-icon">{detailTier.icon}</span>
-                      <small style={{ color: detailTier.color }}>N{detailTier.level}</small>
+                      
                     </div>
                   </div>
                   <div>
@@ -911,7 +911,7 @@ export default function TeamPerformanceRanking({
                           background: `${detailTier.color}15`,
                         }}
                       >
-                        {detailTier.icon} Nível {detailTier.level} • {detailTier.title}
+                        {detailTier.icon} {detailTier.title}
                       </span>
                       <span className="ray-company-pill">{selectedMemberDetail.company}</span>
                       {selectedMemberDetail.canDrive && (
@@ -938,7 +938,7 @@ export default function TeamPerformanceRanking({
                 <div className="ray-score-banner">
                   <div className="rsb-score-col">
                     <span className="rsb-tier-tag" style={{ color: detailTier.color, borderColor: `${detailTier.color}45` }}>
-                      {detailTier.icon} NÍVEL {detailTier.level} • {detailTier.title.toUpperCase()}
+                      {detailTier.icon} {detailTier.title.toUpperCase()}
                     </span>
                     <div className="rsb-score-number">
                       <Trophy size={26} className="text-gold" />
@@ -946,7 +946,7 @@ export default function TeamPerformanceRanking({
                       <span>XP</span>
                     </div>
                     <span className="rsb-score-hint">
-                      Meta 10.000 XP: <strong>{detailTier.overallPercent}%</strong> • {detailTier.level >= 10 ? 'Hall da Fama' : `Faltam ${detailTier.remainingForNext} XP para o próximo nível`}
+                      Meta 10.000 XP: <strong>{detailTier.overallPercent}%</strong> • {detailTier.level >= 10 ? 'Hall da Fama' : `Faltam ${detailTier.remainingForNext} XP para ${detailTier.nextTier?.title || 'próxima patente'}`}
                     </span>
                   </div>
 
