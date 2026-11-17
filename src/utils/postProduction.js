@@ -213,6 +213,37 @@ export function getMissionEditorsDeliveryMap(mission, members = []) {
       return;
     }
 
+    // Fallback inteligente: verifica se há registro de entrega deste editor no editionHistory da missão
+    if (Array.isArray(mission.editionHistory) && mission.editionHistory.length > 0) {
+      const eNameClean = cleanStr(editor.name);
+      const histMatch = [...mission.editionHistory].reverse().find((h) => {
+        if (!h) return false;
+        const uClean = cleanStr(h.user || '');
+        const tClean = cleanStr(h.title || '');
+        const dClean = cleanStr(h.description || '');
+        return (
+          uClean === eNameClean ||
+          uClean.includes(eNameClean) ||
+          eNameClean.includes(uClean) ||
+          tClean.includes(eNameClean) ||
+          dClean.includes(eNameClean)
+        );
+      });
+
+      if (histMatch) {
+        resultMap[eKey] = {
+          editorId: eKey,
+          editorName: editor.name,
+          status: 'delivered',
+          deliveredAt: histMatch.timestamp || mission.editionCompletedAt || new Date().toISOString(),
+          serverFilePath: histMatch.serverFilePath || mission.serverFilePath || null,
+          notes: histMatch.message || histMatch.description || null,
+          isLate: Boolean(histMatch.isOverdue),
+        };
+        return;
+      }
+    }
+
     // Caso genérico: se a missão tiver somente 1 editor e já estiver com status Edição Concluída
     if (assigned.length === 1 && (mission.editionStatus === 'Edição Concluída' || mission.editionStatus === 'Entregue')) {
       resultMap[eKey] = {

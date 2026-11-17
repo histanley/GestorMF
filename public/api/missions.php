@@ -276,17 +276,88 @@ if ($method === 'GET') {
             }
         } else {
             // Regra universal para qualquer missão com múltiplos editores:
-            if (!empty($editorsDelivery)) {
-                $hasPendingEditor = false;
-                foreach ($editorsDelivery as $edItem) {
-                    if (empty($edItem['status']) || $edItem['status'] !== 'delivered') {
-                        $hasPendingEditor = true;
-                        break;
+            $assignedEditorIds = !empty($m['editor_ids']) ? json_decode($m['editor_ids'], true) : [];
+            if (!is_array($assignedEditorIds)) $assignedEditorIds = [];
+
+            // Auto-recuperação: se houver entregas registradas no edition_history que não estejam no editors_delivery
+            $edHistory = !empty($m['edition_history']) ? json_decode($m['edition_history'], true) : [];
+            if (is_array($edHistory) && !empty($edHistory) && !empty($assignedEditorIds)) {
+                foreach ($edHistory as $hist) {
+                    if (empty($hist) || !is_array($hist)) continue;
+                    $hUser = strtolower(trim($hist['user'] ?? ''));
+                    $hDesc = strtolower(trim($hist['description'] ?? ''));
+                    $hTitle = strtolower(trim($hist['title'] ?? ''));
+                    foreach ($assignedEditorIds as $aId) {
+                        $aIdStr = (string) $aId;
+                        if (empty($editorsDelivery[$aIdStr]) || ($editorsDelivery[$aIdStr]['status'] ?? '') !== 'delivered') {
+                            try {
+                                $memStmt = $db->prepare("SELECT id, name FROM members WHERE id = ?");
+                                $memStmt->execute([$aIdStr]);
+                                $memRow = $memStmt->fetch();
+                                if ($memRow) {
+                                    $memName = strtolower(trim($memRow['name']));
+                                    $firstWord = explode(' ', $memName)[0];
+                                    if (
+                                        ($memName !== '' && (strpos($hUser, $memName) !== false || strpos($hDesc, $memName) !== false || strpos($hTitle, $memName) !== false)) ||
+                                        ($firstWord && strlen($firstWord) >= 3 && (strpos($hUser, $firstWord) !== false || strpos($hDesc, $firstWord) !== false || strpos($hTitle, $firstWord) !== false))
+                                    ) {
+                                        $editorsDelivery[$aIdStr] = [
+                                            'editorId' => $aIdStr,
+                                            'editorName' => $memRow['name'],
+                                            'status' => 'delivered',
+                                            'deliveredAt' => $hist['timestamp'] ?? date('c'),
+                                            'serverFilePath' => $hist['serverFilePath'] ?? $m['server_file_path'] ?? null,
+                                            'notes' => $hist['message'] ?? $hist['description'] ?? null,
+                                            'isLate' => !empty($hist['isOverdue'])
+                                        ];
+                                    }
+                                }
+                            } catch (Exception $eH) {}
+                        }
                     }
                 }
+            }
+
+            if (!empty($editorsDelivery)) {
+                $hasPendingEditor = false;
+                if (count($assignedEditorIds) > 1) {
+                    foreach ($assignedEditorIds as $aId) {
+                        $aIdStr = (string) $aId;
+                        $deliv = $editorsDelivery[$aIdStr] ?? null;
+                        if (!$deliv) {
+                            foreach ($editorsDelivery as $item) {
+                                if (($item['editorId'] ?? '') === $aIdStr) {
+                                    $deliv = $item;
+                                    break;
+                                }
+                            }
+                        }
+                        if (empty($deliv) || ($deliv['status'] ?? '') !== 'delivered') {
+                            $hasPendingEditor = true;
+                            break;
+                        }
+                    }
+                } else {
+                    foreach ($editorsDelivery as $edItem) {
+                        if (empty($edItem['status']) || $edItem['status'] !== 'delivered') {
+                            $hasPendingEditor = true;
+                            break;
+                        }
+                    }
+                }
+
                 if ($hasPendingEditor && in_array($m['edition_status'], ['Edição Concluída', 'Entregue'])) {
                     $m['edition_status'] = 'Em Edição';
-                    $db->prepare("UPDATE missions SET edition_status = 'Em Edição' WHERE id = ?")->execute([$m['id']]);
+                    $db->prepare("UPDATE missions SET edition_status = 'Em Edição', editors_delivery = ? WHERE id = ?")->execute([
+                        json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
+                        $m['id']
+                    ]);
+                } elseif (!$hasPendingEditor && count($assignedEditorIds) > 1 && in_array($m['edition_status'], ['Em Edição', 'Pendente'])) {
+                    $m['edition_status'] = 'Edição Concluída';
+                    $db->prepare("UPDATE missions SET edition_status = 'Edição Concluída', editors_delivery = ? WHERE id = ?")->execute([
+                        json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
+                        $m['id']
+                    ]);
                 }
             }
         }
@@ -870,7 +941,72 @@ if ($method === 'POST' || $method === 'PUT') {
             }
         }
 
-        if ($isEditor && isset($data['editionStatus'])) {
+        $existingDelivery = !empty($existing['editors_delivery']) ? json_decode($existing['editors_delivery'], true) : [];
+        if (!is_array($existingDelivery)) {
+            $existingDelivery = [];
+        }
+
+        $incomingDelivery = !empty($data['editorsDelivery'])
+            ? (is_array($data['editorsDelivery']) ? $data['editorsDelivery'] : json_decode($data['editorsDelivery'], true))
+            : [];
+        if (!is_array($incomingDelivery)) {
+            $incomingDelivery = [];
+        }
+
+        // Mescla com segurança as entregas existentes para preservar o que já foi entregue por outros editores
+        $mergedDelivery = $existingDelivery;
+        foreach ($incomingDelivery as $k => $v) {
+            $mergedDelivery[$k] = $v;
+        }
+
+        // Valida editores designados
+        $assignedIds = !empty($existing['editor_ids']) ? json_decode($existing['editor_ids'], true) : [];
+        if (!is_array($assignedIds) || empty($assignedIds)) {
+            if (!empty($existing['editor_id'])) {
+                $assignedIds = [(string) $existing['editor_id']];
+            }
+        }
+
+        $allDelivered = false;
+        if (!empty($mergedDelivery)) {
+            if (!empty($assignedIds)) {
+                $allDelivered = true;
+                foreach ($assignedIds as $aId) {
+                    $aIdStr = (string) $aId;
+                    $item = $mergedDelivery[$aIdStr] ?? null;
+                    if (!$item) {
+                        foreach ($mergedDelivery as $mVal) {
+                            if (($mVal['editorId'] ?? '') === $aIdStr) {
+                                $item = $mVal;
+                                break;
+                            }
+                        }
+                    }
+                    if (empty($item) || ($item['status'] ?? '') !== 'delivered') {
+                        $allDelivered = false;
+                        break;
+                    }
+                }
+            } else {
+                $allDelivered = true;
+                foreach ($mergedDelivery as $mItem) {
+                    if (empty($mItem['status']) || ($mItem['status'] ?? '') !== 'delivered') {
+                        $allDelivered = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ($allDelivered) {
+            $newEditionStatus = 'Edição Concluída';
+            $editionCompletedAt = date('Y-m-d H:i:s');
+            $editionCompletedBy = $user['name'];
+            $newMissionStatus = 'Pendente';
+        } elseif (!empty($mergedDelivery)) {
+            $newEditionStatus = 'Em Edição';
+            $newMissionStatus = 'Pendente';
+        } elseif ($isEditor && isset($data['editionStatus'])) {
             $allowedEdition = ['Pendente', 'Em Edição', 'Edição Concluída', 'Entregue', 'Entregue ao Cliente', 'Não se aplica', 'Não se aplica (Mega Print / Instalação)'];
             if (in_array($data['editionStatus'], $allowedEdition)) {
                 $newEditionStatus = $data['editionStatus'];
@@ -884,6 +1020,8 @@ if ($method === 'POST' || $method === 'PUT') {
                 }
             }
         }
+
+        $editorsDeliveryJson = !empty($mergedDelivery) ? json_encode($mergedDelivery, JSON_UNESCAPED_UNICODE) : ($existing['editors_delivery'] ?? null);
 
         // Histórico de notas append-only com autor e carimbo de data/hora
         if (isset($data['notes']) && trim($data['notes']) !== '') {
@@ -924,11 +1062,12 @@ if ($method === 'POST' || $method === 'PUT') {
                     server_file_path = ?,
                     reopen_reason = ?,
                     notes = ?,
+                    editors_delivery = ?,
                     version = version + 1,
                     updated_at = NOW()
                 WHERE id = ? AND version = ?
             ");
-            $stmtOp->execute([$newMissionStatus, $newEditionStatus, $editionDeliveryStatus, $isOverdue, $editionHistory, $editionCompletedAt, $editionCompletedBy, $serverFilePath, $reopenReason, $notes, $id, $expectedOpVer]);
+            $stmtOp->execute([$newMissionStatus, $newEditionStatus, $editionDeliveryStatus, $isOverdue, $editionHistory, $editionCompletedAt, $editionCompletedBy, $serverFilePath, $reopenReason, $notes, $editorsDeliveryJson, $id, $expectedOpVer]);
 
             if ($stmtOp->rowCount() === 0) {
                 $db->rollBack();
@@ -946,6 +1085,48 @@ if ($method === 'POST' || $method === 'PUT') {
 
             $newVersion = $expectedOpVer + 1;
             $db->commit();
+
+            // Notifica os administradores se todos os editores finalizaram
+            if ($allDelivered && ($existing['edition_status'] ?? '') !== 'Edição Concluída') {
+                try {
+                    $msgId = 'msg-pp-' . substr(md5($id . microtime()), 0, 10);
+                    $msgCode = !empty($existing['code']) ? "#{$existing['code']}" : "#{$id}";
+                    $msgTitle = "🎬 Pós-Produção Concluída para Avaliação: {$msgCode}";
+                    $editorNames = !empty($existing['editor_names_display']) ? $existing['editor_names_display'] : $user['name'];
+                    $msgBody = "Todos os editores escalados ({$editorNames}) concluíram a pós-produção da missão '{$existing['description']}'. Material pronto para avaliação e aprovação da diretoria na Central do Administrador.";
+
+                    $colsSM = [];
+                    try {
+                        $stCols = $db->query("SHOW COLUMNS FROM system_messages");
+                        while ($cRow = $stCols->fetch()) {
+                            $colsSM[strtolower($cRow['Field'])] = true;
+                        }
+                    } catch (Exception $eCols) {}
+
+                    $hasDismissedCol = isset($colsSM['dismissed_by']);
+                    if ($hasDismissedCol) {
+                        $stmtMsg = $db->prepare("
+                            INSERT INTO system_messages (
+                                id, sender_id, sender_name, sender_role, recipient_type, recipient_id, recipient_name, title, message, priority, read_by, dismissed_by, created_at
+                            ) VALUES (
+                                ?, ?, ?, 'Editor', 'ALL', NULL, NULL, ?, ?, 'HIGH', '[]', '[]', NOW()
+                            )
+                        ");
+                        $stmtMsg->execute([$msgId, $user['id'], $user['name'], $msgTitle, $msgBody]);
+                    } else {
+                        $stmtMsg = $db->prepare("
+                            INSERT INTO system_messages (
+                                id, sender_id, sender_name, sender_role, recipient_type, recipient_id, recipient_name, title, message, priority, read_by, created_at
+                            ) VALUES (
+                                ?, ?, ?, 'Editor', 'ALL', NULL, NULL, ?, ?, 'HIGH', '[]', NOW()
+                            )
+                        ");
+                        $stmtMsg->execute([$msgId, $user['id'], $user['name'], $msgTitle, $msgBody]);
+                    }
+                } catch (Exception $eMsg) {
+                    error_log('[GestorMF PP Completed Message Error] ' . $eMsg->getMessage());
+                }
+            }
         } catch (Throwable $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
