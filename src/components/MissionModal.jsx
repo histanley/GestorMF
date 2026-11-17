@@ -1620,7 +1620,7 @@ export default function MissionModal({
   const previewMissionCode = generateNextMissionCode(formData.date, missions, editingMission);
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" style={{ zIndex: 3000 }}>
       <div className="modal-box modal-box-large mm-modal-container">
         {/* ---- Cabeçalho Moderno e Alinhado ---- */}
         <div className="modal-header mm-modal-header">

@@ -96,6 +96,7 @@ export default function TeamPayoutsDashboard({
   vehicles = [],
   baseLocation = null,
   onUpdateMember,
+  onEditMission = null,
 }) {
   // Mês selecionado (YYYY-MM)
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -1821,6 +1822,10 @@ export default function TeamPayoutsDashboard({
           baseLocation={baseLocation}
           userRole="admin"
           onClose={() => setSelectedMissionForDetail(null)}
+          onEditMission={(m) => {
+            setSelectedMissionForDetail(null);
+            if (onEditMission) onEditMission(m);
+          }}
         />
       )}
     </div>

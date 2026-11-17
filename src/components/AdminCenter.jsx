@@ -63,6 +63,7 @@ export default function AdminCenter({
   onUpdateMember = null,
   onRespondExtraHours = null,
   onSaveMission = null,
+  onEditMission = null,
   reloadServerMissions = null,
 }) {
   // 1. Extrai todas as solicitações de horas extras de todas as missões
@@ -1062,6 +1063,7 @@ export default function AdminCenter({
               vehicles={vehicles}
               baseLocation={baseLocation}
               onUpdateMember={onUpdateMember}
+              onEditMission={onEditMission}
             />
           </div>
         )}
