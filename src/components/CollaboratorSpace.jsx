@@ -39,6 +39,7 @@ import {
   Printer,
 } from 'lucide-react';
 import ConcludePostProductionModal from './ConcludePostProductionModal';
+import { PixLogo, detectAndFormatPix } from '../utils/pixUtils';
 import {
   resolveMissionEditors,
   getMissionEditionDeliverySummary,
@@ -490,10 +491,15 @@ export default function CollaboratorSpace({
     };
   }, [myMember, myMissions, currentMonthKey, closures]);
 
-  // Copia PIX
+  // Detecção inteligente e Formatação Padronizada da Chave PIX (Telefone, E-mail, CPF, Chave Aleatória)
+  const pixData = useMemo(() => detectAndFormatPix(myMember?.pixKey), [myMember?.pixKey]);
+  const PixTypeIcon = pixData.icon;
+
+  // Copia PIX (copia o valor limpo/original para compatibilidade total em apps bancários)
   const handleCopyPix = () => {
-    if (!myMember?.pixKey) return;
-    navigator.clipboard.writeText(myMember.pixKey);
+    const rawToCopy = pixData.clean || myMember?.pixKey;
+    if (!rawToCopy) return;
+    navigator.clipboard.writeText(rawToCopy);
     setCopiedPix(true);
     setTimeout(() => setCopiedPix(false), 2000);
   };
@@ -787,16 +793,20 @@ export default function CollaboratorSpace({
   return (
     <div className="collaborator-space-container">
       {/* ============================================================== */}
-      {/* 1. HERO BANNER DO COLABORADOR                                  */}
+      {/* 1. HERO BANNER DO COLABORADOR (VIP EXECUTIVE ID CARD)          */}
       {/* ============================================================== */}
       <div className="cs-hero-card">
+        {/* Perfil e Identidade do Colaborador */}
         <div className="cs-hero-profile-wrap">
-          <div className="cs-hero-avatar">
-            {myMember.photoUrl ? (
-              <img src={myMember.photoUrl} alt={myMember.name} />
-            ) : (
-              <span>{myMember.name.slice(0, 2).toUpperCase()}</span>
-            )}
+          <div className="cs-hero-avatar-box">
+            <div className="cs-hero-avatar">
+              {myMember.photoUrl ? (
+                <img src={myMember.photoUrl} alt={myMember.name} />
+              ) : (
+                <span>{myMember.name.slice(0, 2).toUpperCase()}</span>
+              )}
+            </div>
+            <span className="cs-avatar-online-beacon" title="Colaborador Ativo na Empresa" />
           </div>
 
           <div className="cs-hero-text">
@@ -806,41 +816,49 @@ export default function CollaboratorSpace({
                 {myMember.company || 'MegaFilmes'}
               </span>
             </div>
+
+            {/* Faixa Organizada de Funções e Habilitação */}
             <div className="cs-hero-badges-row">
-              <span className="cs-hero-role" title="Função Principal na Empresa (Somente Leitura)">
-                💼 {myMember.role || 'Colaborador'}
+              <span className="cs-hero-role cs-hero-role-main" title="Função Principal na Empresa">
+                <span className="cs-role-ico">{ROLE_ICONS_MAP[myMember.role] || '💼'}</span>
+                <strong>{myMember.role || 'Colaborador'}</strong>
                 <span className="cs-role-tag-badge">Principal</span>
               </span>
+
               {Array.isArray(myMember.secondaryRoles) && myMember.secondaryRoles.map((secRole) => (
-                <span key={secRole} className="cs-hero-role-secondary" title="Função Adicional habilitada na Empresa (Somente Leitura)">
-                  🎯 {secRole}
+                <span key={secRole} className="cs-hero-role-secondary" title={`Função Adicional Habilitada: ${secRole}`}>
+                  <span className="cs-role-ico-sec">{ROLE_ICONS_MAP[secRole] || '🎯'}</span>
+                  <span>{secRole}</span>
                   <span className="cs-role-tag-badge sec">Adicional</span>
                 </span>
               ))}
+
               {myMember.canDrive && (
-                <span className="cs-hero-cnh">
-                  🚗 CNH {myMember.cnhCategory || 'AB'}
+                <span className="cs-hero-cnh" title="Habilitado para conduzir viaturas da frota">
+                  <Car size={13} className="cnh-car-icon" />
+                  <span>CNH {myMember.cnhCategory || 'AB'}</span>
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Divisor Visual Sutil para Harmonia Central */}
-        <div className="cs-hero-divider" />
-
-        {/* Chave PIX com Cadastro, Edição e Exclusão */}
+        {/* Chave PIX Estilo Carteira Digital com Identidade Oficial */}
         <div className="cs-pix-box">
           {isEditingPix ? (
             <div className="cs-pix-edit-wrap">
-              <span className="cs-pix-edit-title">
-                {myMember?.pixKey ? '✏️ Editar Chave PIX' : '➕ Cadastrar Chave PIX'}
-              </span>
+              <div className="cs-pix-edit-header">
+                <PixLogo size={18} glow />
+                <span className="cs-pix-edit-title">
+                  {myMember?.pixKey ? 'Editar Chave PIX' : 'Cadastrar Chave PIX'}
+                </span>
+              </div>
+
               <div className="cs-pix-edit-row">
                 <input
                   type="text"
                   className="cs-pix-input"
-                  placeholder="CPF, celular, e-mail ou aleatória..."
+                  placeholder="Celular (DDD + número), CPF, E-mail ou Chave Aleatória..."
                   value={pixInput}
                   autoFocus
                   onChange={(e) => setPixInput(e.target.value)}
@@ -859,7 +877,7 @@ export default function CollaboratorSpace({
                   disabled={isSavingPix}
                   title="Salvar Chave PIX"
                 >
-                  <Check size={13} />
+                  <Check size={14} />
                   <span>Salvar</span>
                 </button>
                 <button
@@ -869,19 +887,55 @@ export default function CollaboratorSpace({
                   disabled={isSavingPix}
                   title="Cancelar"
                 >
-                  <X size={13} />
+                  <X size={14} />
                 </button>
               </div>
+
+              {/* Dica / Preview em Tempo Real do Padrão Detectado */}
+              {pixInput.trim() && (() => {
+                const detected = detectAndFormatPix(pixInput);
+                const DetectedIcon = detected.icon;
+                return (
+                  <div className="cs-pix-live-preview">
+                    <DetectedIcon size={12} style={{ color: detected.color }} />
+                    <span className="cs-pix-live-label" style={{ color: detected.color }}>
+                      {detected.label}:
+                    </span>
+                    <strong className="cs-pix-live-val">{detected.formatted}</strong>
+                  </div>
+                );
+              })()}
             </div>
           ) : (
-            <>
+            <div className="cs-pix-content-row">
+              {/* Símbolo Oficial do PIX */}
+              <div className="cs-pix-badge-emblem" title="Chave PIX do Banco Central">
+                <PixLogo size={24} glow />
+              </div>
+
               <div className="cs-pix-info">
-                <span className="cs-pix-label">
-                  <CreditCard size={12} className="text-cyan icon-shrink" style={{ verticalAlign: 'middle', marginRight: '5px' }} />
-                  Chave PIX Cadastrada
-                </span>
-                <strong className={`cs-pix-value ${!myMember?.pixKey ? 'is-empty' : ''}`}>
-                  {myMember?.pixKey || 'Não cadastrada'}
+                <div className="cs-pix-label-line">
+                  <span className="cs-pix-label">Chave PIX Cadastrada</span>
+                  {myMember?.pixKey && (
+                    <span
+                      className="cs-pix-category-pill"
+                      style={{
+                        color: pixData.color,
+                        borderColor: `${pixData.color}44`,
+                        background: `${pixData.color}14`,
+                      }}
+                    >
+                      <PixTypeIcon size={11} />
+                      <span>{pixData.label}</span>
+                    </span>
+                  )}
+                </div>
+
+                <strong
+                  className={`cs-pix-value ${!myMember?.pixKey ? 'is-empty' : ''}`}
+                  title={myMember?.pixKey ? `Chave Original: ${myMember.pixKey}` : 'Sem chave cadastrada'}
+                >
+                  {pixData.formatted}
                 </strong>
               </div>
 
@@ -894,25 +948,26 @@ export default function CollaboratorSpace({
                       className={`cs-btn-copy-pix ${copiedPix ? 'copied' : ''}`}
                       title="Copiar Chave PIX"
                     >
-                      {copiedPix ? <Check size={13} /> : <Copy size={13} />}
+                      {copiedPix ? <Check size={14} /> : <Copy size={14} />}
                       <span>{copiedPix ? 'Copiado!' : 'Copiar'}</span>
                     </button>
+
                     <button
                       type="button"
                       onClick={handleStartEditPix}
-                      className="cs-btn-pix-action btn-edit"
+                      className="cs-btn-pix-icon-btn btn-edit"
                       title="Editar Chave PIX"
                     >
-                      <Edit2 size={13} />
-                      <span>Editar</span>
+                      <Edit2 size={15} />
                     </button>
+
                     <button
                       type="button"
                       onClick={handleDeletePix}
-                      className="cs-btn-pix-action btn-delete"
+                      className="cs-btn-pix-icon-btn btn-delete"
                       title="Excluir Chave PIX"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={15} />
                     </button>
                   </>
                 ) : (
@@ -920,18 +975,18 @@ export default function CollaboratorSpace({
                     type="button"
                     onClick={handleStartEditPix}
                     className="cs-btn-pix-add"
-                    title="Cadastrar Chave PIX para recebimentos"
+                    title="Cadastrar Chave PIX para recebimento de horas e diárias"
                   >
-                    <Plus size={13} />
+                    <Plus size={14} />
                     <span>Cadastrar PIX</span>
                   </button>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
 
-        {/* Divisor Visual Sutil */}
+        {/* Divisor Visual Sutil para Harmonia com Bloco de XP */}
         <div className="cs-hero-divider" />
 
         {/* ============================================================== */}
