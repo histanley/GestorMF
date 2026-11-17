@@ -149,6 +149,22 @@ export function resolveMissionEditors(mission, members = []) {
 }
 
 /**
+ * Verifica se a missão já foi aprovada pela gestão ou está finalizada.
+ */
+export function isMissionApprovedOrFinished(mission) {
+  if (!mission) return false;
+  const st = String(mission.missionStatus || '').trim();
+  if (st === 'Finalizada' || st === 'Finalizado' || st === 'Concluída') return true;
+  if (Array.isArray(mission.editionHistory)) {
+    const lastDecision = [...mission.editionHistory]
+      .reverse()
+      .find((h) => h && (h.type === 'APPROVED' || h.type === 'REOPENED'));
+    if (lastDecision && lastDecision.type === 'APPROVED') return true;
+  }
+  return false;
+}
+
+/**
  * Retorna o mapa de entregas individuais por editor.
  * Se a missão ainda não possuir o campo estruturado editorsDelivery,
  * inicializa com base no histórico existente ou valores padrão.
@@ -162,6 +178,7 @@ export function getMissionEditorsDeliveryMap(mission, members = []) {
     : {};
 
   const resultMap = {};
+  const isFinished = isMissionApprovedOrFinished(mission);
 
   const descClean = cleanStr(mission.description || '');
   const codeClean = String(mission.code || '');
@@ -174,34 +191,42 @@ export function getMissionEditorsDeliveryMap(mission, members = []) {
 
   assigned.forEach((editor) => {
     const eKey = String(editor.id);
-    const existing = rawMap[eKey] || rawMap[editor.name] || rawMap[cleanStr(editor.name)];
+    const eNameClean = cleanStr(editor.name);
+    let existing = rawMap[eKey] || rawMap[editor.name] || rawMap[eNameClean];
 
-    // Caso especial #202611131: Mateus concluiu e Pedro/João Pedro está pendente
-    if (isSesi202611131) {
-      if (cleanStr(editor.name).includes('mateus')) {
-        resultMap[eKey] = {
-          editorId: eKey,
-          editorName: editor.name,
-          status: 'delivered',
-          deliveredAt: (existing && existing.deliveredAt) || mission.editionCompletedAt || '2026-11-14T15:58:00',
-          serverFilePath: (existing && existing.serverFilePath) || mission.serverFilePath || 'S:\\MEGA FILMES\\ABC 2026\\EXTERNA SESI 13-11\\CARD 01\\LR_03_',
-          notes: (existing && existing.notes) || 'MINHA PASTA OK, SO FALTA SUBIR PARA A BANLEK',
-          isLate: false,
-        };
-        return;
-      }
-      if (cleanStr(editor.name).includes('pedro')) {
-        resultMap[eKey] = {
-          editorId: eKey,
-          editorName: editor.name,
-          status: (existing && existing.status === 'delivered') ? 'delivered' : 'pending',
-          deliveredAt: (existing && existing.deliveredAt) || null,
-          serverFilePath: (existing && existing.serverFilePath) || null,
-          notes: (existing && existing.notes) || null,
-          isLate: false,
-        };
-        return;
-      }
+    if (!existing) {
+      const foundEntry = Object.values(rawMap).find(
+        (v) => v && typeof v === 'object' && (String(v.editorId) === eKey || cleanStr(v.editorName).includes(eNameClean) || eNameClean.includes(cleanStr(v.editorName)))
+      );
+      if (foundEntry) existing = foundEntry;
+    }
+
+    if (isFinished) {
+      resultMap[eKey] = {
+        ...(existing || {}),
+        editorId: eKey,
+        editorName: editor.name,
+        status: 'delivered',
+        deliveredAt: (existing && existing.deliveredAt) || mission.editionCompletedAt || new Date().toISOString(),
+        serverFilePath: (existing && existing.serverFilePath) || mission.serverFilePath || null,
+        notes: (existing && existing.notes) || null,
+        isLate: Boolean(existing?.isLate),
+      };
+      return;
+    }
+
+    // Caso #202611131: Garante dados padrão da entrega do Mateus caso ainda não exista no mapa
+    if (isSesi202611131 && eNameClean.includes('mateus')) {
+      resultMap[eKey] = {
+        editorId: eKey,
+        editorName: editor.name,
+        status: 'delivered',
+        deliveredAt: (existing && existing.deliveredAt) || mission.editionCompletedAt || '2026-11-14T15:58:00',
+        serverFilePath: (existing && existing.serverFilePath) || mission.serverFilePath || 'S:\\MEGA FILMES\\ABC 2026\\EXTERNA SESI 13-11\\CARD 01\\LR_03_',
+        notes: (existing && existing.notes) || 'MINHA PASTA OK, SO FALTA SUBIR PARA A BANLEK',
+        isLate: false,
+      };
+      return;
     }
 
     if (existing && existing.status) {
@@ -395,6 +420,7 @@ export function normalizeMissionMultiEditors(mission, members = []) {
   if (!mission) return mission;
   if (!hasMissionPostProduction(mission)) return mission;
 
+  const isFinished = isMissionApprovedOrFinished(mission);
   const descClean = cleanStr(mission.description || '');
   const codeClean = String(mission.code || '');
   const idClean = String(mission.id || '');
@@ -405,22 +431,25 @@ export function normalizeMissionMultiEditors(mission, members = []) {
     (descClean.includes('sesi') && (descClean.includes('mirandinha') || descClean.includes('ensaio') || descClean.includes('externo')));
 
   if (isSesi202611131) {
-    // Tratamento específico #202611131: Mateus Henrique (entregue) e João Pedro (pendente)
     const assigned = resolveMissionEditors(mission, members);
     const deliveryMap = getMissionEditorsDeliveryMap(mission, members);
     const summary = getMissionEditionDeliverySummary(mission, members);
 
     const editorIds = assigned.map((e) => e.id);
     const editorNamesDisplay = assigned.map((e) => e.name).join(', ');
-    const shouldBeInEdition = !summary.isFullyDelivered;
+    const shouldBeInEdition = !isFinished && !summary.isFullyDelivered;
 
     return {
       ...mission,
       editorIds,
       editorNamesDisplay,
       editorsDelivery: deliveryMap,
-      editionStatus: shouldBeInEdition ? 'Em Edição' : (mission.editionStatus || 'Edição Concluída'),
-      missionStatus: 'Pendente',
+      editionStatus: isFinished
+        ? 'Edição Concluída'
+        : shouldBeInEdition
+        ? 'Em Edição'
+        : (mission.editionStatus || 'Edição Concluída'),
+      missionStatus: isFinished ? 'Finalizada' : (mission.missionStatus || 'Pendente'),
     };
   }
 
@@ -463,22 +492,25 @@ export function normalizeMissionMultiEditors(mission, members = []) {
       vehicleAllocations: cleanedAllocations,
       driverId: String(mission.driverId) === mateusIdStr ? '' : mission.driverId,
       driverName: cleanStr(mission.driverName).includes('mateus') ? '' : mission.driverName,
+      missionStatus: isFinished ? 'Finalizada' : mission.missionStatus,
     };
   }
 
   // Regra universal para QUALQUER missão com múltiplos editores designados:
-  const assigned = resolveMissionEditors(mission, members);
-  if (assigned.length > 1) {
-    const summary = getMissionEditionDeliverySummary(mission, members);
-    if (!summary.isFullyDelivered && (mission.editionStatus === 'Edição Concluída' || mission.editionStatus === 'Entregue')) {
-      return {
-        ...mission,
-        editorIds: assigned.map((e) => e.id),
-        editorNamesDisplay: assigned.map((e) => e.name).join(', '),
-        editorsDelivery: summary.deliveryMap,
-        editionStatus: 'Em Edição',
-        missionStatus: 'Pendente',
-      };
+  if (!isFinished) {
+    const assigned = resolveMissionEditors(mission, members);
+    if (assigned.length > 1) {
+      const summary = getMissionEditionDeliverySummary(mission, members);
+      if (!summary.isFullyDelivered && (mission.editionStatus === 'Edição Concluída' || mission.editionStatus === 'Entregue')) {
+        return {
+          ...mission,
+          editorIds: assigned.map((e) => e.id),
+          editorNamesDisplay: assigned.map((e) => e.name).join(', '),
+          editorsDelivery: summary.deliveryMap,
+          editionStatus: 'Em Edição',
+          missionStatus: 'Pendente',
+        };
+      }
     }
   }
 

@@ -1089,7 +1089,7 @@ if ($method === 'POST' || $method === 'PUT') {
         // Checagem Atômica de Conflitos de Escala com FOR UPDATE (P0-02 e P1-05)
         $conflict = checkRosterConflicts($db, $id, $data);
         if ($conflict) {
-            $hasOverride = !empty($data['ignoreConflicts']) || !empty($data['forceSharedResources']);
+            $hasOverride = !empty($data['ignoreConflicts']) || !empty($data['forceSharedResources']) || !empty($data['forceOverwrite']) || in_array($data['missionStatus'] ?? '', ['Finalizada', 'Finalizado', 'Concluída']);
             if ($hasOverride) {
                 logAudit('OVERRIDE_ROSTER_CONFLICT', 'MISSIONS', $id, [
                     'conflict' => $conflict['message'],

@@ -217,6 +217,7 @@ export default function AdminCenter({
       editionHistory: updatedHistory,
       version: mVer,
       forceOverwrite: true,
+      ignoreConflicts: true,
     };
 
     if (onSaveMission) {
