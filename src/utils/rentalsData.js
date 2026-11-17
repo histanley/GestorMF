@@ -150,25 +150,74 @@ export function formatPhoneBR(value) {
 }
 
 /**
- * Retorna URL da foto do equipamento com cache-buster para garantir atualização imediata no navegador
+ * Retorna URL da foto do equipamento com cache-buster ou fallback para backup perpétuo
  */
-export function getEquipPhotoUrl(url) {
-  if (!url) return '';
+export function getEquipPhotoUrl(url, id = '', photoBackup = '') {
+  if (photoBackup && typeof photoBackup === 'string' && photoBackup.startsWith('data:image/')) {
+    if (!url) return photoBackup;
+  }
+  if (!url) {
+    if (id) return `/images/equipment/${id}.jpg`;
+    return '';
+  }
   if (url.startsWith('data:') || url.startsWith('blob:')) return url;
   const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}v=20261114b`;
+  return `${url}${sep}t=20261117`;
 }
 
 /**
- * Trata fallback de foto de vistoria caso o carregamento direto por Apache falhe,
- * acionando a rota PHP /api/rentals.php?action=view_photo que faz streaming e auto-recuperação.
+ * Trata fallback de foto com resiliência total a 404 e restauração perpétua
+ * Tenta:
+ * 1. Usar photoBackup (base64) se disponível
+ * 2. Streaming PHP auto-restauração (/api/rentals.php?action=view_photo)
+ * 3. Streaming PHP por ID de equipamento (/api/rentals.php?action=equipment_photo&id=...)
+ * 4. Imagem estática padrão (/images/equipment/{id}.jpg)
+ * 5. Placeholder SVG limpo (nunca exibe ícone de imagem quebrada do navegador)
  */
-export function handleRentalPhotoError(e, photoUrl) {
-  if (!photoUrl || photoUrl.startsWith('data:') || photoUrl.startsWith('blob:')) return;
-  const fileName = photoUrl.split('?')[0].split('/').pop();
-  if (fileName && !e.target.src.includes('action=view_photo')) {
-    e.target.src = `/api/rentals.php?action=view_photo&file=${encodeURIComponent(fileName)}`;
+export function handleRentalPhotoError(e, photoUrl = '', equipmentId = '', photoBackup = '') {
+  const img = e.currentTarget;
+  if (!img) return;
+
+  const currentSrc = img.src || '';
+  const attempts = Number(img.dataset.failAttempts || 0);
+  img.dataset.failAttempts = attempts + 1;
+
+  // Tentativa 1: se temos backup base64 em memória/objeto
+  if (photoBackup && typeof photoBackup === 'string' && photoBackup.startsWith('data:image/')) {
+    if (currentSrc !== photoBackup) {
+      img.src = photoBackup;
+      return;
+    }
   }
+
+  // Tentativa 2: rota PHP view_photo com auto-cura e recriação em disco
+  const cleanUrl = photoUrl || currentSrc;
+  const fileName = cleanUrl.split('?')[0].split('/').pop();
+  if (fileName && !currentSrc.includes('action=view_photo') && !currentSrc.includes('action=equipment_photo')) {
+    img.src = `/api/rentals.php?action=view_photo&file=${encodeURIComponent(fileName)}&t=${Date.now()}`;
+    return;
+  }
+
+  // Tentativa 3: rota PHP equipment_photo por ID (extrai do equipamento ou do nome do arquivo custom_eq-XXX_...)
+  let targetId = equipmentId;
+  if (!targetId && fileName) {
+    const match = fileName.match(/custom_([a-zA-Z0-9_-]+)_\d+/);
+    if (match) targetId = match[1];
+  }
+  if (targetId && !currentSrc.includes('action=equipment_photo')) {
+    img.src = `/api/rentals.php?action=equipment_photo&id=${encodeURIComponent(targetId)}&t=${Date.now()}`;
+    return;
+  }
+
+  // Tentativa 4: arquivo estático de fábrica em /images/equipment/{id}.jpg
+  if (targetId && !currentSrc.includes(`/images/equipment/${targetId}.jpg`)) {
+    img.src = `/images/equipment/${targetId}.jpg`;
+    return;
+  }
+
+  // Tentativa 5: SVG fallback vetorial inline elegante (Tema Dark MegaFilmes)
+  const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%230f172a"/><rect x="4" y="4" width="392" height="292" rx="12" fill="%231e293b" stroke="%23334155" stroke-width="2"/><circle cx="200" cy="130" r="36" fill="%23334155"/><path d="M185 130a15 15 0 1 0 30 0 15 15 0 1 0-30 0" fill="%2364748b"/><path d="M175 160h50a10 10 0 0 1 10 10v10H165v-10a10 10 0 0 1 10-10z" fill="%23475569"/><text x="200" y="215" fill="%2394a3b8" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="600" text-anchor="middle">Foto em Processamento</text><text x="200" y="235" fill="%2364748b" font-family="system-ui,-apple-system,sans-serif" font-size="11" text-anchor="middle">Equipamento Seguro no Acervo</text></svg>`;
+  img.src = fallbackSvg;
 }
 
 /**

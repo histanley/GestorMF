@@ -162,6 +162,10 @@ function ensureRentalsTables($db)
         $db->exec("ALTER TABLE rentals ADD COLUMN payment_receipt_url LONGTEXT NULL");
     } catch (Exception $e) {
     }
+    try {
+        $db->exec("ALTER TABLE rentals ADD COLUMN payment_receipt_backup LONGTEXT NULL");
+    } catch (Exception $e) {
+    }
 
     // 1.1 Tabela de migrações internas
     $db->exec("
@@ -678,7 +682,9 @@ $action = $_GET['action'] ?? '';
 
 // ==============================================================================
 // VISUALIZAÇÃO DIRETA DE FOTOS DE VISTORIA (GET action=view_photo | get_photo)
-// Permite que navegadores carreguem <img> com segurança e auto-recuperação
+// ==============================================================================
+// VISUALIZAÇÃO DIRETA & STREAMING COM AUTO-RECUPERAÇÃO DE IMAGENS DO ACERVO E LOCAÇÕES
+// Garante que mesmo após atualização do deploy zip as fotos NUNCA sejam perdidas
 // ==============================================================================
 if ($method === 'GET' && ($action === 'view_photo' || $action === 'get_photo')) {
     $file = basename($_GET['file'] ?? $_GET['name'] ?? '');
@@ -689,24 +695,25 @@ if ($method === 'GET' && ($action === 'view_photo' || $action === 'get_photo')) 
 
     $targetDir = ensureRentalStorage();
     $equipDir = ensureEquipmentUploadStorage();
+    $baseDir = dirname(__DIR__);
+
     $candidatePaths = [
         $targetDir . '/' . $file,
         $equipDir . '/' . $file,
-        dirname(__DIR__) . '/images/rentals/' . $file,
-        dirname(__DIR__) . '/images/uploads/equipment/' . $file,
-        __DIR__ . '/../images/rentals/' . $file,
-        __DIR__ . '/../images/uploads/equipment/' . $file,
+        $baseDir . '/images/rentals/' . $file,
+        $baseDir . '/images/uploads/equipment/' . $file,
+        $baseDir . '/images/equipment/' . $file,
     ];
 
     $foundPath = null;
     foreach ($candidatePaths as $cp) {
-        if (@is_file($cp)) {
+        if (@is_file($cp) && filesize($cp) > 0) {
             $foundPath = $cp;
             break;
         }
     }
 
-    // Auto-Recuperação 1: Se o arquivo físico não estiver em disco, recupera do MySQL em rentals
+    // Auto-Recuperação 1: Se o arquivo físico não estiver em disco, recupera de rentals (vistorias)
     if (!$foundPath) {
         try {
             $stmtRentPhoto = $db->prepare("SELECT pickup_photos_json, return_photos_json FROM rentals WHERE pickup_photos_json LIKE ? OR return_photos_json LIKE ?");
@@ -737,14 +744,20 @@ if ($method === 'GET' && ($action === 'view_photo' || $action === 'get_photo')) 
         }
     }
 
-    // Auto-Recuperação 2: Tenta recuperar do backup de foto do acervo em equipment
+    // Auto-Recuperação 2: Tenta recuperar do backup de foto do acervo em equipment (LONGTEXT photo_backup)
     if (!$foundPath) {
         try {
-            $stmtEqPhoto = $db->prepare("SELECT photo_backup FROM equipment WHERE photo_backup IS NOT NULL AND (photo_url LIKE ? OR id LIKE ?)");
-            $stmtEqPhoto->execute(['%' . $file . '%', '%' . pathinfo($file, PATHINFO_FILENAME) . '%']);
-            $eqBackup = $stmtEqPhoto->fetchColumn();
-            if ($eqBackup && strpos($eqBackup, 'data:image/') === 0) {
-                $parts = explode(',', $eqBackup, 2);
+            $cleanEqId = null;
+            if (preg_match('/custom_([a-zA-Z0-9_-]+)_\d+/', $file, $mClean)) {
+                $cleanEqId = $mClean[1];
+            }
+
+            $stmtEqPhoto = $db->prepare("SELECT photo_backup, photo_url FROM equipment WHERE (photo_backup IS NOT NULL AND (photo_url LIKE ? OR id = ? OR id LIKE ?)) OR id = ?");
+            $stmtEqPhoto->execute(['%' . $file . '%', $cleanEqId ?: '', '%' . pathinfo($file, PATHINFO_FILENAME) . '%', $cleanEqId ?: '']);
+            $eqRow = $stmtEqPhoto->fetch();
+
+            if ($eqRow && !empty($eqRow['photo_backup']) && strpos($eqRow['photo_backup'], 'data:image/') === 0) {
+                $parts = explode(',', $eqRow['photo_backup'], 2);
                 if (count($parts) === 2) {
                     $bin = base64_decode($parts[1]);
                     if ($bin !== false && strlen($bin) > 0) {
@@ -755,17 +768,20 @@ if ($method === 'GET' && ($action === 'view_photo' || $action === 'get_photo')) 
                     }
                 }
             }
+
+            // Fallback: se ainda não encontrou e temos o ID do equipamento (ex: eq-033), serve foto padrão
+            if (!$foundPath && !empty($cleanEqId)) {
+                $defaultStatic = $baseDir . '/images/equipment/' . $cleanEqId . '.jpg';
+                if (@is_file($defaultStatic)) {
+                    $foundPath = $defaultStatic;
+                }
+            }
         } catch (Exception $e) {
         }
     }
 
     if ($foundPath) {
-        if ($foundPath !== $targetDir . '/' . $file && is_dir($targetDir) && strpos($foundPath, 'rentals') !== false) {
-            @copy($foundPath, $targetDir . '/' . $file);
-            @chmod($targetDir . '/' . $file, 0644);
-        }
-
-        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        $ext = strtolower(pathinfo($foundPath, PATHINFO_EXTENSION));
         $mime = 'image/jpeg';
         if ($ext === 'png') $mime = 'image/png';
         elseif ($ext === 'webp') $mime = 'image/webp';
@@ -779,7 +795,85 @@ if ($method === 'GET' && ($action === 'view_photo' || $action === 'get_photo')) 
     }
 
     http_response_code(404);
-    exit('Foto não encontrada.');
+    header('Content-Type: image/svg+xml');
+    echo '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="300" height="200" fill="#0f172a"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="14">Foto em Processamento</text></svg>';
+    exit;
+}
+
+// ==============================================================================
+// STREAMING DIRETO DE FOTO DE EQUIPAMENTO POR ID (GET action=equipment_photo)
+// ==============================================================================
+if ($method === 'GET' && $action === 'equipment_photo') {
+    $id = trim($_GET['id'] ?? '');
+    if (empty($id)) {
+        http_response_code(400);
+        exit('ID do equipamento não especificado.');
+    }
+
+    $equipDir = ensureEquipmentUploadStorage();
+    $baseDir = dirname(__DIR__);
+    $foundPath = null;
+
+    try {
+        $stmtEq = $db->prepare("SELECT photo_url, photo_backup FROM equipment WHERE id = ?");
+        $stmtEq->execute([$id]);
+        $eq = $stmtEq->fetch();
+
+        if ($eq) {
+            // Se possui backup no MySQL, garante arquivo físico e streaming
+            if (!empty($eq['photo_backup']) && strpos($eq['photo_backup'], 'data:image/') === 0) {
+                $fileName = !empty($eq['photo_url']) ? basename(explode('?', $eq['photo_url'])[0]) : "custom_{$id}_photo.jpg";
+                $dest = $equipDir . '/' . $fileName;
+                if (!@is_file($dest) || filesize($dest) === 0) {
+                    $parts = explode(',', $eq['photo_backup'], 2);
+                    if (count($parts) === 2) {
+                        $bin = base64_decode($parts[1]);
+                        if ($bin !== false && strlen($bin) > 0) {
+                            @file_put_contents($dest, $bin);
+                            @chmod($dest, 0644);
+                        }
+                    }
+                }
+                if (@is_file($dest) && filesize($dest) > 0) {
+                    $foundPath = $dest;
+                }
+            }
+
+            // Se ainda não achou, tenta a photo_url física
+            if (!$foundPath && !empty($eq['photo_url'])) {
+                $rawFile = basename(explode('?', $eq['photo_url'])[0]);
+                $testPath = $equipDir . '/' . $rawFile;
+                if (@is_file($testPath) && filesize($testPath) > 0) {
+                    $foundPath = $testPath;
+                }
+            }
+        }
+    } catch (Exception $e) {
+    }
+
+    // Fallback: foto estática padrão /images/equipment/{id}.jpg
+    if (!$foundPath) {
+        $staticPath = $baseDir . '/images/equipment/' . $id . '.jpg';
+        if (@is_file($staticPath) && filesize($staticPath) > 0) {
+            $foundPath = $staticPath;
+        }
+    }
+
+    if ($foundPath) {
+        $ext = strtolower(pathinfo($foundPath, PATHINFO_EXTENSION));
+        $mime = 'image/jpeg';
+        if ($ext === 'png') $mime = 'image/png';
+        elseif ($ext === 'webp') $mime = 'image/webp';
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . filesize($foundPath));
+        header('Cache-Control: public, max-age=31536000');
+        readfile($foundPath);
+        exit;
+    }
+
+    header('Content-Type: image/svg+xml');
+    echo '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="300" height="200" fill="#0f172a"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="14">Foto não cadastrada</text></svg>';
+    exit;
 }
 
 // ==============================================================================
@@ -1076,6 +1170,7 @@ if ($method === 'GET') {
             'securityDeposit' => (float) ($r['security_deposit'] ?? 0),
             'authSignature' => $r['auth_signature'] ?? '',
             'paymentReceiptUrl' => $r['payment_receipt_url'] ?? '',
+            'paymentReceiptBackup' => $r['payment_receipt_backup'] ?? '',
             'createdBy' => $r['created_by'] ?? 'Sistema',
             'createdAt' => $r['created_at'],
             'updatedAt' => $r['updated_at'],
@@ -1174,13 +1269,14 @@ if ($method === 'POST' && $action === 'save_equipment') {
         jsonResponse(['success' => false, 'error' => 'O nome do equipamento é obrigatório.'], 400);
     }
 
-    // Processa upload de foto em base64 e salva como arquivo físico no servidor em pasta protegida contra deploy
+    // Processa upload de foto em base64 e salva como arquivo físico no servidor E no photo_backup do MySQL
+    $photoBackup = null;
     if (!empty($photoUrl) && strpos($photoUrl, 'data:image/') === 0) {
+        $photoBackup = $photoUrl; // Salva o base64 para backup perpétuo
         $parts = explode(',', $photoUrl, 2);
         if (count($parts) === 2) {
             $imageData = base64_decode($parts[1]);
             if ($imageData !== false && strlen($imageData) > 0) {
-                // Pasta de uploads protegida contra sobrescrita de deploy
                 $targetDir = ensureEquipmentUploadStorage();
                 $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '', $id);
                 $uniqueFilename = 'custom_' . $cleanId . '_' . time() . '.jpg';
@@ -1189,11 +1285,9 @@ if ($method === 'POST' && $action === 'save_equipment') {
                 if (@file_put_contents($filePath, $imageData)) {
                     @chmod($filePath, 0644);
                     $photoUrl = '/images/uploads/equipment/' . $uniqueFilename . '?t=' . time();
-                    $saved = true;
+                } else {
+                    $photoUrl = '/api/rentals.php?action=view_photo&file=' . $uniqueFilename;
                 }
-                // Se o arquivo físico falhar por permissão de pasta no servidor,
-                // $photoUrl permanece o dataUrl (base64) e é salvo no LONGTEXT do banco,
-                // garantindo que a foto NUNCA seja perdida mesmo se a pasta de disco falhar!
             }
         }
     }
@@ -1213,29 +1307,29 @@ if ($method === 'POST' && $action === 'save_equipment') {
             $newAvailable = max(0, (int) $existing['available_qty'] + $diff);
             $status = $newAvailable > 0 ? 'available' : 'rented';
 
-            $stmtUp = $db->prepare("
-                UPDATE equipment 
-                SET name = ?, category = ?, daily_rate = ?, rate_unit = ?, asset_value = ?, total_qty = ?, available_qty = ?, serial_number = ?, photo_url = ?, description = ?, status = ?
-                WHERE id = ?
-            ");
-            $stmtUp->execute([
-                $name,
-                $category,
-                $dailyRate,
-                $rateUnit,
-                $assetValue,
-                $totalQty,
-                $newAvailable,
-                $serialNumber,
-                $photoUrl,
-                $description,
-                $status,
-                $id
-            ]);
+            if ($photoBackup !== null) {
+                $stmtUp = $db->prepare("
+                    UPDATE equipment 
+                    SET name = ?, category = ?, daily_rate = ?, rate_unit = ?, asset_value = ?, total_qty = ?, available_qty = ?, serial_number = ?, photo_url = ?, photo_backup = ?, description = ?, status = ?
+                    WHERE id = ?
+                ");
+                $stmtUp->execute([
+                    $name, $category, $dailyRate, $rateUnit, $assetValue, $totalQty, $newAvailable, $serialNumber, $photoUrl, $photoBackup, $description, $status, $id
+                ]);
+            } else {
+                $stmtUp = $db->prepare("
+                    UPDATE equipment 
+                    SET name = ?, category = ?, daily_rate = ?, rate_unit = ?, asset_value = ?, total_qty = ?, available_qty = ?, serial_number = ?, photo_url = ?, description = ?, status = ?
+                    WHERE id = ?
+                ");
+                $stmtUp->execute([
+                    $name, $category, $dailyRate, $rateUnit, $assetValue, $totalQty, $newAvailable, $serialNumber, $photoUrl, $description, $status, $id
+                ]);
+            }
         } else {
             $stmtIns = $db->prepare("
-                INSERT INTO equipment (id, name, category, daily_rate, rate_unit, asset_value, total_qty, available_qty, serial_number, photo_url, description, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
+                INSERT INTO equipment (id, name, category, daily_rate, rate_unit, asset_value, total_qty, available_qty, serial_number, photo_url, photo_backup, description, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
             ");
             $stmtIns->execute([
                 $id,
@@ -1248,6 +1342,7 @@ if ($method === 'POST' && $action === 'save_equipment') {
                 $totalQty,
                 $serialNumber,
                 $photoUrl,
+                $photoBackup,
                 $description
             ]);
         }
@@ -1271,17 +1366,23 @@ if ($method === 'POST' && $action === 'save_equipment') {
 // ==============================================================================
 if ($method === 'POST' && $action === 'update_equipment_photo') {
     $id = trim($data['id'] ?? '');
-    $photoUrl = trim($data['photoUrl'] ?? $data['photo_url'] ?? '');
+    $rawPhoto = trim($data['photoUrl'] ?? $data['photo_url'] ?? '');
 
     if (empty($id)) {
         jsonResponse(['success' => false, 'error' => 'ID do equipamento não informado.'], 400);
     }
-    if (empty($photoUrl)) {
+    if (empty($rawPhoto)) {
         jsonResponse(['success' => false, 'error' => 'Foto não informada.'], 400);
     }
 
-    if (strpos($photoUrl, 'data:image/') === 0) {
-        $parts = explode(',', $photoUrl, 2);
+    $photoUrl = $rawPhoto;
+    $photoBackup = null;
+
+    if (strpos($rawPhoto, 'data:image/') === 0) {
+        // SEMPRE guarda o base64 para backup perpétuo no banco MySQL (imune a atualizações de deploy)
+        $photoBackup = $rawPhoto;
+
+        $parts = explode(',', $rawPhoto, 2);
         if (count($parts) === 2) {
             $imageData = base64_decode($parts[1]);
             if ($imageData !== false && strlen($imageData) > 0) {
@@ -1293,15 +1394,17 @@ if ($method === 'POST' && $action === 'update_equipment_photo') {
                 if (@file_put_contents($filePath, $imageData)) {
                     @chmod($filePath, 0644);
                     $photoUrl = '/images/uploads/equipment/' . $uniqueFilename . '?t=' . time();
+                } else {
+                    $photoUrl = '/api/rentals.php?action=view_photo&file=' . $uniqueFilename;
                 }
             }
         }
     }
 
     try {
-        if (!empty($photoData) && strpos($photoData, 'data:image/') === 0) {
+        if (!empty($photoBackup)) {
             $stmtPhoto = $db->prepare("UPDATE equipment SET photo_url = ?, photo_backup = ? WHERE id = ?");
-            $stmtPhoto->execute([$photoUrl, $photoData, $id]);
+            $stmtPhoto->execute([$photoUrl, $photoBackup, $id]);
         } else {
             $stmtPhoto = $db->prepare("UPDATE equipment SET photo_url = ? WHERE id = ?");
             $stmtPhoto->execute([$photoUrl, $id]);
@@ -1310,8 +1413,9 @@ if ($method === 'POST' && $action === 'update_equipment_photo') {
 
         jsonResponse([
             'success' => true,
-            'message' => 'Foto do equipamento atualizada com sucesso.',
-            'photoUrl' => $photoUrl
+            'message' => 'Foto do equipamento atualizada e protegida com sucesso no banco e no disco.',
+            'photoUrl' => $photoUrl,
+            'photoBackup' => $photoBackup
         ]);
     } catch (Throwable $e) {
         jsonResponse(['success' => false, 'error' => $e->getMessage()], 400);
@@ -1470,7 +1574,9 @@ if ($method === 'POST' && $action === 'create_rental') {
 
         // Processa comprovante de pagamento anexo se enviado
         $paymentReceiptInput = $data['paymentReceiptUrl'] ?? $data['paymentReceipt'] ?? '';
-        $paymentReceiptUrl = processPaymentReceipt($paymentReceiptInput, $code);
+        $receiptInfo = processPaymentReceipt($paymentReceiptInput, $code);
+        $paymentReceiptUrl = $receiptInfo['url'] ?? null;
+        $paymentReceiptBackup = $receiptInfo['backup'] ?? null;
 
         // Calcula assinatura sistêmica oficial idêntica ao front
         $rawAmount = (float) $totalAmount;
@@ -1483,12 +1589,12 @@ if ($method === 'POST' && $action === 'create_rental') {
                 id, code, client_name, client_document, client_phone, client_email, client_address,
                 start_date, start_time, end_date, end_time, total_days,
                 subtotal, discount, total_amount, payment_method, payment_status, status,
-                notes, items_json, paid_amount, remaining_amount, remaining_due_terms, remaining_due_date, security_deposit, created_by, auth_signature, payment_receipt_url
+                notes, items_json, paid_amount, remaining_amount, remaining_due_terms, remaining_due_date, security_deposit, created_by, auth_signature, payment_receipt_url, payment_receipt_backup
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             )
         ");
 
@@ -1520,7 +1626,8 @@ if ($method === 'POST' && $action === 'create_rental') {
             $securityDeposit,
             $user['name'],
             $authSignature,
-            $paymentReceiptUrl
+            $paymentReceiptUrl,
+            $paymentReceiptBackup
         ]);
 
         $db->commit();
@@ -1888,13 +1995,16 @@ if ($method === 'POST' && $action === 'activate_reservation') {
     }
 
     $receiptUrl = $rental['payment_receipt_url'];
+    $receiptBackup = $rental['payment_receipt_backup'] ?? null;
     if (!empty($receiptInput)) {
-        $receiptUrl = processPaymentReceipt($receiptInput, $rental['code']);
+        $receiptInfo = processPaymentReceipt($receiptInput, $rental['code']);
+        $receiptUrl = $receiptInfo['url'] ?? $receiptUrl;
+        $receiptBackup = $receiptInfo['backup'] ?? $receiptBackup;
     }
 
     $newPayStatus = $markPaid ? 'Pago' : $rental['payment_status'];
-    $stmtUp = $db->prepare("UPDATE rentals SET status = 'active', payment_status = ?, payment_receipt_url = ? WHERE id = ?");
-    $stmtUp->execute([$newPayStatus, $receiptUrl, $rentalId]);
+    $stmtUp = $db->prepare("UPDATE rentals SET status = 'active', payment_status = ?, payment_receipt_url = ?, payment_receipt_backup = COALESCE(?, payment_receipt_backup) WHERE id = ?");
+    $stmtUp->execute([$newPayStatus, $receiptUrl, $receiptBackup, $rentalId]);
 
     // Ao ativar e entregar fisicamente os equipamentos no balcão, baixa o estoque disponível
     if ($rental['status'] === 'reserved') {
@@ -1947,9 +2057,11 @@ if ($method === 'POST' && ($action === 'attach_receipt' || $action === 'upload_r
         jsonResponse(['success' => false, 'error' => 'Locação não encontrada.'], 404);
     }
 
-    $receiptUrl = processPaymentReceipt($receiptInput, $rental['code']);
-    $stmtUp = $db->prepare("UPDATE rentals SET payment_receipt_url = ?, payment_status = 'Pago' WHERE id = ?");
-    $stmtUp->execute([$receiptUrl, $rentalId]);
+    $receiptInfo = processPaymentReceipt($receiptInput, $rental['code']);
+    $receiptUrl = $receiptInfo['url'] ?? $rental['payment_receipt_url'];
+    $receiptBackup = $receiptInfo['backup'] ?? ($rental['payment_receipt_backup'] ?? null);
+    $stmtUp = $db->prepare("UPDATE rentals SET payment_receipt_url = ?, payment_receipt_backup = COALESCE(?, payment_receipt_backup), payment_status = 'Pago' WHERE id = ?");
+    $stmtUp->execute([$receiptUrl, $receiptBackup, $rentalId]);
 
     logAudit('ATTACH_RECEIPT', 'RENTALS', $rentalId, "Comprovante de pagamento anexado à locação {$rental['code']} por {$user['name']}.", $user['id'], $user['name']);
     bumpSyncVersion('attach_receipt');

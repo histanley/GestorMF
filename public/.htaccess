@@ -28,6 +28,12 @@
   RewriteCond %{HTTP:X-Forwarded-Proto} !https
   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+  # 2.5 Auto-recuperação transparente de fotos de equipamentos, vistorias e comprovantes
+  # Se uma imagem em /images/uploads/equipment/ ou /images/rentals/ não existir em disco,
+  # redireciona internamente para a API PHP que a restaura a partir do MySQL e serve os bytes da imagem!
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^images/(uploads/equipment|rentals)/(.*)$ /api/rentals.php?action=view_photo&file=$2 [L,QSA]
+
   # 3. Roteamento Single Page Application (SPA) para index.html
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

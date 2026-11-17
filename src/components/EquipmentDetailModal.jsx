@@ -22,7 +22,7 @@ import {
   ZoomIn,
   Wrench,
 } from 'lucide-react';
-import { CATEGORY_LABELS, formatCurrency, formatDateBR, getEquipPhotoUrl, compressImageFile } from '../utils/rentalsData';
+import { CATEGORY_LABELS, formatCurrency, formatDateBR, getEquipPhotoUrl, compressImageFile, handleRentalPhotoError } from '../utils/rentalsData';
 import { apiRequest } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 
@@ -214,9 +214,10 @@ export default function EquipmentDetailModal({
                   title="Clique para ver a foto inteira ampliada em tela cheia"
                 >
                   <img
-                    src={getEquipPhotoUrl(equipment.photoUrl)}
+                    src={getEquipPhotoUrl(equipment.photoUrl, equipment.id, equipment.photoBackup)}
                     alt={equipment.name}
                     className="edm-photo-contain"
+                    onError={(e) => handleRentalPhotoError(e, equipment.photoUrl, equipment.id, equipment.photoBackup)}
                   />
                   <div className="edm-photo-zoom-hint">
                     <Maximize2 size={12} />
@@ -561,9 +562,10 @@ export default function EquipmentDetailModal({
 
             <div className="edm-lightbox-img-wrap" onClick={() => setIsLightboxOpen(false)}>
               <img
-                src={getEquipPhotoUrl(equipment.photoUrl)}
+                src={getEquipPhotoUrl(equipment.photoUrl, equipment.id, equipment.photoBackup)}
                 alt={equipment.name}
                 className="edm-lightbox-img"
+                onError={(e) => handleRentalPhotoError(e, equipment.photoUrl, equipment.id, equipment.photoBackup)}
               />
             </div>
 

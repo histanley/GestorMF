@@ -45,6 +45,7 @@ import {
   formatPhoneBR,
   getEquipPhotoUrl,
   compressImageFile,
+  handleRentalPhotoError,
 } from '../utils/rentalsData';
 import { apiRequest } from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
@@ -801,7 +802,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
         body: JSON.stringify({ id: equipmentId, photoUrl }),
       });
       const finalUrl = (res && res.success && res.photoUrl) ? res.photoUrl : photoUrl;
-      const updated = { ...equip, photoUrl: finalUrl };
+      const finalBackup = (res && res.photoBackup) ? res.photoBackup : (photoUrl?.startsWith('data:image/') ? photoUrl : equip.photoBackup);
+      const updated = { ...equip, photoUrl: finalUrl, photoBackup: finalBackup };
       setEquipmentList((prev) => prev.map((e) => (e.id === equipmentId ? updated : e)));
       if (selectedDetailEquipment && selectedDetailEquipment.id === equipmentId) {
         setSelectedDetailEquipment(updated);
@@ -1218,7 +1220,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                           onClick={() => setSelectedDetailEquipment(equip)}
                           title="Clique para ver detalhes"
                         >
-                          <img src={getEquipPhotoUrl(equip.photoUrl)} alt={equip.name} />
+                          <img
+                            src={getEquipPhotoUrl(equip.photoUrl, equip.id, equip.photoBackup)}
+                            alt={equip.name}
+                            onError={(e) => handleRentalPhotoError(e, equip.photoUrl, equip.id, equip.photoBackup)}
+                          />
                         </div>
                       )}
 
@@ -1831,11 +1837,9 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                         <div className="cir-thumb">
                           {item.photoUrl ? (
                             <img
-                              src={item.photoUrl}
+                              src={getEquipPhotoUrl(item.photoUrl, item.equipmentId, item.photoBackup)}
                               alt={item.name}
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
+                              onError={(e) => handleRentalPhotoError(e, item.photoUrl, item.equipmentId, item.photoBackup)}
                             />
                           ) : (
                             <Package size={18} className="text-muted" />
@@ -2183,6 +2187,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                                   alt="Saída"
                                   className="erc-mini-thumb pickup-thumb"
                                   title={`Saída: ${p.caption || p.equipmentName}`}
+                                  onError={(e) => handleRentalPhotoError(e, p.url, p.equipmentId, p.backup)}
                                 />
                               ))}
                               {(rental.returnPhotos || []).slice(0, 3).map((p, idx) => (
@@ -2192,6 +2197,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                                   alt="Retorno"
                                   className={`erc-mini-thumb return-thumb ${p.condition === 'damage' ? 'damaged-thumb' : ''}`}
                                   title={`Retorno: ${p.caption || p.equipmentName}`}
+                                  onError={(e) => handleRentalPhotoError(e, p.url, p.equipmentId, p.backup)}
                                 />
                               ))}
                               {((rental.pickupPhotos?.length || 0) + (rental.returnPhotos?.length || 0)) > 6 && (
@@ -2425,9 +2431,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     {editEquipPhoto ? (
                       <div className="equip-photo-preview-inner">
                         <img
-                          src={getEquipPhotoUrl(editEquipPhoto)}
+                          src={getEquipPhotoUrl(editEquipPhoto, editingEquipment?.id, editingEquipment?.photoBackup)}
                           alt="Prévia do Equipamento"
                           className="equip-photo-img-contain"
+                          onError={(e) => handleRentalPhotoError(e, editEquipPhoto, editingEquipment?.id, editingEquipment?.photoBackup)}
                         />
                         <button
                           type="button"
@@ -2870,6 +2877,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                       boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
                       border: '1px solid rgba(255,255,255,0.1)'
                     }}
+                    onError={(e) => handleRentalPhotoError(e, viewingReceipt.url, '', viewingReceipt.backup)}
                   />
                   <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 12 }}>
                     <a
