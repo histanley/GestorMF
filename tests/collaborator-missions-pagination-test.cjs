@@ -25,22 +25,26 @@ assert(
 );
 console.log('[PASS] 02. Identificação de missões fechadas/concluídas (isClosed) validada para todos os status.');
 
-// C. Verificar estado de paginação com valor inicial 5 e incremento +10
+// C. Verificar estado de paginação com incremento +10 e limite inicial de 5 missões no total
 assert(
-  csCode.includes('useState(5)'),
-  'Estado inicial da paginação de missões concluídas deve ser 5'
+  csCode.includes('additionalConcluded'),
+  'Estado additionalConcluded deve controlar a expansão de missões concluídas'
 );
 assert(
   csCode.includes('prev + 10'),
   'Botão "Mostrar mais" deve incrementar de 10 em 10 (+10)'
 );
-console.log('[PASS] 03. Paginação de missões concluídas configurada: 5 iniciais e expansão de 10 em 10.');
+assert(
+  csCode.includes('displayedActive = active.slice(0, 5)'),
+  'Deve limitar a exibição inicial a 5 missões no total'
+);
+console.log('[PASS] 03. Paginação de missões concluídas configurada: 5 iniciais no total e expansão de 10 em 10.');
 
 // D. Simulação lógica de progressão e paginação
 const sampleMissions = Array.from({ length: 24 }, (_, i) => ({
   id: `mis-${i + 1}`,
   code: `202611${100 + i}`,
-  missionStatus: i === 0 ? 'Em Execução' : 'Finalizada',
+  missionStatus: i < 5 ? 'Em Execução' : 'Finalizada',
   date: '2026-11-16',
 }));
 
@@ -49,24 +53,26 @@ const todayStr = '2026-11-16';
 const active = sampleMissions.filter(m => m.missionStatus === 'Em Execução');
 const concluded = sampleMissions.filter(m => m.missionStatus === 'Finalizada');
 
-assert.strictEqual(active.length, 1, 'Deve haver 1 ativa');
-assert.strictEqual(concluded.length, 23, 'Deve haver 23 concluídas');
+assert.strictEqual(active.length, 5, 'Deve haver 5 ativas');
+assert.strictEqual(concluded.length, 19, 'Deve haver 19 concluídas');
 
-// Início: 5 concluídas
-let limit = 5;
-let displayed = [...active, ...concluded.slice(0, limit)];
-assert.strictEqual(displayed.length, 6, '1 ativa + 5 concluídas = 6 no total inicial');
+// Início: 5 no total na tela (5 ativas, 0 concluídas inicialmente pois já tem 5 ativas)
+let additionalConcluded = 0;
+let displayedActive = active.slice(0, 5);
+let initialSlots = Math.max(0, 5 - displayedActive.length);
+let displayed = [...displayedActive, ...concluded.slice(0, initialSlots + additionalConcluded)];
+assert.strictEqual(displayed.length, 5, 'Exatamente 5 missões no total inicial');
 
-// Clicar em "Mostrar mais" (+10)
-limit += 10;
-displayed = [...active, ...concluded.slice(0, limit)];
-assert.strictEqual(displayed.length, 16, '1 ativa + 15 concluídas = 16 após primeiro clique');
+// Clicar em "Mostrar mais" (+10 concluídas)
+additionalConcluded += 10;
+displayed = [...displayedActive, ...concluded.slice(0, initialSlots + additionalConcluded)];
+assert.strictEqual(displayed.length, 15, '5 ativas + 10 concluídas = 15 após primeiro clique');
 
-// Clicar novamente em "Mostrar mais" (+10)
-limit += 10;
-displayed = [...active, ...concluded.slice(0, limit)];
-assert.strictEqual(displayed.length, 24, '1 ativa + 23 concluídas = 24 (todas visíveis)');
-console.log('[PASS] 04. Simulação de paginação: 5 -> 15 -> 25 aprovada com sucesso.');
+// Clicar novamente em "Mostrar mais" (+10 concluídas)
+additionalConcluded += 10;
+displayed = [...displayedActive, ...concluded.slice(0, initialSlots + additionalConcluded)];
+assert.strictEqual(displayed.length, 24, '5 ativas + 19 concluídas = 24 (todas visíveis)');
+console.log('[PASS] 04. Simulação de paginação: 5 -> 15 -> 24 aprovada com sucesso.');
 
 // E. Verificar estilos CSS em App.css
 const cssCode = fs.readFileSync('src/App.css', 'utf8');

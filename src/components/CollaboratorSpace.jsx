@@ -340,8 +340,8 @@ export default function CollaboratorSpace({
     return computeMemberRoleCounts(myMember, myMissions);
   }, [myMember, myMissions]);
 
-  // Limite de exibição inicial de missões concluídas (inicia com 5 e expande de 10 em 10)
-  const [visibleConcludedLimit, setVisibleConcludedLimit] = useState(5);
+  // Quantidade adicional de missões concluídas exibidas via botão "Mostrar mais" (+10 a cada clique)
+  const [additionalConcluded, setAdditionalConcluded] = useState(0);
 
   // Modal de Detalhamento Completo do XP e Gamificação
   const [isXpModalOpen, setIsXpModalOpen] = useState(false);
@@ -376,8 +376,9 @@ export default function CollaboratorSpace({
   }, [myMissions, liveTick]);
 
   // Separação de missões ativas/em campo das missões já concluídas/passadas
-  // Regra de Exibição: Inicialmente apenas 5 missões concluídas; botão "Mostrar mais" exibe de 10 em 10
-  const { activeMissions, concludedMissions, displayedMissions } = useMemo(() => {
+  // Regra de Exibição: Inicialmente apenas 5 missões no total na tela (priorizando ativas/em campo);
+  // O botão "Mostrar mais" exibe de 10 em 10 as missões já concluídas.
+  const { activeMissions, concludedMissions, displayedConcluded, displayedMissions } = useMemo(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
     const active = [];
     const concluded = [];
@@ -406,13 +407,19 @@ export default function CollaboratorSpace({
       }
     });
 
-    const displayedConcluded = concluded.slice(0, visibleConcludedLimit);
+    // Limite estrito de no máximo 5 missões iniciais na tela
+    const displayedActive = active.slice(0, 5);
+    const initialConcludedSlots = Math.max(0, 5 - displayedActive.length);
+    const totalConcludedToShow = initialConcludedSlots + additionalConcluded;
+    const dispConcluded = concluded.slice(0, totalConcludedToShow);
+
     return {
       activeMissions: active,
       concludedMissions: concluded,
-      displayedMissions: [...active, ...displayedConcluded],
+      displayedConcluded: dispConcluded,
+      displayedMissions: [...displayedActive, ...dispConcluded],
     };
-  }, [sortedMyMissions, visibleConcludedLimit]);
+  }, [sortedMyMissions, additionalConcluded]);
 
   // Resumo financeiro do mês
   const financialSummary = useMemo(() => {
@@ -1745,18 +1752,18 @@ export default function CollaboratorSpace({
           </div>
 
           {/* Paginação: Mostrar mais de 10 em 10 missões já concluídas */}
-          {concludedMissions.length > 5 && (
+          {concludedMissions.length > 0 && (
             <div className="cs-show-more-missions-wrap">
-              {concludedMissions.length > visibleConcludedLimit ? (
+              {displayedConcluded.length < concludedMissions.length ? (
                 <button
                   type="button"
                   className="cs-btn-show-more-missions"
-                  onClick={() => setVisibleConcludedLimit((prev) => prev + 10)}
+                  onClick={() => setAdditionalConcluded((prev) => prev + 10)}
                 >
                   <ChevronDown size={16} />
                   <span>Mostrar mais (+10 missões concluídas)</span>
                   <span className="cs-show-more-count-pill">
-                    Exibindo {Math.min(visibleConcludedLimit, concludedMissions.length)} de {concludedMissions.length} concluídas
+                    Exibindo {displayedConcluded.length} de {concludedMissions.length} concluídas
                   </span>
                 </button>
               ) : (
@@ -1766,15 +1773,15 @@ export default function CollaboratorSpace({
                 </div>
               )}
 
-              {visibleConcludedLimit > 5 && (
+              {additionalConcluded > 0 && (
                 <button
                   type="button"
                   className="cs-btn-collapse-missions"
-                  onClick={() => setVisibleConcludedLimit(5)}
-                  title="Recolher lista para as 5 missões mais recentes"
+                  onClick={() => setAdditionalConcluded(0)}
+                  title="Recolher lista para as 5 missões iniciais"
                 >
                   <ChevronUp size={14} />
-                  <span>Recolher para 5</span>
+                  <span>Recolher para 5 missões</span>
                 </button>
               )}
             </div>
