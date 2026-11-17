@@ -43746,10 +43746,33 @@ body.light-theme .cs-role-xp-mini-badge {
 /* MODAL COMPLETO DE EXTRATO DE XP & GAMIFICAÇÃO                              */
 /* ========================================================================== */
 
+.cs-xp-modal-overlay,
+.cs-modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(4, 8, 18, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999 !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  animation: modalScale 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
 .cs-xp-modal-container {
   width: 92vw;
   max-width: 860px;
   max-height: 88vh;
+  margin: auto !important;
   background: #0f172a;
   border: 1.5px solid rgba(245, 158, 11, 0.35);
   border-radius: 20px;

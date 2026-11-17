@@ -36,10 +36,8 @@ import {
   TrendingUp,
   Target,
   ShieldCheck,
-  Printer,
 } from 'lucide-react';
 import ConcludePostProductionModal from './ConcludePostProductionModal';
-import { PixLogo, detectAndFormatPix } from '../utils/pixUtils';
 import {
   resolveMissionEditors,
   getMissionEditionDeliverySummary,
@@ -253,20 +251,6 @@ export default function CollaboratorSpace({
   const [requestedHours, setRequestedHours] = useState(1.0);
   const [requestReason, setRequestReason] = useState('');
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
-
-  // Paginação de missões do colaborador (inicia com 5, expande de 10 em 10)
-  const [visibleMissionsCount, setVisibleMissionsCount] = useState(5);
-
-  // Regra Oficial MegaFilmes:
-  // O botão de prorrogação de retorno ou solicitação de hora extra só pode aparecer
-  // quando a missão estiver acontecendo agora e prestes a finalizar (15 min antes de finalizar).
-  // Missões passadas, futuras, finalizadas/canceladas ou de editores que não foram a campo NUNCA exibem o botão.
-  const canShowExtensionButton = (m, progress) => {
-    if (!m || !myMember || !isMemberEligibleForExtraHours(myMember, m)) return false;
-    const status = String(m.missionStatus || '').trim().toLowerCase();
-    if (['finalizada', 'finalizado', 'concluída', 'concluida', 'pendente', 'cancelada'].includes(status)) return false;
-    return Boolean(progress?.isHappeningNow && progress?.isUrgentEnd && progress?.remainingMinutes !== null && progress.remainingMinutes <= 15);
-  };
 
   // Monitor em tempo real: atualiza a cada 20s para verificar reta final das missões
   const [liveTick, setLiveTick] = useState(0);
@@ -491,15 +475,10 @@ export default function CollaboratorSpace({
     };
   }, [myMember, myMissions, currentMonthKey, closures]);
 
-  // Detecção inteligente e Formatação Padronizada da Chave PIX (Telefone, E-mail, CPF, Chave Aleatória)
-  const pixData = useMemo(() => detectAndFormatPix(myMember?.pixKey), [myMember?.pixKey]);
-  const PixTypeIcon = pixData.icon;
-
-  // Copia PIX (copia o valor limpo/original para compatibilidade total em apps bancários)
+  // Copia PIX
   const handleCopyPix = () => {
-    const rawToCopy = pixData.clean || myMember?.pixKey;
-    if (!rawToCopy) return;
-    navigator.clipboard.writeText(rawToCopy);
+    if (!myMember?.pixKey) return;
+    navigator.clipboard.writeText(myMember.pixKey);
     setCopiedPix(true);
     setTimeout(() => setCopiedPix(false), 2000);
   };
@@ -793,20 +772,16 @@ export default function CollaboratorSpace({
   return (
     <div className="collaborator-space-container">
       {/* ============================================================== */}
-      {/* 1. HERO BANNER DO COLABORADOR (VIP EXECUTIVE ID CARD)          */}
+      {/* 1. HERO BANNER DO COLABORADOR                                  */}
       {/* ============================================================== */}
       <div className="cs-hero-card">
-        {/* Perfil e Identidade do Colaborador */}
         <div className="cs-hero-profile-wrap">
-          <div className="cs-hero-avatar-box">
-            <div className="cs-hero-avatar">
-              {myMember.photoUrl ? (
-                <img src={myMember.photoUrl} alt={myMember.name} />
-              ) : (
-                <span>{myMember.name.slice(0, 2).toUpperCase()}</span>
-              )}
-            </div>
-            <span className="cs-avatar-online-beacon" title="Colaborador Ativo na Empresa" />
+          <div className="cs-hero-avatar">
+            {myMember.photoUrl ? (
+              <img src={myMember.photoUrl} alt={myMember.name} />
+            ) : (
+              <span>{myMember.name.slice(0, 2).toUpperCase()}</span>
+            )}
           </div>
 
           <div className="cs-hero-text">
@@ -816,49 +791,41 @@ export default function CollaboratorSpace({
                 {myMember.company || 'MegaFilmes'}
               </span>
             </div>
-
-            {/* Faixa Organizada de Funções e Habilitação */}
             <div className="cs-hero-badges-row">
-              <span className="cs-hero-role cs-hero-role-main" title="Função Principal na Empresa">
-                <span className="cs-role-ico">{ROLE_ICONS_MAP[myMember.role] || '💼'}</span>
-                <strong>{myMember.role || 'Colaborador'}</strong>
+              <span className="cs-hero-role" title="Função Principal na Empresa (Somente Leitura)">
+                💼 {myMember.role || 'Colaborador'}
                 <span className="cs-role-tag-badge">Principal</span>
               </span>
-
               {Array.isArray(myMember.secondaryRoles) && myMember.secondaryRoles.map((secRole) => (
-                <span key={secRole} className="cs-hero-role-secondary" title={`Função Adicional Habilitada: ${secRole}`}>
-                  <span className="cs-role-ico-sec">{ROLE_ICONS_MAP[secRole] || '🎯'}</span>
-                  <span>{secRole}</span>
+                <span key={secRole} className="cs-hero-role-secondary" title="Função Adicional habilitada na Empresa (Somente Leitura)">
+                  🎯 {secRole}
                   <span className="cs-role-tag-badge sec">Adicional</span>
                 </span>
               ))}
-
               {myMember.canDrive && (
-                <span className="cs-hero-cnh" title="Habilitado para conduzir viaturas da frota">
-                  <Car size={13} className="cnh-car-icon" />
-                  <span>CNH {myMember.cnhCategory || 'AB'}</span>
+                <span className="cs-hero-cnh">
+                  🚗 CNH {myMember.cnhCategory || 'AB'}
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Chave PIX Estilo Carteira Digital com Identidade Oficial */}
+        {/* Divisor Visual Sutil para Harmonia Central */}
+        <div className="cs-hero-divider" />
+
+        {/* Chave PIX com Cadastro, Edição e Exclusão */}
         <div className="cs-pix-box">
           {isEditingPix ? (
             <div className="cs-pix-edit-wrap">
-              <div className="cs-pix-edit-header">
-                <PixLogo size={18} glow />
-                <span className="cs-pix-edit-title">
-                  {myMember?.pixKey ? 'Editar Chave PIX' : 'Cadastrar Chave PIX'}
-                </span>
-              </div>
-
+              <span className="cs-pix-edit-title">
+                {myMember?.pixKey ? '✏️ Editar Chave PIX' : '➕ Cadastrar Chave PIX'}
+              </span>
               <div className="cs-pix-edit-row">
                 <input
                   type="text"
                   className="cs-pix-input"
-                  placeholder="Celular (DDD + número), CPF, E-mail ou Chave Aleatória..."
+                  placeholder="CPF, celular, e-mail ou aleatória..."
                   value={pixInput}
                   autoFocus
                   onChange={(e) => setPixInput(e.target.value)}
@@ -877,7 +844,7 @@ export default function CollaboratorSpace({
                   disabled={isSavingPix}
                   title="Salvar Chave PIX"
                 >
-                  <Check size={14} />
+                  <Check size={13} />
                   <span>Salvar</span>
                 </button>
                 <button
@@ -887,55 +854,19 @@ export default function CollaboratorSpace({
                   disabled={isSavingPix}
                   title="Cancelar"
                 >
-                  <X size={14} />
+                  <X size={13} />
                 </button>
               </div>
-
-              {/* Dica / Preview em Tempo Real do Padrão Detectado */}
-              {pixInput.trim() && (() => {
-                const detected = detectAndFormatPix(pixInput);
-                const DetectedIcon = detected.icon;
-                return (
-                  <div className="cs-pix-live-preview">
-                    <DetectedIcon size={12} style={{ color: detected.color }} />
-                    <span className="cs-pix-live-label" style={{ color: detected.color }}>
-                      {detected.label}:
-                    </span>
-                    <strong className="cs-pix-live-val">{detected.formatted}</strong>
-                  </div>
-                );
-              })()}
             </div>
           ) : (
-            <div className="cs-pix-content-row">
-              {/* Símbolo Oficial do PIX */}
-              <div className="cs-pix-badge-emblem" title="Chave PIX do Banco Central">
-                <PixLogo size={24} glow />
-              </div>
-
+            <>
               <div className="cs-pix-info">
-                <div className="cs-pix-label-line">
-                  <span className="cs-pix-label">Chave PIX Cadastrada</span>
-                  {myMember?.pixKey && (
-                    <span
-                      className="cs-pix-category-pill"
-                      style={{
-                        color: pixData.color,
-                        borderColor: `${pixData.color}44`,
-                        background: `${pixData.color}14`,
-                      }}
-                    >
-                      <PixTypeIcon size={11} />
-                      <span>{pixData.label}</span>
-                    </span>
-                  )}
-                </div>
-
-                <strong
-                  className={`cs-pix-value ${!myMember?.pixKey ? 'is-empty' : ''}`}
-                  title={myMember?.pixKey ? `Chave Original: ${myMember.pixKey}` : 'Sem chave cadastrada'}
-                >
-                  {pixData.formatted}
+                <span className="cs-pix-label">
+                  <CreditCard size={12} className="text-cyan icon-shrink" style={{ verticalAlign: 'middle', marginRight: '5px' }} />
+                  Chave PIX Cadastrada
+                </span>
+                <strong className={`cs-pix-value ${!myMember?.pixKey ? 'is-empty' : ''}`}>
+                  {myMember?.pixKey || 'Não cadastrada'}
                 </strong>
               </div>
 
@@ -948,26 +879,25 @@ export default function CollaboratorSpace({
                       className={`cs-btn-copy-pix ${copiedPix ? 'copied' : ''}`}
                       title="Copiar Chave PIX"
                     >
-                      {copiedPix ? <Check size={14} /> : <Copy size={14} />}
+                      {copiedPix ? <Check size={13} /> : <Copy size={13} />}
                       <span>{copiedPix ? 'Copiado!' : 'Copiar'}</span>
                     </button>
-
                     <button
                       type="button"
                       onClick={handleStartEditPix}
-                      className="cs-btn-pix-icon-btn btn-edit"
+                      className="cs-btn-pix-action btn-edit"
                       title="Editar Chave PIX"
                     >
-                      <Edit2 size={15} />
+                      <Edit2 size={13} />
+                      <span>Editar</span>
                     </button>
-
                     <button
                       type="button"
                       onClick={handleDeletePix}
-                      className="cs-btn-pix-icon-btn btn-delete"
+                      className="cs-btn-pix-action btn-delete"
                       title="Excluir Chave PIX"
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={13} />
                     </button>
                   </>
                 ) : (
@@ -975,18 +905,18 @@ export default function CollaboratorSpace({
                     type="button"
                     onClick={handleStartEditPix}
                     className="cs-btn-pix-add"
-                    title="Cadastrar Chave PIX para recebimento de horas e diárias"
+                    title="Cadastrar Chave PIX para recebimentos"
                   >
-                    <Plus size={14} />
+                    <Plus size={13} />
                     <span>Cadastrar PIX</span>
                   </button>
                 )}
               </div>
-            </div>
+            </>
           )}
         </div>
 
-        {/* Divisor Visual Sutil para Harmonia com Bloco de XP */}
+        {/* Divisor Visual Sutil */}
         <div className="cs-hero-divider" />
 
         {/* ============================================================== */}
@@ -1555,7 +1485,7 @@ export default function CollaboratorSpace({
           </div>
         ) : (
           <div className="cs-missions-list">
-            {sortedMyMissions.slice(0, visibleMissionsCount).map((m) => {
+            {sortedMyMissions.slice(0, 15).map((m) => {
               const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
               const memberMode = (m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
                 || m.remunerationType
@@ -1717,8 +1647,8 @@ export default function CollaboratorSpace({
                       )}
                     </div>
 
-                    {/* Ação: Solicitar Horas Extras ou Prorrogar Retorno (somente quando prestes a finalizar, 15 min antes do término) */}
-                    {canShowExtensionButton(m, progress) && (
+                    {/* Ação: Solicitar Horas Extras ou Prorrogar Retorno (Exclusivo para equipe em campo; editores na pós não recebem horas extras) */}
+                    {!isClosed && isMemberEligibleForExtraHours(myMember, m) && (
                       <button
                         type="button"
                         onClick={() => setRequestModalMission(m)}
@@ -1751,22 +1681,6 @@ export default function CollaboratorSpace({
                 </div>
               );
             })}
-          </div>
-        )}
-
-        {sortedMyMissions.length > visibleMissionsCount && (
-          <div className="cs-load-more-wrap">
-            <button
-              type="button"
-              className="cs-btn-load-more"
-              onClick={() => setVisibleMissionsCount((prev) => prev + 10)}
-            >
-              <ChevronDown size={18} />
-              <span>Mostrar mais missões (+10)</span>
-              <span className="cs-load-more-badge">
-                Exibindo {Math.min(visibleMissionsCount, sortedMyMissions.length)} de {sortedMyMissions.length}
-              </span>
-            </button>
           </div>
         )}
       </div>
@@ -1921,8 +1835,8 @@ export default function CollaboratorSpace({
       {/* MODAL DETALHADO DE EXTRATO DE XP & CONQUISTAS                 */}
       {/* ============================================================== */}
       {isXpModalOpen && performanceProfile && (
-        <div className="cs-modal-backdrop" onClick={() => setIsXpModalOpen(false)}>
-          <div className="cs-xp-modal-container" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay cs-modal-overlay cs-xp-modal-overlay" onClick={() => setIsXpModalOpen(false)}>
+          <div className="modal-box cs-xp-modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="cs-xp-modal-header">
               <div className="cs-xp-modal-header-left">
                 <div
@@ -2011,7 +1925,7 @@ export default function CollaboratorSpace({
                     <Briefcase size={16} className="text-amber" />
                   </div>
                   <strong className="cs-xp-kpi-value text-amber">
-                    +{performanceProfile.rolesTotalXP} XP
+                    +{Number(performanceProfile.rolesTotalXP || 0)} XP
                   </strong>
                   <span className="cs-xp-kpi-desc">
                     Pontos pelas 12 especialidades exercidas
@@ -2024,10 +1938,10 @@ export default function CollaboratorSpace({
                     <CheckCircle2 size={16} className="text-emerald" />
                   </div>
                   <strong className="cs-xp-kpi-value text-emerald">
-                    +{performanceProfile.missionBaseXP + performanceProfile.completedBonusXP} XP
+                    +{Number(performanceProfile.missionBaseXP || 0) + Number(performanceProfile.completedBonusXP || 0)} XP
                   </strong>
                   <span className="cs-xp-kpi-desc">
-                    {performanceProfile.totalMissions} missões finalizadas com sucesso
+                    {performanceProfile.totalMissions || 0} missões finalizadas com sucesso
                   </span>
                 </div>
 
@@ -2037,23 +1951,23 @@ export default function CollaboratorSpace({
                     <Clock size={16} className="text-cyan" />
                   </div>
                   <strong className="cs-xp-kpi-value text-cyan">
-                    +{performanceProfile.extraHoursXP} XP
+                    +{Number(performanceProfile.extraHoursXP || 0)} XP
                   </strong>
                   <span className="cs-xp-kpi-desc">
-                    {performanceProfile.totalApprovedExtraHours}h extras aprovadas em campo
+                    {performanceProfile.totalApprovedExtraHours || 0}h extras aprovadas em campo
                   </span>
                 </div>
 
                 <div className="cs-xp-kpi-card">
                   <div className="cs-xp-kpi-header">
                     <span className="cs-xp-kpi-title">Condução de Viatura</span>
-                    <Car size={16} className="text-blue" />
+                    <Car size={16} className="text-indigo" />
                   </div>
-                  <strong className="cs-xp-kpi-value text-blue">
-                    +{performanceProfile.drivingKmXP} XP
+                  <strong className="cs-xp-kpi-value text-indigo">
+                    +{Number(performanceProfile.drivingKmXP || 0)} XP
                   </strong>
                   <span className="cs-xp-kpi-desc">
-                    {performanceProfile.drivingCount}x ao volante ({Math.round(performanceProfile.estimatedDistanceKm)} km)
+                    {performanceProfile.drivingCount || 0}x ao volante ({performanceProfile.estimatedDistanceKm || 0} km)
                   </span>
                 </div>
               </div>
@@ -2138,15 +2052,6 @@ export default function CollaboratorSpace({
             </div>
 
             <div className="cs-xp-modal-footer">
-              <button
-                type="button"
-                className="cs-btn-print-xp-modal"
-                onClick={() => window.print()}
-                title="Imprimir Extrato de XP e Pontuações"
-              >
-                <Printer size={15} />
-                <span>Imprimir Extrato</span>
-              </button>
               <button
                 type="button"
                 className="cs-btn-close-xp-modal"

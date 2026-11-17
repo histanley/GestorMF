@@ -438,6 +438,12 @@ export function calculateMemberPerformanceProfile(member, missions = []) {
     totalApprovedExtraHours,
     completedCount,
     score,
+    rolesTotalXP,
+    missionBaseXP,
+    multiDayXP,
+    drivingKmXP,
+    extraHoursXP,
+    completedBonusXP,
     breakdown: {
       rolesTotalXP,
       missionBaseXP,
