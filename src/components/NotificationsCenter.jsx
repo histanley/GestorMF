@@ -184,6 +184,7 @@ export default function NotificationsCenter({
             className={`notif-seg-tab ${filter === 'all' ? 'is-active' : ''}`}
             onClick={() => setFilter('all')}
           >
+            <Sparkles size={12} className="tab-icon" />
             <span>Todas</span>
             <span className="notif-tab-badge">{notifications.length}</span>
           </button>
@@ -195,6 +196,7 @@ export default function NotificationsCenter({
             className={`notif-seg-tab ${filter === 'unread' ? 'is-active' : ''} ${unreadCount > 0 ? 'tab-has-unread' : ''}`}
             onClick={() => setFilter('unread')}
           >
+            <Bell size={12} className="tab-icon" />
             <span>Não lidas</span>
             <span className="notif-tab-badge unread">{unreadCount}</span>
           </button>
@@ -244,7 +246,7 @@ export default function NotificationsCenter({
           >
             <Package size={12} className="tab-icon" />
             <span>Aluguéis</span>
-            {rentalsCount > 0 && <span className="notif-tab-badge rental">{rentalsCount}</span>}
+            <span className="notif-tab-badge rental">{rentalsCount}</span>
           </button>
         </div>
       </div>
