@@ -15,6 +15,7 @@ import {
   Plus,
   Upload,
   Calendar,
+  FileText,
   Sparkles,
   Maximize2,
   ExternalLink,

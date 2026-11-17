@@ -11,50 +11,52 @@ $db = getDB();
 ensureMissionColumnsExist($db);
 
 // Auto-garantia de colunas de pós-produção, histórico e versionamento no MySQL
-function ensureMissionColumnsExist($db) {
+function ensureMissionColumnsExist($db)
+{
     static $ensured = false;
-    if ($ensured) return;
+    if ($ensured)
+        return;
     $ensured = true;
 
     $cols = [
-        'code'                    => 'VARCHAR(50) NULL',
-        'editor_id'               => 'VARCHAR(64) NULL',
-        'editor_name'             => 'VARCHAR(150) NULL',
-        'editor_ids'              => 'LONGTEXT NULL',
-        'editor_names_display'    => 'VARCHAR(255) NULL',
-        'delivery_deadline_date'  => 'VARCHAR(20) NULL',
-        'delivery_deadline_time'  => 'VARCHAR(10) NULL',
-        'edition_completed_at'    => 'VARCHAR(35) NULL',
-        'edition_completed_by'    => 'VARCHAR(150) NULL',
-        'is_overdue'              => 'TINYINT(1) DEFAULT 0',
+        'code' => 'VARCHAR(50) NULL',
+        'editor_id' => 'VARCHAR(64) NULL',
+        'editor_name' => 'VARCHAR(150) NULL',
+        'editor_ids' => 'LONGTEXT NULL',
+        'editor_names_display' => 'VARCHAR(255) NULL',
+        'delivery_deadline_date' => 'VARCHAR(20) NULL',
+        'delivery_deadline_time' => 'VARCHAR(10) NULL',
+        'edition_completed_at' => 'VARCHAR(35) NULL',
+        'edition_completed_by' => 'VARCHAR(150) NULL',
+        'is_overdue' => 'TINYINT(1) DEFAULT 0',
         'edition_delivery_status' => 'VARCHAR(30) NULL',
-        'reopen_reason'           => 'TEXT NULL',
-        'edition_history'         => 'LONGTEXT NULL',
-        'edition_status'          => "VARCHAR(50) DEFAULT 'Pendente'",
-        'mission_status'          => "VARCHAR(50) DEFAULT 'Agendada'",
-        'event_start_time'        => 'VARCHAR(10) NULL',
-        'event_end_time'          => 'VARCHAR(10) NULL',
-        'antecedence_minutes'     => 'INT DEFAULT 30',
-        'suggested_departure_time'=> 'VARCHAR(10) NULL',
-        'guests'                  => 'LONGTEXT NULL',
-        'server_file_path'        => 'VARCHAR(500) NULL',
-        'is_recurring'            => 'TINYINT(1) DEFAULT 0',
-        'recurrence_id'           => 'VARCHAR(64) NULL',
-        'recurrence_rule'         => 'VARCHAR(255) NULL',
-        'recurrence_days'         => 'VARCHAR(100) NULL',
-        'is_multi_day'            => 'TINYINT(1) DEFAULT 0',
-        'end_date'                => 'VARCHAR(20) NULL',
-        'custom_rates'            => 'LONGTEXT NULL',
-        'off_hours'               => 'DECIMAL(5,1) DEFAULT 0.0',
-        'remuneration_type'       => "VARCHAR(20) DEFAULT 'off_hours'",
+        'reopen_reason' => 'TEXT NULL',
+        'edition_history' => 'LONGTEXT NULL',
+        'edition_status' => "VARCHAR(50) DEFAULT 'Pendente'",
+        'mission_status' => "VARCHAR(50) DEFAULT 'Agendada'",
+        'event_start_time' => 'VARCHAR(10) NULL',
+        'event_end_time' => 'VARCHAR(10) NULL',
+        'antecedence_minutes' => 'INT DEFAULT 30',
+        'suggested_departure_time' => 'VARCHAR(10) NULL',
+        'guests' => 'LONGTEXT NULL',
+        'server_file_path' => 'VARCHAR(500) NULL',
+        'is_recurring' => 'TINYINT(1) DEFAULT 0',
+        'recurrence_id' => 'VARCHAR(64) NULL',
+        'recurrence_rule' => 'VARCHAR(255) NULL',
+        'recurrence_days' => 'VARCHAR(100) NULL',
+        'is_multi_day' => 'TINYINT(1) DEFAULT 0',
+        'end_date' => 'VARCHAR(20) NULL',
+        'custom_rates' => 'LONGTEXT NULL',
+        'off_hours' => 'DECIMAL(5,1) DEFAULT 0.0',
+        'remuneration_type' => "VARCHAR(20) DEFAULT 'off_hours'",
         'member_remuneration_types' => 'LONGTEXT NULL',
-        'member_roles'            => 'LONGTEXT NULL',
-        'equipment_allocations'   => 'LONGTEXT NULL',
-        'extra_hours_planned'     => 'DECIMAL(6,2) DEFAULT 0.00',
-        'extra_hours_approved'    => 'DECIMAL(6,2) DEFAULT 0.00',
-        'extra_hours_requests'    => 'LONGTEXT NULL',
-        'editors_delivery'        => 'LONGTEXT NULL',
-        'version'                 => 'INT NOT NULL DEFAULT 1'
+        'member_roles' => 'LONGTEXT NULL',
+        'equipment_allocations' => 'LONGTEXT NULL',
+        'extra_hours_planned' => 'DECIMAL(6,2) DEFAULT 0.00',
+        'extra_hours_approved' => 'DECIMAL(6,2) DEFAULT 0.00',
+        'extra_hours_requests' => 'LONGTEXT NULL',
+        'editors_delivery' => 'LONGTEXT NULL',
+        'version' => 'INT NOT NULL DEFAULT 1'
     ];
 
     try {
@@ -69,12 +71,14 @@ function ensureMissionColumnsExist($db) {
             if (!isset($existingCols[strtolower($colName)])) {
                 try {
                     $db->exec("ALTER TABLE missions ADD COLUMN {$colName} {$colDef}");
-                } catch (Exception $ex) {}
+                } catch (Exception $ex) {
+                }
             }
         }
         try {
             $db->exec("UPDATE missions SET version = 1 WHERE version IS NULL OR version = 0");
-        } catch (Exception $ex) {}
+        } catch (Exception $ex) {
+        }
     } catch (Exception $e) {
         error_log('[GestorMF EnsureCols Error] ' . $e->getMessage());
     }
@@ -186,16 +190,17 @@ if ($method === 'GET') {
     ");
     $rawMissions = $stmt->fetchAll();
 
-    $missions = array_map(function($m) use ($db) {
+    $missions = array_map(function ($m) use ($db) {
         $editorsDelivery = !empty($m['editors_delivery']) ? json_decode($m['editors_delivery'], true) : [];
-        if (!is_array($editorsDelivery)) $editorsDelivery = [];
+        if (!is_array($editorsDelivery))
+            $editorsDelivery = [];
 
         // AUTO-CURA ATÔMICA DA MISSÃO #202611131 (ENSAIO FOTOGRAFICO EXTERNO ABC SESI)
         // Regra estrita: dois editores responsáveis (Mateus Henrique e João Pedro).
         // Mateus concluiu sua parte, João Pedro está pendente. Logo, a missão NÃO está pronta para aprovação do admin.
         $isSesiMission = (!empty($m['code']) && strpos($m['code'], '202611131') !== false) ||
-                         (stripos($m['description'], 'SESI') !== false && stripos($m['description'], 'MIRANDINHA') !== false) ||
-                         (stripos($m['description'], 'ENSAIO FOTOGRAFICO EXTERNO ABC SESI') !== false);
+            (stripos($m['description'], 'SESI') !== false && stripos($m['description'], 'MIRANDINHA') !== false) ||
+            (stripos($m['description'], 'ENSAIO FOTOGRAFICO EXTERNO ABC SESI') !== false);
 
         if ($isSesiMission) {
             try {
@@ -204,41 +209,43 @@ if ($method === 'GET') {
                 $mateusMem = null;
                 $pedroMem = null;
                 foreach ($foundMems as $fm) {
-                    if (stripos($fm['name'], 'Mateus') !== false && !$mateusMem) $mateusMem = $fm;
-                    if (stripos($fm['name'], 'Pedro') !== false && !$pedroMem) $pedroMem = $fm;
+                    if (stripos($fm['name'], 'Mateus') !== false && !$mateusMem)
+                        $mateusMem = $fm;
+                    if (stripos($fm['name'], 'Pedro') !== false && !$pedroMem)
+                        $pedroMem = $fm;
                 }
                 $mId = $mateusMem ? $mateusMem['id'] : 'mateus-henrique';
                 $mName = $mateusMem ? $mateusMem['name'] : 'Mateus Henrique';
                 $pId = $pedroMem ? $pedroMem['id'] : 'joao-pedro';
                 $pName = $pedroMem ? $pedroMem['name'] : 'João Pedro';
 
-                $currentMateusDeliv = $editorsDelivery[(string)$mId] ?? null;
-                $currentPedroDeliv = $editorsDelivery[(string)$pId] ?? null;
+                $currentMateusDeliv = $editorsDelivery[(string) $mId] ?? null;
+                $currentPedroDeliv = $editorsDelivery[(string) $pId] ?? null;
 
                 $editorsDelivery = [
-                    (string)$mId => [
-                        'editorId'       => (string)$mId,
-                        'editorName'     => $mName,
-                        'status'         => 'delivered',
-                        'deliveredAt'    => $currentMateusDeliv['deliveredAt'] ?? $m['edition_completed_at'] ?? '2026-11-14T15:58:00',
+                    (string) $mId => [
+                        'editorId' => (string) $mId,
+                        'editorName' => $mName,
+                        'status' => 'delivered',
+                        'deliveredAt' => $currentMateusDeliv['deliveredAt'] ?? $m['edition_completed_at'] ?? '2026-11-14T15:58:00',
                         'serverFilePath' => !empty($currentMateusDeliv['serverFilePath']) ? $currentMateusDeliv['serverFilePath'] : (!empty($m['server_file_path']) ? $m['server_file_path'] : 'S:\\MEGA FILMES\\ABC 2026\\EXTERNA SESI 13-11\\CARD 01\\LR_03_'),
-                        'notes'          => $currentMateusDeliv['notes'] ?? 'MINHA PASTA OK, SO FALTA SUBIR PARA A BANLEK',
-                        'isLate'         => false
+                        'notes' => $currentMateusDeliv['notes'] ?? 'MINHA PASTA OK, SO FALTA SUBIR PARA A BANLEK',
+                        'isLate' => false
                     ],
-                    (string)$pId => [
-                        'editorId'       => (string)$pId,
-                        'editorName'     => $pName,
-                        'status'         => ($currentPedroDeliv && ($currentPedroDeliv['status'] ?? '') === 'delivered') ? 'delivered' : 'pending',
-                        'deliveredAt'    => $currentPedroDeliv['deliveredAt'] ?? null,
+                    (string) $pId => [
+                        'editorId' => (string) $pId,
+                        'editorName' => $pName,
+                        'status' => ($currentPedroDeliv && ($currentPedroDeliv['status'] ?? '') === 'delivered') ? 'delivered' : 'pending',
+                        'deliveredAt' => $currentPedroDeliv['deliveredAt'] ?? null,
                         'serverFilePath' => $currentPedroDeliv['serverFilePath'] ?? null,
-                        'notes'          => $currentPedroDeliv['notes'] ?? null,
-                        'isLate'         => false
+                        'notes' => $currentPedroDeliv['notes'] ?? null,
+                        'isLate' => false
                     ]
                 ];
 
-                $updatedEditorIds = [(string)$mId, (string)$pId];
+                $updatedEditorIds = [(string) $mId, (string) $pId];
                 $updatedNamesDisplay = "{$pName}, {$mName}";
-                $isPedroDelivered = ($editorsDelivery[(string)$pId]['status'] === 'delivered');
+                $isPedroDelivered = ($editorsDelivery[(string) $pId]['status'] === 'delivered');
                 $newEditionStatus = $isPedroDelivered ? 'Edição Concluída' : 'Em Edição';
                 $newMissionStatus = 'Pendente';
 
@@ -248,13 +255,13 @@ if ($method === 'GET') {
                         SET editor_ids = ?, editor_names_display = ?, editors_delivery = ?, edition_status = ?, mission_status = ? 
                         WHERE id = ?
                     ")->execute([
-                        json_encode($updatedEditorIds, JSON_UNESCAPED_UNICODE),
-                        $updatedNamesDisplay,
-                        json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
-                        $newEditionStatus,
-                        $newMissionStatus,
-                        $m['id']
-                    ]);
+                                json_encode($updatedEditorIds, JSON_UNESCAPED_UNICODE),
+                                $updatedNamesDisplay,
+                                json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
+                                $newEditionStatus,
+                                $newMissionStatus,
+                                $m['id']
+                            ]);
                 }
 
                 $m['editor_ids'] = json_encode($updatedEditorIds);
@@ -280,97 +287,76 @@ if ($method === 'GET') {
                     $db->prepare("UPDATE missions SET edition_status = 'Em Edição' WHERE id = ?")->execute([$m['id']]);
                 }
             }
-
-            // AUTO-CURA DA MISSÃO #202611144 (Fotos SESI Terceirão):
-            // Mateus Henrique atuou estritamente como editor de pós-produção e não foi a campo.
-            $isSesi144 = (!empty($m['code']) && strpos($m['code'], '202611144') !== false) ||
-                         (stripos($m['description'], 'SESI') !== false && stripos($m['description'], 'TERCEIR') !== false);
-            if ($isSesi144) {
-                try {
-                    $memStmt = $db->query("SELECT id FROM members WHERE name LIKE '%Mateus%' LIMIT 1");
-                    $mateusId = $memStmt ? $memStmt->fetchColumn() : null;
-                    if ($mateusId) {
-                        $rawTeamIds = !empty($m['team_ids']) ? json_decode($m['team_ids'], true) : [];
-                        if (is_array($rawTeamIds) && (in_array($mateusId, $rawTeamIds) || in_array((string)$mateusId, $rawTeamIds))) {
-                            $cleanTeam = array_values(array_filter($rawTeamIds, function($tid) use ($mateusId) {
-                                return (string)$tid !== (string)$mateusId;
-                            }));
-                            $m['team_ids'] = json_encode($cleanTeam, JSON_UNESCAPED_UNICODE);
-                            $db->prepare("UPDATE missions SET team_ids = ? WHERE id = ?")->execute([$m['team_ids'], $m['id']]);
-                        }
-                    }
-                } catch (Exception $e) {}
-            }
         }
 
         return [
-            'id'                       => $m['id'],
-            'code'                     => $m['code'],
-            'description'              => $m['description'],
-            'locationName'             => $m['location_name'],
-            'address'                  => $m['address'],
-            'lat'                      => $m['lat'] !== null ? (float)$m['lat'] : null,
-            'lon'                      => $m['lon'] !== null ? (float)$m['lon'] : null,
-            'date'                     => $m['date'],
-            'departureTime'            => $m['departure_time'],
-            'arrivalTimeEstimated'     => $m['arrival_time_estimated'],
-            'returnTimeEstimated'      => $m['return_time_estimated'],
-            'eventStartTime'           => $m['event_start_time'] ?? null,
-            'eventEndTime'             => $m['event_end_time'] ?? null,
-            'antecedenceMinutes'       => isset($m['antecedence_minutes']) && $m['antecedence_minutes'] !== null ? (int)$m['antecedence_minutes'] : 30,
-            'suggestedDepartureTime'   => $m['suggested_departure_time'] ?? null,
-            'vehicleId'                => $m['vehicle_id'],
-            'vehicleNameDisplay'       => $m['vehicle_name_display'],
-            'vehicleAllocations'       => !empty($m['vehicle_allocations']) ? json_decode($m['vehicle_allocations'], true) : [],
-            'driverId'                 => $m['driver_id'],
-            'driverName'               => $m['driver_name'],
-            'teamIds'                  => !empty($m['team_ids']) ? json_decode($m['team_ids'], true) : [],
-            'teamNamesDisplay'         => $m['team_names_display'],
-            'guests'                   => !empty($m['guests']) ? json_decode($m['guests'], true) : [],
-            'editorId'                 => $m['editor_id'] ?? null,
-            'editorName'               => $m['editor_name'] ?? null,
-            'editorIds'                => !empty($m['editor_ids']) ? json_decode($m['editor_ids'], true) : [],
-            'editorNamesDisplay'       => $m['editor_names_display'] ?? null,
-            'deliveryDeadlineDate'     => $m['delivery_deadline_date'] ?? null,
-            'deliveryDeadlineTime'     => $m['delivery_deadline_time'] ?? null,
-            'editionCompletedAt'       => $m['edition_completed_at'] ?? null,
-            'editionCompletedBy'       => $m['edition_completed_by'] ?? null,
-            'isOverdue'                => !empty($m['is_overdue']),
-            'editionDeliveryStatus'    => $m['edition_delivery_status'] ?? null,
-            'serverFilePath'           => $m['server_file_path'] ?? null,
-            'reopenReason'             => $m['reopen_reason'] ?? null,
-            'editionHistory'           => !empty($m['edition_history']) ? json_decode($m['edition_history'], true) : [],
-            'editorsDelivery'          => !empty($editorsDelivery) ? $editorsDelivery : (!empty($m['editors_delivery']) ? json_decode($m['editors_delivery'], true) : new stdClass()),
-            'editionStatus'            => $m['edition_status'] ?? 'Pendente',
-            'missionStatus'            => $m['mission_status'] ?? 'Agendada',
-            'isRoundTrip'              => (bool)$m['is_round_trip'],
-            'distanceKm'               => (float)$m['distance_km'],
-            'totalDistanceKm'          => (float)$m['total_distance_km'],
-            'drivingDurationMinutes'   => (int)$m['driving_duration_minutes'],
-            'roundTripDurationMinutes' => (int)$m['round_trip_duration_minutes'],
-            'estimatedFuelLiters'      => (float)$m['estimated_fuel_liters'],
-            'estimatedFuelCost'        => (float)$m['estimated_fuel_cost'],
-            'routeCoordinates'         => !empty($m['route_coordinates']) ? json_decode($m['route_coordinates'], true) : [],
-            'returnCoordinates'        => !empty($m['return_coordinates']) ? json_decode($m['return_coordinates'], true) : [],
-            'notes'                    => $m['notes'],
-            'isRecurring'              => !empty($m['is_recurring']),
-            'recurrenceId'             => $m['recurrence_id'] ?? null,
-            'recurrenceRule'           => $m['recurrence_rule'] ?? null,
-            'recurrenceDays'           => $m['recurrence_days'] ?? null,
-            'isMultiDay'               => !empty($m['is_multi_day']),
-            'endDate'                  => $m['end_date'] ?? null,
-            'customRates'              => !empty($m['custom_rates']) ? json_decode($m['custom_rates'], true) : null,
-            'offHours'                 => isset($m['off_hours']) ? (float)$m['off_hours'] : 0.0,
-            'remunerationType'         => $m['remuneration_type'] ?? (!empty($m['is_multi_day']) ? 'daily' : 'off_hours'),
-            'memberRemunerationTypes'  => !empty($m['member_remuneration_types']) ? json_decode($m['member_remuneration_types'], true) : new stdClass(),
-            'memberRoles'              => !empty($m['member_roles']) ? json_decode($m['member_roles'], true) : new stdClass(),
-            'equipmentAllocations'     => !empty($m['equipment_allocations']) ? json_decode($m['equipment_allocations'], true) : [],
-            'extraHoursPlanned'        => isset($m['extra_hours_planned']) ? (float)$m['extra_hours_planned'] : 0.0,
-            'extraHoursApproved'       => isset($m['extra_hours_approved']) ? (float)$m['extra_hours_approved'] : 0.0,
-            'extraHoursRequests'       => !empty($m['extra_hours_requests']) ? json_decode($m['extra_hours_requests'], true) : [],
-            'version'                  => (int)($m['version'] ?? 1),
-            'createdAt'                => $m['created_at'],
-            'updatedAt'                => $m['updated_at']
+            'id' => $m['id'],
+            'code' => $m['code'],
+            'description' => $m['description'],
+            'locationName' => $m['location_name'],
+            'address' => $m['address'],
+            'lat' => $m['lat'] !== null ? (float) $m['lat'] : null,
+            'lon' => $m['lon'] !== null ? (float) $m['lon'] : null,
+            'date' => $m['date'],
+            'departureTime' => $m['departure_time'],
+            'arrivalTimeEstimated' => $m['arrival_time_estimated'],
+            'returnTimeEstimated' => $m['return_time_estimated'],
+            'eventStartTime' => $m['event_start_time'] ?? null,
+            'eventEndTime' => $m['event_end_time'] ?? null,
+            'antecedenceMinutes' => isset($m['antecedence_minutes']) && $m['antecedence_minutes'] !== null ? (int) $m['antecedence_minutes'] : 30,
+            'suggestedDepartureTime' => $m['suggested_departure_time'] ?? null,
+            'vehicleId' => $m['vehicle_id'],
+            'vehicleNameDisplay' => $m['vehicle_name_display'],
+            'vehicleAllocations' => !empty($m['vehicle_allocations']) ? json_decode($m['vehicle_allocations'], true) : [],
+            'driverId' => $m['driver_id'],
+            'driverName' => $m['driver_name'],
+            'teamIds' => !empty($m['team_ids']) ? json_decode($m['team_ids'], true) : [],
+            'teamNamesDisplay' => $m['team_names_display'],
+            'guests' => !empty($m['guests']) ? json_decode($m['guests'], true) : [],
+            'editorId' => $m['editor_id'] ?? null,
+            'editorName' => $m['editor_name'] ?? null,
+            'editorIds' => !empty($m['editor_ids']) ? json_decode($m['editor_ids'], true) : [],
+            'editorNamesDisplay' => $m['editor_names_display'] ?? null,
+            'deliveryDeadlineDate' => $m['delivery_deadline_date'] ?? null,
+            'deliveryDeadlineTime' => $m['delivery_deadline_time'] ?? null,
+            'editionCompletedAt' => $m['edition_completed_at'] ?? null,
+            'editionCompletedBy' => $m['edition_completed_by'] ?? null,
+            'isOverdue' => !empty($m['is_overdue']),
+            'editionDeliveryStatus' => $m['edition_delivery_status'] ?? null,
+            'serverFilePath' => $m['server_file_path'] ?? null,
+            'reopenReason' => $m['reopen_reason'] ?? null,
+            'editionHistory' => !empty($m['edition_history']) ? json_decode($m['edition_history'], true) : [],
+            'editorsDelivery' => !empty($editorsDelivery) ? $editorsDelivery : (!empty($m['editors_delivery']) ? json_decode($m['editors_delivery'], true) : new stdClass()),
+            'editionStatus' => $m['edition_status'] ?? 'Pendente',
+            'missionStatus' => $m['mission_status'] ?? 'Agendada',
+            'isRoundTrip' => (bool) $m['is_round_trip'],
+            'distanceKm' => (float) $m['distance_km'],
+            'totalDistanceKm' => (float) $m['total_distance_km'],
+            'drivingDurationMinutes' => (int) $m['driving_duration_minutes'],
+            'roundTripDurationMinutes' => (int) $m['round_trip_duration_minutes'],
+            'estimatedFuelLiters' => (float) $m['estimated_fuel_liters'],
+            'estimatedFuelCost' => (float) $m['estimated_fuel_cost'],
+            'routeCoordinates' => !empty($m['route_coordinates']) ? json_decode($m['route_coordinates'], true) : [],
+            'returnCoordinates' => !empty($m['return_coordinates']) ? json_decode($m['return_coordinates'], true) : [],
+            'notes' => $m['notes'],
+            'isRecurring' => !empty($m['is_recurring']),
+            'recurrenceId' => $m['recurrence_id'] ?? null,
+            'recurrenceRule' => $m['recurrence_rule'] ?? null,
+            'recurrenceDays' => $m['recurrence_days'] ?? null,
+            'isMultiDay' => !empty($m['is_multi_day']),
+            'endDate' => $m['end_date'] ?? null,
+            'customRates' => !empty($m['custom_rates']) ? json_decode($m['custom_rates'], true) : null,
+            'offHours' => isset($m['off_hours']) ? (float) $m['off_hours'] : 0.0,
+            'remunerationType' => $m['remuneration_type'] ?? (!empty($m['is_multi_day']) ? 'daily' : 'off_hours'),
+            'memberRemunerationTypes' => !empty($m['member_remuneration_types']) ? json_decode($m['member_remuneration_types'], true) : new stdClass(),
+            'memberRoles' => !empty($m['member_roles']) ? json_decode($m['member_roles'], true) : new stdClass(),
+            'equipmentAllocations' => !empty($m['equipment_allocations']) ? json_decode($m['equipment_allocations'], true) : [],
+            'extraHoursPlanned' => isset($m['extra_hours_planned']) ? (float) $m['extra_hours_planned'] : 0.0,
+            'extraHoursApproved' => isset($m['extra_hours_approved']) ? (float) $m['extra_hours_approved'] : 0.0,
+            'extraHoursRequests' => !empty($m['extra_hours_requests']) ? json_decode($m['extra_hours_requests'], true) : [],
+            'version' => (int) ($m['version'] ?? 1),
+            'createdAt' => $m['created_at'],
+            'updatedAt' => $m['updated_at']
         ];
     }, $rawMissions);
 
@@ -380,11 +366,13 @@ if ($method === 'GET') {
 // ==============================================================================
 // FUNÇÕES AUXILIARES DE CONFLITOS DE ESCALA (RODADA 2 - ROBUSTA E ATÔMICA)
 // ==============================================================================
-function getMissionTimeRangeTs($date, $depTime, $retTime, $endDate = null) {
+function getMissionTimeRangeTs($date, $depTime, $retTime, $endDate = null)
+{
     $dateStr = !empty($date) ? trim($date) : date('Y-m-d');
     $depTimeStr = !empty($depTime) ? trim($depTime) : '08:00';
     $depTs = strtotime("{$dateStr} {$depTimeStr}");
-    if (!$depTs) $depTs = strtotime("{$dateStr} 08:00:00");
+    if (!$depTs)
+        $depTs = strtotime("{$dateStr} 08:00:00");
 
     $retDateStr = !empty($endDate) ? trim($endDate) : $dateStr;
     if (!empty($retTime)) {
@@ -399,31 +387,36 @@ function getMissionTimeRangeTs($date, $depTime, $retTime, $endDate = null) {
     return [$depTs, $retTs];
 }
 
-function checkRosterConflicts($db, $targetMissionId, $data) {
+function checkRosterConflicts($db, $targetMissionId, $data)
+{
     $date = $data['date'] ?? date('Y-m-d');
     $endDate = !empty($data['endDate']) ? $data['endDate'] : $date;
     $depTime = $data['departureTime'] ?? '08:00';
-    $retTime = $data['returnTimeEstimated'] ?? $data['eventEndTime'] ?? $data['arrivalTimeEstimated'] ?? null;
+    $retTime = $data['returnTimeEstimated'] ?? $data['arrivalTimeEstimated'] ?? null;
     list($depTs, $retTs) = getMissionTimeRangeTs($date, $depTime, $retTime, $endDate);
 
     // Coleta todos os veículos da missão
     $vehicles = [];
     if (!empty($data['vehicleAllocations']) && is_array($data['vehicleAllocations'])) {
         foreach ($data['vehicleAllocations'] as $alloc) {
-            if (!empty($alloc['vehicleId'])) $vehicles[] = $alloc['vehicleId'];
+            if (!empty($alloc['vehicleId']))
+                $vehicles[] = $alloc['vehicleId'];
         }
     }
-    if (!empty($data['vehicleId'])) $vehicles[] = $data['vehicleId'];
+    if (!empty($data['vehicleId']))
+        $vehicles[] = $data['vehicleId'];
     $vehicles = array_unique(array_filter($vehicles));
 
     // Coleta todos os condutores da missão
     $drivers = [];
     if (!empty($data['vehicleAllocations']) && is_array($data['vehicleAllocations'])) {
         foreach ($data['vehicleAllocations'] as $alloc) {
-            if (!empty($alloc['driverId'])) $drivers[] = $alloc['driverId'];
+            if (!empty($alloc['driverId']))
+                $drivers[] = $alloc['driverId'];
         }
     }
-    if (!empty($data['driverId'])) $drivers[] = $data['driverId'];
+    if (!empty($data['driverId']))
+        $drivers[] = $data['driverId'];
     $drivers = array_unique(array_filter($drivers));
 
     // Coleta equipe escalada
@@ -438,7 +431,7 @@ function checkRosterConflicts($db, $targetMissionId, $data) {
     $maxDate = date('Y-m-d', $retTs + 86400);
 
     $stmtOther = $db->prepare("
-        SELECT id, code, description, date, end_date, departure_time, return_time_estimated, arrival_time_estimated, event_end_time,
+        SELECT id, code, description, date, end_date, departure_time, return_time_estimated, arrival_time_estimated,
                vehicle_id, vehicle_name_display, vehicle_allocations,
                driver_id, driver_name, team_ids, team_names_display
         FROM missions
@@ -455,12 +448,13 @@ function checkRosterConflicts($db, $targetMissionId, $data) {
         $oDate = $other['date'] ?? $date;
         $oEndDate = $other['end_date'] ?? null;
         $oDepTime = $other['departure_time'] ?? '08:00';
-        $oRetTime = $other['return_time_estimated'] ?: ($other['event_end_time'] ?: ($other['arrival_time_estimated'] ?: null));
+        $oRetTime = $other['return_time_estimated'] ?: ($other['arrival_time_estimated'] ?: null);
         list($oDepTs, $oRetTs) = getMissionTimeRangeTs($oDate, $oDepTime, $oRetTime, $oEndDate);
 
         // Verifica sobreposição temporal exata: max(A, C) < min(B, D)
         $overlap = max($depTs, $oDepTs) < min($retTs, $oRetTs);
-        if (!$overlap) continue;
+        if (!$overlap)
+            continue;
 
         $otherTimeRange = ($other['departure_time'] ?: '??') . ' às ' . ($oRetTime ?: '??');
         $otherTitle = !empty($other['code']) ? "#{$other['code']} - {$other['description']}" : $other['description'];
@@ -471,17 +465,19 @@ function checkRosterConflicts($db, $targetMissionId, $data) {
             $otherAlloc = json_decode($other['vehicle_allocations'], true);
             if (is_array($otherAlloc)) {
                 foreach ($otherAlloc as $oa) {
-                    if (!empty($oa['vehicleId'])) $otherVehicles[] = $oa['vehicleId'];
+                    if (!empty($oa['vehicleId']))
+                        $otherVehicles[] = $oa['vehicleId'];
                 }
             }
         }
-        if (!empty($other['vehicle_id'])) $otherVehicles[] = $other['vehicle_id'];
+        if (!empty($other['vehicle_id']))
+            $otherVehicles[] = $other['vehicle_id'];
 
         foreach ($vehicles as $vId) {
             if (in_array($vId, $otherVehicles)) {
                 $vehName = $data['vehicleNameDisplay'] ?? 'selecionada';
                 return [
-                    'type'    => 'VEHICLE',
+                    'type' => 'VEHICLE',
                     'message' => "A viatura '{$vehName}' já está escalada na missão '{$otherTitle}' no mesmo horário ({$otherTimeRange})."
                 ];
             }
@@ -493,17 +489,19 @@ function checkRosterConflicts($db, $targetMissionId, $data) {
             $otherAlloc = json_decode($other['vehicle_allocations'], true);
             if (is_array($otherAlloc)) {
                 foreach ($otherAlloc as $oa) {
-                    if (!empty($oa['driverId'])) $otherDrivers[] = $oa['driverId'];
+                    if (!empty($oa['driverId']))
+                        $otherDrivers[] = $oa['driverId'];
                 }
             }
         }
-        if (!empty($other['driver_id'])) $otherDrivers[] = $other['driver_id'];
+        if (!empty($other['driver_id']))
+            $otherDrivers[] = $other['driver_id'];
 
         foreach ($drivers as $dId) {
             if (in_array($dId, $otherDrivers)) {
                 $driverName = $data['driverName'] ?? 'selecionado';
                 return [
-                    'type'    => 'DRIVER',
+                    'type' => 'DRIVER',
                     'message' => "O condutor '{$driverName}' já está escalado na missão '{$otherTitle}' no mesmo horário ({$otherTimeRange})."
                 ];
             }
@@ -515,7 +513,7 @@ function checkRosterConflicts($db, $targetMissionId, $data) {
             foreach ($team as $mId) {
                 if (in_array($mId, $otherTeam)) {
                     return [
-                        'type'    => 'TEAM_MEMBER',
+                        'type' => 'TEAM_MEMBER',
                         'message' => "Um ou mais colaboradores escalados já fazem parte da missão '{$otherTitle}' no mesmo horário ({$otherTimeRange})."
                     ];
                 }
@@ -536,7 +534,7 @@ if ($method === 'POST' && $action === 'request_extra_hours') {
     $user = requireAuth();
     $data = getJsonInput();
     $missionId = trim($data['missionId'] ?? '');
-    $hours = max(0.5, (float)($data['hoursRequested'] ?? 1.0));
+    $hours = max(0.5, (float) ($data['hoursRequested'] ?? 1.0));
     $reason = trim($data['reason'] ?? 'Necessário tempo adicional para finalizar os trabalhos.');
 
     if (empty($missionId)) {
@@ -552,16 +550,17 @@ if ($method === 'POST' && $action === 'request_extra_hours') {
     }
 
     $existingRequests = !empty($m['extra_hours_requests']) ? json_decode($m['extra_hours_requests'], true) : [];
-    if (!is_array($existingRequests)) $existingRequests = [];
+    if (!is_array($existingRequests))
+        $existingRequests = [];
 
     $newReq = [
-        'id'             => 'ehr-' . bin2hex(random_bytes(6)),
-        'memberId'       => $data['memberId'] ?? $user['id'],
-        'memberName'     => $data['memberName'] ?? $user['name'],
+        'id' => 'ehr-' . bin2hex(random_bytes(6)),
+        'memberId' => $data['memberId'] ?? $user['id'],
+        'memberName' => $data['memberName'] ?? $user['name'],
         'hoursRequested' => $hours,
-        'reason'         => $reason,
-        'status'         => 'PENDING',
-        'createdAt'      => date('Y-m-d H:i:s')
+        'reason' => $reason,
+        'status' => 'PENDING',
+        'createdAt' => date('Y-m-d H:i:s')
     ];
     $existingRequests[] = $newReq;
 
@@ -575,12 +574,13 @@ if ($method === 'POST' && $action === 'request_extra_hours') {
             INSERT INTO system_messages (id, title, message, type, priority, requires_confirmation, created_by)
             VALUES (?, ?, ?, 'ALERT', 'HIGH', 0, ?)
         ")->execute([
-            $msgId,
-            "⏱️ Solicitação de Hora Extra: +{$hours}h",
-            "{$user['name']} solicitou +{$hours}h adicional na missão '{$m['description']}'. Motivo: {$reason}",
-            $user['id']
-        ]);
-    } catch (Exception $e) {}
+                    $msgId,
+                    "⏱️ Solicitação de Hora Extra: +{$hours}h",
+                    "{$user['name']} solicitou +{$hours}h adicional na missão '{$m['description']}'. Motivo: {$reason}",
+                    $user['id']
+                ]);
+    } catch (Exception $e) {
+    }
 
     logAudit('REQUEST_EXTRA_HOURS', 'MISSIONS', $missionId, "{$user['name']} solicitou +{$hours}h de hora extra.", $user['id'], $user['name']);
     bumpSyncVersion("mission_{$missionId}");
@@ -594,7 +594,7 @@ if ($method === 'POST' && $action === 'extend_return_time') {
     $data = getJsonInput();
     $missionId = trim($data['missionId'] ?? '');
     $newReturnTime = trim($data['newReturnTime'] ?? '');
-    $hoursAdded = (float)($data['hoursAdded'] ?? 1.0);
+    $hoursAdded = (float) ($data['hoursAdded'] ?? 1.0);
     $reason = trim($data['reason'] ?? 'Prorrogação de tempo em campo dentro do expediente regular.');
 
     if (empty($missionId) || empty($newReturnTime)) {
@@ -625,12 +625,13 @@ if ($method === 'POST' && $action === 'extend_return_time') {
             INSERT INTO system_messages (id, title, message, type, priority, requires_confirmation, created_by)
             VALUES (?, ?, ?, 'INFO', 'NORMAL', 0, ?)
         ")->execute([
-            $msgId,
-            "⏱️ Prorrogação de Retorno: {$m['description']}",
-            "{$user['name']} prorrogou a previsão de retorno em campo de {$oldReturn} para às {$newReturnTime} (+{$hoursAdded}h dentro do expediente). Motivo: {$reason}",
-            $user['id']
-        ]);
-    } catch (Exception $e) {}
+                    $msgId,
+                    "⏱️ Prorrogação de Retorno: {$m['description']}",
+                    "{$user['name']} prorrogou a previsão de retorno em campo de {$oldReturn} para às {$newReturnTime} (+{$hoursAdded}h dentro do expediente). Motivo: {$reason}",
+                    $user['id']
+                ]);
+    } catch (Exception $e) {
+    }
 
     logAudit('EXTEND_RETURN_TIME', 'MISSIONS', $missionId, "{$user['name']} prorrogou retorno para {$newReturnTime} (+{$hoursAdded}h). Motivo: {$reason}", $user['id'], $user['name']);
     bumpSyncVersion("mission_{$missionId}");
@@ -663,7 +664,8 @@ if ($method === 'POST' && $action === 'respond_extra_hours') {
     }
 
     $existingRequests = !empty($m['extra_hours_requests']) ? json_decode($m['extra_hours_requests'], true) : [];
-    if (!is_array($existingRequests)) $existingRequests = [];
+    if (!is_array($existingRequests))
+        $existingRequests = [];
 
     $found = false;
     $approvedHoursDelta = 0.0;
@@ -673,7 +675,7 @@ if ($method === 'POST' && $action === 'respond_extra_hours') {
             $req['respondedAt'] = date('Y-m-d H:i:s');
             $req['respondedBy'] = $user['name'];
             if ($decision === 'APPROVE') {
-                $approvedHoursDelta = (float)($req['hoursRequested'] ?? 1.0);
+                $approvedHoursDelta = (float) ($req['hoursRequested'] ?? 1.0);
             }
             $found = true;
             break;
@@ -684,7 +686,7 @@ if ($method === 'POST' && $action === 'respond_extra_hours') {
         jsonResponse(['success' => false, 'error' => 'Solicitação não encontrada nesta missão.'], 404);
     }
 
-    $newApproved = (float)($m['extra_hours_approved'] ?? 0.0) + $approvedHoursDelta;
+    $newApproved = (float) ($m['extra_hours_approved'] ?? 0.0) + $approvedHoursDelta;
     $stmtUp = $db->prepare("
         UPDATE missions
         SET extra_hours_requests = ?, extra_hours_approved = ?, version = version + 1
@@ -731,10 +733,10 @@ if ($method === 'POST' || $method === 'PUT') {
         $clientUpdatedTs = strtotime($data['updatedAt']);
         if ($serverUpdatedTs > ($clientUpdatedTs + 3)) {
             jsonResponse([
-                'success'         => false,
-                'conflict'        => true,
+                'success' => false,
+                'conflict' => true,
                 'serverUpdatedAt' => $existing['updated_at'],
-                'error'           => "Conflito de concorrência: Esta missão foi alterada por outro usuário às " . date('H:i:s', $serverUpdatedTs) . ". Deseja recarregar a versão mais recente para não sobrescrever dados?"
+                'error' => "Conflito de concorrência: Esta missão foi alterada por outro usuário às " . date('H:i:s', $serverUpdatedTs) . ". Deseja recarregar a versão mais recente para não sobrescrever dados?"
             ], 409);
         }
     }
@@ -782,8 +784,8 @@ if ($method === 'POST' || $method === 'PUT') {
         $allEditorIds = array_merge(is_array($editors) ? $editors : [], is_array($incomingEditors) ? $incomingEditors : []);
 
         $isEditor = ($existing['editor_id'] === $uId || ($mId && $existing['editor_id'] === $mId)) ||
-                    (!empty($data['editorId']) && ($data['editorId'] === $uId || ($mId && $data['editorId'] === $mId))) ||
-                    in_array($uId, $allEditorIds) || ($mId && in_array($mId, $allEditorIds));
+            (!empty($data['editorId']) && ($data['editorId'] === $uId || ($mId && $data['editorId'] === $mId))) ||
+            in_array($uId, $allEditorIds) || ($mId && in_array($mId, $allEditorIds));
 
         // Verificação textual abrangente por nome de editor caso IDs sejam heterogêneos
         if (!$isEditor) {
@@ -796,8 +798,10 @@ if ($method === 'POST' || $method === 'PUT') {
 
             if (!empty($targetEdNames)) {
                 // Checa nome completo do usuário ou membro
-                if (($uName !== '' && strpos($targetEdNames, $uName) !== false) ||
-                    ($mName !== '' && strpos($targetEdNames, $mName) !== false)) {
+                if (
+                    ($uName !== '' && strpos($targetEdNames, $uName) !== false) ||
+                    ($mName !== '' && strpos($targetEdNames, $mName) !== false)
+                ) {
                     $isEditor = true;
                 } else {
                     // Checa tokens de nome (ex: "jonathan", "jordan") e prefixo do e-mail
@@ -830,7 +834,7 @@ if ($method === 'POST' || $method === 'PUT') {
         $editionCompletedBy = $existing['edition_completed_by'] ?? null;
         $serverFilePath = $data['serverFilePath'] ?? $existing['server_file_path'] ?? null;
         $editionDeliveryStatus = $data['editionDeliveryStatus'] ?? $existing['edition_delivery_status'] ?? null;
-        $isOverdue = isset($data['isOverdue']) ? (int)$data['isOverdue'] : ($existing['is_overdue'] ?? 0);
+        $isOverdue = isset($data['isOverdue']) ? (int) $data['isOverdue'] : ($existing['is_overdue'] ?? 0);
         $editionHistory = isset($data['editionHistory']) ? (is_array($data['editionHistory']) ? json_encode($data['editionHistory'], JSON_UNESCAPED_UNICODE) : $data['editionHistory']) : ($existing['edition_history'] ?? null);
         $notes = $existing['notes'] ?? '';
 
@@ -840,10 +844,10 @@ if ($method === 'POST' || $method === 'PUT') {
             $currentStatus = $existing['mission_status'] ?? 'Agendada';
             if ($requestedStatus !== $currentStatus) {
                 $validTransitions = [
-                    'Agendada'     => ['Em Execução'],
-                    'Em Execução'  => ['Pendente', 'Finalizada'],
-                    'Pendente'     => ['Finalizada'],
-                    'Finalizada'   => []
+                    'Agendada' => ['Em Execução'],
+                    'Em Execução' => ['Pendente', 'Finalizada'],
+                    'Pendente' => ['Finalizada'],
+                    'Finalizada' => []
                 ];
                 $allowedNext = $validTransitions[$currentStatus] ?? [];
                 if (!in_array($requestedStatus, $allowedNext)) {
@@ -897,10 +901,10 @@ if ($method === 'POST' || $method === 'PUT') {
         if (!isset($data['version'])) {
             jsonResponse([
                 'success' => false,
-                'error'   => 'Parâmetro version é obrigatório para atualização de status operacional.'
+                'error' => 'Parâmetro version é obrigatório para atualização de status operacional.'
             ], 400);
         }
-        $expectedOpVer = (int)$data['version'];
+        $expectedOpVer = (int) $data['version'];
 
         $db->beginTransaction();
         try {
@@ -927,12 +931,12 @@ if ($method === 'POST' || $method === 'PUT') {
                 $stmtCurVer = $db->prepare("SELECT version FROM missions WHERE id = ?");
                 $stmtCurVer->execute([$id]);
                 $cRow = $stmtCurVer->fetch();
-                $cVer = (int)($cRow['version'] ?? 1);
+                $cVer = (int) ($cRow['version'] ?? 1);
                 jsonResponse([
-                    'success'        => false,
-                    'conflict'       => true,
+                    'success' => false,
+                    'conflict' => true,
                     'currentVersion' => $cVer,
-                    'error'          => 'Conflito de Concorrência: A missão foi alterada por outro usuário simultaneamente. Recarregue os dados antes de prosseguir.'
+                    'error' => 'Conflito de Concorrência: A missão foi alterada por outro usuário simultaneamente. Recarregue os dados antes de prosseguir.'
                 ], 409);
             }
 
@@ -945,7 +949,7 @@ if ($method === 'POST' || $method === 'PUT') {
             error_log('[GestorMF Operational Update Exception] ' . $e->getMessage());
             jsonResponse([
                 'success' => false,
-                'error'   => 'Falha ao salvar status operacional: ' . $e->getMessage()
+                'error' => 'Falha ao salvar status operacional: ' . $e->getMessage()
             ], 500);
         }
 
@@ -953,10 +957,10 @@ if ($method === 'POST' || $method === 'PUT') {
         bumpSyncVersion("mission_{$id}");
 
         jsonResponse([
-            'success'   => true,
-            'message'   => 'Status da missão atualizado com sucesso!',
-            'id'        => $id,
-            'version'   => $newVersion,
+            'success' => true,
+            'message' => 'Status da missão atualizado com sucesso!',
+            'id' => $id,
+            'version' => $newVersion,
             'updatedAt' => date('Y-m-d H:i:s')
         ]);
     }
@@ -978,20 +982,20 @@ if ($method === 'POST' || $method === 'PUT') {
         // Checagem Atômica de Conflitos de Escala com FOR UPDATE (P0-02 e P1-05)
         $conflict = checkRosterConflicts($db, $id, $data);
         if ($conflict) {
-            $hasOverride = !empty($data['ignoreConflicts']) || !empty($data['forceSharedResources']) || !empty($data['overrideConflicts']);
+            $hasOverride = !empty($data['ignoreConflicts']) || !empty($data['forceSharedResources']);
             if ($hasOverride) {
                 logAudit('OVERRIDE_ROSTER_CONFLICT', 'MISSIONS', $id, [
                     'conflict' => $conflict['message'],
-                    'reason'   => !empty($data['overrideReason']) ? trim($data['overrideReason']) : 'Participação compartilhada de viatura/colaborador forçada e autorizada pelo gestor'
+                    'reason' => !empty($data['overrideReason']) ? trim($data['overrideReason']) : 'Participação compartilhada de viatura/colaborador forçada e autorizada pelo gestor'
                 ], $user['id'], $user['name']);
             } else {
                 $db->rollBack();
                 jsonResponse([
-                    'success'         => false,
-                    'hasConflict'     => true,
-                    'conflictType'    => $conflict['type'],
+                    'success' => false,
+                    'hasConflict' => true,
+                    'conflictType' => $conflict['type'],
                     'conflictMessage' => $conflict['message'],
-                    'error'           => "Conflito de Escala: " . $conflict['message']
+                    'error' => "Conflito de Escala: " . $conflict['message']
                 ], 422);
             }
         }
@@ -1001,20 +1005,20 @@ if ($method === 'POST' || $method === 'PUT') {
             $stmtVer = $db->prepare("SELECT version, updated_at, description FROM missions WHERE id = ? FOR UPDATE");
             $stmtVer->execute([$id]);
             $currentVerRow = $stmtVer->fetch();
-            $dbVersion = (int)($currentVerRow['version'] ?? 1);
+            $dbVersion = (int) ($currentVerRow['version'] ?? 1);
 
-            $expectedVersion = isset($data['version']) ? (int)$data['version'] : null;
+            $expectedVersion = isset($data['version']) ? (int) $data['version'] : null;
             $adminForce = !empty($data['forceOverwrite']) && $user['role'] === 'ADMIN';
 
             // Concorrência Otimista estrita: exige igualdade exata de versão (dbVersion === expectedVersion)
             if (!$adminForce && ($expectedVersion === null || $dbVersion !== $expectedVersion)) {
                 $db->rollBack();
                 jsonResponse([
-                    'success'        => false,
-                    'conflict'       => true,
+                    'success' => false,
+                    'conflict' => true,
                     'currentVersion' => $dbVersion,
-                    'updatedAt'      => $currentVerRow['updated_at'],
-                    'error'          => 'Esta missão foi alterada por outro usuário ou está desatualizada no seu navegador. Recarregue os dados para evitar sobreposição.'
+                    'updatedAt' => $currentVerRow['updated_at'],
+                    'error' => 'Esta missão foi alterada por outro usuário ou está desatualizada no seu navegador. Recarregue os dados para evitar sobreposição.'
                 ], 409);
             }
 
@@ -1023,20 +1027,21 @@ if ($method === 'POST' || $method === 'PUT') {
             }
         }
 
-    $isRecurring = !empty($data['isRecurring']) ? 1 : 0;
-    $recurrenceId = !empty($data['recurrenceId']) ? trim($data['recurrenceId']) : ($isRecurring ? ('rec-' . bin2hex(random_bytes(8))) : null);
-    $recurrenceRule = !empty($data['recurrenceRule']) ? trim($data['recurrenceRule']) : null;
-    $recurrenceDays = !empty($data['recurrenceDays']) ? (is_array($data['recurrenceDays']) ? implode(', ', $data['recurrenceDays']) : trim($data['recurrenceDays'])) : null;
-    $isMultiDay = !empty($data['isMultiDay']) ? 1 : 0;
-    $endDate = !empty($data['endDate']) ? trim($data['endDate']) : null;
-    if (!$isMultiDay) {
-        $endDate = null;
-    }
+        $isRecurring = !empty($data['isRecurring']) ? 1 : 0;
+        $recurrenceId = !empty($data['recurrenceId']) ? trim($data['recurrenceId']) : ($isRecurring ? ('rec-' . bin2hex(random_bytes(8))) : null);
+        $recurrenceRule = !empty($data['recurrenceRule']) ? trim($data['recurrenceRule']) : null;
+        $recurrenceDays = !empty($data['recurrenceDays']) ? (is_array($data['recurrenceDays']) ? implode(', ', $data['recurrenceDays']) : trim($data['recurrenceDays'])) : null;
+        $isMultiDay = !empty($data['isMultiDay']) ? 1 : 0;
+        $endDate = !empty($data['endDate']) ? trim($data['endDate']) : null;
+        if (!$isMultiDay) {
+            $endDate = null;
+        }
 
-    $sql = "
+        $sql = "
         INSERT INTO missions (
             id, code, description, location_name, address, lat, lon, date,
             departure_time, arrival_time_estimated, return_time_estimated,
+            event_start_time, antecedence_minutes, suggested_departure_time,
             event_start_time, event_end_time, antecedence_minutes, suggested_departure_time,
             vehicle_id, vehicle_name_display, vehicle_allocations,
             driver_id, driver_name, team_ids, team_names_display, guests,
@@ -1056,6 +1061,7 @@ if ($method === 'POST' || $method === 'PUT') {
         ) VALUES (
             :id, :code, :description, :location_name, :address, :lat, :lon, :date,
             :departure_time, :arrival_time_estimated, :return_time_estimated,
+            :event_start_time, :antecedence_minutes, :suggested_departure_time,
             :event_start_time, :event_end_time, :antecedence_minutes, :suggested_departure_time,
             :vehicle_id, :vehicle_name_display, :vehicle_allocations,
             :driver_id, :driver_name, :team_ids, :team_names_display, :guests,
@@ -1140,142 +1146,143 @@ if ($method === 'POST' || $method === 'PUT') {
             editors_delivery = VALUES(editors_delivery)
     ";
 
-    // Blindagem de Pós-Produção para múltiplos editores:
-    $effectiveEditionStatus = $data['editionStatus'] ?? 'Pendente';
-    $rawEditorsDelivery = !empty($data['editorsDelivery']) ? (is_array($data['editorsDelivery']) ? $data['editorsDelivery'] : json_decode($data['editorsDelivery'], true)) : [];
-    if (!empty($rawEditorsDelivery) && is_array($rawEditorsDelivery)) {
-        $hasPendingEditor = false;
-        foreach ($rawEditorsDelivery as $edCheck) {
-            if (empty($edCheck['status']) || $edCheck['status'] !== 'delivered') {
-                $hasPendingEditor = true;
-                break;
+        // Blindagem de Pós-Produção para múltiplos editores:
+        $effectiveEditionStatus = $data['editionStatus'] ?? 'Pendente';
+        $rawEditorsDelivery = !empty($data['editorsDelivery']) ? (is_array($data['editorsDelivery']) ? $data['editorsDelivery'] : json_decode($data['editorsDelivery'], true)) : [];
+        if (!empty($rawEditorsDelivery) && is_array($rawEditorsDelivery)) {
+            $hasPendingEditor = false;
+            foreach ($rawEditorsDelivery as $edCheck) {
+                if (empty($edCheck['status']) || $edCheck['status'] !== 'delivered') {
+                    $hasPendingEditor = true;
+                    break;
+                }
+            }
+            if ($hasPendingEditor && in_array($effectiveEditionStatus, ['Edição Concluída', 'Entregue'])) {
+                $effectiveEditionStatus = 'Em Edição';
             }
         }
-        if ($hasPendingEditor && in_array($effectiveEditionStatus, ['Edição Concluída', 'Entregue'])) {
-            $effectiveEditionStatus = 'Em Edição';
+
+        $saveParams = [
+            ':id' => $id,
+            ':code' => $data['code'] ?? null,
+            ':description' => $description,
+            ':location_name' => $data['locationName'] ?? null,
+            ':address' => $data['address'] ?? null,
+            ':lat' => isset($data['lat']) && $data['lat'] !== '' ? $data['lat'] : null,
+            ':lon' => isset($data['lon']) && $data['lon'] !== '' ? $data['lon'] : null,
+            ':date' => $data['date'] ?? date('Y-m-d'),
+            ':departure_time' => $data['departureTime'] ?? '08:00',
+            ':arrival_time_estimated' => $data['arrivalTimeEstimated'] ?? null,
+            ':return_time_estimated' => $data['returnTimeEstimated'] ?? null,
+            ':event_start_time' => $data['eventStartTime'] ?? null,
+            ':event_end_time' => $data['eventEndTime'] ?? null,
+            ':antecedence_minutes' => isset($data['antecedenceMinutes']) ? (int) $data['antecedenceMinutes'] : 30,
+            ':suggested_departure_time' => $data['suggestedDepartureTime'] ?? null,
+            ':vehicle_id' => $data['vehicleId'] ?? null,
+            ':vehicle_name_display' => $data['vehicleNameDisplay'] ?? null,
+            ':vehicle_allocations' => !empty($data['vehicleAllocations']) ? json_encode($data['vehicleAllocations'], JSON_UNESCAPED_UNICODE) : null,
+            ':driver_id' => $data['driverId'] ?? null,
+            ':driver_name' => $data['driverName'] ?? null,
+            ':team_ids' => !empty($data['teamIds']) ? json_encode($data['teamIds'], JSON_UNESCAPED_UNICODE) : null,
+            ':team_names_display' => $data['teamNamesDisplay'] ?? null,
+            ':guests' => !empty($data['guests']) ? (is_array($data['guests']) ? json_encode($data['guests'], JSON_UNESCAPED_UNICODE) : $data['guests']) : null,
+            ':editor_id' => $data['editorId'] ?? null,
+            ':editor_name' => $data['editorName'] ?? null,
+            ':editor_ids' => !empty($data['editorIds']) ? json_encode($data['editorIds'], JSON_UNESCAPED_UNICODE) : null,
+            ':editor_names_display' => $data['editorNamesDisplay'] ?? null,
+            ':delivery_deadline_date' => $data['deliveryDeadlineDate'] ?? null,
+            ':delivery_deadline_time' => $data['deliveryDeadlineTime'] ?? null,
+            ':edition_completed_at' => $data['editionCompletedAt'] ?? null,
+            ':edition_completed_by' => $data['editionCompletedBy'] ?? null,
+            ':is_overdue' => !empty($data['isOverdue']) ? 1 : 0,
+            ':edition_delivery_status' => $data['editionDeliveryStatus'] ?? null,
+            ':server_file_path' => $data['serverFilePath'] ?? null,
+            ':reopen_reason' => $data['reopenReason'] ?? null,
+            ':edition_history' => !empty($data['editionHistory']) ? json_encode($data['editionHistory'], JSON_UNESCAPED_UNICODE) : null,
+            ':edition_status' => $effectiveEditionStatus,
+            ':mission_status' => $data['missionStatus'] ?? 'Agendada',
+            ':is_round_trip' => !empty($data['isRoundTrip']) ? 1 : 0,
+            ':distance_km' => (float) ($data['distanceKm'] ?? 0),
+            ':total_distance_km' => (float) ($data['totalDistanceKm'] ?? 0),
+            ':driving_duration_minutes' => (int) ($data['drivingDurationMinutes'] ?? 0),
+            ':round_trip_duration_minutes' => (int) ($data['roundTripDurationMinutes'] ?? 0),
+            ':estimated_fuel_liters' => (float) ($data['estimatedFuelLiters'] ?? 0),
+            ':estimated_fuel_cost' => (float) ($data['estimatedFuelCost'] ?? 0),
+            ':route_coordinates' => !empty($data['routeCoordinates']) ? json_encode($data['routeCoordinates'], JSON_UNESCAPED_UNICODE) : null,
+            ':return_coordinates' => !empty($data['returnCoordinates']) ? json_encode($data['returnCoordinates'], JSON_UNESCAPED_UNICODE) : null,
+            ':notes' => $data['notes'] ?? null,
+            ':is_recurring' => !empty($data['isRecurring']) ? 1 : 0,
+            ':recurrence_id' => $data['recurrenceId'] ?? null,
+            ':recurrence_rule' => $data['recurrenceRule'] ?? null,
+            ':recurrence_days' => $data['recurrenceDays'] ?? null,
+            ':is_multi_day' => !empty($data['isMultiDay']) ? 1 : 0,
+            ':end_date' => $data['endDate'] ?? null,
+            ':custom_rates' => !empty($data['customRates']) ? json_encode($data['customRates'], JSON_UNESCAPED_UNICODE) : null,
+            ':off_hours' => isset($data['offHours']) ? (float) $data['offHours'] : 0.0,
+            ':remuneration_type' => $data['remunerationType'] ?? (!empty($data['isMultiDay']) ? 'daily' : 'off_hours'),
+            ':member_remuneration_types' => !empty($data['memberRemunerationTypes']) ? (is_string($data['memberRemunerationTypes']) ? $data['memberRemunerationTypes'] : json_encode($data['memberRemunerationTypes'], JSON_UNESCAPED_UNICODE)) : null,
+            ':member_roles' => !empty($data['memberRoles']) ? (is_string($data['memberRoles']) ? $data['memberRoles'] : json_encode($data['memberRoles'], JSON_UNESCAPED_UNICODE)) : null,
+            ':equipment_allocations' => !empty($data['equipmentAllocations']) ? (is_string($data['equipmentAllocations']) ? $data['equipmentAllocations'] : json_encode($data['equipmentAllocations'], JSON_UNESCAPED_UNICODE)) : null,
+            ':extra_hours_planned' => isset($data['extraHoursPlanned']) ? (float) $data['extraHoursPlanned'] : 0.0,
+            ':extra_hours_approved' => isset($data['extraHoursApproved']) ? (float) $data['extraHoursApproved'] : 0.0,
+            ':extra_hours_requests' => !empty($data['extraHoursRequests']) ? (is_string($data['extraHoursRequests']) ? $data['extraHoursRequests'] : json_encode($data['extraHoursRequests'], JSON_UNESCAPED_UNICODE)) : null,
+            ':editors_delivery' => !empty($data['editorsDelivery']) ? (is_string($data['editorsDelivery']) ? $data['editorsDelivery'] : json_encode($data['editorsDelivery'], JSON_UNESCAPED_UNICODE)) : null,
+            ':created_by' => $user['id'] ?? ($currentUser['name'] ?? 'Sistema')
+        ];
+
+        $stmtSave = $db->prepare($sql);
+        $stmtSave->execute($saveParams);
+
+        $createdMissions = [];
+        // Se for cadastro de nova missão recorrente (com múltiplas datas programadas)
+        if (!$existing && $isRecurring && !empty($data['recurringDates']) && is_array($data['recurringDates'])) {
+            $baseDate = $data['date'] ?? date('Y-m-d');
+            $baseDateTs = strtotime($baseDate);
+            $deadlineTs = !empty($data['deliveryDeadlineDate']) ? strtotime($data['deliveryDeadlineDate']) : $baseDateTs;
+            $diffDays = max(0, (int) round(($deadlineTs - $baseDateTs) / 86400));
+
+            foreach ($data['recurringDates'] as $rDate) {
+                $rDate = trim($rDate);
+                if ($rDate === $baseDate || empty($rDate))
+                    continue;
+
+                $childId = 'mis-rec-' . bin2hex(random_bytes(6));
+                $cleanDate = preg_replace('/\D/', '', $rDate);
+                $datePrefix = strlen($cleanDate) >= 8 ? substr($cleanDate, 0, 8) : date('Ymd');
+
+                $stmtCount = $db->prepare("SELECT COUNT(*) FROM missions WHERE date = ?");
+                $stmtCount->execute([$rDate]);
+                $dCount = (int) $stmtCount->fetchColumn();
+                $childCode = $datePrefix . ($dCount + 1);
+                $childDeadlineDate = date('Y-m-d', strtotime("{$rDate} + {$diffDays} days"));
+
+                $childParams = $saveParams;
+                $childParams[':id'] = $childId;
+                $childParams[':code'] = $childCode;
+                $childParams[':date'] = $rDate;
+                $childParams[':delivery_deadline_date'] = $childDeadlineDate;
+
+                $stmtSave->execute($childParams);
+
+                $childObj = $data;
+                $childObj['id'] = $childId;
+                $childObj['code'] = $childCode;
+                $childObj['date'] = $rDate;
+                $childObj['deliveryDeadlineDate'] = $childDeadlineDate;
+                $childObj['isRecurring'] = true;
+                $childObj['recurrenceId'] = $recurrenceId;
+                $childObj['recurrenceRule'] = $recurrenceRule;
+                $childObj['recurrenceDays'] = $recurrenceDays;
+                $childObj['version'] = 1;
+                $childObj['createdAt'] = date('Y-m-d H:i:s');
+                $childObj['updatedAt'] = date('Y-m-d H:i:s');
+                $createdMissions[] = $childObj;
+            }
         }
-    }
 
-    $saveParams = [
-        ':id'                          => $id,
-        ':code'                        => $data['code'] ?? null,
-        ':description'                 => $description,
-        ':location_name'               => $data['locationName'] ?? null,
-        ':address'                     => $data['address'] ?? null,
-        ':lat'                         => isset($data['lat']) && $data['lat'] !== '' ? $data['lat'] : null,
-        ':lon'                         => isset($data['lon']) && $data['lon'] !== '' ? $data['lon'] : null,
-        ':date'                        => $data['date'] ?? date('Y-m-d'),
-        ':departure_time'              => $data['departureTime'] ?? '08:00',
-        ':arrival_time_estimated'      => $data['arrivalTimeEstimated'] ?? null,
-        ':return_time_estimated'       => $data['returnTimeEstimated'] ?? null,
-        ':event_start_time'            => $data['eventStartTime'] ?? null,
-        ':event_end_time'              => $data['eventEndTime'] ?? null,
-        ':antecedence_minutes'         => isset($data['antecedenceMinutes']) ? (int)$data['antecedenceMinutes'] : 30,
-        ':suggested_departure_time'    => $data['suggestedDepartureTime'] ?? null,
-        ':vehicle_id'                  => $data['vehicleId'] ?? null,
-        ':vehicle_name_display'        => $data['vehicleNameDisplay'] ?? null,
-        ':vehicle_allocations'         => !empty($data['vehicleAllocations']) ? json_encode($data['vehicleAllocations'], JSON_UNESCAPED_UNICODE) : null,
-        ':driver_id'                   => $data['driverId'] ?? null,
-        ':driver_name'                 => $data['driverName'] ?? null,
-        ':team_ids'                    => !empty($data['teamIds']) ? json_encode($data['teamIds'], JSON_UNESCAPED_UNICODE) : null,
-        ':team_names_display'          => $data['teamNamesDisplay'] ?? null,
-        ':guests'                      => !empty($data['guests']) ? (is_array($data['guests']) ? json_encode($data['guests'], JSON_UNESCAPED_UNICODE) : $data['guests']) : null,
-        ':editor_id'                   => $data['editorId'] ?? null,
-        ':editor_name'                 => $data['editorName'] ?? null,
-        ':editor_ids'                  => !empty($data['editorIds']) ? json_encode($data['editorIds'], JSON_UNESCAPED_UNICODE) : null,
-        ':editor_names_display'        => $data['editorNamesDisplay'] ?? null,
-        ':delivery_deadline_date'      => $data['deliveryDeadlineDate'] ?? null,
-        ':delivery_deadline_time'      => $data['deliveryDeadlineTime'] ?? null,
-        ':edition_completed_at'        => $data['editionCompletedAt'] ?? null,
-        ':edition_completed_by'        => $data['editionCompletedBy'] ?? null,
-        ':is_overdue'                  => !empty($data['isOverdue']) ? 1 : 0,
-        ':edition_delivery_status'     => $data['editionDeliveryStatus'] ?? null,
-        ':server_file_path'            => $data['serverFilePath'] ?? null,
-        ':reopen_reason'               => $data['reopenReason'] ?? null,
-        ':edition_history'             => !empty($data['editionHistory']) ? json_encode($data['editionHistory'], JSON_UNESCAPED_UNICODE) : null,
-        ':edition_status'              => $effectiveEditionStatus,
-        ':mission_status'              => $data['missionStatus'] ?? 'Agendada',
-        ':is_round_trip'               => !empty($data['isRoundTrip']) ? 1 : 0,
-        ':distance_km'                 => (float)($data['distanceKm'] ?? 0),
-        ':total_distance_km'           => (float)($data['totalDistanceKm'] ?? 0),
-        ':driving_duration_minutes'    => (int)($data['drivingDurationMinutes'] ?? 0),
-        ':round_trip_duration_minutes' => (int)($data['roundTripDurationMinutes'] ?? 0),
-        ':estimated_fuel_liters'       => (float)($data['estimatedFuelLiters'] ?? 0),
-        ':estimated_fuel_cost'         => (float)($data['estimatedFuelCost'] ?? 0),
-        ':route_coordinates'           => !empty($data['routeCoordinates']) ? json_encode($data['routeCoordinates'], JSON_UNESCAPED_UNICODE) : null,
-        ':return_coordinates'          => !empty($data['returnCoordinates']) ? json_encode($data['returnCoordinates'], JSON_UNESCAPED_UNICODE) : null,
-        ':notes'                       => $data['notes'] ?? null,
-        ':is_recurring'                => !empty($data['isRecurring']) ? 1 : 0,
-        ':recurrence_id'               => $data['recurrenceId'] ?? null,
-        ':recurrence_rule'             => $data['recurrenceRule'] ?? null,
-        ':recurrence_days'             => $data['recurrenceDays'] ?? null,
-        ':is_multi_day'                => !empty($data['isMultiDay']) ? 1 : 0,
-        ':end_date'                    => $data['endDate'] ?? null,
-        ':custom_rates'                => !empty($data['customRates']) ? json_encode($data['customRates'], JSON_UNESCAPED_UNICODE) : null,
-        ':off_hours'                   => isset($data['offHours']) ? (float)$data['offHours'] : 0.0,
-        ':remuneration_type'           => $data['remunerationType'] ?? (!empty($data['isMultiDay']) ? 'daily' : 'off_hours'),
-        ':member_remuneration_types'   => !empty($data['memberRemunerationTypes']) ? (is_string($data['memberRemunerationTypes']) ? $data['memberRemunerationTypes'] : json_encode($data['memberRemunerationTypes'], JSON_UNESCAPED_UNICODE)) : null,
-        ':member_roles'                => !empty($data['memberRoles']) ? (is_string($data['memberRoles']) ? $data['memberRoles'] : json_encode($data['memberRoles'], JSON_UNESCAPED_UNICODE)) : null,
-        ':equipment_allocations'       => !empty($data['equipmentAllocations']) ? (is_string($data['equipmentAllocations']) ? $data['equipmentAllocations'] : json_encode($data['equipmentAllocations'], JSON_UNESCAPED_UNICODE)) : null,
-        ':extra_hours_planned'         => isset($data['extraHoursPlanned']) ? (float)$data['extraHoursPlanned'] : 0.0,
-        ':extra_hours_approved'        => isset($data['extraHoursApproved']) ? (float)$data['extraHoursApproved'] : 0.0,
-        ':extra_hours_requests'        => !empty($data['extraHoursRequests']) ? (is_string($data['extraHoursRequests']) ? $data['extraHoursRequests'] : json_encode($data['extraHoursRequests'], JSON_UNESCAPED_UNICODE)) : null,
-        ':editors_delivery'            => !empty($data['editorsDelivery']) ? (is_string($data['editorsDelivery']) ? $data['editorsDelivery'] : json_encode($data['editorsDelivery'], JSON_UNESCAPED_UNICODE)) : null,
-        ':created_by'                  => $user['id'] ?? ($currentUser['name'] ?? 'Sistema')
-    ];
-
-    $stmtSave = $db->prepare($sql);
-    $stmtSave->execute($saveParams);
-
-    $createdMissions = [];
-    // Se for cadastro de nova missão recorrente (com múltiplas datas programadas)
-    if (!$existing && $isRecurring && !empty($data['recurringDates']) && is_array($data['recurringDates'])) {
-        $baseDate = $data['date'] ?? date('Y-m-d');
-        $baseDateTs = strtotime($baseDate);
-        $deadlineTs = !empty($data['deliveryDeadlineDate']) ? strtotime($data['deliveryDeadlineDate']) : $baseDateTs;
-        $diffDays = max(0, (int)round(($deadlineTs - $baseDateTs) / 86400));
-
-        foreach ($data['recurringDates'] as $rDate) {
-            $rDate = trim($rDate);
-            if ($rDate === $baseDate || empty($rDate)) continue;
-
-            $childId = 'mis-rec-' . bin2hex(random_bytes(6));
-            $cleanDate = preg_replace('/\D/', '', $rDate);
-            $datePrefix = strlen($cleanDate) >= 8 ? substr($cleanDate, 0, 8) : date('Ymd');
-
-            $stmtCount = $db->prepare("SELECT COUNT(*) FROM missions WHERE date = ?");
-            $stmtCount->execute([$rDate]);
-            $dCount = (int)$stmtCount->fetchColumn();
-            $childCode = $datePrefix . ($dCount + 1);
-            $childDeadlineDate = date('Y-m-d', strtotime("{$rDate} + {$diffDays} days"));
-
-            $childParams = $saveParams;
-            $childParams[':id'] = $childId;
-            $childParams[':code'] = $childCode;
-            $childParams[':date'] = $rDate;
-            $childParams[':delivery_deadline_date'] = $childDeadlineDate;
-
-            $stmtSave->execute($childParams);
-
-            $childObj = $data;
-            $childObj['id'] = $childId;
-            $childObj['code'] = $childCode;
-            $childObj['date'] = $rDate;
-            $childObj['deliveryDeadlineDate'] = $childDeadlineDate;
-            $childObj['isRecurring'] = true;
-            $childObj['recurrenceId'] = $recurrenceId;
-            $childObj['recurrenceRule'] = $recurrenceRule;
-            $childObj['recurrenceDays'] = $recurrenceDays;
-            $childObj['version'] = 1;
-            $childObj['createdAt'] = date('Y-m-d H:i:s');
-            $childObj['updatedAt'] = date('Y-m-d H:i:s');
-            $createdMissions[] = $childObj;
-        }
-    }
-
-    // Se estiver editando e optar por atualizar todas as futuras missões da série
-    if ($existing && !empty($existing['recurrence_id']) && !empty($data['updateSeries'])) {
-        $stmtUpSeries = $db->prepare("
+        // Se estiver editando e optar por atualizar todas as futuras missões da série
+        if ($existing && !empty($existing['recurrence_id']) && !empty($data['updateSeries'])) {
+            $stmtUpSeries = $db->prepare("
             UPDATE missions
             SET description = ?,
                 location_name = ?,
@@ -1314,172 +1321,173 @@ if ($method === 'POST' || $method === 'PUT') {
                 updated_at = NOW()
             WHERE recurrence_id = ? AND date > ? AND id != ?
         ");
-        $stmtUpSeries->execute([
-            $description,
-            $data['locationName'] ?? null,
-            $data['address'] ?? null,
-            isset($data['lat']) && $data['lat'] !== '' ? $data['lat'] : null,
-            isset($data['lon']) && $data['lon'] !== '' ? $data['lon'] : null,
-            $data['departureTime'] ?? '08:00',
-            $data['arrivalTimeEstimated'] ?? null,
-            $data['returnTimeEstimated'] ?? null,
-            $data['eventStartTime'] ?? null,
-            $data['eventEndTime'] ?? null,
-            isset($data['antecedenceMinutes']) ? (int)$data['antecedenceMinutes'] : 30,
-            $data['suggestedDepartureTime'] ?? null,
-            $data['vehicleId'] ?? null,
-            $data['vehicleNameDisplay'] ?? null,
-            !empty($data['vehicleAllocations']) ? json_encode($data['vehicleAllocations'], JSON_UNESCAPED_UNICODE) : null,
-            $data['driverId'] ?? null,
-            $data['driverName'] ?? null,
-            !empty($data['teamIds']) ? json_encode($data['teamIds'], JSON_UNESCAPED_UNICODE) : null,
-            $data['teamNamesDisplay'] ?? null,
-            $data['editorId'] ?? null,
-            $data['editorName'] ?? null,
-            !empty($data['editorIds']) ? json_encode($data['editorIds'], JSON_UNESCAPED_UNICODE) : null,
-            $data['editorNamesDisplay'] ?? null,
-            $data['deliveryDeadlineTime'] ?? null,
-            (float)($data['distanceKm'] ?? 0),
-            (float)($data['totalDistanceKm'] ?? 0),
-            (int)($data['drivingDurationMinutes'] ?? 0),
-            (int)($data['roundTripDurationMinutes'] ?? 0),
-            (float)($data['estimatedFuelLiters'] ?? 0),
-            (float)($data['estimatedFuelCost'] ?? 0),
-            !empty($data['routeCoordinates']) ? json_encode($data['routeCoordinates']) : null,
-            !empty($data['returnCoordinates']) ? json_encode($data['returnCoordinates']) : null,
-            $data['notes'] ?? null,
-            $existing['recurrence_id'],
-            $data['date'] ?? date('Y-m-d'),
-            $id
-        ]);
-        $seriesCount = $stmtUpSeries->rowCount();
-        logAudit('UPDATE_MISSION_SERIES', 'MISSIONS', $id, "{$seriesCount} ocorrências futuras da série recorrente foram atualizadas.", $user['id'], $user['name']);
-    }
+            $stmtUpSeries->execute([
+                $description,
+                $data['locationName'] ?? null,
+                $data['address'] ?? null,
+                isset($data['lat']) && $data['lat'] !== '' ? $data['lat'] : null,
+                isset($data['lon']) && $data['lon'] !== '' ? $data['lon'] : null,
+                $data['departureTime'] ?? '08:00',
+                $data['arrivalTimeEstimated'] ?? null,
+                $data['returnTimeEstimated'] ?? null,
+                $data['eventStartTime'] ?? null,
+                $data['eventEndTime'] ?? null,
+                isset($data['antecedenceMinutes']) ? (int) $data['antecedenceMinutes'] : 30,
+                $data['suggestedDepartureTime'] ?? null,
+                $data['vehicleId'] ?? null,
+                $data['vehicleNameDisplay'] ?? null,
+                !empty($data['vehicleAllocations']) ? json_encode($data['vehicleAllocations'], JSON_UNESCAPED_UNICODE) : null,
+                $data['driverId'] ?? null,
+                $data['driverName'] ?? null,
+                !empty($data['teamIds']) ? json_encode($data['teamIds'], JSON_UNESCAPED_UNICODE) : null,
+                $data['teamNamesDisplay'] ?? null,
+                $data['editorId'] ?? null,
+                $data['editorName'] ?? null,
+                !empty($data['editorIds']) ? json_encode($data['editorIds'], JSON_UNESCAPED_UNICODE) : null,
+                $data['editorNamesDisplay'] ?? null,
+                $data['deliveryDeadlineTime'] ?? null,
+                (float) ($data['distanceKm'] ?? 0),
+                (float) ($data['totalDistanceKm'] ?? 0),
+                (int) ($data['drivingDurationMinutes'] ?? 0),
+                (int) ($data['roundTripDurationMinutes'] ?? 0),
+                (float) ($data['estimatedFuelLiters'] ?? 0),
+                (float) ($data['estimatedFuelCost'] ?? 0),
+                !empty($data['routeCoordinates']) ? json_encode($data['routeCoordinates']) : null,
+                !empty($data['returnCoordinates']) ? json_encode($data['returnCoordinates']) : null,
+                $data['notes'] ?? null,
+                $existing['recurrence_id'],
+                $data['date'] ?? date('Y-m-d'),
+                $id
+            ]);
+            $seriesCount = $stmtUpSeries->rowCount();
+            logAudit('UPDATE_MISSION_SERIES', 'MISSIONS', $id, "{$seriesCount} ocorrências futuras da série recorrente foram atualizadas.", $user['id'], $user['name']);
+        }
 
-    $db->commit();
+        $db->commit();
 
-    $actionName = $existing ? 'UPDATE_MISSION' : 'CREATE_MISSION';
-    $auditMsg = $existing
-        ? "Missão '{$description}' (#{$id}) atualizada. Status: " . ($data['missionStatus'] ?? 'Agendada')
-        : "Nova missão criada: '{$description}' (#{$id})" . ($isRecurring ? " [Recorrente - " . count($createdMissions) . " ocorrências adicionais]" : "") . ".";
+        $actionName = $existing ? 'UPDATE_MISSION' : 'CREATE_MISSION';
+        $auditMsg = $existing
+            ? "Missão '{$description}' (#{$id}) atualizada. Status: " . ($data['missionStatus'] ?? 'Agendada')
+            : "Nova missão criada: '{$description}' (#{$id})" . ($isRecurring ? " [Recorrente - " . count($createdMissions) . " ocorrências adicionais]" : "") . ".";
 
-    logAudit($actionName, 'MISSIONS', $id, $auditMsg, $user['id'], $user['name']);
-    bumpSyncVersion("mission_{$id}");
+        logAudit($actionName, 'MISSIONS', $id, $auditMsg, $user['id'], $user['name']);
+        bumpSyncVersion("mission_{$id}");
 
-    // Dispara mensagem automática de comunicado para que toda a equipe receba na Central de Notificações
-    if (!$existing) {
-        try {
-            $msgId = 'msg-mis-' . substr(md5($id . microtime()), 0, 10);
-            $msgCode = !empty($code) ? "#{$code}" : "#{$id}";
-            $msgTitle = "📅 Nova Missão Cadastrada: {$msgCode}";
-            $destLoc = !empty($data['locationName']) ? $data['locationName'] : (!empty($data['address']) ? $data['address'] : 'Local Definido');
-            $depTime = !empty($data['departureTime']) ? " Saída prevista às {$data['departureTime']}." : "";
-            $msgBody = "Nova pauta criada: '{$description}' com destino a {$destLoc}.{$depTime}";
-
-            $colsSM = [];
+        // Dispara mensagem automática de comunicado para que toda a equipe receba na Central de Notificações
+        if (!$existing) {
             try {
-                $stCols = $db->query("SHOW COLUMNS FROM system_messages");
-                while ($cRow = $stCols->fetch()) {
-                    $colsSM[strtolower($cRow['Field'])] = true;
-                }
-            } catch (Exception $eCols) {}
+                $msgId = 'msg-mis-' . substr(md5($id . microtime()), 0, 10);
+                $msgCode = !empty($code) ? "#{$code}" : "#{$id}";
+                $msgTitle = "📅 Nova Missão Cadastrada: {$msgCode}";
+                $destLoc = !empty($data['locationName']) ? $data['locationName'] : (!empty($data['address']) ? $data['address'] : 'Local Definido');
+                $depTime = !empty($data['departureTime']) ? " Saída prevista às {$data['departureTime']}." : "";
+                $msgBody = "Nova pauta criada: '{$description}' com destino a {$destLoc}.{$depTime}";
 
-            $hasDismissedCol = isset($colsSM['dismissed_by']);
-            if ($hasDismissedCol) {
-                $stmtMsg = $db->prepare("
+                $colsSM = [];
+                try {
+                    $stCols = $db->query("SHOW COLUMNS FROM system_messages");
+                    while ($cRow = $stCols->fetch()) {
+                        $colsSM[strtolower($cRow['Field'])] = true;
+                    }
+                } catch (Exception $eCols) {
+                }
+
+                $hasDismissedCol = isset($colsSM['dismissed_by']);
+                if ($hasDismissedCol) {
+                    $stmtMsg = $db->prepare("
                     INSERT INTO system_messages (
                         id, sender_id, sender_name, sender_role, recipient_type, recipient_id, recipient_name, title, message, priority, read_by, dismissed_by, created_at
                     ) VALUES (
                         ?, ?, ?, 'Gestor/Admin', 'ALL', NULL, NULL, ?, ?, 'NORMAL', '[]', '[]', NOW()
                     )
                 ");
-                $stmtMsg->execute([$msgId, $user['id'], $user['name'], $msgTitle, $msgBody]);
-            } else {
-                $stmtMsg = $db->prepare("
+                    $stmtMsg->execute([$msgId, $user['id'], $user['name'], $msgTitle, $msgBody]);
+                } else {
+                    $stmtMsg = $db->prepare("
                     INSERT INTO system_messages (
                         id, sender_id, sender_name, sender_role, recipient_type, recipient_id, recipient_name, title, message, priority, read_by, created_at
                     ) VALUES (
                         ?, ?, ?, 'Gestor/Admin', 'ALL', NULL, NULL, ?, ?, 'NORMAL', '[]', NOW()
                     )
                 ");
-                $stmtMsg->execute([$msgId, $user['id'], $user['name'], $msgTitle, $msgBody]);
+                    $stmtMsg->execute([$msgId, $user['id'], $user['name'], $msgTitle, $msgBody]);
+                }
+            } catch (Exception $eMsg) {
+                error_log('[GestorMF Auto Message Mission] ' . $eMsg->getMessage());
             }
-        } catch (Exception $eMsg) {
-            error_log('[GestorMF Auto Message Mission] ' . $eMsg->getMessage());
         }
-    }
 
-    $nowUpdated = date('Y-m-d H:i:s');
-    $newVersion = $existing ? ($dbVersion + 1) : 1;
-    jsonResponse([
-        'success'         => true,
-        'message'         => $isRecurring && count($createdMissions) > 0
-            ? "Missão e " . (count($createdMissions) + 1) . " agendamentos recorrentes salvos com sucesso!"
-            : 'Missão salva com sucesso!',
-        'id'              => $id,
-        'version'         => $newVersion,
-        'updatedAt'       => $nowUpdated,
-        'createdMissions' => $createdMissions,
-        'recurrenceId'    => $recurrenceId
-    ]);
-} catch (Exception $e) {
-    if ($db->inTransaction()) {
-        $db->rollBack();
-    }
+        $nowUpdated = date('Y-m-d H:i:s');
+        $newVersion = $existing ? ($dbVersion + 1) : 1;
+        jsonResponse([
+            'success' => true,
+            'message' => $isRecurring && count($createdMissions) > 0
+                ? "Missão e " . (count($createdMissions) + 1) . " agendamentos recorrentes salvos com sucesso!"
+                : 'Missão salva com sucesso!',
+            'id' => $id,
+            'version' => $newVersion,
+            'updatedAt' => $nowUpdated,
+            'createdMissions' => $createdMissions,
+            'recurrenceId' => $recurrenceId
+        ]);
+    } catch (Exception $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
 
-    // Auto-cura de banco se faltar alguma coluna ou tabela no MySQL do servidor
-    $errMsg = $e->getMessage();
-    $isMissingColOrTable = ($e instanceof PDOException) && (
-        $e->getCode() === '42S22' || 
-        $e->getCode() === '42S02' || 
-        strpos($errMsg, 'Unknown column') !== false ||
-        strpos($errMsg, "Table doesn't exist") !== false
-    );
+        // Auto-cura de banco se faltar alguma coluna ou tabela no MySQL do servidor
+        $errMsg = $e->getMessage();
+        $isMissingColOrTable = ($e instanceof PDOException) && (
+            $e->getCode() === '42S22' ||
+            $e->getCode() === '42S02' ||
+            strpos($errMsg, 'Unknown column') !== false ||
+            strpos($errMsg, "Table doesn't exist") !== false
+        );
 
-    if ($isMissingColOrTable && !defined('GESTORMF_MISSION_RETRY_DONE')) {
-        define('GESTORMF_MISSION_RETRY_DONE', true);
-        try {
-            require_once __DIR__ . '/schema.php';
-            runDatabaseInstallation($db);
+        if ($isMissingColOrTable && !defined('GESTORMF_MISSION_RETRY_DONE')) {
+            define('GESTORMF_MISSION_RETRY_DONE', true);
+            try {
+                require_once __DIR__ . '/schema.php';
+                runDatabaseInstallation($db);
 
-            $db->beginTransaction();
-            $stmtRetry = $db->prepare($sql);
-            $stmtRetry->execute($saveParams);
-            $db->commit();
+                $db->beginTransaction();
+                $stmtRetry = $db->prepare($sql);
+                $stmtRetry->execute($saveParams);
+                $db->commit();
 
-            $actionName = $existing ? 'UPDATE_MISSION' : 'CREATE_MISSION';
-            $auditMsg = $existing
-                ? "Missão '{$description}' (#{$id}) atualizada. Status: " . ($data['missionStatus'] ?? 'Agendada')
-                : "Nova missão criada: '{$description}' (#{$id}).";
+                $actionName = $existing ? 'UPDATE_MISSION' : 'CREATE_MISSION';
+                $auditMsg = $existing
+                    ? "Missão '{$description}' (#{$id}) atualizada. Status: " . ($data['missionStatus'] ?? 'Agendada')
+                    : "Nova missão criada: '{$description}' (#{$id}).";
 
-            logAudit($actionName, 'MISSIONS', $id, $auditMsg, $user['id'], $user['name']);
-            bumpSyncVersion("mission_{$id}");
+                logAudit($actionName, 'MISSIONS', $id, $auditMsg, $user['id'], $user['name']);
+                bumpSyncVersion("mission_{$id}");
 
-            $nowUpdated = date('Y-m-d H:i:s');
-            $newVersion = $existing ? (($dbVersion ?? 1) + 1) : 1;
-            jsonResponse([
-                'success'   => true,
-                'message'   => 'Missão salva com sucesso após auto-recuperação do banco!',
-                'id'        => $id,
-                'version'   => $newVersion,
-                'updatedAt' => $nowUpdated
-            ]);
-            exit;
-        } catch (Exception $e2) {
-            if ($db->inTransaction()) {
-                $db->rollBack();
+                $nowUpdated = date('Y-m-d H:i:s');
+                $newVersion = $existing ? (($dbVersion ?? 1) + 1) : 1;
+                jsonResponse([
+                    'success' => true,
+                    'message' => 'Missão salva com sucesso após auto-recuperação do banco!',
+                    'id' => $id,
+                    'version' => $newVersion,
+                    'updatedAt' => $nowUpdated
+                ]);
+                exit;
+            } catch (Exception $e2) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                $e = $e2;
             }
-            $e = $e2;
         }
-    }
 
-    $incidentCode = 'ERR-MIS-' . bin2hex(random_bytes(4));
-    error_log("[GestorMF Incident {$incidentCode}] Erro ao salvar missão: " . $e->getMessage());
-    $displayError = ($user['role'] === 'ADMIN')
-        ? "Erro no servidor ao processar missão (Protocolo {$incidentCode}): " . $e->getMessage()
-        : "Erro interno no servidor ao processar missão (Protocolo: {$incidentCode}).";
-    jsonResponse(['success' => false, 'error' => $displayError, 'incidentCode' => $incidentCode], 500);
-}
+        $incidentCode = 'ERR-MIS-' . bin2hex(random_bytes(4));
+        error_log("[GestorMF Incident {$incidentCode}] Erro ao salvar missão: " . $e->getMessage());
+        $displayError = ($user['role'] === 'ADMIN')
+            ? "Erro no servidor ao processar missão (Protocolo {$incidentCode}): " . $e->getMessage()
+            : "Erro interno no servidor ao processar missão (Protocolo: {$incidentCode}).";
+        jsonResponse(['success' => false, 'error' => $displayError, 'incidentCode' => $incidentCode], 500);
+    }
 }
 
 // ------------------------------------------------------------------------------
@@ -1509,8 +1517,8 @@ if ($method === 'DELETE') {
         $deletedCount = $stmtDel->rowCount();
         logAudit('DELETE_MISSION_SERIES', 'MISSIONS', $id, "Série recorrente da missão '{$mis['description']}' excluída ({$deletedCount} ocorrências).", $user['id'], $user['name']);
         jsonResponse([
-            'success'      => true,
-            'message'      => "{$deletedCount} agendamentos da série recorrente foram excluídos com sucesso.",
+            'success' => true,
+            'message' => "{$deletedCount} agendamentos da série recorrente foram excluídos com sucesso.",
             'deletedCount' => $deletedCount,
             'deleteSeries' => true,
             'recurrenceId' => $mis['recurrence_id']

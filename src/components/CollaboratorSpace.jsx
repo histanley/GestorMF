@@ -19,6 +19,7 @@ import {
   Car,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   Shield,
   CreditCard,
   MessageCircle,
@@ -339,6 +340,9 @@ export default function CollaboratorSpace({
     return computeMemberRoleCounts(myMember, myMissions);
   }, [myMember, myMissions]);
 
+  // Limite de exibição inicial de missões concluídas (inicia com 5 e expande de 10 em 10)
+  const [visibleConcludedLimit, setVisibleConcludedLimit] = useState(5);
+
   // Modal de Detalhamento Completo do XP e Gamificação
   const [isXpModalOpen, setIsXpModalOpen] = useState(false);
 
@@ -370,6 +374,45 @@ export default function CollaboratorSpace({
   const sortedMyMissions = useMemo(() => {
     return sortMissionsByStatusPriority(myMissions);
   }, [myMissions, liveTick]);
+
+  // Separação de missões ativas/em campo das missões já concluídas/passadas
+  // Regra de Exibição: Inicialmente apenas 5 missões concluídas; botão "Mostrar mais" exibe de 10 em 10
+  const { activeMissions, concludedMissions, displayedMissions } = useMemo(() => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const active = [];
+    const concluded = [];
+
+    sortedMyMissions.forEach((m) => {
+      const mStatus = String(m.missionStatus || 'Agendada').trim().toLowerCase();
+      const isPastDate = Boolean(m.date && (m.endDate || m.date) < todayStr);
+      const isConcludedStatus = (
+        mStatus === 'finalizada' ||
+        mStatus === 'finalizado' ||
+        mStatus === 'concluída' ||
+        mStatus === 'concluida' ||
+        mStatus === 'concluída (homologada)' ||
+        mStatus === 'concluida (homologada)' ||
+        mStatus === 'pendente' ||
+        mStatus === 'pendente (pós-prod.)' ||
+        mStatus === 'cancelada' ||
+        mStatus === 'cancelado'
+      );
+
+      // Missão concluída, cancelada ou de data anterior a hoje (e não em execução)
+      if (isConcludedStatus || (isPastDate && mStatus !== 'em execução' && mStatus !== 'em andamento')) {
+        concluded.push(m);
+      } else {
+        active.push(m);
+      }
+    });
+
+    const displayedConcluded = concluded.slice(0, visibleConcludedLimit);
+    return {
+      activeMissions: active,
+      concludedMissions: concluded,
+      displayedMissions: [...active, ...displayedConcluded],
+    };
+  }, [sortedMyMissions, visibleConcludedLimit]);
 
   // Resumo financeiro do mês
   const financialSummary = useMemo(() => {
@@ -1482,15 +1525,29 @@ export default function CollaboratorSpace({
             <span>Você ainda não possui missões registradas nesta base.</span>
           </div>
         ) : (
-          <div className="cs-missions-list">
-            {sortedMyMissions.slice(0, 15).map((m) => {
+          <>
+            <div className="cs-missions-list">
+            {displayedMissions.map((m) => {
               const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
               const memberMode = (m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
                 || m.remunerationType
                 || (isMDay ? 'daily' : 'off_hours');
               const requests = Array.isArray(m.extraHoursRequests) ? m.extraHoursRequests : [];
               const myRequests = requests.filter((r) => String(r.memberId) === String(myMember.id));
-              const isClosed = m.missionStatus === 'Finalizada';
+              const mStatus = String(m.missionStatus || 'Agendada').trim().toLowerCase();
+              const isClosed = (
+                mStatus === 'finalizada' ||
+                mStatus === 'finalizado' ||
+                mStatus === 'concluída' ||
+                mStatus === 'concluida' ||
+                mStatus === 'concluída (homologada)' ||
+                mStatus === 'concluida (homologada)' ||
+                mStatus === 'pendente' ||
+                mStatus === 'pendente (pós-prod.)' ||
+                mStatus === 'cancelada' ||
+                mStatus === 'cancelado' ||
+                Boolean(m.date && (m.endDate || m.date) < new Date().toISOString().slice(0, 10) && mStatus !== 'em execução' && mStatus !== 'em andamento')
+              );
               const progress = getMissionLiveProgress(m);
 
               return (
@@ -1645,32 +1702,26 @@ export default function CollaboratorSpace({
                       )}
                     </div>
 
-                    {/* Ação: Solicitar Horas Extras ou Prorrogar Retorno (Exclusivo para equipe em campo; editores na pós não recebem horas extras) */}
-                    {!isClosed && isMemberEligibleForExtraHours(myMember, m) && (
+                    {/* Ação: Solicitar Horas Extras ou Prorrogar Retorno
+                        Regra Oficial: Exclusivo para equipe em campo e SOMENTE quando a missão estiver acontecendo
+                        e prestes a finalizar (15 min antes de finalizar).
+                        Missões que já aconteceram ou que ainda irão acontecer NÃO exibem este botão.
+                    */}
+                    {!isClosed && progress.isUrgentEnd && isMemberEligibleForExtraHours(myMember, m) && (
                       <button
                         type="button"
                         onClick={() => setRequestModalMission(m)}
-                        className={`cs-btn-request-extra ${progress.isUrgentOffHours ? 'btn-urgent-extra' : progress.isUrgentInHours ? 'btn-inhours-extend' : progress.isHappeningNow ? 'btn-live-extra' : ''}`}
+                        className={`cs-btn-request-extra ${progress.isUrgentOffHours ? 'btn-urgent-extra' : 'btn-inhours-extend'}`}
                       >
                         {progress.isUrgentOffHours ? (
                           <>
-                            <Zap size={15} />
-                            <span>⚡ Solicitar Mais Horas Extras (+1h, +2h)</span>
-                          </>
-                        ) : progress.isUrgentInHours ? (
-                          <>
-                            <Clock size={15} />
-                            <span>⏱️ Prorrogar Retorno (+30m, +1h)</span>
-                          </>
-                        ) : progress.isOffHoursEnd ? (
-                          <>
                             <Zap size={14} />
-                            <span>Solicitar Hora Extra (+1h, +2h)</span>
+                            <span>⚡ Solicitar Hora Extra (+1h, +2h)</span>
                           </>
                         ) : (
                           <>
                             <Clock size={14} />
-                            <span>Prorrogar Horário de Retorno</span>
+                            <span>⏱️ Prorrogar Horário de Retorno</span>
                           </>
                         )}
                       </button>
@@ -1680,6 +1731,43 @@ export default function CollaboratorSpace({
               );
             })}
           </div>
+
+          {/* Paginação: Mostrar mais de 10 em 10 missões já concluídas */}
+          {concludedMissions.length > 5 && (
+            <div className="cs-show-more-missions-wrap">
+              {concludedMissions.length > visibleConcludedLimit ? (
+                <button
+                  type="button"
+                  className="cs-btn-show-more-missions"
+                  onClick={() => setVisibleConcludedLimit((prev) => prev + 10)}
+                >
+                  <ChevronDown size={16} />
+                  <span>Mostrar mais (+10 missões concluídas)</span>
+                  <span className="cs-show-more-count-pill">
+                    Exibindo {Math.min(visibleConcludedLimit, concludedMissions.length)} de {concludedMissions.length} concluídas
+                  </span>
+                </button>
+              ) : (
+                <div className="cs-all-missions-shown-badge">
+                  <CheckCircle2 size={14} className="text-emerald" />
+                  <span>Todas as {concludedMissions.length} missões concluídas estão visíveis</span>
+                </div>
+              )}
+
+              {visibleConcludedLimit > 5 && (
+                <button
+                  type="button"
+                  className="cs-btn-collapse-missions"
+                  onClick={() => setVisibleConcludedLimit(5)}
+                  title="Recolher lista para as 5 missões mais recentes"
+                >
+                  <ChevronUp size={14} />
+                  <span>Recolher para 5</span>
+                </button>
+              )}
+            </div>
+          )}
+          </>
         )}
       </div>
 

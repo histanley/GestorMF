@@ -13,6 +13,7 @@ import {
   Search,
   Filter,
   Building,
+  Briefcase,
   Edit2,
   Eye,
   Check,
@@ -1435,6 +1436,16 @@ export default function TeamPayoutsDashboard({
                   </div>
                 )}
 
+                {statementFilter === 'scheduled' && (
+                  <div className="xray-banner-context scheduled" style={{ borderLeft: '3px solid #38bdf8', background: 'rgba(56, 189, 248, 0.1)', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '8px' }}>
+                    <Clock size={16} className="text-cyan" />
+                    <div>
+                      <strong>Raio-X de Missões Agendadas / Não Homologadas ({missionsScheduled.length} missão{missionsScheduled.length === 1 ? '' : 'ões'}):</strong>
+                      <span> Exibindo pautas agendadas que ainda não foram finalizadas. As horas extras destas missões são estimativas e só serão homologadas para pagamento após a conclusão do serviço em campo.</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Lista Detalhada de Missões com Raio-X */}
                 <div className="statement-missions-list">
                   {displayedMissions.length === 0 ? (
@@ -1448,7 +1459,9 @@ export default function TeamPayoutsDashboard({
                             ? 'Nenhuma missão de viagem ou na modalidade diária registrada para este colaborador neste mês.'
                             : statementFilter === 'commercial'
                               ? 'Todas as missões realizadas neste mês geraram horas extras ou foram por diária.'
-                              : 'Nenhuma missão registrada para este colaborador neste mês.'}
+                              : statementFilter === 'scheduled'
+                                ? 'Este colaborador não possui missões agendadas pendentes de realização neste mês.'
+                                : 'Nenhuma missão registrada para este colaborador neste mês.'}
                       </p>
                     </div>
                   ) : (
