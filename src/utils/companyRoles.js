@@ -456,3 +456,131 @@ export function calculateMemberPerformanceProfile(member, missions = []) {
     missionHistory: missionHistory.sort((a, b) => String(b.date).localeCompare(String(a.date))),
   };
 }
+
+// ==============================================================================
+// PATENTES DE CARREIRA, NÍVEIS E PROGRESSÃO GAMIFICADA (MEGAFILMES)
+// ==============================================================================
+
+export const CAREER_TIERS = [
+  {
+    level: 1,
+    min: 0,
+    max: 60,
+    title: 'Iniciante de Campo',
+    color: '#94a3b8',
+    icon: '🌱',
+    badgeLabel: 'Nível Inicial • Integração',
+    description: 'Início da jornada na MegaFilmes. Fase de ambientação técnica, conhecimento da rotina dos equipamentos, pontualidade nas escalas e primeiros registros de atuação.',
+    overcomeMessage: 'Você já superou o período de integração e novato! Sua base inicial de disciplina, pontualidade e primeiros registros operacionais está conquistada.',
+    skillsDemonstrated: 'Pontualidade, familiaridade com equipamentos e primeiros deslocamentos.',
+  },
+  {
+    level: 2,
+    min: 60,
+    max: 150,
+    title: 'Operador Prata',
+    color: '#38bdf8',
+    icon: '⚡',
+    badgeLabel: 'Autonomia Operacional',
+    description: 'Autonomia e segurança prática. O colaborador cumpre pautas com desenvoltura, domina a operação diária e atua com firmeza e constância nas gravações e suporte.',
+    overcomeMessage: 'Você já superou a fase de operador básico! Conquistou independência operacional e confiança comprovada nas saídas de rotina.',
+    skillsDemonstrated: 'Autonomia em pautas de rotina, agilidade de set e postura confiável.',
+  },
+  {
+    level: 3,
+    min: 150,
+    max: 300,
+    title: 'Especialista Ouro',
+    color: '#fbbf24',
+    icon: '🥇',
+    badgeLabel: 'Alta Performance Técnica',
+    description: 'Maturidade profissional e polivalência. Colaborador com domínio consolidado em múltiplas especialidades (como Câmera, Edição de Vídeo e Direção), entregas de alto padrão estético e confiabilidade nas escalas.',
+    overcomeMessage: 'Você já superou os níveis básicos e intermediários, consolidando seu nome entre os especialistas de alta performance da MegaFilmes.',
+    skillsDemonstrated: 'Polivalência em múltiplas funções, rigor estético, pontualidade e resolução rápida.',
+  },
+  {
+    level: 4,
+    min: 300,
+    max: 550,
+    title: 'Mestre Diamante',
+    color: '#a855f7',
+    icon: '💎',
+    badgeLabel: 'Referência e Domínio',
+    description: 'Elite técnica e referência para os colegas. Assume coberturas de alta responsabilidade, soluciona imprevistos com velocidade e garante padrão impecável em qualquer cenário.',
+    overcomeMessage: 'Patente de mestre superada! Reconhecimento consolidado como uma das maiores referências técnicas da produtora.',
+    skillsDemonstrated: 'Coberturas de alta complexidade, precisão sob pressão e mentoria prática de set.',
+  },
+  {
+    level: 5,
+    min: 550,
+    max: 900,
+    title: 'Comandante de Set',
+    color: '#f43f5e',
+    icon: '🔥',
+    badgeLabel: 'Liderança Estratégica',
+    description: 'Liderança e gestão operacional de campo. Confiança máxima da Diretoria para comandar grandes coberturas simultâneas, liderar transmissões críticas e coordenar equipes inteiras.',
+    overcomeMessage: 'Liderança máxima de set superada! Você provou capacidade de gestão sob as maiores pressões do mercado.',
+    skillsDemonstrated: 'Coordenação de equipes, gestão de crises em tempo real e decisões estratégicas de set.',
+  },
+  {
+    level: 6,
+    min: 900,
+    max: 999999,
+    title: 'Lenda MegaFilmes',
+    color: '#10b981',
+    icon: '👑',
+    badgeLabel: 'Patente Lendária Máxima',
+    description: 'O topo supremo da consagração profissional. Legado gravado na história da MegaFilmes, dezenas de grandes produções entregues com louvor e respeito unânime de toda a equipe e diretoria.',
+    overcomeMessage: 'O topo absoluto da carreira na MegaFilmes!',
+    skillsDemonstrated: 'Mestria técnica absoluta, legado profissional e referência permanente.',
+  },
+];
+
+/**
+ * Calcula a progressão completa de carreira com níveis superados, nível atual e próximos marcos.
+ */
+export function getCareerProgression(score = 0) {
+  const s = Math.max(0, Number(score) || 0);
+  const currentTier = CAREER_TIERS.find((t) => s >= t.min && s < t.max) || CAREER_TIERS[CAREER_TIERS.length - 1];
+  const span = Math.max(1, currentTier.max - currentTier.min);
+  const currentLevelXP = Math.max(0, s - currentTier.min);
+  const remainingForNext = Math.max(0, currentTier.max - s);
+  const progressPercent = Math.min(100, Math.max(0, Math.round((currentLevelXP / span) * 100)));
+
+  const tiersWithStatus = CAREER_TIERS.map((tier) => {
+    let status = 'locked'; // 'completed' | 'current' | 'locked'
+    if (tier.level < currentTier.level) {
+      status = 'completed';
+    } else if (tier.level === currentTier.level) {
+      status = 'current';
+    }
+    return {
+      ...tier,
+      status,
+      isCompleted: status === 'completed',
+      isCurrent: status === 'current',
+      isLocked: status === 'locked',
+    };
+  });
+
+  const completedTiers = tiersWithStatus.filter((t) => t.isCompleted);
+  const nextTier = tiersWithStatus.find((t) => t.level === currentTier.level + 1) || null;
+
+  return {
+    currentTier,
+    level: currentTier.level,
+    title: currentTier.title,
+    color: currentTier.color,
+    icon: currentTier.icon,
+    badgeLabel: currentTier.badgeLabel,
+    description: currentTier.description,
+    score: s,
+    currentLevelXP,
+    neededForNextLevel: span,
+    remainingForNext,
+    progressPercent,
+    tiers: tiersWithStatus,
+    completedTiers,
+    nextTier,
+  };
+}

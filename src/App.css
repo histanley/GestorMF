@@ -44387,6 +44387,527 @@ body.light-theme .cs-btn-print-xp-modal {
   color: #0f172a;
 }
 
+
+/* ==============================================================================
+   PROGRESSÃO DE CARREIRA, NÍVEIS SUPERADOS & DIDÁTICA DE XP (MEGAFILMES)
+   ============================================================================== */
+
+/* Resumo descritivo no hero card principal */
+.cs-xp-tier-quick-desc {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin: 2px 0 0 0;
+  line-height: 1.35;
+  max-width: 580px;
+}
+
+body.light-theme .cs-xp-tier-quick-desc {
+  color: #475569;
+}
+
+.cs-xp-hero-overcome-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 10px;
+  font-size: 0.76rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+body.light-theme .cs-xp-hero-overcome-row {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #334155;
+}
+
+.cs-xp-hero-overcome-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #10b981;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.cs-xp-hero-overcome-names {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+body.light-theme .cs-xp-hero-overcome-names {
+  color: #065f46;
+}
+
+/* Box Explicativo da Patente Atual no Modal */
+.cs-xp-current-tier-explainer {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1.5px solid rgba(251, 191, 36, 0.25);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+body.light-theme .cs-xp-current-tier-explainer {
+  background: #f8fafc;
+  border-color: #fde68a;
+}
+
+.cs-xp-current-tier-explainer-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cs-xp-current-tier-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cs-xp-current-tier-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.cs-xp-current-tier-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cs-xp-current-tier-name {
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.cs-xp-current-tier-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+}
+
+body.light-theme .cs-xp-current-tier-badge {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.cs-xp-current-tier-skills-summary {
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+
+body.light-theme .cs-xp-current-tier-skills-summary {
+  color: #64748b;
+}
+
+.cs-xp-current-tier-skills-summary strong {
+  color: #cbd5e1;
+}
+
+body.light-theme .cs-xp-current-tier-skills-summary strong {
+  color: #334155;
+}
+
+.cs-xp-current-tier-text {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.45;
+}
+
+body.light-theme .cs-xp-current-tier-text {
+  color: #334155;
+}
+
+/* Seção Trilha de Carreira & Patentes Superadas */
+.cs-xp-career-journey-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.cs-xp-journey-counter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #10b981;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-top: 4px;
+}
+
+body.light-theme .cs-xp-journey-counter-badge {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+/* Banner de Celebração de Patentes Superadas */
+.cs-xp-overcome-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
+  border: 1.5px solid rgba(16, 185, 129, 0.35);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+body.light-theme .cs-xp-overcome-banner {
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+  border-color: #6ee7b7;
+}
+
+.cs-xp-overcome-banner-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+body.light-theme .cs-xp-overcome-banner-icon {
+  background: #d1fae5;
+  border-color: #a7f3d0;
+}
+
+.cs-xp-overcome-banner-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cs-xp-overcome-banner-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #10b981;
+}
+
+body.light-theme .cs-xp-overcome-banner-title {
+  color: #065f46;
+}
+
+.cs-xp-overcome-banner-desc {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.4;
+}
+
+body.light-theme .cs-xp-overcome-banner-desc {
+  color: #334155;
+}
+
+.cs-xp-overcome-banner-desc strong {
+  color: #ffffff;
+}
+
+body.light-theme .cs-xp-overcome-banner-desc strong {
+  color: #0f172a;
+}
+
+/* Lista de Cards da Trilha */
+.cs-xp-career-tiers-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.cs-xp-career-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.cs-xp-career-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+body.light-theme .cs-xp-career-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+/* Card Superado */
+.cs-xp-career-card.is-completed {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(6, 78, 59, 0.2) 100%);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+body.light-theme .cs-xp-career-card.is-completed {
+  background: linear-gradient(145deg, #ffffff 0%, #ecfdf5 100%);
+  border-color: #6ee7b7;
+}
+
+/* Card Nível Atual */
+.cs-xp-career-card.is-current {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.95) 100%);
+  border-color: var(--tier-color, #fbbf24);
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.15), inset 0 0 1px 1px var(--tier-color, #fbbf24);
+}
+
+body.light-theme .cs-xp-career-card.is-current {
+  background: linear-gradient(145deg, #ffffff 0%, #fffbeb 100%);
+  border-color: var(--tier-color, #d97706);
+  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.15);
+}
+
+/* Card Bloqueado / Próximo */
+.cs-xp-career-card.is-locked {
+  opacity: 0.72;
+  border-style: dashed;
+}
+
+.cs-xp-career-card.is-locked:hover {
+  opacity: 0.9;
+}
+
+/* Header do card de carreira */
+.cs-xp-career-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cs-xp-career-card-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cs-xp-career-card-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cs-xp-career-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.cs-xp-career-card-level {
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cs-xp-career-card-range {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+body.light-theme .cs-xp-career-card-range {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.cs-xp-career-card-subtag {
+  font-size: 0.64rem;
+  color: #cbd5e1;
+  opacity: 0.85;
+}
+
+body.light-theme .cs-xp-career-card-subtag {
+  color: #64748b;
+}
+
+.cs-xp-career-card-title {
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  display: block;
+}
+
+.cs-career-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.cs-career-pill.completed {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+body.light-theme .cs-career-pill.completed {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+
+.cs-career-pill.current {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid;
+}
+
+body.light-theme .cs-career-pill.current {
+  background: #fef3c7;
+}
+
+.cs-career-pill.locked {
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+}
+
+body.light-theme .cs-career-pill.locked {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+.cs-xp-career-card-desc {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+body.light-theme .cs-xp-career-card-desc {
+  color: #475569;
+}
+
+/* Box contextual do status dentro do card */
+.cs-career-status-box {
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.74rem;
+}
+
+.cs-career-status-box.completed {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+body.light-theme .cs-career-status-box.completed {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.cs-career-status-box.current {
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+body.light-theme .cs-career-status-box.current {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.cs-career-status-box.locked {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+}
+
+body.light-theme .cs-career-status-box.locked {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.cs-career-status-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+}
+
+.cs-career-status-text {
+  font-size: 0.74rem;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.35;
+}
+
+body.light-theme .cs-career-status-text {
+  color: #334155;
+}
+
+.cs-career-status-skills {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+body.light-theme .cs-career-status-skills {
+  color: #64748b;
+}
+
+.cs-career-status-skills strong {
+  color: #cbd5e1;
+}
+
+body.light-theme .cs-career-status-skills strong {
+  color: #334155;
+}
+
+.cs-career-status-next-step {
+  font-size: 0.73rem;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+
+body.light-theme .cs-career-status-next-step {
+  background: #f1f5f9;
+  color: #334155;
+}
+
 /* Ajustes responsivos para telas pequenas / smartphones */
 @media (max-width: 640px) {
   .cs-hero-xp-card {

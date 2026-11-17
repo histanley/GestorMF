@@ -53,6 +53,8 @@ import {
   normalizeToOfficialRole,
   computeMemberRoleCounts,
   calculateMemberPerformanceProfile,
+  CAREER_TIERS,
+  getCareerProgression,
 } from '../utils/companyRoles';
 import { apiRequestExtraHours, apiExtendMissionReturnTime, apiUpdatePixKey } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
@@ -348,32 +350,7 @@ export default function CollaboratorSpace({
 
   // Nível gamificado calculado com base no Score de XP
   const userLevel = useMemo(() => {
-    const s = performanceProfile?.score || 0;
-    const tiers = [
-      { level: 1, min: 0, max: 60, title: 'Iniciante de Campo', color: '#94a3b8' },
-      { level: 2, min: 60, max: 150, title: 'Operador Prata', color: '#38bdf8' },
-      { level: 3, min: 150, max: 300, title: 'Especialista Ouro', color: '#fbbf24' },
-      { level: 4, min: 300, max: 550, title: 'Mestre Diamante', color: '#a855f7' },
-      { level: 5, min: 550, max: 900, title: 'Comandante de Set', color: '#f43f5e' },
-      { level: 6, min: 900, max: 999999, title: 'Lenda MegaFilmes', color: '#10b981' },
-    ];
-    const currentTier = tiers.find((t) => s >= t.min && s < t.max) || tiers[tiers.length - 1];
-    const span = Math.max(1, currentTier.max - currentTier.min);
-    const currentLevelXP = Math.max(0, s - currentTier.min);
-    const neededForNextLevel = span;
-    const remainingForNext = Math.max(0, currentTier.max - s);
-    const progressPercent = Math.min(100, Math.max(0, Math.round((currentLevelXP / span) * 100)));
-
-    return {
-      level: currentTier.level,
-      title: currentTier.title,
-      color: currentTier.color,
-      score: s,
-      currentLevelXP,
-      neededForNextLevel,
-      remainingForNext,
-      progressPercent,
-    };
+    return getCareerProgression(performanceProfile?.score || 0);
   }, [performanceProfile?.score]);
 
   // Lista ordenada de funções que estão gerando pontos ativamente
@@ -950,6 +927,9 @@ export default function CollaboratorSpace({
                   <span className="cs-xp-tier-tag">Patente Operacional</span>
                 </div>
                 <strong className="cs-xp-tier-title">{userLevel.title}</strong>
+                {userLevel.description && (
+                  <p className="cs-xp-tier-quick-desc">{userLevel.description}</p>
+                )}
               </div>
             </div>
 
@@ -991,6 +971,17 @@ export default function CollaboratorSpace({
                   : `Faltam ${userLevel.remainingForNext} XP para o Nível ${userLevel.level + 1}`}
               </span>
             </div>
+            {userLevel.completedTiers && userLevel.completedTiers.length > 0 && (
+              <div className="cs-xp-hero-overcome-row">
+                <span className="cs-xp-hero-overcome-badge">
+                  <CheckCircle2 size={13} className="text-emerald" />
+                  <span>Níveis superados:</span>
+                </span>
+                <span className="cs-xp-hero-overcome-names">
+                  {userLevel.completedTiers.map((t) => `${t.icon} Nível ${t.level} (${t.title})`).join(' • ')}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Funções em que está pontuando ativamente */}
@@ -1922,6 +1913,27 @@ export default function CollaboratorSpace({
                     </span>
                   </div>
                 </div>
+
+                {/* Box Explicativo Didático da Patente Atual */}
+                <div className="cs-xp-current-tier-explainer">
+                  <div className="cs-xp-current-tier-explainer-top">
+                    <span className="cs-xp-current-tier-icon">{userLevel.icon || '🎖️'}</span>
+                    <div className="cs-xp-current-tier-info">
+                      <div className="cs-xp-current-tier-tags">
+                        <strong className="cs-xp-current-tier-name" style={{ color: userLevel.color || '#f59e0b' }}>
+                          Nível {userLevel.level} • {userLevel.title}
+                        </strong>
+                        <span className="cs-xp-current-tier-badge">{userLevel.badgeLabel}</span>
+                      </div>
+                      <span className="cs-xp-current-tier-skills-summary">
+                        <strong>Competências em destaque:</strong> {userLevel.currentTier?.skillsDemonstrated}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="cs-xp-current-tier-text">
+                    {userLevel.description}
+                  </p>
+                </div>
               </div>
 
               {/* Grid de KPIs de Fontes de XP */}
@@ -1976,6 +1988,157 @@ export default function CollaboratorSpace({
                   <span className="cs-xp-kpi-desc">
                     {performanceProfile.drivingCount}x ao volante ({Math.round(performanceProfile.estimatedDistanceKm)} km)
                   </span>
+                </div>
+              </div>
+
+              {/* Trilha de Carreira & Níveis Superados */}
+              <div className="cs-xp-career-journey-section">
+                <div className="cs-xp-section-title-row">
+                  <div>
+                    <h4 className="cs-xp-modal-heading">
+                      <Trophy size={18} className="text-amber" />
+                      Sua Jornada de Carreira &amp; Níveis Superados
+                    </h4>
+                    <span className="cs-xp-modal-heading-sub">
+                      Entenda o que representa cada patente, veja por onde você já passou com êxito e os próximos marcos
+                    </span>
+                  </div>
+                  {userLevel.completedTiers && userLevel.completedTiers.length > 0 && (
+                    <span className="cs-xp-journey-counter-badge">
+                      <CheckCircle2 size={14} className="text-emerald" />
+                      <span>{userLevel.completedTiers.length} de {userLevel.tiers.length} patentes superadas</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Banner de Celebração de Patentes Superadas */}
+                {userLevel.completedTiers && userLevel.completedTiers.length > 0 && (
+                  <div className="cs-xp-overcome-banner">
+                    <div className="cs-xp-overcome-banner-icon">
+                      <Sparkles size={20} />
+                    </div>
+                    <div className="cs-xp-overcome-banner-body">
+                      <strong className="cs-xp-overcome-banner-title">
+                        Parabéns pela sua evolução profissional!
+                      </strong>
+                      <p className="cs-xp-overcome-banner-desc">
+                        Você já superou com louvor {userLevel.completedTiers.length === 1 ? 'o nível de' : 'as patentes de'}{' '}
+                        <strong>
+                          {userLevel.completedTiers.map((t) => `${t.icon} Nível ${t.level} • ${t.title}`).join(' e ')}
+                        </strong>
+                        . Sua consistência operacional e técnica comprova que você está apto a desafios cada vez maiores na produtora!
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Grid dos Níveis de Carreira */}
+                <div className="cs-xp-career-tiers-list">
+                  {userLevel.tiers.map((tier) => {
+                    const isCompleted = tier.isCompleted;
+                    const isCurrent = tier.isCurrent;
+                    const isLocked = tier.isLocked;
+
+                    return (
+                      <div
+                        key={tier.level}
+                        className={`cs-xp-career-card ${isCompleted ? 'is-completed' : ''} ${isCurrent ? 'is-current' : ''} ${isLocked ? 'is-locked' : ''}`}
+                        style={{ '--tier-color': tier.color }}
+                      >
+                        <div className="cs-xp-career-card-top">
+                          <div className="cs-xp-career-card-identity">
+                            <span className="cs-xp-career-card-icon">{tier.icon}</span>
+                            <div>
+                              <div className="cs-xp-career-card-meta">
+                                <span className="cs-xp-career-card-level" style={{ color: tier.color }}>
+                                  NÍVEL {tier.level}
+                                </span>
+                                <span className="cs-xp-career-card-range">
+                                  {tier.level === 6 ? `${tier.min}+ XP` : `${tier.min} a ${tier.max} XP`}
+                                </span>
+                                <span className="cs-xp-career-card-subtag">{tier.badgeLabel}</span>
+                              </div>
+                              <strong className="cs-xp-career-card-title" style={{ color: tier.color }}>
+                                {tier.title}
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div className="cs-xp-career-card-badge-wrap">
+                            {isCompleted && (
+                              <span className="cs-career-pill completed">
+                                <CheckCircle2 size={13} />
+                                <span>Já Superado com Êxito</span>
+                              </span>
+                            )}
+                            {isCurrent && (
+                              <span className="cs-career-pill current" style={{ borderColor: tier.color, color: tier.color }}>
+                                <Sparkles size={13} />
+                                <span>Seu Nível Atual ({userLevel.progressPercent}%)</span>
+                              </span>
+                            )}
+                            {isLocked && (
+                              <span className="cs-career-pill locked">
+                                <Lock size={12} />
+                                <span>Próximo Objetivo</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* O que é o nível / Descrição didática */}
+                        <p className="cs-xp-career-card-desc">
+                          {tier.description}
+                        </p>
+
+                        {/* Bloco contextual do status */}
+                        {isCompleted && (
+                          <div className="cs-career-status-box completed">
+                            <div className="cs-career-status-header">
+                              <CheckCircle2 size={14} className="text-emerald" />
+                              <strong className="text-emerald">Etapa Concluída &amp; Superada:</strong>
+                            </div>
+                            <p className="cs-career-status-text">{tier.overcomeMessage}</p>
+                            <span className="cs-career-status-skills">
+                              <strong>Competências consolidadas:</strong> {tier.skillsDemonstrated}
+                            </span>
+                          </div>
+                        )}
+
+                        {isCurrent && (
+                          <div className="cs-career-status-box current">
+                            <div className="cs-career-status-header">
+                              <Target size={14} style={{ color: tier.color }} />
+                              <strong style={{ color: tier.color }}>O que você representa neste patamar:</strong>
+                            </div>
+                            <span className="cs-career-status-skills">
+                              <strong>Habilidades exercidas no dia a dia:</strong> {tier.skillsDemonstrated}
+                            </span>
+                            <div className="cs-career-status-next-step">
+                              {userLevel.remainingForNext > 0 ? (
+                                <span>
+                                  Você já possui <strong>{userLevel.score} XP</strong>. Faltam <strong>{userLevel.remainingForNext} XP</strong> para alcançar o <strong>Nível {tier.level + 1} ({userLevel.nextTier?.title})</strong>.
+                                </span>
+                              ) : (
+                                <span>Você atingiu a pontuação máxima desta patente!</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {isLocked && (
+                          <div className="cs-career-status-box locked">
+                            <div className="cs-career-status-header">
+                              <Lock size={13} />
+                              <span>
+                                Requer <strong>{tier.min} XP</strong> acumulados (faltam {Math.max(0, tier.min - userLevel.score)} XP).
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
