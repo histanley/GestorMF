@@ -280,6 +280,27 @@ if ($method === 'GET') {
                     $db->prepare("UPDATE missions SET edition_status = 'Em Edição' WHERE id = ?")->execute([$m['id']]);
                 }
             }
+
+            // AUTO-CURA DA MISSÃO #202611144 (Fotos SESI Terceirão):
+            // Mateus Henrique atuou estritamente como editor de pós-produção e não foi a campo.
+            $isSesi144 = (!empty($m['code']) && strpos($m['code'], '202611144') !== false) ||
+                         (stripos($m['description'], 'SESI') !== false && stripos($m['description'], 'TERCEIR') !== false);
+            if ($isSesi144) {
+                try {
+                    $memStmt = $db->query("SELECT id FROM members WHERE name LIKE '%Mateus%' LIMIT 1");
+                    $mateusId = $memStmt ? $memStmt->fetchColumn() : null;
+                    if ($mateusId) {
+                        $rawTeamIds = !empty($m['team_ids']) ? json_decode($m['team_ids'], true) : [];
+                        if (is_array($rawTeamIds) && (in_array($mateusId, $rawTeamIds) || in_array((string)$mateusId, $rawTeamIds))) {
+                            $cleanTeam = array_values(array_filter($rawTeamIds, function($tid) use ($mateusId) {
+                                return (string)$tid !== (string)$mateusId;
+                            }));
+                            $m['team_ids'] = json_encode($cleanTeam, JSON_UNESCAPED_UNICODE);
+                            $db->prepare("UPDATE missions SET team_ids = ? WHERE id = ?")->execute([$m['team_ids'], $m['id']]);
+                        }
+                    }
+                } catch (Exception $e) {}
+            }
         }
 
         return [

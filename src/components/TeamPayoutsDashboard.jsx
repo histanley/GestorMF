@@ -324,9 +324,22 @@ export default function TeamPayoutsDashboard({
             // REGRA OFICIAL MEGAFILMES:
             // "Os editores que ficam na pós-produção não devem receber horas extras."
             // Horas extras fora do expediente são devidas estritamente à equipe presencial de campo.
-            const isEligibleForExtras = isMemberEligibleForExtraHours(member, m);
+            const descClean = String(m.description || '').toLowerCase();
+            const codeClean = String(m.code || m.id || '');
+            const isSesi202611144 = codeClean.includes('202611144') || (descClean.includes('sesi') && descClean.includes('terceir'));
+            const isMateusSesi202611144 = isSesi202611144 && memNameNorm.includes('mateus');
 
-            if (!isEligibleForExtras) {
+            const inEditorsDelivery = Boolean(
+              m.editorsDelivery &&
+              (m.editorsDelivery[memIdStr] ||
+               m.editorsDelivery[member.name] ||
+               Object.keys(m.editorsDelivery).some((k) => k.toLowerCase().includes(memNameNorm)))
+            );
+            const isAssignedEditor = inEditorIds || inEditorDisplay || inEditorsDelivery || isMateusSesi202611144;
+
+            const isEligibleForExtras = !isMateusSesi202611144 && isMemberEligibleForExtraHours(member, m);
+
+            if (!isEligibleForExtras || isAssignedEditor) {
               itemAmount = 0;
               extraFormulaText = 'Editor na Pós-Produção (Sem Horas Extras - exclusivo para campo)';
             } else {
@@ -356,8 +369,21 @@ export default function TeamPayoutsDashboard({
             }
           }
 
-          const isEligibleForExtras = isMemberEligibleForExtraHours(member, m);
-          const isOnlyEditor = !isEligibleForExtras && (inEditorIds || inEditorDisplay);
+          const descCleanPost = String(m.description || '').toLowerCase();
+          const codeCleanPost = String(m.code || m.id || '');
+          const isSesi202611144Post = codeCleanPost.includes('202611144') || (descCleanPost.includes('sesi') && descCleanPost.includes('terceir'));
+          const isMateusSesi202611144Post = isSesi202611144Post && memNameNorm.includes('mateus');
+
+          const inEditorsDeliveryPost = Boolean(
+            m.editorsDelivery &&
+            (m.editorsDelivery[memIdStr] ||
+             m.editorsDelivery[member.name] ||
+             Object.keys(m.editorsDelivery).some((k) => k.toLowerCase().includes(memNameNorm)))
+          );
+          const isAssignedEditorPost = inEditorIds || inEditorDisplay || inEditorsDeliveryPost || isMateusSesi202611144Post;
+
+          const isEligibleForExtras = !isMateusSesi202611144Post && isMemberEligibleForExtraHours(member, m);
+          const isOnlyEditor = isMateusSesi202611144Post || isAssignedEditorPost || (!isEligibleForExtras && (inEditorIds || inEditorDisplay));
 
           statementMissions.push({
             id: m.id,
@@ -388,6 +414,9 @@ export default function TeamPayoutsDashboard({
             isCustomRate: customRate !== null,
             itemAmount,
             roleInMission: (() => {
+              if (isOnlyEditor || isAssignedEditorPost || isMateusSesi202611144Post) {
+                return 'Editor / Pós-Produção';
+              }
               const explicitRoles = m.memberRoles?.[member.id] || m.memberRoles?.[String(member.id)];
               if (Array.isArray(explicitRoles) && explicitRoles.length > 0) {
                 return explicitRoles.join(' • ');

@@ -36,6 +36,7 @@ import {
   TrendingUp,
   Target,
   ShieldCheck,
+  Printer,
 } from 'lucide-react';
 import ConcludePostProductionModal from './ConcludePostProductionModal';
 import {
@@ -257,7 +258,7 @@ export default function CollaboratorSpace({
 
   useEffect(() => {
     // Solicita permissão de notificações em segundo plano
-    requestNotificationPermission().catch(() => {});
+    requestNotificationPermission().catch(() => { });
 
     const interval = setInterval(() => {
       setLiveTick((t) => t + 1);
@@ -281,9 +282,9 @@ export default function CollaboratorSpace({
       const allocations = Array.isArray(m.vehicleAllocations) ? m.vehicleAllocations : [];
       const isDriver = allocations.some(
         (a) => (a.driverId && String(a.driverId) === memIdStr) ||
-               (a.driverName && a.driverName.trim().toLowerCase() === memNameNorm)
+          (a.driverName && a.driverName.trim().toLowerCase() === memNameNorm)
       ) || (m.driverId && String(m.driverId) === memIdStr) ||
-           (m.driverName && m.driverName.trim().toLowerCase() === memNameNorm);
+        (m.driverName && m.driverName.trim().toLowerCase() === memNameNorm);
 
       const teamIds = Array.isArray(m.teamIds) ? m.teamIds.map(String) : [];
       const inTeamIds = teamIds.includes(memIdStr);
@@ -444,7 +445,13 @@ export default function CollaboratorSpace({
         // Regra Oficial MegaFilmes: Horas extras calculadas estritamente entre o Início e Término do Evento
         // (deslocamento ida e volta da base não é contabilizado)
         // REGRA IMPORTANTE: Os editores que ficam na pós-produção NÃO devem receber horas extras!
-        const isEligibleForExtras = isMemberEligibleForExtraHours(myMember, m);
+        const memNameNorm = String(myMember?.name || '').trim().toLowerCase();
+        const codeClean = String(m.code || m.id || '');
+        const descClean = String(m.description || '').toLowerCase();
+        const isSesi202611144 = codeClean.includes('202611144') || (descClean.includes('sesi') && descClean.includes('terceir'));
+        const isMateusSesi202611144 = isSesi202611144 && memNameNorm.includes('mateus');
+
+        const isEligibleForExtras = !isMateusSesi202611144 && isMemberEligibleForExtraHours(myMember, m);
         if (isEligibleForExtras) {
           const offHoursInfo = calculateEventOnlyOffHours(m);
           const approvedExtra = Number(m.extraHoursApproved) || 0;
@@ -1598,18 +1605,20 @@ export default function CollaboratorSpace({
 
                             {isMyPartDone ? (
                               <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-                                <small style={{ color: '#34d399', fontSize: '0.76rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                                  <CheckCircle2 size={13} />
-                                  <span>
-                                    {isClosed
-                                      ? 'Pós-produção concluída e missão homologada pela Diretoria.'
-                                      : deliverySummary.isFullyDelivered
-                                        ? 'Todos os editores entregaram! A pauta está na fila de aprovação da Diretoria.'
-                                        : 'Sua parte foi entregue com sucesso! Aguardando demais editores da equipe.'}
-                                  </span>
+                                <small style={{ color: '#34d399', fontSize: '0.76rem' }}>
+                                  {deliverySummary.isFullyDelivered
+                                    ? '🎉 Todos os editores entregaram! A pauta está na fila de aprovação da Diretoria.'
+                                    : 'Aguardando entrega dos outros editores para envio à aprovação da Diretoria.'}
                                 </small>
+                                <button
+                                  type="button"
+                                  onClick={() => setConcludeModal({ isOpen: true, mission: m })}
+                                  style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#cbd5e1', fontSize: '0.75rem', cursor: 'pointer' }}
+                                >
+                                  Editar / Reenviar Entrega
+                                </button>
                               </div>
-                            ) : !isClosed ? (
+                            ) : (
                               <div style={{ marginTop: '8px' }}>
                                 <button
                                   type="button"
@@ -1619,12 +1628,6 @@ export default function CollaboratorSpace({
                                   <CheckCircle2 size={14} />
                                   <span>Entregar Minha Parte da Edição</span>
                                 </button>
-                              </div>
-                            ) : (
-                              <div style={{ marginTop: '6px' }}>
-                                <small style={{ color: '#94a3b8', fontSize: '0.76rem' }}>
-                                  Missão finalizada pela Diretoria.
-                                </small>
                               </div>
                             )}
                           </div>
@@ -1839,8 +1842,8 @@ export default function CollaboratorSpace({
       {/* MODAL DETALHADO DE EXTRATO DE XP & CONQUISTAS                 */}
       {/* ============================================================== */}
       {isXpModalOpen && performanceProfile && (
-        <div className="modal-overlay cs-modal-overlay cs-xp-modal-overlay" onClick={() => setIsXpModalOpen(false)}>
-          <div className="modal-box cs-xp-modal-container" onClick={(e) => e.stopPropagation()}>
+        <div className="cs-modal-backdrop" onClick={() => setIsXpModalOpen(false)}>
+          <div className="cs-xp-modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="cs-xp-modal-header">
               <div className="cs-xp-modal-header-left">
                 <div
@@ -1929,7 +1932,7 @@ export default function CollaboratorSpace({
                     <Briefcase size={16} className="text-amber" />
                   </div>
                   <strong className="cs-xp-kpi-value text-amber">
-                    +{Number(performanceProfile.rolesTotalXP || 0)} XP
+                    +{performanceProfile.rolesTotalXP} XP
                   </strong>
                   <span className="cs-xp-kpi-desc">
                     Pontos pelas 12 especialidades exercidas
@@ -1942,10 +1945,10 @@ export default function CollaboratorSpace({
                     <CheckCircle2 size={16} className="text-emerald" />
                   </div>
                   <strong className="cs-xp-kpi-value text-emerald">
-                    +{Number(performanceProfile.missionBaseXP || 0) + Number(performanceProfile.completedBonusXP || 0)} XP
+                    +{performanceProfile.missionBaseXP + performanceProfile.completedBonusXP} XP
                   </strong>
                   <span className="cs-xp-kpi-desc">
-                    {performanceProfile.totalMissions || 0} missões finalizadas com sucesso
+                    {performanceProfile.totalMissions} missões finalizadas com sucesso
                   </span>
                 </div>
 
@@ -1955,23 +1958,23 @@ export default function CollaboratorSpace({
                     <Clock size={16} className="text-cyan" />
                   </div>
                   <strong className="cs-xp-kpi-value text-cyan">
-                    +{Number(performanceProfile.extraHoursXP || 0)} XP
+                    +{performanceProfile.extraHoursXP} XP
                   </strong>
                   <span className="cs-xp-kpi-desc">
-                    {performanceProfile.totalApprovedExtraHours || 0}h extras aprovadas em campo
+                    {performanceProfile.totalApprovedExtraHours}h extras aprovadas em campo
                   </span>
                 </div>
 
                 <div className="cs-xp-kpi-card">
                   <div className="cs-xp-kpi-header">
                     <span className="cs-xp-kpi-title">Condução de Viatura</span>
-                    <Car size={16} className="text-indigo" />
+                    <Car size={16} className="text-blue" />
                   </div>
-                  <strong className="cs-xp-kpi-value text-indigo">
-                    +{Number(performanceProfile.drivingKmXP || 0)} XP
+                  <strong className="cs-xp-kpi-value text-blue">
+                    +{performanceProfile.drivingKmXP} XP
                   </strong>
                   <span className="cs-xp-kpi-desc">
-                    {performanceProfile.drivingCount || 0}x ao volante ({performanceProfile.estimatedDistanceKm || 0} km)
+                    {performanceProfile.drivingCount}x ao volante ({Math.round(performanceProfile.estimatedDistanceKm)} km)
                   </span>
                 </div>
               </div>
@@ -2056,6 +2059,15 @@ export default function CollaboratorSpace({
             </div>
 
             <div className="cs-xp-modal-footer">
+              <button
+                type="button"
+                className="cs-btn-print-xp-modal"
+                onClick={() => window.print()}
+                title="Imprimir Extrato de XP e Pontuações"
+              >
+                <Printer size={15} />
+                <span>Imprimir Extrato</span>
+              </button>
               <button
                 type="button"
                 className="cs-btn-close-xp-modal"

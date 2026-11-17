@@ -129,6 +129,22 @@ export function resolveMissionEditors(mission, members = []) {
     }
   }
 
+  // 4.1. AUTO-CURA DA MISSÃO #202611144 (Fotos SESI Terceirão):
+  // Mateus Henrique atuou estritamente como editor de pós-produção (não foi a campo).
+  const isSesi202611144 =
+    codeClean.includes('202611144') ||
+    idClean.includes('202611144') ||
+    descClean.includes('202611144') ||
+    (descClean.includes('sesi') && descClean.includes('terceir'));
+
+  if (isSesi202611144) {
+    const mateusMem = members.find((m) => cleanStr(m.name).includes('mateus'));
+    if (mateusMem) addMember(mateusMem);
+    else if (!Array.from(foundMap.values()).some((e) => cleanStr(e.name).includes('mateus'))) {
+      foundMap.set('mateus-auto', { id: 'mateus-auto', name: 'Mateus Henrique', role: 'Editor de Vídeo', avatar: null });
+    }
+  }
+
   return Array.from(foundMap.values());
 }
 
@@ -374,6 +390,48 @@ export function normalizeMissionMultiEditors(mission, members = []) {
       editorsDelivery: deliveryMap,
       editionStatus: shouldBeInEdition ? 'Em Edição' : (mission.editionStatus || 'Edição Concluída'),
       missionStatus: 'Pendente',
+    };
+  }
+
+  // Tratamento específico #202611144 (Fotos SESI Terceirão):
+  // Mateus Henrique atuou exclusivamente como editor de pós-produção (não foi a campo).
+  const isSesi202611144 =
+    codeClean.includes('202611144') ||
+    idClean.includes('202611144') ||
+    descClean.includes('202611144') ||
+    (descClean.includes('sesi') && descClean.includes('terceir'));
+
+  if (isSesi202611144) {
+    const mateusMem = members.find((m) => cleanStr(m.name).includes('mateus'));
+    const mateusIdStr = mateusMem ? String(mateusMem.id) : '';
+
+    // Remove Mateus de teamIds de campo (ele não participou presencialmente da missão)
+    const filteredTeamIds = Array.isArray(mission.teamIds)
+      ? mission.teamIds.filter((id) => String(id) !== mateusIdStr && !String(id).toLowerCase().includes('mateus'))
+      : [];
+
+    const existingEditorIds = Array.isArray(mission.editorIds) ? [...mission.editorIds] : [];
+    if (mateusIdStr && !existingEditorIds.map(String).includes(mateusIdStr)) {
+      existingEditorIds.push(mateusIdStr);
+    }
+
+    const cleanedAllocations = Array.isArray(mission.vehicleAllocations)
+      ? mission.vehicleAllocations.map((a) => {
+          if (String(a.driverId) === mateusIdStr || cleanStr(a.driverName).includes('mateus')) {
+            return { ...a, driverId: '', driverName: '' };
+          }
+          return a;
+        })
+      : mission.vehicleAllocations;
+
+    return {
+      ...mission,
+      teamIds: filteredTeamIds,
+      editorIds: existingEditorIds,
+      editorNamesDisplay: mission.editorNamesDisplay || 'Mateus Henrique',
+      vehicleAllocations: cleanedAllocations,
+      driverId: String(mission.driverId) === mateusIdStr ? '' : mission.driverId,
+      driverName: cleanStr(mission.driverName).includes('mateus') ? '' : mission.driverName,
     };
   }
 
