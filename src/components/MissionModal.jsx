@@ -51,6 +51,7 @@ import {
   generateRecurrenceDates,
   formatDaysDisplay,
 } from '../utils/recurrence';
+import { getCurrentUser } from '../utils/auth';
 import {
   fetchRouteOSRM,
   searchAddressNominatim,
@@ -1366,12 +1367,16 @@ export default function MissionModal({
     const primaryEditorName = isNotApp ? '' : (primaryEditor ? primaryEditor.name : (formData.editorName || ''));
 
     // Inicializa ou atualiza o histórico da missão
+    const activeLoggedUser = getCurrentUser();
+    const creatorName = editingMission?.createdByName || activeLoggedUser?.name || 'Administrador';
+    const creatorId = editingMission?.createdBy || activeLoggedUser?.id || null;
+
     const currentHistory = Array.isArray(editingMission?.editionHistory) ? [...editingMission.editionHistory] : [];
     if (!editingMission) {
       currentHistory.push({
         id: 'h-' + Date.now(),
         type: 'CREATED',
-        user: 'Administrador / Gestor',
+        user: creatorName,
         timestamp: new Date().toISOString(),
         title: 'Missão Criada e Publicada',
         description: isNotApp
@@ -1512,6 +1517,9 @@ export default function MissionModal({
       extraHoursApproved: editingMission?.extraHoursApproved || 0,
       extraHoursRequests: editingMission?.extraHoursRequests || [],
       customRates: formData.customRates || {},
+      createdBy: creatorId,
+      createdByName: creatorName,
+      createdAt: editingMission?.createdAt || new Date().toISOString(),
       ignoreConflicts: hasSharedOverrides,
       forceSharedResources: hasSharedOverrides,
       overrideReason: hasSharedOverrides ? 'Participação compartilhada de viatura/colaborador forçada e autorizada pelo gestor' : undefined,

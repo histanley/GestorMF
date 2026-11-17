@@ -56,6 +56,8 @@ function ensureMissionColumnsExist($db)
         'extra_hours_approved' => 'DECIMAL(6,2) DEFAULT 0.00',
         'extra_hours_requests' => 'LONGTEXT NULL',
         'editors_delivery' => 'LONGTEXT NULL',
+        'created_by' => 'VARCHAR(100) NULL',
+        'created_by_name' => 'VARCHAR(150) NULL',
         'version' => 'INT NOT NULL DEFAULT 1'
     ];
 
@@ -356,7 +358,9 @@ if ($method === 'GET') {
             'extraHoursRequests' => !empty($m['extra_hours_requests']) ? json_decode($m['extra_hours_requests'], true) : [],
             'version' => (int) ($m['version'] ?? 1),
             'createdAt' => $m['created_at'],
-            'updatedAt' => $m['updated_at']
+            'updatedAt' => $m['updated_at'],
+            'createdBy' => $m['created_by'] ?? null,
+            'createdByName' => $m['created_by_name'] ?? null
         ];
     }, $rawMissions);
 
@@ -1057,7 +1061,8 @@ if ($method === 'POST' || $method === 'PUT') {
             custom_rates, off_hours,
             remuneration_type, member_remuneration_types, member_roles, equipment_allocations, extra_hours_planned, extra_hours_approved, extra_hours_requests,
             editors_delivery,
-            created_by
+            created_by,
+            created_by_name
         ) VALUES (
             :id, :code, :description, :location_name, :address, :lat, :lon, :date,
             :departure_time, :arrival_time_estimated, :return_time_estimated,
@@ -1077,10 +1082,12 @@ if ($method === 'POST' || $method === 'PUT') {
             :custom_rates, :off_hours,
             :remuneration_type, :member_remuneration_types, :member_roles, :equipment_allocations, :extra_hours_planned, :extra_hours_approved, :extra_hours_requests,
             :editors_delivery,
-            :created_by
+            :created_by,
+            :created_by_name
         )
         ON DUPLICATE KEY UPDATE
             version = version + 1,
+            created_by_name = COALESCE(created_by_name, VALUES(created_by_name)),
             code = VALUES(code),
             description = VALUES(description),
             location_name = VALUES(location_name),
@@ -1227,7 +1234,8 @@ if ($method === 'POST' || $method === 'PUT') {
             ':extra_hours_approved' => isset($data['extraHoursApproved']) ? (float) $data['extraHoursApproved'] : 0.0,
             ':extra_hours_requests' => !empty($data['extraHoursRequests']) ? (is_string($data['extraHoursRequests']) ? $data['extraHoursRequests'] : json_encode($data['extraHoursRequests'], JSON_UNESCAPED_UNICODE)) : null,
             ':editors_delivery' => !empty($data['editorsDelivery']) ? (is_string($data['editorsDelivery']) ? $data['editorsDelivery'] : json_encode($data['editorsDelivery'], JSON_UNESCAPED_UNICODE)) : null,
-            ':created_by' => $user['id'] ?? ($currentUser['name'] ?? 'Sistema')
+            ':created_by' => $data['createdBy'] ?? ($user['id'] ?? null),
+            ':created_by_name' => $data['createdByName'] ?? ($user['name'] ?? 'Administrador')
         ];
 
         $stmtSave = $db->prepare($sql);

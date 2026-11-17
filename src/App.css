@@ -21390,6 +21390,19 @@ body.light-theme .mission-history-modal {
   border-radius: 6px;
 }
 
+.mhm-creator-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(147, 51, 234, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(147, 51, 234, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .mhm-title {
   margin: 0;
   font-size: 1.25rem;
