@@ -19,7 +19,119 @@ import {
   User,
   Flame,
   Package,
+  Search,
+  Film,
+  AlertCircle,
 } from 'lucide-react';
+
+/**
+ * Categorização inteligente de notificações para garantir que NENHUM item fique oculto
+ * ou fora do seu filtro correspondente.
+ */
+export function getNotificationCategory(n) {
+  if (!n) return 'messages';
+  const type = String(n.type || '').toLowerCase();
+  const title = String(n.title || '').toLowerCase();
+  const desc = String(n.description || n.message || '').toLowerCase();
+
+  // 1. Frota, Viaturas e Combustível
+  if (
+    type === 'fuel' ||
+    type === 'vehicle' ||
+    type === 'telemetry' ||
+    type === 'maintenance' ||
+    Boolean(n.vehicleId) ||
+    title.includes('tanque') ||
+    title.includes('combustível') ||
+    title.includes('reserva') ||
+    title.includes('viatura') ||
+    desc.includes('abastecer') ||
+    desc.includes('tanque')
+  ) {
+    return 'fuel';
+  }
+
+  // 2. Aluguéis, Devoluções e Equipamentos
+  if (
+    type === 'rental' ||
+    type === 'rental_alert' ||
+    type === 'equipment' ||
+    Boolean(n.rentalId) ||
+    title.includes('locação') ||
+    title.includes('aluguel') ||
+    title.includes('devolução') ||
+    desc.includes('locação') ||
+    desc.includes('devolução')
+  ) {
+    return 'rental';
+  }
+
+  // 3. Missões, Pautas, Pós-Produção, Edição de Vídeo e Horários
+  if (
+    type === 'mission' ||
+    type === 'post_production' ||
+    type === 'post_production_approval' ||
+    type === 'edition' ||
+    type === 'mission_message' ||
+    Boolean(n.missionId) ||
+    title.includes('missão') ||
+    title.includes('pauta') ||
+    title.includes('edição') ||
+    title.includes('pós-produção') ||
+    title.includes('reaberta') ||
+    desc.includes('pauta') ||
+    desc.includes('editor')
+  ) {
+    return 'mission';
+  }
+
+  // 4. Comunicados da Gestão, Mensagens da Equipe e Chat
+  if (
+    type === 'system_message' ||
+    type === 'message' ||
+    type === 'chat' ||
+    type === 'announcement' ||
+    Boolean(n.senderName) ||
+    Boolean(n.recipientType)
+  ) {
+    return 'messages';
+  }
+
+  // 5. Demais itens (avisos gerais do sistema, alertas informativos)
+  return 'messages';
+}
+
+/**
+ * Identifica se a notificação exige ação pendente (bloqueada para exclusão, urgente ou problema em aberto)
+ */
+export function isNotificationPending(n, isNotificationLocked) {
+  if (!n) return false;
+  if (isNotificationLocked) {
+    try {
+      const lock = isNotificationLocked(n);
+      if (lock && lock.locked) return true;
+    } catch (e) {}
+  }
+  if (n.isLocked) return true;
+  if (n.priority === 'URGENT' || n.priority === 'HIGH') return true;
+  if (n.variant === 'danger' || n.variant === 'warning') return true;
+  if (n.isResolved === false) return true;
+
+  const type = String(n.type || '').toLowerCase();
+  const title = String(n.title || '').toLowerCase();
+  if (
+    type === 'warning' ||
+    title.includes('pendente') ||
+    title.includes('urgente') ||
+    title.includes('reaberta') ||
+    title.includes('reserva') ||
+    title.includes('atraso') ||
+    title.includes('avaliação')
+  ) {
+    return true;
+  }
+  return false;
+}
 
 export default function NotificationsCenter({
   notifications = [],
@@ -33,43 +145,79 @@ export default function NotificationsCenter({
   canSendMessage = false,
   onOpenSendMessage,
 }) {
-  const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'messages' | 'mission' | 'fuel' | 'rental'
+  const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'pending' | 'mission' | 'messages' | 'fuel' | 'rental'
+  const [searchTerm, setSearchTerm] = useState('');
 
+  // Contadores calculados com base na classificação abrangente
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read).length,
     [notifications]
   );
 
-  const messagesCount = useMemo(
-    () => notifications.filter((n) => n.type === 'system_message' || n.type === 'message').length,
-    [notifications]
+  const pendingCount = useMemo(
+    () => notifications.filter((n) => isNotificationPending(n, isNotificationLocked)).length,
+    [notifications, isNotificationLocked]
   );
 
   const missionsCount = useMemo(
-    () => notifications.filter((n) => n.type === 'mission').length,
+    () => notifications.filter((n) => getNotificationCategory(n) === 'mission').length,
+    [notifications]
+  );
+
+  const messagesCount = useMemo(
+    () => notifications.filter((n) => getNotificationCategory(n) === 'messages').length,
     [notifications]
   );
 
   const fuelCount = useMemo(
-    () => notifications.filter((n) => n.type === 'fuel').length,
+    () => notifications.filter((n) => getNotificationCategory(n) === 'fuel').length,
     [notifications]
   );
 
   const rentalsCount = useMemo(
-    () => notifications.filter((n) => n.type === 'rental').length,
+    () => notifications.filter((n) => getNotificationCategory(n) === 'rental').length,
     [notifications]
   );
 
+  // Filtro inteligente e abrangente: nenhum item fica oculto
   const filteredNotifications = useMemo(() => {
     return notifications.filter((n) => {
-      if (filter === 'unread') return !n.read;
-      if (filter === 'messages') return n.type === 'system_message' || n.type === 'message';
-      if (filter === 'mission') return n.type === 'mission';
-      if (filter === 'fuel') return n.type === 'fuel';
-      if (filter === 'rental') return n.type === 'rental';
+      // 1. Filtro da Categoria
+      if (filter === 'unread') {
+        if (n.read) return false;
+      } else if (filter === 'pending') {
+        if (!isNotificationPending(n, isNotificationLocked)) return false;
+      } else if (filter === 'mission') {
+        if (getNotificationCategory(n) !== 'mission') return false;
+      } else if (filter === 'messages') {
+        if (getNotificationCategory(n) !== 'messages') return false;
+      } else if (filter === 'fuel') {
+        if (getNotificationCategory(n) !== 'fuel') return false;
+      } else if (filter === 'rental') {
+        if (getNotificationCategory(n) !== 'rental') return false;
+      }
+      // 'all' passa todas as notificações
+
+      // 2. Busca por texto livre (se houver pesquisa)
+      if (searchTerm && searchTerm.trim()) {
+        const term = searchTerm.toLowerCase().trim();
+        const title = String(n.title || '').toLowerCase();
+        const msg = String(n.message || n.description || '').toLowerCase();
+        const details = String(n.details || '').toLowerCase();
+        const sender = String(n.senderName || '').toLowerCase();
+        const recipient = String(n.recipientName || '').toLowerCase();
+        const matches =
+          title.includes(term) ||
+          msg.includes(term) ||
+          details.includes(term) ||
+          sender.includes(term) ||
+          recipient.includes(term);
+        if (!matches) return false;
+      }
+
       return true;
     });
-  }, [notifications, filter]);
+  }, [notifications, filter, searchTerm, isNotificationLocked]);
 
   const formatRelativeTime = (timestamp) => {
     if (!timestamp) return 'Recente';
@@ -91,12 +239,22 @@ export default function NotificationsCenter({
     switch (type) {
       case 'system_message':
       case 'message':
+      case 'chat':
         return <Mail size={18} className="notif-type-icon message" />;
       case 'fuel':
+      case 'vehicle':
+      case 'telemetry':
         return <Fuel size={18} className="notif-type-icon fuel" />;
       case 'rental':
+      case 'rental_alert':
+      case 'equipment':
         return <Package size={18} className="notif-type-icon rental" />;
+      case 'post_production':
+      case 'post_production_approval':
+      case 'edition':
+        return <Film size={18} className="notif-type-icon mission" />;
       case 'mission':
+      case 'mission_message':
         return <MapPin size={18} className="notif-type-icon mission" />;
       case 'warning':
         return <AlertTriangle size={18} className="notif-type-icon warning" />;
@@ -174,7 +332,7 @@ export default function NotificationsCenter({
         </div>
       </div>
 
-      {/* Barra de Filtros Segmentada Moderna (Zero Cortes) */}
+      {/* Barra de Filtros Segmentada Moderna (Com rolagem suave e sem cortes) */}
       <div className="notif-segmented-bar-wrapper">
         <div className="notif-segmented-bar" role="tablist" aria-label="Filtrar Notificações">
           <button
@@ -204,13 +362,14 @@ export default function NotificationsCenter({
           <button
             type="button"
             role="tab"
-            aria-selected={filter === 'messages'}
-            className={`notif-seg-tab ${filter === 'messages' ? 'is-active' : ''}`}
-            onClick={() => setFilter('messages')}
+            aria-selected={filter === 'pending'}
+            className={`notif-seg-tab ${filter === 'pending' ? 'is-active' : ''} ${pendingCount > 0 ? 'tab-has-pending' : ''}`}
+            onClick={() => setFilter('pending')}
+            title="Itens com pendências ativas, veículos em reserva ou urgentes"
           >
-            <Mail size={12} className="tab-icon" />
-            <span>Avisos</span>
-            <span className="notif-tab-badge messages">{messagesCount}</span>
+            <AlertTriangle size={12} className="tab-icon" />
+            <span>Pendências</span>
+            <span className="notif-tab-badge pending">{pendingCount}</span>
           </button>
 
           <button
@@ -219,6 +378,7 @@ export default function NotificationsCenter({
             aria-selected={filter === 'mission'}
             className={`notif-seg-tab ${filter === 'mission' ? 'is-active' : ''}`}
             onClick={() => setFilter('mission')}
+            title="Missões de campo, pautas, pós-produção e edição"
           >
             <MapPin size={12} className="tab-icon" />
             <span>Missões</span>
@@ -228,9 +388,23 @@ export default function NotificationsCenter({
           <button
             type="button"
             role="tab"
+            aria-selected={filter === 'messages'}
+            className={`notif-seg-tab ${filter === 'messages' ? 'is-active' : ''}`}
+            onClick={() => setFilter('messages')}
+            title="Comunicados internos, avisos da gestão e mensagens"
+          >
+            <Mail size={12} className="tab-icon" />
+            <span>Avisos</span>
+            <span className="notif-tab-badge messages">{messagesCount}</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
             aria-selected={filter === 'fuel'}
             className={`notif-seg-tab ${filter === 'fuel' ? 'is-active' : ''}`}
             onClick={() => setFilter('fuel')}
+            title="Alertas de combustível, viaturas e revisões da frota"
           >
             <Fuel size={12} className="tab-icon" />
             <span>Frota</span>
@@ -243,6 +417,7 @@ export default function NotificationsCenter({
             aria-selected={filter === 'rental'}
             className={`notif-seg-tab ${filter === 'rental' ? 'is-active' : ''}`}
             onClick={() => setFilter('rental')}
+            title="Contratos, locações e devolução de equipamentos"
           >
             <Package size={12} className="tab-icon" />
             <span>Aluguéis</span>
@@ -251,16 +426,70 @@ export default function NotificationsCenter({
         </div>
       </div>
 
+      {/* Barra de Busca Rápida em Tempo Real */}
+      <div className="notif-search-bar-wrapper">
+        <div className="notif-search-input-box">
+          <Search size={14} className="notif-search-icon" />
+          <input
+            type="text"
+            className="notif-search-input"
+            placeholder="Pesquisar por pauta, viatura, colaborador, código..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              className="notif-search-clear-btn"
+              onClick={() => setSearchTerm('')}
+              title="Limpar busca"
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Lista de Notificações */}
       <div className="notif-list-container">
         {filteredNotifications.length === 0 ? (
           <div className="notif-empty-state">
             <div className="notif-empty-icon-wrap">
-              <Sparkles size={28} />
+              {searchTerm ? <Search size={28} /> : <Sparkles size={28} />}
             </div>
-            <strong>Nenhuma notificação por aqui</strong>
-            <p>Você está por dentro de todas as missões, viaturas e escalas da equipe.</p>
-            {canSendMessage && onOpenSendMessage && (
+            <strong>
+              {searchTerm
+                ? `Nenhum resultado para "${searchTerm}"`
+                : filter === 'all'
+                ? 'Nenhuma notificação por aqui'
+                : 'Nenhuma notificação nesta categoria'}
+            </strong>
+            <p>
+              {searchTerm
+                ? 'Tente pesquisar por outro termo ou limpe a busca para ver todas.'
+                : filter === 'all'
+                ? 'Você está por dentro de todas as missões, viaturas e escalas da equipe.'
+                : 'Não há notificações ativas com o filtro selecionado no momento.'}
+            </p>
+            {searchTerm ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ marginTop: '10px', fontSize: '0.8rem', padding: '6px 14px' }}
+                onClick={() => setSearchTerm('')}
+              >
+                Limpar Pesquisa
+              </button>
+            ) : filter !== 'all' ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ marginTop: '10px', fontSize: '0.8rem', padding: '6px 14px' }}
+                onClick={() => setFilter('all')}
+              >
+                Ver Todas as Notificações ({notifications.length})
+              </button>
+            ) : canSendMessage && onOpenSendMessage ? (
               <button
                 type="button"
                 className="btn-primary"
@@ -270,14 +499,15 @@ export default function NotificationsCenter({
                 <Send size={14} />
                 <span>Enviar Comunicado para a Equipe</span>
               </button>
-            )}
+            ) : null}
           </div>
         ) : (
           filteredNotifications.map((notif) => {
             const isUnread = !notif.read;
             const lockInfo = isNotificationLocked ? isNotificationLocked(notif) : { locked: false, reason: '' };
             const isLocked = lockInfo.locked;
-            const isSystemMessage = notif.type === 'system_message' || notif.type === 'message';
+            const isSystemMessage = notif.type === 'system_message' || notif.type === 'message' || Boolean(notif.senderName);
+            const category = getNotificationCategory(notif);
 
             return (
               <div
@@ -298,7 +528,7 @@ export default function NotificationsCenter({
                       <div className="notif-title-wrap">
                         <h4 className="notif-title">{notif.title}</h4>
 
-                        {/* Badges de Mensagem */}
+                        {/* Badges de Mensagem e Comunicados */}
                         {isSystemMessage && (
                           <div className="notif-msg-badges-row" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginTop: '2px' }}>
                             {notif.senderName && (
@@ -310,11 +540,11 @@ export default function NotificationsCenter({
                               <span className="notif-recipient-pill" style={{ fontSize: '0.7rem', padding: '1px 7px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontWeight: 600 }}>
                                 📢 Para Todos
                               </span>
-                            ) : (
+                            ) : notif.recipientType ? (
                               <span className="notif-recipient-pill" style={{ fontSize: '0.7rem', padding: '1px 7px', borderRadius: '10px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', fontWeight: 600 }}>
                                 👤 Individual {notif.recipientName ? `(${notif.recipientName})` : ''}
                               </span>
-                            )}
+                            ) : null}
                             {notif.priority === 'URGENT' && (
                               <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontWeight: 700 }}>
                                 🚨 Urgente
@@ -366,7 +596,7 @@ export default function NotificationsCenter({
                     </div>
 
                     <p className="notif-message" style={{ whiteSpace: isSystemMessage ? 'pre-wrap' : 'normal' }}>
-                      {notif.message}
+                      {notif.message || notif.description}
                     </p>
 
                     {notif.details && (
@@ -375,9 +605,24 @@ export default function NotificationsCenter({
                       </div>
                     )}
 
+                    {/* Tags de Ação Rápida com Redirecionamento */}
                     {notif.missionId && (
                       <div className="notif-action-tag">
                         <span>Ver no Mapa & Tabela</span>
+                        <ExternalLink size={11} />
+                      </div>
+                    )}
+
+                    {(notif.vehicleId || notif.type === 'fuel') && !notif.missionId && (
+                      <div className="notif-action-tag" style={{ color: '#fbbf24', background: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.25)' }}>
+                        <span>Ver Viaturas & Frota</span>
+                        <ExternalLink size={11} />
+                      </div>
+                    )}
+
+                    {(notif.rentalId || notif.type === 'rental') && !notif.missionId && (
+                      <div className="notif-action-tag" style={{ color: '#c084fc', background: 'rgba(168, 85, 247, 0.12)', borderColor: 'rgba(168, 85, 247, 0.25)' }}>
+                        <span>Ver Aluguéis & Devoluções</span>
                         <ExternalLink size={11} />
                       </div>
                     )}

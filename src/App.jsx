@@ -414,7 +414,7 @@ export default function App() {
   // Salva histórico no localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('gestormf_notifications_v1', JSON.stringify(notifications.slice(0, 50)));
+      localStorage.setItem('gestormf_notifications_v1', JSON.stringify(notifications.slice(0, 200)));
     } catch (e) {}
   }, [notifications]);
 
@@ -642,8 +642,8 @@ export default function App() {
     (notif) => {
       if (!notif) return { locked: false, reason: '' };
 
-      // 1. Notificação de Combustível
-      if (notif.type === 'fuel' && notif.vehicleId) {
+      // 1. Notificação de Combustível / Frota
+      if ((notif.type === 'fuel' || notif.vehicleId) && notif.vehicleId) {
         const v = vehicles.find((veh) => veh.id === notif.vehicleId);
         if (v) {
           const tel = computeVehicleFuelTelemetry(
@@ -660,8 +660,8 @@ export default function App() {
         }
       }
 
-      // 2. Notificação de Missão
-      if (notif.type === 'mission' && notif.missionId) {
+      // 2. Notificação de Missão / Pauta / Pós-produção
+      if ((notif.type === 'mission' || notif.missionId) && notif.missionId) {
         const m = missions.find((mis) => mis.id === notif.missionId);
         if (m) {
           const isDone =
@@ -756,6 +756,15 @@ export default function App() {
     if (notif.rentalId || notif.type === 'rental') {
       setIsNotificationsOpen(false);
       setActiveTab('rentals');
+      return;
+    }
+    if (notif.vehicleId || notif.type === 'fuel') {
+      setIsNotificationsOpen(false);
+      if (canManageFleetAndTeams) {
+        setActiveTab('vehicles');
+      } else {
+        setActiveTab('map');
+      }
       return;
     }
     if (notif.missionId) {
