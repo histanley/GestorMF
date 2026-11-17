@@ -1480,6 +1480,24 @@ export default function ServiceBoard({
                 const isSelectedRow = selectedDetailMissionId === mission.id;
                 const isOverdueMission = checkIsMissionOverdue(mission);
                 const isAssignedEditor = checkIsAssignedEditor(mission);
+                const deliverySummary = getMissionEditionDeliverySummary(mission, members);
+
+                const myMemIdStr = userMember ? String(userMember.id) : (currentUser ? String(currentUser.id) : '');
+                const myMemNameNorm = (userMember?.name || currentUser?.name || '').trim().toLowerCase();
+
+                const matchedEditorObj = deliverySummary.assignedEditors.find((ed) => {
+                  const edIdStr = String(ed.id);
+                  const edNameNorm = (ed.name || '').trim().toLowerCase();
+                  if (myMemIdStr && (edIdStr === myMemIdStr || edIdStr.includes(myMemIdStr))) return true;
+                  if (myMemNameNorm && (edNameNorm === myMemNameNorm || edNameNorm.includes(myMemNameNorm) || myMemNameNorm.includes(edNameNorm))) return true;
+                  const firstWord = myMemNameNorm.split(' ')[0];
+                  if (firstWord && firstWord.length >= 3 && edNameNorm.includes(firstWord)) return true;
+                  return false;
+                });
+
+                const isUserAssignedToThis = Boolean(matchedEditorObj) || isAssignedEditor;
+                const edKey = matchedEditorObj ? String(matchedEditorObj.id) : myMemIdStr;
+                const isMyPartDone = Boolean(deliverySummary.deliveryMap[edKey]?.status === 'delivered');
                 const canConcludeThis = isAssignedEditor || canAdminManageEdition;
 
                 return (
@@ -1670,11 +1688,47 @@ export default function ServiceBoard({
                           </div>
                         ) : (
                           <div className="postprod-compact-strip">
-                            {/* Editor Designado */}
-                            {mission.editorNamesDisplay || mission.editorName ? (
-                              <div className="pp-badge pp-badge-editor" title={`Editor responsável: ${mission.editorNamesDisplay || mission.editorName}`}>
-                                <Film size={11} />
-                                <span>{mission.editorNamesDisplay || mission.editorName}</span>
+                            {/* Fluxo Visual dos Editores: Quem entregou e quem falta entregar */}
+                            {deliverySummary.assignedEditors.length > 0 ? (
+                              <div className="pp-editors-flow-wrap">
+                                <div className="pp-editors-chips-grid">
+                                  {deliverySummary.assignedEditors.map((ed) => {
+                                    const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
+                                    const isDelivered = edDeliv && edDeliv.status === 'delivered';
+                                    const isMe = matchedEditorObj && String(matchedEditorObj.id) === String(ed.id);
+
+                                    return (
+                                      <div
+                                        key={ed.id}
+                                        className={`pp-editor-status-chip ${isDelivered ? 'is-delivered' : 'is-pending'} ${isMe ? 'is-me' : ''}`}
+                                        title={
+                                          isDelivered
+                                            ? `${ed.name}: Concluído e entregue ${edDeliv.deliveredAt ? `em ${formatDateBR(edDeliv.deliveredAt.slice(0, 10))} às ${edDeliv.deliveredAt.slice(11, 16)}` : ''}`
+                                            : `${ed.name}: Aguardando conclusão da sua parte`
+                                        }
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                                          <Film size={10} style={{ flexShrink: 0 }} />
+                                          <span className="pp-chip-name">{ed.name}</span>
+                                        </div>
+                                        <span className={`pp-chip-tag ${isDelivered ? 'tag-delivered' : 'tag-pending'}`}>
+                                          {isDelivered ? '✅ Entregou' : '⏳ Pendente'}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+
+                                {deliverySummary.assignedEditors.length > 1 && (
+                                  <div className="pp-team-counter-strip">
+                                    <span>👥 {deliverySummary.deliveredEditors.length}/{deliverySummary.assignedEditors.length} Concluídos</span>
+                                    {deliverySummary.pendingEditors.length > 0 && (
+                                      <span className="pp-team-pending-names" title={`Aguardando: ${deliverySummary.pendingEditors.map((p) => p.name).join(', ')}`}>
+                                        Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               <div className="pp-badge pp-badge-unassigned" title="Sem editor designado">
@@ -1742,16 +1796,56 @@ export default function ServiceBoard({
                             {/* 1. Tarefa de pós-produção pendente / em andamento */}
                             {mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && (
                               <>
-                                {canConcludeThis ? (
-                                  <button
-                                    type="button"
-                                    className="btn-pp-conclude"
-                                    onClick={() => handleConcludeEdition(mission)}
-                                    title="Marcar tarefa de pós-produção como concluída e enviar para confirmação da gestão"
-                                  >
-                                    <CheckCircle2 size={12} />
-                                    <span>Concluir Tarefa</span>
-                                  </button>
+                                {isUserAssignedToThis ? (
+                                  isMyPartDone ? (
+                                    <div className="pp-user-delivered-block">
+                                      <div className="pp-user-delivered-badge" title="Você já concluiu e enviou a sua parte desta edição!">
+                                        <CheckCircle2 size={12} />
+                                        <span>Sua Parte Entregue</span>
+                                      </div>
+                                      {deliverySummary.pendingEditors.length > 0 && (
+                                        <div className="pp-waiting-others-hint">
+                                          ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                        </div>
+                                      )}
+                                      <button
+                                        type="button"
+                                        className="btn-pp-update-mine"
+                                        onClick={() => handleConcludeEdition(mission)}
+                                        title="Ver ou atualizar informações da sua entrega de pós-produção"
+                                      >
+                                        <Edit2 size={10} />
+                                        <span>Ver / Atualizar</span>
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="btn-pp-conclude"
+                                      onClick={() => handleConcludeEdition(mission)}
+                                      title="Concluir e entregar a sua parte da pós-produção"
+                                    >
+                                      <CheckCircle2 size={12} />
+                                      <span>{deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa'}</span>
+                                    </button>
+                                  )
+                                ) : canAdminManageEdition ? (
+                                  <div className="pp-admin-partial-block" style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
+                                    {deliverySummary.pendingEditors.length > 0 && (
+                                      <span className="pp-waiting-others-hint" style={{ fontSize: '0.68rem' }}>
+                                        ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      className="btn-pp-conclude"
+                                      onClick={() => handleConcludeEdition(mission)}
+                                      title="Concluir tarefa ou registrar entrega como Administrador"
+                                    >
+                                      <CheckCircle2 size={12} />
+                                      <span>Concluir Tarefa</span>
+                                    </button>
+                                  </div>
                                 ) : (
                                   <span className={`status-static-tag ${isOverdueMission ? 'status-atrasado' : 'status-pendente'}`}>
                                     {isOverdueMission ? '⚠️ Atrasado' : `Edição: ${mission.editionStatus || 'Pendente'}`}
@@ -1760,50 +1854,50 @@ export default function ServiceBoard({
                               </>
                             )}
 
-                          {/* 2. Edição CONCLUÍDA pelo editor: Apenas Administradores podem aceitar ou rejeitar */}
-                          {mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada' && (
-                            <div className="pp-approval-flow-row">
-                              {!canAdminManageEdition ? (
-                                <div
-                                  className="btn-pp-waiting"
-                                  title="Material concluído e enviado pelo editor. Aguardando aceitação e confirmação pelo Administrador."
-                                >
-                                  <Clock size={12} />
-                                  <span>Aguardando Confirmação</span>
-                                </div>
-                              ) : (
-                                <div className="pp-admin-buttons">
-                                  <button
-                                    type="button"
-                                    className="btn-pp-reopen"
-                                    onClick={() => handleReopenClick(mission)}
-                                    title="Rejeitar material e solicitar ajustes / novo prazo para os editores"
+                            {/* 2. Edição CONCLUÍDA por todos os editores: Apenas Administradores podem aceitar ou rejeitar */}
+                            {mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada' && (
+                              <div className="pp-approval-flow-row">
+                                {!canAdminManageEdition ? (
+                                  <div
+                                    className="btn-pp-waiting"
+                                    title="Material 100% concluído por todos os editores. Aguardando aceitação e confirmação pelo Administrador."
                                   >
-                                    <RotateCcw size={11} />
-                                    <span>Rejeitar e Reabrir</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn-pp-approve"
-                                    onClick={() => handleApproveEdition(mission)}
-                                    title="Confirmar finalização da missão e encerrar serviço"
-                                  >
-                                    <CheckCheck size={12} />
-                                    <span>Confirmar Finalização</span>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                                    <Clock size={12} />
+                                    <span>Aguardando Confirmação</span>
+                                  </div>
+                                ) : (
+                                  <div className="pp-admin-buttons">
+                                    <button
+                                      type="button"
+                                      className="btn-pp-reopen"
+                                      onClick={() => handleReopenClick(mission)}
+                                      title="Rejeitar material e solicitar ajustes / novo prazo para os editores"
+                                    >
+                                      <RotateCcw size={11} />
+                                      <span>Rejeitar e Reabrir</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn-pp-approve"
+                                      onClick={() => handleApproveEdition(mission)}
+                                      title="Confirmar finalização da missão e encerrar serviço"
+                                    >
+                                      <CheckCheck size={12} />
+                                      <span>Confirmar Finalização</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
 
-                          {/* 3. Missão já finalizada */}
-                          {mission.missionStatus === 'Finalizada' && (
-                            <span className="pp-concluded-badge">
-                              <Check size={11} /> Finalizada
-                            </span>
-                          )}
-                        </div>
-                      )}
+                            {/* 3. Missão já finalizada */}
+                            {mission.missionStatus === 'Finalizada' && (
+                              <span className="pp-concluded-badge">
+                                <Check size={11} /> Finalizada
+                              </span>
+                            )}
+                          </div>
+                        )}
                     </div>
                   </td>
 
@@ -2019,6 +2113,24 @@ export default function ServiceBoard({
             const isSelectedRow = selectedDetailMissionId === mission.id;
             const isOverdueMission = checkIsMissionOverdue(mission);
             const isAssignedEditor = checkIsAssignedEditor(mission);
+            const deliverySummary = getMissionEditionDeliverySummary(mission, members);
+
+            const myMemIdStr = userMember ? String(userMember.id) : (currentUser ? String(currentUser.id) : '');
+            const myMemNameNorm = (userMember?.name || currentUser?.name || '').trim().toLowerCase();
+
+            const matchedEditorObj = deliverySummary.assignedEditors.find((ed) => {
+              const edIdStr = String(ed.id);
+              const edNameNorm = (ed.name || '').trim().toLowerCase();
+              if (myMemIdStr && (edIdStr === myMemIdStr || edIdStr.includes(myMemIdStr))) return true;
+              if (myMemNameNorm && (edNameNorm === myMemNameNorm || edNameNorm.includes(myMemNameNorm) || myMemNameNorm.includes(edNameNorm))) return true;
+              const firstWord = myMemNameNorm.split(' ')[0];
+              if (firstWord && firstWord.length >= 3 && edNameNorm.includes(firstWord)) return true;
+              return false;
+            });
+
+            const isUserAssignedToThis = Boolean(matchedEditorObj) || isAssignedEditor;
+            const edKey = matchedEditorObj ? String(matchedEditorObj.id) : myMemIdStr;
+            const isMyPartDone = Boolean(deliverySummary.deliveryMap[edKey]?.status === 'delivered');
             const canConcludeThis = isAssignedEditor || canAdminManageEdition;
             const mTotalKm = getMissionTotalKm(mission);
 
@@ -2185,11 +2297,49 @@ export default function ServiceBoard({
                 {/* 7. PÓS-PRODUÇÃO / EDIÇÃO */}
                 {hasMissionPostProduction(mission) && (
                   <div className="mmc-postprod-box" onClick={(e) => e.stopPropagation()}>
-                    <div className="mmc-pp-header">
-                      <div className="mmc-pp-editor">
-                        <Film size={12} />
-                        <span>Editor: <strong>{mission.editorNamesDisplay || mission.editorName || 'Sem Editor'}</strong></span>
-                      </div>
+                    <div className="mmc-pp-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
+                      {deliverySummary.assignedEditors.length > 0 ? (
+                        <div className="pp-editors-flow-wrap">
+                          <div className="pp-editors-chips-grid">
+                            {deliverySummary.assignedEditors.map((ed) => {
+                              const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
+                              const isDelivered = edDeliv && edDeliv.status === 'delivered';
+                              const isMe = matchedEditorObj && String(matchedEditorObj.id) === String(ed.id);
+
+                              return (
+                                <div
+                                  key={ed.id}
+                                  className={`pp-editor-status-chip ${isDelivered ? 'is-delivered' : 'is-pending'} ${isMe ? 'is-me' : ''}`}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                                    <Film size={10} style={{ flexShrink: 0 }} />
+                                    <span className="pp-chip-name">{ed.name}</span>
+                                  </div>
+                                  <span className={`pp-chip-tag ${isDelivered ? 'tag-delivered' : 'tag-pending'}`}>
+                                    {isDelivered ? '✅ Entregou' : '⏳ Pendente'}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {deliverySummary.assignedEditors.length > 1 && (
+                            <div className="pp-team-counter-strip">
+                              <span>👥 {deliverySummary.deliveredEditors.length}/{deliverySummary.assignedEditors.length} Concluídos</span>
+                              {deliverySummary.pendingEditors.length > 0 && (
+                                <span className="pp-team-pending-names">
+                                  Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mmc-pp-editor">
+                          <Film size={12} />
+                          <span>Editor: <strong>{mission.editorNamesDisplay || mission.editorName || 'Sem Editor'}</strong></span>
+                        </div>
+                      )}
+
                       {mission.deliveryDeadlineDate && (
                         <div className="mmc-pp-deadline">
                           <Clock size={11} />
@@ -2201,14 +2351,51 @@ export default function ServiceBoard({
                     <div className="mmc-pp-actions-row">
                       {mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && (
                         <>
-                          {canConcludeThis ? (
-                            <button
-                              type="button"
-                              className="mmc-btn-conclude"
-                              onClick={() => handleConcludeEdition(mission)}
-                            >
-                              <CheckCircle2 size={13} /> Concluir Tarefa
-                            </button>
+                          {isUserAssignedToThis ? (
+                            isMyPartDone ? (
+                              <div className="pp-user-delivered-block">
+                                <div className="pp-user-delivered-badge">
+                                  <CheckCircle2 size={12} />
+                                  <span>Sua Parte Entregue</span>
+                                </div>
+                                {deliverySummary.pendingEditors.length > 0 && (
+                                  <div className="pp-waiting-others-hint">
+                                    ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  className="btn-pp-update-mine"
+                                  onClick={() => handleConcludeEdition(mission)}
+                                >
+                                  <Edit2 size={10} />
+                                  <span>Ver / Atualizar</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="mmc-btn-conclude"
+                                onClick={() => handleConcludeEdition(mission)}
+                              >
+                                <CheckCircle2 size={13} /> {deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa'}
+                              </button>
+                            )
+                          ) : canAdminManageEdition ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+                              {deliverySummary.pendingEditors.length > 0 && (
+                                <span className="pp-waiting-others-hint" style={{ fontSize: '0.68rem' }}>
+                                  ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                className="mmc-btn-conclude"
+                                onClick={() => handleConcludeEdition(mission)}
+                              >
+                                <CheckCircle2 size={13} /> Concluir Tarefa
+                              </button>
+                            </div>
                           ) : (
                             <span className={`mmc-pp-status-tag ${isOverdueMission ? 'atrasado' : 'pendente'}`}>
                               {isOverdueMission ? '⚠️ Edição Atrasada' : `Edição: ${mission.editionStatus || 'Pendente'}`}
@@ -2389,6 +2576,22 @@ export default function ServiceBoard({
         const deliverySummary = getMissionEditionDeliverySummary(detailMission, members);
         const isDetailOverdue = checkIsMissionOverdue(detailMission);
         const isDetailEditor = checkIsAssignedEditor(detailMission);
+        const myMemIdStr = userMember ? String(userMember.id) : (currentUser ? String(currentUser.id) : '');
+        const myMemNameNorm = (userMember?.name || currentUser?.name || '').trim().toLowerCase();
+
+        const matchedDetailEditorObj = assignedEditors.find((ed) => {
+          const edIdStr = String(ed.id);
+          const edNameNorm = (ed.name || '').trim().toLowerCase();
+          if (myMemIdStr && (edIdStr === myMemIdStr || edIdStr.includes(myMemIdStr))) return true;
+          if (myMemNameNorm && (edNameNorm === myMemNameNorm || edNameNorm.includes(myMemNameNorm) || myMemNameNorm.includes(edNameNorm))) return true;
+          const firstWord = myMemNameNorm.split(' ')[0];
+          if (firstWord && firstWord.length >= 3 && edNameNorm.includes(firstWord)) return true;
+          return false;
+        });
+
+        const isUserAssignedToDetail = Boolean(matchedDetailEditorObj) || isDetailEditor;
+        const edDetailKey = matchedDetailEditorObj ? String(matchedDetailEditorObj.id) : myMemIdStr;
+        const isDetailMyPartDone = Boolean(deliverySummary.deliveryMap[edDetailKey]?.status === 'delivered');
         const canConcludeDetail = isDetailEditor || canAdminManageEdition;
         const totalKm = getMissionTotalKm(detailMission);
         const oneWayKm = detailMission.distanceKm || 0;
@@ -3030,16 +3233,57 @@ export default function ServiceBoard({
                         {/* Concluir Tarefa de Edição (Individual para cada editor) */}
                         {!deliverySummary.isFullyDelivered && detailMission.editionStatus !== 'Não se aplica' && (
                           <>
-                            {canConcludeDetail ? (
-                              <button
-                                type="button"
-                                className="btn-pp-conclude"
-                                onClick={() => handleConcludeEdition(detailMission)}
-                                title={deliverySummary.hasMultipleEditors ? "Entregar minha parte na edição" : "Concluir tarefa de edição e enviar para confirmação da gestão"}
-                              >
-                                <CheckCircle2 size={13} />
-                                <span>{deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa de Edição'}</span>
-                              </button>
+                            {isUserAssignedToDetail ? (
+                              isDetailMyPartDone ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  <div className="pp-user-delivered-badge" style={{ padding: '6px 12px', fontSize: '0.82rem' }}>
+                                    <CheckCircle2 size={15} />
+                                    <span>Sua parte foi entregue com sucesso!</span>
+                                  </div>
+                                  {deliverySummary.pendingEditors.length > 0 && (
+                                    <div className="pp-waiting-others-hint" style={{ fontSize: '0.78rem' }}>
+                                      ⏳ Aguardando conclusão dos demais editores: <strong>{deliverySummary.pendingEditors.map((p) => p.name).join(', ')}</strong>
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="btn-pp-update-mine"
+                                    style={{ padding: '6px 12px', alignSelf: 'flex-start' }}
+                                    onClick={() => handleConcludeEdition(detailMission)}
+                                    title="Atualizar detalhes ou link da sua entrega"
+                                  >
+                                    <Edit2 size={13} />
+                                    <span>Atualizar Minha Entrega</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="btn-pp-conclude"
+                                  onClick={() => handleConcludeEdition(detailMission)}
+                                  title={deliverySummary.hasMultipleEditors ? "Entregar minha parte na edição" : "Concluir tarefa de edição e enviar para confirmação da gestão"}
+                                >
+                                  <CheckCircle2 size={13} />
+                                  <span>{deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa de Edição'}</span>
+                                </button>
+                              )
+                            ) : canAdminManageEdition ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                {deliverySummary.pendingEditors.length > 0 && (
+                                  <span className="pp-waiting-others-hint" style={{ fontSize: '0.78rem' }}>
+                                    ⏳ Aguardando entregas de: <strong>{deliverySummary.pendingEditors.map((p) => p.name).join(', ')}</strong>
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  className="btn-pp-conclude"
+                                  onClick={() => handleConcludeEdition(detailMission)}
+                                  title="Concluir tarefa ou registrar entrega pela gestão"
+                                >
+                                  <CheckCircle2 size={13} />
+                                  <span>Concluir Tarefa de Edição</span>
+                                </button>
+                              </div>
                             ) : (
                               <span className="status-badge-inline status-pendente">
                                 {isDetailOverdue ? '⚠️ Edição Atrasada' : 'Edição Pendente'}

@@ -240,9 +240,22 @@ export function checkAndNotifyPendingPostProductions(missions = [], currentUser 
   if (!Array.isArray(missions) || missions.length === 0) return;
 
   // Busca todas as missões que possuem entrega de pós-produção aguardando decisão
-  const pendingEditions = missions.filter(
-    (m) => m && m.editionStatus === 'Edição Concluída' && m.missionStatus !== 'Finalizada'
-  );
+  // (Somente quando TODOS os editores escalados concluírem suas entregas)
+  const pendingEditions = missions.filter((m) => {
+    if (!m || m.editionStatus !== 'Edição Concluída' || m.missionStatus === 'Finalizada') return false;
+    // Se houver múltiplos editores, confirma que todos finalizaram
+    if (m.editorsDelivery && typeof m.editorsDelivery === 'object') {
+      const assignedIds = Array.isArray(m.editorIds) ? m.editorIds : [];
+      if (assignedIds.length > 1) {
+        const hasPending = assignedIds.some((id) => {
+          const d = m.editorsDelivery[String(id)];
+          return !d || d.status !== 'delivered';
+        });
+        if (hasPending) return false;
+      }
+    }
+    return true;
+  });
 
   if (pendingEditions.length === 0) return;
 

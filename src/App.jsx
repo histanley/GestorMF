@@ -1624,7 +1624,11 @@ export default function App() {
           data: { missionId: updatedRecord.id },
         });
         playNotificationSound();
-      } else if (updatedRecord.editionDeliveryStatus && updatedRecord.editionDeliveryStatus !== '') {
+      } else if (
+        savedMission.editionStatus === 'Edição Concluída' &&
+        updatedRecord.editionDeliveryStatus &&
+        updatedRecord.editionDeliveryStatus !== ''
+      ) {
       const notifId = `comp-${savedMission.id}-${savedMission.editionDeliveryStatus}`;
       const notifItem = {
         id: notifId,
