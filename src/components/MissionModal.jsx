@@ -29,6 +29,7 @@ import {
   Ban,
   Package,
   Camera,
+  HardDrive,
 } from 'lucide-react';
 import {
   OFFICIAL_COMPANY_ROLES,
@@ -264,6 +265,7 @@ export default function MissionModal({
     missionStatus: 'Agendada',
     isRoundTrip: true,
     notes: '',
+    serverFilePath: '',
     equipmentAllocations: [],
     isMultiDay: false,
     endDate: '',
@@ -476,8 +478,31 @@ export default function MissionModal({
           ];
 
       const initialEditorIds = editingMission.editorIds || (editingMission.editorId ? [editingMission.editorId] : []);
+
+      // Se notes contiver a injeção automática de servidor ("... Servidor: ..."), separa para não poluir o briefing de campo:
+      let cleanedNotes = editingMission.notes || '';
+      let extractedServerPath = editingMission.serverFilePath || '';
+
+      if (cleanedNotes.includes('Servidor:')) {
+        const lines = cleanedNotes.split('\n');
+        const validLines = [];
+        for (const line of lines) {
+          if (line.includes('Servidor:') && (line.includes('GMT') || line.includes('/') || line.includes('['))) {
+            const match = line.match(/Servidor:\s*(.+)$/i);
+            if (match && match[1] && !extractedServerPath) {
+              extractedServerPath = match[1].trim();
+            }
+          } else {
+            validLines.push(line);
+          }
+        }
+        cleanedNotes = validLines.join('\n').trim();
+      }
+
       setFormData({
         ...editingMission,
+        notes: cleanedNotes,
+        serverFilePath: editingMission.serverFilePath || extractedServerPath || '',
         eventStartTime: editingMission.eventStartTime || '',
         eventEndTime: editingMission.eventEndTime || '',
         antecedenceMinutes: editingMission.antecedenceMinutes !== undefined && editingMission.antecedenceMinutes !== null ? Number(editingMission.antecedenceMinutes) : 30,
@@ -573,6 +598,7 @@ export default function MissionModal({
         missionStatus: 'Agendada',
         isRoundTrip: true,
         notes: '',
+        serverFilePath: '',
         equipmentAllocations: [],
         isMultiDay: false,
         endDate: '',
@@ -1477,6 +1503,7 @@ export default function MissionModal({
       deliveryDeadlineTime: isNotApp ? null : (formData.deliveryDeadlineTime || '18:00'),
       editionHistory: currentHistory,
       editionDeliveryStatus: isNotApp ? '' : (formData.editionDeliveryStatus || editingMission?.editionDeliveryStatus || ''),
+      serverFilePath: isNotApp ? null : (formData.serverFilePath || editingMission?.serverFilePath || null),
       isOverdue: isNotApp ? 0 : (formData.isOverdue ?? editingMission?.isOverdue ?? 0),
       reopenReason: isNotApp ? '' : (formData.reopenReason ?? editingMission?.reopenReason ?? ''),
       // Campos legados para compatibilidade total
@@ -2924,6 +2951,64 @@ export default function MissionModal({
                       );
                     })()}
                   </div>
+
+                  {/* CAMPO DEDICADO: LOCAL DOS ARQUIVOS / PASTA NO SERVIDOR (PÓS-PRODUÇÃO) */}
+                  {!isEditionNotApplicable && (
+                    <div
+                      className="form-group"
+                      style={{
+                        marginTop: '16px',
+                        marginBottom: 0,
+                        padding: '12px 14px',
+                        background: 'rgba(2, 132, 199, 0.05)',
+                        border: '1px solid rgba(56, 189, 248, 0.2)',
+                        borderRadius: '10px',
+                      }}
+                    >
+                      <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.84rem' }}>
+                          <HardDrive size={14} className="text-amber" />
+                          <span>Local do Arquivo / Pasta no Servidor (Pós-Produção):</span>
+                        </span>
+                        {formData.serverFilePath && (
+                          <button
+                            type="button"
+                            className="btn-text-action"
+                            style={{
+                              fontSize: '0.73rem',
+                              color: '#38bdf8',
+                              background: 'rgba(56, 189, 248, 0.12)',
+                              border: '1px solid rgba(56, 189, 248, 0.25)',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              padding: '2px 8px',
+                            }}
+                            onClick={() => {
+                              navigator.clipboard.writeText(formData.serverFilePath);
+                              alertDialog({
+                                title: 'Caminho Copiado',
+                                message: 'Caminho copiado para a área de transferência!',
+                                variant: 'info',
+                              });
+                            }}
+                          >
+                            📋 Copiar Caminho
+                          </button>
+                        )}
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Ex: S:\MEGA FILMES\FORMATURAS\2026\TERCEIRÃO SESI 14.11\EXTERNA\LR"
+                        value={formData.serverFilePath || ''}
+                        onChange={(e) => setFormData({ ...formData, serverFilePath: e.target.value })}
+                        style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}
+                      />
+                      <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '4px', display: 'block' }}>
+                        Diretório onde o editor depositou os materiais finalizados. Fica registrado no histórico da missão de forma separada, sem alterar o briefing da equipe.
+                      </small>
+                    </div>
+                  )}
                 </div>
               </div>
             );

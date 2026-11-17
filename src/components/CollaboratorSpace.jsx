@@ -734,15 +734,7 @@ export default function CollaboratorSpace({
       ? [...mission.editionHistory, newEvent]
       : [newEvent];
 
-    let updatedNotes = mission.notes || '';
-    const noteItems = [];
-    if (serverFilePath) noteItems.push(`[${edName}] Servidor: ${serverFilePath}`);
-    if (editorMessage) noteItems.push(`[${edName}] ${editorMessage}`);
-    if (noteItems.length > 0) {
-      const noteContent = `[${formatDateBR(now)}]: ` + noteItems.join(' | ');
-      updatedNotes = updatedNotes ? `${updatedNotes}\n${noteContent}` : noteContent;
-    }
-
+    // Preserva intacto o Briefing/Roteiro da missão (notes), registrando a entrega nos campos dedicados (serverFilePath e editionHistory)
     const missionVer = (mission.version !== undefined && mission.version !== null) ? Number(mission.version) : 1;
     const updatedMission = {
       ...mission,
@@ -754,7 +746,7 @@ export default function CollaboratorSpace({
       editionCompletedBy: isAllFinished ? edName : mission.editionCompletedBy,
       isOverdue: isLate ? 1 : 0,
       reopenReason: '',
-      notes: updatedNotes,
+      notes: mission.notes || '',
       editorsDelivery: updatedDelivery,
       editionHistory: updatedHistory,
       version: missionVer,

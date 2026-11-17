@@ -376,6 +376,37 @@ export default function MissionHistoryModal({
                     <span className="text-muted">Aguardando Conclusão</span>
                   )}
                 </div>
+                {mission.serverFilePath && (
+                  <div className="msc-stat-row" style={{ alignItems: 'flex-start', marginTop: '4px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                      <Folder size={12} className="text-amber" />
+                      <span>Servidor:</span>
+                    </span>
+                    <strong
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: '0.74rem',
+                        color: '#38bdf8',
+                        wordBreak: 'break-all',
+                        cursor: 'pointer',
+                        background: 'rgba(56, 189, 248, 0.08)',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                      }}
+                      title="Clique para copiar o caminho do servidor"
+                      onClick={() => {
+                        navigator.clipboard.writeText(mission.serverFilePath);
+                        alertDialog({
+                          title: 'Caminho Copiado',
+                          message: 'Local do servidor copiado para a área de transferência!',
+                          variant: 'info',
+                        });
+                      }}
+                    >
+                      {mission.serverFilePath} 📋
+                    </strong>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

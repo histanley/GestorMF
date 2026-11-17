@@ -1045,7 +1045,6 @@ if ($method === 'POST' || $method === 'PUT') {
         INSERT INTO missions (
             id, code, description, location_name, address, lat, lon, date,
             departure_time, arrival_time_estimated, return_time_estimated,
-            event_start_time, antecedence_minutes, suggested_departure_time,
             event_start_time, event_end_time, antecedence_minutes, suggested_departure_time,
             vehicle_id, vehicle_name_display, vehicle_allocations,
             driver_id, driver_name, team_ids, team_names_display, guests,
@@ -1066,7 +1065,6 @@ if ($method === 'POST' || $method === 'PUT') {
         ) VALUES (
             :id, :code, :description, :location_name, :address, :lat, :lon, :date,
             :departure_time, :arrival_time_estimated, :return_time_estimated,
-            :event_start_time, :antecedence_minutes, :suggested_departure_time,
             :event_start_time, :event_end_time, :antecedence_minutes, :suggested_departure_time,
             :vehicle_id, :vehicle_name_display, :vehicle_allocations,
             :driver_id, :driver_name, :team_ids, :team_names_display, :guests,
