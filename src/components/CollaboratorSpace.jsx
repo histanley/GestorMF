@@ -836,7 +836,7 @@ export default function CollaboratorSpace({
               )}
             </div>
             
-            {/* Insígnia Flutuante Sobre o Avatar com Ícone e Nível */}
+            {/* Insígnia Flutuante Sobre o Avatar com Ícone */}
             <div
               className="cs-upc-avatar-insignia"
               title={`${userLevel.icon || '🎖️'} ${userLevel.title}`}
@@ -983,7 +983,7 @@ export default function CollaboratorSpace({
             <div className="cs-upc-tier-lead">
               <div className="cs-upc-tier-badge">
                 <span className="cs-upc-tier-pill" style={{ color: userLevel.color || '#f59e0b', borderColor: userLevel.color ? userLevel.color + '45' : 'rgba(245, 158, 11, 0.4)' }}>
-                  {userLevel.icon} {userLevel.title.toUpperCase()}
+                  NÍVEL {userLevel.level} • {userLevel.title.toUpperCase()}
                 </span>
                 <span className="cs-upc-tier-sub">Patente Operacional</span>
               </div>
@@ -1029,31 +1029,31 @@ export default function CollaboratorSpace({
             <div className="cs-upc-progress-labels">
               <span className="cs-upc-progress-pct">
                 <Zap size={12} className="text-cyan-bright" />
-                {userLevel.progressPercent}% em {userLevel.title} • {userLevel.overallPercent}% rumo a 10.000 XP
+                {userLevel.progressPercent}% no Nível {userLevel.level} • {userLevel.overallPercent}% rumo a 10.000 XP
               </span>
               <span className="cs-upc-progress-rem">
                 {userLevel.level >= 10
                   ? '🌟 Patente Lendária Máxima da MegaFilmes (Hall da Fama)'
-                  : `Faltam ${userLevel.remainingForNext} XP para ${userLevel.nextTier?.title || 'próxima patente'}`}
+                  : `Faltam ${userLevel.remainingForNext} XP para o Nível ${userLevel.level + 1} (${userLevel.nextTier?.title || ''})`}
               </span>
             </div>
           </div>
 
-          {/* Timeline de Patentes Superadas */}
+          {/* Timeline de Níveis Superados */}
           {userLevel.completedTiers && userLevel.completedTiers.length > 0 && (
             <div className="cs-upc-timeline-row">
               <span className="cs-upc-timeline-label">
                 <CheckCircle2 size={13} className="text-emerald" />
-                <span>Patentes superadas:</span>
+                <span>Níveis superados:</span>
               </span>
               <div className="cs-upc-timeline-chips">
                 {userLevel.completedTiers.map((t) => (
                   <span key={t.level} className="cs-upc-timeline-chip">
-                    {t.icon} {t.title}
+                    {t.icon} Nível {t.level} ({t.title})
                   </span>
                 ))}
                 <span className="cs-upc-timeline-current-chip" style={{ color: userLevel.color || '#f59e0b', borderColor: userLevel.color ? userLevel.color + '50' : 'rgba(245, 158, 11, 0.4)' }}>
-                  {userLevel.icon || '👑'} {userLevel.title} (Atual)
+                  👑 Nível {userLevel.level} (Atual)
                 </span>
               </div>
             </div>
@@ -2037,7 +2037,7 @@ export default function CollaboratorSpace({
                         color: userLevel.color || '#f59e0b',
                       }}
                     >
-                      {userLevel.icon} {userLevel.title}
+                      Nível {userLevel.level} • {userLevel.title}
                     </span>
                     <span className="cs-xp-modal-subtag">Gamificação &amp; Carreira</span>
                   </div>
@@ -2071,7 +2071,7 @@ export default function CollaboratorSpace({
                     <p className="cs-xp-modal-tier-phrase">
                       {userLevel.level >= 10
                         ? 'Parabéns! Você alcançou o nível lendário de consagração e excelência máxima na MegaFilmes (Hall da Fama).'
-                        : `Você já conquistou ${userLevel.currentLevelXP} XP nesta patente. Faltam ${userLevel.remainingForNext} XP para ${userLevel.nextTier?.title || 'a próxima patente'}.`}
+                        : `Você já conquistou ${userLevel.currentLevelXP} XP nesta patente. Faltam ${userLevel.remainingForNext} XP para o próximo nível.`}
                     </p>
                   </div>
                 </div>
@@ -2087,10 +2087,10 @@ export default function CollaboratorSpace({
                     />
                   </div>
                   <div className="cs-xp-progress-meta">
-                    <span>{userLevel.progressPercent}% em {userLevel.title} • {userLevel.overallPercent}% do Hall da Fama (10.000 XP)</span>
+                    <span>{userLevel.progressPercent}% no Nível {userLevel.level} • {userLevel.overallPercent}% do Hall da Fama (10.000 XP)</span>
                     <span>
                       {userLevel.level >= 10
-                        ? '🌟 Patente Máxima (Hall da Fama)'
+                        ? '🌟 Nível Máximo (Hall da Fama)'
                         : `${userLevel.score} / ${userLevel.score + userLevel.remainingForNext} XP`}
                     </span>
                   </div>
@@ -2103,7 +2103,7 @@ export default function CollaboratorSpace({
                     <div className="cs-xp-current-tier-info">
                       <div className="cs-xp-current-tier-tags">
                         <strong className="cs-xp-current-tier-name" style={{ color: userLevel.color || '#f59e0b' }}>
-                          {userLevel.icon} {userLevel.title}
+                          Nível {userLevel.level} • {userLevel.title}
                         </strong>
                         <span className="cs-xp-current-tier-badge">{userLevel.badgeLabel}</span>
                       </div>
@@ -2206,7 +2206,7 @@ export default function CollaboratorSpace({
                       <p className="cs-xp-overcome-banner-desc">
                         Você já superou com louvor {userLevel.completedTiers.length === 1 ? 'o nível de' : 'as patentes de'}{' '}
                         <strong>
-                          {userLevel.completedTiers.map((t) => `${t.icon} ${t.title}`).join(' e ')}
+                          {userLevel.completedTiers.map((t) => `${t.icon} Nível ${t.level} • ${t.title}`).join(' e ')}
                         </strong>
                         . Sua consistência operacional e técnica comprova que você está apto a desafios cada vez maiores na produtora!
                       </p>
@@ -2232,7 +2232,9 @@ export default function CollaboratorSpace({
                             <span className="cs-xp-career-card-icon">{tier.icon}</span>
                             <div>
                               <div className="cs-xp-career-card-meta">
-                                <span className="cs-xp-career-card-level" style={{ color: tier.color }}>{tier.icon}</span>
+                                <span className="cs-xp-career-card-level" style={{ color: tier.color }}>
+                                  NÍVEL {tier.level}
+                                </span>
                                 <span className="cs-xp-career-card-range">
                                   {tier.level === 10 ? `${tier.min}+ XP` : `${tier.min} a ${tier.max} XP`}
                                 </span>
@@ -2254,7 +2256,7 @@ export default function CollaboratorSpace({
                             {isCurrent && (
                               <span className="cs-career-pill current" style={{ borderColor: tier.color, color: tier.color }}>
                                 <Sparkles size={13} />
-                                <span>Sua Patente Atual ({userLevel.progressPercent}%)</span>
+                                <span>Seu Nível Atual ({userLevel.progressPercent}%)</span>
                               </span>
                             )}
                             {isLocked && (

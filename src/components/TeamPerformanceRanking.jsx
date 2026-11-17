@@ -441,8 +441,8 @@ export default function TeamPerformanceRanking({
                 {bestStreamer && (bestStreamer.roleCounts['Transmissão (Streamer)'] || 0) > 0
                   ? `${bestStreamer.roleCounts['Transmissão (Streamer)']} transmissões`
                   : bestEditor
-                  ? `${bestEditor.roleCounts['Editor de Vídeo'] || 0} edições`
-                  : '0 registros'}
+                    ? `${bestEditor.roleCounts['Editor de Vídeo'] || 0} edições`
+                    : '0 registros'}
               </span>
               <span className="kpi-sub-metric">ao vivo &amp; switchers</span>
             </div>
@@ -493,7 +493,7 @@ export default function TeamPerformanceRanking({
                       }}
                     >
                       <span className="pib-icon">{tierTop2?.icon}</span>
-                      
+
                     </div>
                   </div>
 
@@ -554,7 +554,7 @@ export default function TeamPerformanceRanking({
                       }}
                     >
                       <span className="pib-icon">{tierTop1?.icon}</span>
-                      
+
                     </div>
                   </div>
 
@@ -612,7 +612,7 @@ export default function TeamPerformanceRanking({
                       }}
                     >
                       <span className="pib-icon">{tierTop3?.icon}</span>
-                      
+
                     </div>
                   </div>
 
@@ -710,7 +710,7 @@ export default function TeamPerformanceRanking({
                       }}
                     >
                       <span className="rmc-insignia-icon">{memberTier.icon}</span>
-                      
+
                     </div>
                   </div>
                 </div>
@@ -897,7 +897,7 @@ export default function TeamPerformanceRanking({
                       }}
                     >
                       <span className="rai-icon">{detailTier.icon}</span>
-                      
+
                     </div>
                   </div>
                   <div>
@@ -978,241 +978,241 @@ export default function TeamPerformanceRanking({
                   </div>
                 </div>
 
-              {/* EXTRATO DISCRIMINADO DE PONTUAÇÃO XP */}
-              <div className="ray-breakdown-card">
-                <h4 className="ray-sub-heading" style={{ marginBottom: '8px' }}>
-                  <Sparkles size={15} className="text-gold" /> Extrato Transparente de Pontuação (Score XP)
-                </h4>
-                <div className="ray-breakdown-grid">
-                  <div className="ray-breakdown-item">
-                    <span className="rbi-label">Atuações Técnicas nas 11 Funções:</span>
-                    <strong className="rbi-value text-blue">+{selectedMemberDetail.breakdown?.rolesTotalXP || 0} XP</strong>
-                  </div>
-                  <div className="ray-breakdown-item">
-                    <span className="rbi-label">Presença Base em Escalas ({selectedMemberDetail.totalMissions}x):</span>
-                    <strong className="rbi-value">+{selectedMemberDetail.breakdown?.missionBaseXP || 0} XP</strong>
-                  </div>
-                  <div className="ray-breakdown-item">
-                    <span className="rbi-label">Expedições de Longa Duração (+1 dia / {selectedMemberDetail.multiDayCount}x):</span>
-                    <strong className="rbi-value text-amber">+{selectedMemberDetail.breakdown?.multiDayXP || 0} XP</strong>
-                  </div>
-                  <div className="ray-breakdown-item">
-                    <span className="rbi-label">Quilometragem Conduzida ({selectedMemberDetail.estimatedDistanceKm} km):</span>
-                    <strong className="rbi-value text-cyan">+{selectedMemberDetail.breakdown?.drivingKmXP || 0} XP</strong>
-                  </div>
-                  <div className="ray-breakdown-item">
-                    <span className="rbi-label">Horas Extras em Campo ({selectedMemberDetail.totalApprovedExtraHours}h):</span>
-                    <strong className="rbi-value text-amber">+{selectedMemberDetail.breakdown?.extraHoursXP || 0} XP</strong>
-                  </div>
-                  <div className="ray-breakdown-item">
-                    <span className="rbi-label">Missões Concluídas com Sucesso ({selectedMemberDetail.completedCount}x):</span>
-                    <strong className="rbi-value text-green">+{selectedMemberDetail.breakdown?.completedBonusXP || 0} XP</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* ATUAÇÃO FIEL PELAS 11 FUNÇÕES DA EMPRESA */}
-              <div className="ray-roles-matrix-section">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '4px' }}>
-                  <h4 className="ray-sub-heading" style={{ margin: 0 }}>
-                    <Briefcase size={15} /> Atuação por Função na Empresa (11 Funções Oficiais)
+                {/* EXTRATO DISCRIMINADO DE PONTUAÇÃO XP */}
+                <div className="ray-breakdown-card">
+                  <h4 className="ray-sub-heading" style={{ marginBottom: '8px' }}>
+                    <Sparkles size={15} className="text-gold" /> Extrato Transparente de Pontuação (Score XP)
                   </h4>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                    Rastreamento fiel e pontuação individual de cada cargo
-                  </span>
+                  <div className="ray-breakdown-grid">
+                    <div className="ray-breakdown-item">
+                      <span className="rbi-label">Atuações Técnicas nas 11 Funções:</span>
+                      <strong className="rbi-value text-blue">+{selectedMemberDetail.breakdown?.rolesTotalXP || 0} XP</strong>
+                    </div>
+                    <div className="ray-breakdown-item">
+                      <span className="rbi-label">Presença Base em Escalas ({selectedMemberDetail.totalMissions}x):</span>
+                      <strong className="rbi-value">+{selectedMemberDetail.breakdown?.missionBaseXP || 0} XP</strong>
+                    </div>
+                    <div className="ray-breakdown-item">
+                      <span className="rbi-label">Expedições de Longa Duração (+1 dia / {selectedMemberDetail.multiDayCount}x):</span>
+                      <strong className="rbi-value text-amber">+{selectedMemberDetail.breakdown?.multiDayXP || 0} XP</strong>
+                    </div>
+                    <div className="ray-breakdown-item">
+                      <span className="rbi-label">Quilometragem Conduzida ({selectedMemberDetail.estimatedDistanceKm} km):</span>
+                      <strong className="rbi-value text-cyan">+{selectedMemberDetail.breakdown?.drivingKmXP || 0} XP</strong>
+                    </div>
+                    <div className="ray-breakdown-item">
+                      <span className="rbi-label">Horas Extras em Campo ({selectedMemberDetail.totalApprovedExtraHours}h):</span>
+                      <strong className="rbi-value text-amber">+{selectedMemberDetail.breakdown?.extraHoursXP || 0} XP</strong>
+                    </div>
+                    <div className="ray-breakdown-item">
+                      <span className="rbi-label">Missões Concluídas com Sucesso ({selectedMemberDetail.completedCount}x):</span>
+                      <strong className="rbi-value text-green">+{selectedMemberDetail.breakdown?.completedBonusXP || 0} XP</strong>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="ray-roles-matrix-grid" style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: '0.65rem',
-                  marginBottom: '1.25rem'
-                }}>
-                  {OFFICIAL_COMPANY_ROLES.map((roleName) => {
-                    const count = selectedMemberDetail.roleCounts?.[roleName] || 0;
-                    const pts = selectedMemberDetail.rolePoints?.[roleName] || (count * (ROLE_XP_POINTS[roleName] || 15));
-                    const isMainRole = normalizeToOfficialRole(selectedMemberDetail.role) === roleName;
-                    const isSecRole = Array.isArray(selectedMemberDetail.secondaryRoles) &&
-                      selectedMemberDetail.secondaryRoles.map(normalizeToOfficialRole).includes(roleName);
-                    const icon = ROLE_ICONS_MAP[roleName] || '💼';
-                    const color = ROLE_COLORS_MAP[roleName] || '#3b82f6';
-
-                    return (
-                      <div
-                        key={roleName}
-                        style={{
-                          background: count > 0 ? `${color}10` : 'rgba(255,255,255,0.02)',
-                          border: count > 0 ? `1.5px solid ${color}55` : '1px solid rgba(255,255,255,0.05)',
-                          borderRadius: '10px',
-                          padding: '10px 12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '8px'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                          <span style={{ fontSize: '1.25rem' }}>{icon}</span>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{
-                              fontSize: '0.82rem',
-                              fontWeight: 700,
-                              color: count > 0 ? '#f8fafc' : '#64748b',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis'
-                            }} title={roleName}>
-                              {roleName}
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: isMainRole ? '#fbbf24' : isSecRole ? '#38bdf8' : count > 0 ? color : '#64748b' }}>
-                              {isMainRole ? 'Principal' : isSecRole ? 'Secundária' : count > 0 ? 'Exercida' : 'Sem atuação'}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{
-                            padding: '2px 8px',
-                            borderRadius: '999px',
-                            fontSize: '0.82rem',
-                            fontWeight: 800,
-                            background: count > 0 ? color : 'rgba(255,255,255,0.06)',
-                            color: count > 0 ? '#0f172a' : '#64748b'
-                          }}>
-                            {count}x
-                          </div>
-                          {count > 0 && (
-                            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#f59e0b', marginTop: '2px' }}>
-                              +{pts} XP
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Conquistas & Desafios */}
-              {selectedMemberDetail.allAchievements && selectedMemberDetail.allAchievements.length > 0 && (
-                <div className="ray-badges-section">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                {/* ATUAÇÃO FIEL PELAS 11 FUNÇÕES DA EMPRESA */}
+                <div className="ray-roles-matrix-section">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '4px' }}>
                     <h4 className="ray-sub-heading" style={{ margin: 0 }}>
-                      <Award size={15} /> Conquistas &amp; Insígnias ({selectedMemberDetail.unlockedCount} de {selectedMemberDetail.totalAchievementsCount} Desbloqueadas)
+                      <Briefcase size={15} /> Atuação por Função na Empresa (11 Funções Oficiais)
                     </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      Rastreamento fiel e pontuação individual de cada cargo
+                    </span>
                   </div>
-                  <div className="ray-badges-grid">
-                    {selectedMemberDetail.allAchievements.map((b) => (
-                      <div
-                        key={b.id}
-                        className={`ray-badge-item ${b.isUnlocked ? 'is-unlocked' : 'is-locked'}`}
-                        style={{ borderColor: b.isUnlocked ? (b.color || '#f59e0b') : 'rgba(255,255,255,0.06)' }}
-                      >
-                        <span className="ray-badge-icon">{b.icon}</span>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-                            <strong className="ray-badge-name" style={{ color: b.isUnlocked ? (b.color || '#f59e0b') : '#94a3b8' }}>{b.name}</strong>
-                            <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', color: b.color || '#94a3b8' }}>
-                              {b.rarity}
-                            </span>
+
+                  <div className="ray-roles-matrix-grid" style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                    gap: '0.65rem',
+                    marginBottom: '1.25rem'
+                  }}>
+                    {OFFICIAL_COMPANY_ROLES.map((roleName) => {
+                      const count = selectedMemberDetail.roleCounts?.[roleName] || 0;
+                      const pts = selectedMemberDetail.rolePoints?.[roleName] || (count * (ROLE_XP_POINTS[roleName] || 15));
+                      const isMainRole = normalizeToOfficialRole(selectedMemberDetail.role) === roleName;
+                      const isSecRole = Array.isArray(selectedMemberDetail.secondaryRoles) &&
+                        selectedMemberDetail.secondaryRoles.map(normalizeToOfficialRole).includes(roleName);
+                      const icon = ROLE_ICONS_MAP[roleName] || '💼';
+                      const color = ROLE_COLORS_MAP[roleName] || '#3b82f6';
+
+                      return (
+                        <div
+                          key={roleName}
+                          style={{
+                            background: count > 0 ? `${color}10` : 'rgba(255,255,255,0.02)',
+                            border: count > 0 ? `1.5px solid ${color}55` : '1px solid rgba(255,255,255,0.05)',
+                            borderRadius: '10px',
+                            padding: '10px 12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '8px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                            <span style={{ fontSize: '1.25rem' }}>{icon}</span>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                color: count > 0 ? '#f8fafc' : '#64748b',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }} title={roleName}>
+                                {roleName}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: isMainRole ? '#fbbf24' : isSecRole ? '#38bdf8' : count > 0 ? color : '#64748b' }}>
+                                {isMainRole ? 'Principal' : isSecRole ? 'Secundária' : count > 0 ? 'Exercida' : 'Sem atuação'}
+                              </div>
+                            </div>
                           </div>
-                          <span className="ray-badge-desc">{b.desc}</span>
-                          <div style={{ fontSize: '0.68rem', marginTop: '2px', color: b.isUnlocked ? '#34d399' : '#64748b' }}>
-                            {b.isUnlocked ? '✅ Conquistado' : `🔒 Progresso: ${b.current || 0}/${b.target}`}
+
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{
+                              padding: '2px 8px',
+                              borderRadius: '999px',
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              background: count > 0 ? color : 'rgba(255,255,255,0.06)',
+                              color: count > 0 ? '#0f172a' : '#64748b'
+                            }}>
+                              {count}x
+                            </div>
+                            {count > 0 && (
+                              <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#f59e0b', marginTop: '2px' }}>
+                                +{pts} XP
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
-              )}
 
-              {/* Histórico Recente de Missões */}
-              <div className="ray-history-section">
-                <h4 className="ray-sub-heading">
-                  <Clock size={15} /> Histórico de Missões ({selectedMemberDetail.missionHistory.length})
-                </h4>
-
-                {selectedMemberDetail.missionHistory.length === 0 ? (
-                  <p className="ray-empty-history">
-                    Nenhuma missão registrada no período selecionado.
-                  </p>
-                ) : (
-                  <div className="ray-history-list">
-                    {selectedMemberDetail.missionHistory.map((m) => (
-                      <div key={m.id} className="ray-history-row">
-                        <div className="rhr-left">
-                          <div className="rhr-code-row">
-                            <span className="rhr-code">{m.code}</span>
-                            <span className="rhr-date">
-                              <Calendar size={12} /> {formatDateBR(m.date)}
-                              {m.isMultiDay && m.endDate && ` a ${formatDateBR(m.endDate)}`}
-                            </span>
-                            {m.isMultiDay && (
-                              <span className="rhr-multiday-badge">🧭 Viagem</span>
-                            )}
-                            {m.extraHours > 0 && (
-                              <span className="rhr-multiday-badge" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.4)' }}>
-                                ⚡ +{m.extraHours}h extra
+                {/* Conquistas & Desafios */}
+                {selectedMemberDetail.allAchievements && selectedMemberDetail.allAchievements.length > 0 && (
+                  <div className="ray-badges-section">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <h4 className="ray-sub-heading" style={{ margin: 0 }}>
+                        <Award size={15} /> Conquistas &amp; Insígnias ({selectedMemberDetail.unlockedCount} de {selectedMemberDetail.totalAchievementsCount} Desbloqueadas)
+                      </h4>
+                    </div>
+                    <div className="ray-badges-grid">
+                      {selectedMemberDetail.allAchievements.map((b) => (
+                        <div
+                          key={b.id}
+                          className={`ray-badge-item ${b.isUnlocked ? 'is-unlocked' : 'is-locked'}`}
+                          style={{ borderColor: b.isUnlocked ? (b.color || '#f59e0b') : 'rgba(255,255,255,0.06)' }}
+                        >
+                          <span className="ray-badge-icon">{b.icon}</span>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                              <strong className="ray-badge-name" style={{ color: b.isUnlocked ? (b.color || '#f59e0b') : '#94a3b8' }}>{b.name}</strong>
+                              <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', color: b.color || '#94a3b8' }}>
+                                {b.rarity}
                               </span>
-                            )}
+                            </div>
+                            <span className="ray-badge-desc">{b.desc}</span>
+                            <div style={{ fontSize: '0.68rem', marginTop: '2px', color: b.isUnlocked ? '#34d399' : '#64748b' }}>
+                              {b.isUnlocked ? '✅ Conquistado' : `🔒 Progresso: ${b.current || 0}/${b.target}`}
+                            </div>
                           </div>
-                          <strong className="rhr-desc">{m.description}</strong>
-                          <span className="rhr-loc"><MapPin size={11} /> {m.locationName}</span>
                         </div>
-
-                        <div className="rhr-right">
-                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                            {Array.isArray(m.rolesExercised) && m.rolesExercised.map((role) => (
-                              <span
-                                key={role}
-                                className="rhr-role-badge"
-                                style={{
-                                  background: `${ROLE_COLORS_MAP[role] || '#3b82f6'}20`,
-                                  borderColor: `${ROLE_COLORS_MAP[role] || '#3b82f6'}50`,
-                                  color: ROLE_COLORS_MAP[role] || '#93c5fd'
-                                }}
-                              >
-                                {ROLE_ICONS_MAP[role] || '💼'} {role}
-                              </span>
-                            ))}
-                          </div>
-                          <span className="rhr-status-pill">{m.status}</span>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
-              </div>
 
-              {/* Rodapé do Modal */}
-              <div className="modal-footer" style={{ marginTop: '16px' }}>
-                {onOpenEditMember && (
+                {/* Histórico Recente de Missões */}
+                <div className="ray-history-section">
+                  <h4 className="ray-sub-heading">
+                    <Clock size={15} /> Histórico de Missões ({selectedMemberDetail.missionHistory.length})
+                  </h4>
+
+                  {selectedMemberDetail.missionHistory.length === 0 ? (
+                    <p className="ray-empty-history">
+                      Nenhuma missão registrada no período selecionado.
+                    </p>
+                  ) : (
+                    <div className="ray-history-list">
+                      {selectedMemberDetail.missionHistory.map((m) => (
+                        <div key={m.id} className="ray-history-row">
+                          <div className="rhr-left">
+                            <div className="rhr-code-row">
+                              <span className="rhr-code">{m.code}</span>
+                              <span className="rhr-date">
+                                <Calendar size={12} /> {formatDateBR(m.date)}
+                                {m.isMultiDay && m.endDate && ` a ${formatDateBR(m.endDate)}`}
+                              </span>
+                              {m.isMultiDay && (
+                                <span className="rhr-multiday-badge">🧭 Viagem</span>
+                              )}
+                              {m.extraHours > 0 && (
+                                <span className="rhr-multiday-badge" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.4)' }}>
+                                  ⚡ +{m.extraHours}h extra
+                                </span>
+                              )}
+                            </div>
+                            <strong className="rhr-desc">{m.description}</strong>
+                            <span className="rhr-loc"><MapPin size={11} /> {m.locationName}</span>
+                          </div>
+
+                          <div className="rhr-right">
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                              {Array.isArray(m.rolesExercised) && m.rolesExercised.map((role) => (
+                                <span
+                                  key={role}
+                                  className="rhr-role-badge"
+                                  style={{
+                                    background: `${ROLE_COLORS_MAP[role] || '#3b82f6'}20`,
+                                    borderColor: `${ROLE_COLORS_MAP[role] || '#3b82f6'}50`,
+                                    color: ROLE_COLORS_MAP[role] || '#93c5fd'
+                                  }}
+                                >
+                                  {ROLE_ICONS_MAP[role] || '💼'} {role}
+                                </span>
+                              ))}
+                            </div>
+                            <span className="rhr-status-pill">{m.status}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Rodapé do Modal */}
+                <div className="modal-footer" style={{ marginTop: '16px' }}>
+                  {onOpenEditMember && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => {
+                        const mem = selectedMemberDetail;
+                        setSelectedMemberDetail(null);
+                        onOpenEditMember(mem);
+                      }}
+                    >
+                      Editar Colaborador
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className="btn-secondary"
-                    onClick={() => {
-                      const mem = selectedMemberDetail;
-                      setSelectedMemberDetail(null);
-                      onOpenEditMember(mem);
-                    }}
+                    className="btn-primary"
+                    onClick={() => setSelectedMemberDetail(null)}
                   >
-                    Editar Colaborador
+                    Fechar Raio-X
                   </button>
-                )}
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => setSelectedMemberDetail(null)}
-                >
-                  Fechar Raio-X
-                </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      );
-    })()}
+        );
+      })()}
     </div>
   );
 }
