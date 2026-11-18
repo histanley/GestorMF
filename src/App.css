@@ -25578,7 +25578,7 @@ body.light-theme .rth-title h3 {
 
 .ranking-member-card {
   display: grid;
-  grid-template-columns: 50px 50px 1fr auto 130px;
+  grid-template-columns: 50px 50px 1fr auto 100px;
   align-items: center;
   gap: 16px;
   padding: 12px 18px;
@@ -25823,44 +25823,62 @@ body.light-theme .rmc-metric-num {
 /* Score XP e Ação */
 .rmc-score-col {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  justify-content: flex-end;
+  justify-content: center;
+  gap: 5px;
+  min-width: 90px;
 }
 
 .rmc-score-box {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.1;
 }
 
 .rmc-score-val {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 900;
   color: #fbbf24;
   letter-spacing: -0.5px;
+  line-height: 1;
 }
 
 .rmc-score-lbl {
-  font-size: 0.66rem;
-  font-weight: 700;
+  font-size: 0.65rem;
+  font-weight: 800;
   color: #94a3b8;
   text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-top: 1px;
+  white-space: nowrap;
+}
+
+body.light-theme .rmc-score-lbl {
+  color: #64748b;
 }
 
 .btn-view-member-ray {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  padding: 7px 12px;
-  border-radius: 10px;
+  padding: 5px 10px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.05);
   color: #cbd5e1;
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.15s ease;
+  width: 100%;
+  max-width: 88px;
+  box-sizing: border-box;
 }
 
 .btn-view-member-ray:hover {
@@ -26291,7 +26309,19 @@ body.light-theme .rhr-desc {
 
   .rmc-score-col {
     grid-column: 1 / -1;
+    flex-direction: row;
     justify-content: space-between;
+    align-items: center;
+  }
+
+  .rmc-score-col .rmc-score-box {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .rmc-score-col .btn-view-member-ray {
+    width: auto;
+    max-width: none;
   }
 
   .ray-score-banner {

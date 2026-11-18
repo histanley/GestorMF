@@ -840,11 +840,11 @@ export default function TeamPerformanceRanking({
                   )}
                 </div>
 
-                {/* Pontuação XP e Ação */}
+                {/* Pontuação XP e Ação (XP em cima e Raio-X embaixo, perfeitamente alinhados) */}
                 <div className="rmc-score-col">
-                  <div className="rmc-score-box">
+                  <div className="rmc-score-box" title={`${member.score} XP (Pontos de Experiência)`}>
                     <span className="rmc-score-val">{member.score}</span>
-                    <span className="rmc-score-lbl">XP Pontos</span>
+                    <span className="rmc-score-lbl">XP</span>
                   </div>
                   <button
                     type="button"
@@ -855,7 +855,7 @@ export default function TeamPerformanceRanking({
                     }}
                     title="Ver Raio-X Detalhado do Colaborador"
                   >
-                    <Eye size={14} />
+                    <Eye size={13} />
                     <span>Raio-X</span>
                   </button>
                 </div>
