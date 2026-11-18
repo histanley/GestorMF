@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Settings,
   MapPin,
@@ -8,6 +8,7 @@ import {
   Upload,
   LocateFixed,
   Search,
+  User,
   Building2,
   Users,
   Palette,
@@ -139,6 +140,7 @@ export default function SettingsModal({
   onSaveSettings,
   onResetDemoData,
   onClearMissions,
+  members = [],
   allDataToExport,
   onImportData,
   // Funções de colaboradores
@@ -386,11 +388,13 @@ export default function SettingsModal({
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditModuleFilter, setAuditModuleFilter] = useState('');
+  const [auditUserFilter, setAuditUserFilter] = useState('');
+  const [auditSearchQuery, setAuditSearchQuery] = useState('');
 
-  const loadAuditLogs = async (mod = auditModuleFilter) => {
+  const loadAuditLogs = async (mod = auditModuleFilter, usr = auditUserFilter, search = auditSearchQuery) => {
     setAuditLoading(true);
     try {
-      const res = await apiGetAuditLogs(mod, '', 100);
+      const res = await apiGetAuditLogs(mod, search, 200, usr);
       if (res.success && Array.isArray(res.logs)) {
         setAuditLogs(res.logs);
       }
@@ -406,6 +410,45 @@ export default function SettingsModal({
       loadAuditLogs();
     }
   }, [activeTab]);
+
+  const effectiveMembers = useMemo(() => {
+    return Array.isArray(members) && members.length > 0
+      ? members
+      : (Array.isArray(allDataToExport?.members) ? allDataToExport.members : []);
+  }, [members, allDataToExport]);
+
+  // Lista única e ordenada de colaboradores para o filtro de auditoria
+  const availableCollaborators = useMemo(() => {
+    const namesSet = new Set();
+    effectiveMembers.forEach((m) => {
+      const name = String(m?.name || '').trim();
+      if (name) namesSet.add(name);
+    });
+    auditLogs.forEach((log) => {
+      const name = String(log?.user_name || '').trim();
+      if (name) namesSet.add(name);
+    });
+    return Array.from(namesSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [effectiveMembers, auditLogs]);
+
+  // Filtro dinâmico instantâneo na listagem de logs
+  const filteredAuditLogs = useMemo(() => {
+    return auditLogs.filter((log) => {
+      if (auditUserFilter) {
+        const uName = String(log.user_name || '').toLowerCase();
+        const target = auditUserFilter.toLowerCase();
+        if (uName !== target && !uName.includes(target)) return false;
+      }
+      if (auditSearchQuery) {
+        const q = auditSearchQuery.toLowerCase();
+        const strU = String(log.user_name || '').toLowerCase();
+        const strA = String(log.action || '').toLowerCase();
+        const strD = typeof log.details === 'string' ? log.details.toLowerCase() : JSON.stringify(log.details || '').toLowerCase();
+        if (!strU.includes(q) && !strA.includes(q) && !strD.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [auditLogs, auditUserFilter, auditSearchQuery]);
 
   if (!isOpen) return null;
 
@@ -974,8 +1017,7 @@ export default function SettingsModal({
 
                 <button
                   type="button"
-                  className="btn-backup-export"
-                  style={{ marginTop: '8px', background: 'rgba(6, 182, 212, 0.15)', borderColor: 'rgba(6, 182, 212, 0.4)', color: 'var(--accent-cyan)' }}
+                  className="btn-backup-export btn-backup-snapshot"
                   onClick={async () => {
                     try {
                       await apiDownloadBackup();
@@ -1072,45 +1114,35 @@ export default function SettingsModal({
 
             {/* ========== ABA: AUDITORIA ========== */}
             {activeTab === 'auditoria' && (
-              <div className="settings-panel">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div className="settings-panel audit-panel">
+                <div className="audit-header-top">
                   <SectionTitle icon={ShieldCheck} label="Trilha de Auditoria & Histórico de Alterações" />
                   <button
                     type="button"
-                    className="btn-outline-action"
-                    onClick={() => loadAuditLogs(auditModuleFilter)}
+                    className="btn-outline-action audit-refresh-btn"
+                    onClick={() => loadAuditLogs(auditModuleFilter, auditUserFilter, auditSearchQuery)}
                     disabled={auditLoading}
-                    style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                    title="Atualizar registros de auditoria"
                   >
                     <RefreshCw size={13} className={auditLoading ? 'spin-anim' : ''} />
                     <span>Atualizar</span>
                   </button>
                 </div>
 
-                <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '1rem' }}>
-                  Registro imutável de todas as alterações feitas no sistema (quem criou, editou ou excluiu missões, viaturas, combustível e configurações).
+                <p className="audit-lead-text">
+                  Registro imutável de todas as ações e alterações realizadas no sistema (autenticações, criações, edições e exclusões de missões, frotas e configurações).
                 </p>
 
-                {/* Filtro de Módulos */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                {/* Linha 1: Filtro por Módulos */}
+                <div className="audit-module-chips">
                   {['', 'MISSIONS', 'FLEET', 'TEAMS', 'AUTH', 'CONFIG'].map((mod) => (
                     <button
                       key={mod}
                       type="button"
-                      className={`btn-tab-chip ${auditModuleFilter === mod ? 'active' : ''}`}
+                      className={`audit-filter-chip ${auditModuleFilter === mod ? 'active' : ''}`}
                       onClick={() => {
                         setAuditModuleFilter(mod);
-                        loadAuditLogs(mod);
-                      }}
-                      style={{
-                        padding: '4px 10px',
-                        fontSize: '0.74rem',
-                        borderRadius: '20px',
-                        border: '1px solid var(--border-subtle)',
-                        background: auditModuleFilter === mod ? 'var(--accent-gold)' : 'rgba(255, 255, 255, 0.05)',
-                        color: auditModuleFilter === mod ? '#0b0f19' : 'var(--text-secondary)',
-                        fontWeight: 600,
-                        cursor: 'pointer'
+                        loadAuditLogs(mod, auditUserFilter, auditSearchQuery);
                       }}
                     >
                       {mod === '' ? 'Todos os Registros' : mod === 'FLEET' ? 'Frotas & Viaturas' : mod === 'MISSIONS' ? 'Missões' : mod === 'TEAMS' ? 'Equipes' : mod}
@@ -1118,49 +1150,122 @@ export default function SettingsModal({
                   ))}
                 </div>
 
+                {/* Linha 2: Barra de Ferramentas com Filtro por Colaborador & Busca Textual */}
+                <div className="audit-toolbar-row">
+                  <div className="audit-collab-filter">
+                    <User size={14} className="audit-toolbar-icon" />
+                    <select
+                      className="audit-collab-select"
+                      value={auditUserFilter}
+                      onChange={(e) => {
+                        const usr = e.target.value;
+                        setAuditUserFilter(usr);
+                        loadAuditLogs(auditModuleFilter, usr, auditSearchQuery);
+                      }}
+                      title="Filtrar por Colaborador"
+                    >
+                      <option value="">👤 Todos os Colaboradores ({availableCollaborators.length})</option>
+                      {availableCollaborators.map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="audit-search-filter">
+                    <Search size={14} className="audit-toolbar-icon" />
+                    <input
+                      type="text"
+                      className="audit-search-input"
+                      placeholder="Buscar por ação, detalhe ou usuário..."
+                      value={auditSearchQuery}
+                      onChange={(e) => setAuditSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          loadAuditLogs(auditModuleFilter, auditUserFilter, auditSearchQuery);
+                        }
+                      }}
+                    />
+                    {auditSearchQuery && (
+                      <button
+                        type="button"
+                        className="audit-search-clear-btn"
+                        onClick={() => {
+                          setAuditSearchQuery('');
+                          loadAuditLogs(auditModuleFilter, auditUserFilter, '');
+                        }}
+                        title="Limpar busca"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  <span className="audit-results-count">
+                    {filteredAuditLogs.length} {filteredAuditLogs.length === 1 ? 'registro' : 'registros'}
+                  </span>
+                </div>
+
                 {auditLoading ? (
-                  <div style={{ padding: '24px', textAlign: 'center', opacity: 0.6 }}>Carregando trilha de auditoria...</div>
-                ) : auditLogs.length === 0 ? (
-                  <div className="empty-list-notice" style={{ padding: '20px', textAlign: 'center' }}>
-                    Nenhum registro de auditoria encontrado para este filtro.
+                  <div className="audit-loading-state">
+                    <RefreshCw size={18} className="spin-anim" />
+                    <span>Carregando trilha de auditoria...</span>
+                  </div>
+                ) : filteredAuditLogs.length === 0 ? (
+                  <div className="empty-list-notice audit-empty-state">
+                    <AlertTriangle size={24} style={{ opacity: 0.6, marginBottom: 8 }} />
+                    <p>Nenhum registro de auditoria encontrado com os filtros atuais.</p>
+                    {(auditModuleFilter || auditUserFilter || auditSearchQuery) && (
+                      <button
+                        type="button"
+                        className="btn-outline-action"
+                        style={{ marginTop: 10, fontSize: '0.76rem' }}
+                        onClick={() => {
+                          setAuditModuleFilter('');
+                          setAuditUserFilter('');
+                          setAuditSearchQuery('');
+                          loadAuditLogs('', '', '');
+                        }}
+                      >
+                        Limpar Todos os Filtros
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  <div style={{ maxHeight: '380px', overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                  <div className="audit-table-wrap">
+                    <table className="audit-table">
                       <thead>
-                        <tr style={{ background: 'rgba(0, 0, 0, 0.25)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
-                          <th style={{ padding: '8px 12px' }}>Data / Hora</th>
-                          <th style={{ padding: '8px 12px' }}>Usuário</th>
-                          <th style={{ padding: '8px 12px' }}>Módulo</th>
-                          <th style={{ padding: '8px 12px' }}>Ação / Detalhes</th>
+                        <tr className="audit-thead-tr">
+                          <th className="audit-th audit-col-datetime">Data / Hora</th>
+                          <th className="audit-th audit-col-user">Usuário</th>
+                          <th className="audit-th audit-col-module">Módulo</th>
+                          <th className="audit-th audit-col-action">Ação / Detalhes</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {auditLogs.map((log) => (
-                          <tr key={log.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                            <td style={{ padding: '8px 12px', whiteSpace: 'nowrap', opacity: 0.8 }}>
-                              {new Date(log.created_at).toLocaleString('pt-BR')}
-                            </td>
-                            <td style={{ padding: '8px 12px', fontWeight: 600 }}>
-                              {log.user_name}
-                            </td>
-                            <td style={{ padding: '8px 12px' }}>
-                              <span style={{
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontSize: '0.68rem',
-                                fontWeight: 700,
-                                background: 'rgba(245, 158, 11, 0.15)',
-                                color: 'var(--accent-gold)'
-                              }}>
-                                {log.module}
-                              </span>
-                            </td>
-                            <td style={{ padding: '8px 12px', opacity: 0.9 }}>
-                              {typeof log.details === 'string' ? log.details : JSON.stringify(log.details)}
-                            </td>
-                          </tr>
-                        ))}
+                        {filteredAuditLogs.map((log) => {
+                          const modCode = String(log.module || '').toLowerCase();
+                          return (
+                            <tr key={log.id} className="audit-tr">
+                              <td className="audit-td audit-col-datetime">
+                                {new Date(log.created_at).toLocaleString('pt-BR')}
+                              </td>
+                              <td className="audit-td audit-col-user">
+                                <span className="audit-user-name">{log.user_name}</span>
+                              </td>
+                              <td className="audit-td audit-col-module">
+                                <span className={`audit-mod-badge mod-${modCode}`}>
+                                  {log.module}
+                                </span>
+                              </td>
+                              <td className="audit-td audit-col-action">
+                                <span className="audit-details-text">
+                                  {typeof log.details === 'string' ? log.details : JSON.stringify(log.details)}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

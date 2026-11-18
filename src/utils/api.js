@@ -340,8 +340,10 @@ export async function apiSavePayout(payoutData) {
 // ------------------------------------------------------------------------------
 // 6. TRILHA DE AUDITORIA (AUDIT LOGS)
 // ------------------------------------------------------------------------------
-export async function apiGetAuditLogs(module = '', search = '', limit = 60) {
-  const query = new URLSearchParams({ module, search, limit }).toString();
+export async function apiGetAuditLogs(module = '', search = '', limit = 100, user = '') {
+  const params = { module, search, limit };
+  if (user) params.user = user;
+  const query = new URLSearchParams(params).toString();
   return await apiRequest(`/audit.php?${query}`);
 }
 

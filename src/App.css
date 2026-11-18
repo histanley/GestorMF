@@ -48754,5 +48754,563 @@ body.light-theme .shift-badge.shift-off_mixed,
   border-color: #f5d0fe;
 }
 
+/* ==========================================================================
+   CONFIGURAÇÕES DO SISTEMA: BACKUP, AUDITORIA & REFINAMENTOS MODO CLARO
+   ========================================================================== */
+
+/* 1. Cards de Contagem do Backup (Missões, Viaturas, Colaboradores) */
+.backup-count-item {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+body.light-theme .backup-count-item,
+[data-theme='light'] .backup-count-item {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+}
+
+body.light-theme .backup-count,
+[data-theme='light'] .backup-count {
+  color: #d97706 !important;
+}
+
+body.light-theme .backup-count-item span:last-child,
+[data-theme='light'] .backup-count-item span:last-child {
+  color: #475569 !important;
+  font-weight: 700 !important;
+}
+
+/* Botão Snapshot MySQL */
+.btn-backup-snapshot {
+  margin-top: 8px;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  color: var(--accent-cyan);
+}
+.btn-backup-snapshot:hover {
+  background: rgba(6, 182, 212, 0.25);
+  color: #ffffff;
+}
+
+body.light-theme .btn-backup-export,
+[data-theme='light'] .btn-backup-export {
+  background: #fffbeb !important;
+  border-color: #fcd34d !important;
+  color: #b45309 !important;
+}
+body.light-theme .btn-backup-export:hover,
+[data-theme='light'] .btn-backup-export:hover {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+body.light-theme .btn-backup-snapshot,
+[data-theme='light'] .btn-backup-snapshot {
+  background: #f0f9ff !important;
+  border-color: #bae6fd !important;
+  color: #0284c7 !important;
+}
+body.light-theme .btn-backup-snapshot:hover,
+[data-theme='light'] .btn-backup-snapshot:hover {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+}
+
+body.light-theme .btn-backup-import,
+[data-theme='light'] .btn-backup-import {
+  background: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+  color: #15803d !important;
+}
+body.light-theme .btn-backup-import:hover,
+[data-theme='light'] .btn-backup-import:hover {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+}
+
+/* 2. Trilha de Auditoria: Barra de Ferramentas, Filtros e Tabela */
+.audit-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.audit-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.audit-lead-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.45;
+}
+
+body.light-theme .audit-lead-text,
+[data-theme='light'] .audit-lead-text {
+  color: #64748b;
+}
+
+.audit-module-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.audit-filter-chip {
+  padding: 5px 12px;
+  font-size: 0.74rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.audit-filter-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.audit-filter-chip.active {
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #0b0f19;
+  font-weight: 750;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+body.light-theme .audit-filter-chip,
+[data-theme='light'] .audit-filter-chip {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+body.light-theme .audit-filter-chip:hover,
+[data-theme='light'] .audit-filter-chip:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+body.light-theme .audit-filter-chip.active,
+[data-theme='light'] .audit-filter-chip.active {
+  background: #f59e0b;
+  border-color: #d97706;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+}
+
+/* Linha 2 de Ferramentas de Auditoria */
+.audit-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.audit-collab-filter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.audit-toolbar-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+body.light-theme .audit-toolbar-icon,
+[data-theme='light'] .audit-toolbar-icon {
+  color: #64748b;
+}
+
+.audit-collab-select {
+  width: 100%;
+  padding: 7px 10px 7px 32px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.audit-collab-select:focus {
+  border-color: var(--accent-gold);
+}
+
+body.light-theme .audit-collab-select,
+[data-theme='light'] .audit-collab-select {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.audit-search-filter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1.5;
+  min-width: 220px;
+}
+
+.audit-search-input {
+  width: 100%;
+  padding: 7px 28px 7px 32px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.audit-search-input:focus {
+  border-color: var(--accent-gold);
+}
+
+body.light-theme .audit-search-input,
+[data-theme='light'] .audit-search-input {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.audit-search-clear-btn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 0.7rem;
+}
+
+.audit-results-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+body.light-theme .audit-results-count,
+[data-theme='light'] .audit-results-count {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+/* Tabela de Auditoria */
+.audit-table-wrap {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: rgba(10, 14, 23, 0.4);
+}
+
+body.light-theme .audit-table-wrap,
+[data-theme='light'] .audit-table-wrap {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.audit-thead-tr {
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+body.light-theme .audit-thead-tr,
+[data-theme='light'] .audit-thead-tr {
+  background: #f8fafc !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.audit-th {
+  padding: 10px 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+body.light-theme .audit-th,
+[data-theme='light'] .audit-th {
+  color: #475569 !important;
+}
+
+.audit-tr {
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.15s ease;
+}
+
+.audit-tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.light-theme .audit-tr,
+[data-theme='light'] .audit-tr {
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+body.light-theme .audit-tr:hover,
+[data-theme='light'] .audit-tr:hover {
+  background: #f8fafc !important;
+}
+
+.audit-td {
+  padding: 10px 14px;
+  vertical-align: middle;
+}
+
+.audit-col-datetime {
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+}
+
+body.light-theme .audit-col-datetime,
+[data-theme='light'] .audit-col-datetime {
+  color: #64748b !important;
+}
+
+.audit-user-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+body.light-theme .audit-user-name,
+[data-theme='light'] .audit-user-name {
+  color: #0f172a !important;
+}
+
+.audit-details-text {
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+body.light-theme .audit-details-text,
+[data-theme='light'] .audit-details-text {
+  color: #334155 !important;
+}
+
+/* Badges de Módulo na Auditoria */
+.audit-mod-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.audit-mod-badge.mod-auth {
+  background: rgba(245, 158, 11, 0.14);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.audit-mod-badge.mod-fleet {
+  background: rgba(6, 182, 212, 0.14);
+  color: #06b6d4;
+  border-color: rgba(6, 182, 212, 0.3);
+}
+.audit-mod-badge.mod-missions {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.audit-mod-badge.mod-teams {
+  background: rgba(168, 85, 247, 0.14);
+  color: #a855f7;
+  border-color: rgba(168, 85, 247, 0.3);
+}
+.audit-mod-badge.mod-config {
+  background: rgba(148, 163, 184, 0.14);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+body.light-theme .audit-mod-badge.mod-auth,
+[data-theme='light'] .audit-mod-badge.mod-auth {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+body.light-theme .audit-mod-badge.mod-fleet,
+[data-theme='light'] .audit-mod-badge.mod-fleet {
+  background: #f0f9ff !important;
+  color: #0284c7 !important;
+  border-color: #bae6fd !important;
+}
+body.light-theme .audit-mod-badge.mod-missions,
+[data-theme='light'] .audit-mod-badge.mod-missions {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+}
+body.light-theme .audit-mod-badge.mod-teams,
+[data-theme='light'] .audit-mod-badge.mod-teams {
+  background: #fdf4ff !important;
+  color: #7e22ce !important;
+  border-color: #f5d0fe !important;
+}
+body.light-theme .audit-mod-badge.mod-config,
+[data-theme='light'] .audit-mod-badge.mod-config {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* 3. Refinamentos do Card de Colaborador (Meu Espaço) em Tema Claro */
+body.light-theme .cs-upc-role-main,
+[data-theme='light'] .cs-upc-role-main {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.15) !important;
+}
+
+body.light-theme .cs-upc-cnh-pill,
+[data-theme='light'] .cs-upc-cnh-pill {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+}
+
+body.light-theme .cs-upc-tier-pill,
+[data-theme='light'] .cs-upc-tier-pill {
+  background: #fef3c7 !important;
+  border-color: #fcd34d !important;
+  color: #b45309 !important;
+}
+
+body.light-theme .cs-upc-tier-heading,
+[data-theme='light'] .cs-upc-tier-heading {
+  color: #b45309 !important;
+}
+
+body.light-theme .cs-upc-score-val,
+[data-theme='light'] .cs-upc-score-val {
+  color: #d97706 !important;
+  text-shadow: none !important;
+}
+
+body.light-theme .cs-upc-score-unit,
+[data-theme='light'] .cs-upc-score-unit {
+  color: #b45309 !important;
+}
+
+body.light-theme .cs-upc-extrato-btn,
+[data-theme='light'] .cs-upc-extrato-btn {
+  background: #fffbeb !important;
+  border-color: #fcd34d !important;
+  color: #b45309 !important;
+  font-weight: 750 !important;
+}
+body.light-theme .cs-upc-extrato-btn:hover,
+[data-theme='light'] .cs-upc-extrato-btn:hover {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+body.light-theme .cs-upc-progress-pct,
+[data-theme='light'] .cs-upc-progress-pct {
+  color: #0284c7 !important;
+}
+
+body.light-theme .cs-upc-roles-scoring-label,
+[data-theme='light'] .cs-upc-roles-scoring-label {
+  color: #b45309 !important;
+}
+
+body.light-theme .cs-upc-role-chip,
+[data-theme='light'] .cs-upc-role-chip {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-theme .cs-upc-role-chip .chip-pts,
+[data-theme='light'] .cs-upc-role-chip .chip-pts {
+  color: #b45309 !important;
+  background: #fef3c7 !important;
+  border: 1px solid #fde68a !important;
+}
+
+body.light-theme .cs-upc-achievements-title,
+[data-theme='light'] .cs-upc-achievements-title {
+  color: #0f172a !important;
+}
+
+body.light-theme .cs-upc-achievements-count,
+[data-theme='light'] .cs-upc-achievements-count {
+  background: #fef3c7 !important;
+  border-color: #fde68a !important;
+  color: #b45309 !important;
+}
+
+body.light-theme .cs-upc-ach-badge.is-unlocked,
+[data-theme='light'] .cs-upc-ach-badge.is-unlocked {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
+}
+
+body.light-theme .ach-unlocked-lbl,
+[data-theme='light'] .ach-unlocked-lbl {
+  color: #059669 !important;
+}
+
 
 

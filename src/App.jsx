@@ -3562,6 +3562,7 @@ export default function App() {
         }}
         onResetDemoData={handleResetDemoData}
         onClearMissions={handleClearMissions}
+        members={members}
         allDataToExport={{ settings, vehicles, members, missions, roles }}
         onImportData={handleImportData}
         roles={roles}
