@@ -1037,48 +1037,10 @@ export default function SettingsModal({
                 <p style={{ fontSize: '0.8rem', opacity: 0.65, marginBottom: '0.75rem' }}>
                   Importe um arquivo JSON gerado pelo GestorMF para restaurar todos os dados.
                 </p>
-                <label className="btn-backup-import">
+                <label className="btn-backup-import" style={{ marginBottom: '24px' }}>
                   <Upload size={16} /> Importar Arquivo de Backup
                   <input type="file" accept=".json" onChange={handleImportFile} style={{ display: 'none' }} />
                 </label>
-
-                <SectionTitle icon={Trash2} label="Limpeza para Produção (Zerar Missões)" />
-                <div className="settings-info-box" style={{ marginBottom: '12px', background: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.3)', color: 'inherit' }}>
-                  <AlertTriangle size={16} style={{ color: '#ef4444' }} />
-                  <div>
-                    <strong style={{ display: 'block', marginBottom: '3px' }}>Pronto para iniciar com dados reais?</strong>
-                    <span style={{ fontSize: '0.8rem', opacity: 0.85 }}>
-                      Apaga todas as missões e rotas de teste cadastradas no sistema, mantendo suas viaturas, equipe e configurações da sede intactas.
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="btn-outline-action"
-                  style={{ width: '100%', justifyContent: 'center', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#ef4444', marginBottom: '24px' }}
-                  onClick={async () => {
-                    const confirmed = await confirmDialog({
-                      title: 'Limpar Missões de Teste',
-                      message: 'Deseja realmente apagar todas as missões de teste?',
-                      description: 'Suas viaturas, equipe e configurações mestres serão mantidas intactas.',
-                      confirmText: 'Apagar Missões de Teste',
-                      cancelText: 'Cancelar',
-                      variant: 'warning',
-                    });
-                    if (confirmed) {
-                      if (onClearMissions) onClearMissions();
-                      await alertDialog({
-                        title: 'Sistema Pronto',
-                        message: 'Missões de teste removidas com sucesso! O sistema está pronto para a operação real.',
-                        variant: 'success',
-                      });
-                      onClose();
-                    }
-                  }}
-                >
-                  <Trash2 size={15} /> Limpar Todas as Missões de Teste
-                </button>
 
                 <SectionTitle icon={RotateCcw} label="Redefinir Dados do Sistema" />
                 <div className="settings-danger-zone">
