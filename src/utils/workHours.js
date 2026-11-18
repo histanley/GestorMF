@@ -593,4 +593,197 @@ export function calculateExtraHoursRemuneration(hours, hourlyRate = 50) {
   };
 }
 
+/**
+ * Classifica o turno e regime de horário da missão:
+ * - 'in_hours': Dentro do Expediente Comercial · Diurna
+ * - 'off_day': Fora do Expediente · Diurna (ex: sáb tarde, dom diurno, antes das 8h)
+ * - 'off_night': Fora do Expediente · Noturna (ex: após 18h ou antes das 6h)
+ * - 'off_mixed': Fora do Expediente · Diurna e Noturna
+ * - 'unknown': Sem horários definidos
+ */
+export function classifyMissionShift(missionOrData) {
+  if (!missionOrData) {
+    return {
+      kind: 'unknown',
+      label: 'Horário Indefinido',
+      short: 'Indefinido',
+      icon: '⏱️',
+      detail: 'Sem horários definidos para apuração',
+      partial: false,
+      inHoursMinutes: 0,
+      offDayMinutes: 0,
+      offNightMinutes: 0,
+      totalMinutes: 0,
+    };
+  }
+
+  const { startTime, endTime } = resolveEventTimes(missionOrData);
+  const startDateStr = missionOrData.date;
+  const endDateStr = (missionOrData.isMultiDay && missionOrData.endDate) ? missionOrData.endDate : startDateStr;
+
+  if (!startDateStr || !startTime || !endTime) {
+    return {
+      kind: 'unknown',
+      label: 'Horário Indefinido',
+      short: 'Indefinido',
+      icon: '⏱️',
+      detail: 'Sem horários suficientes para apuração',
+      partial: false,
+      inHoursMinutes: 0,
+      offDayMinutes: 0,
+      offNightMinutes: 0,
+      totalMinutes: 0,
+    };
+  }
+
+  const [y1, m1, d1] = String(startDateStr).split('-').map(Number);
+  const [h1, min1] = String(startTime).split(':').map(Number);
+  const [y2, m2, d2] = String(endDateStr).split('-').map(Number);
+  const [h2, min2] = String(endTime).split(':').map(Number);
+
+  if (!y1 || !m1 || !d1 || isNaN(h1) || isNaN(min1) || !y2 || !m2 || !d2 || isNaN(h2) || isNaN(min2)) {
+    return {
+      kind: 'unknown',
+      label: 'Horário Inválido',
+      short: 'Inválido',
+      icon: '⚠️',
+      detail: 'Formato de data ou hora inválido',
+      partial: false,
+      inHoursMinutes: 0,
+      offDayMinutes: 0,
+      offNightMinutes: 0,
+      totalMinutes: 0,
+    };
+  }
+
+  const start = new Date(y1, m1 - 1, d1, h1, min1, 0, 0);
+  let end = new Date(y2, m2 - 1, d2, h2, min2, 0, 0);
+
+  if (end <= start && startDateStr === endDateStr) {
+    end = new Date(y2, m2 - 1, d2 + 1, h2, min2, 0, 0);
+  }
+
+  if (end <= start) {
+    return {
+      kind: 'unknown',
+      label: 'Horário Incoerente',
+      short: 'Incoerente',
+      icon: '⚠️',
+      detail: 'Horário final anterior ao inicial',
+      partial: false,
+      inHoursMinutes: 0,
+      offDayMinutes: 0,
+      offNightMinutes: 0,
+      totalMinutes: 0,
+    };
+  }
+
+  let inHoursMin = 0;
+  let offDayMin = 0;
+  let offNightMin = 0;
+
+  const cur = new Date(start.getTime());
+  while (cur < end) {
+    const dayOfWeek = cur.getDay(); // 0 = Domingo, 1 = Segunda ... 6 = Sábado
+    const curHour = cur.getHours();
+    const curMinute = cur.getMinutes();
+    const minuteOfDay = curHour * 60 + curMinute;
+
+    let isWorkHour = false;
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      // Seg a Sex: 08:00 às 18:00
+      if (minuteOfDay >= 480 && minuteOfDay < 1080) {
+        isWorkHour = true;
+      }
+    } else if (dayOfWeek === 6) {
+      // Sábado: 08:00 às 12:00
+      if (minuteOfDay >= 480 && minuteOfDay < 720) {
+        isWorkHour = true;
+      }
+    } else {
+      // Domingo: 100% fora
+      isWorkHour = false;
+    }
+
+    if (isWorkHour) {
+      inHoursMin++;
+    } else {
+      // Fora do expediente comercial: diurno (06:00 às 18:00) vs noturno (18:00 às 06:00)
+      if (minuteOfDay >= 360 && minuteOfDay < 1080) {
+        offDayMin++;
+      } else {
+        offNightMin++;
+      }
+    }
+
+    cur.setMinutes(cur.getMinutes() + 1);
+  }
+
+  const totalMin = inHoursMin + offDayMin + offNightMin;
+  const offTotalMin = offDayMin + offNightMin;
+  const partial = inHoursMin > 0 && offTotalMin > 0;
+
+  if (offTotalMin === 0) {
+    return {
+      kind: 'in_hours',
+      label: 'Dentro do Expediente · Diurna',
+      short: 'Expediente (Diurna)',
+      icon: '☀️',
+      detail: 'Horário 100% dentro do expediente comercial da produtora',
+      partial: false,
+      inHoursMinutes: inHoursMin,
+      offDayMinutes: offDayMin,
+      offNightMinutes: offNightMin,
+      totalMinutes: totalMin,
+    };
+  }
+
+  if (offDayMin > 0 && offNightMin === 0) {
+    return {
+      kind: 'off_day',
+      label: partial ? 'Mista · Expediente e Fora (Diurna)' : 'Fora do Expediente · Diurna',
+      short: partial ? 'Expediente + Fora Diurna' : 'Fora Exp. (Diurna)',
+      icon: '🌤️',
+      detail: partial
+        ? `Possui ${Math.round(inHoursMin / 60)}h em expediente e ${(offDayMin / 60).toFixed(1)}h fora do expediente em período diurno`
+        : 'Horário realizado fora do expediente comercial em período diurno (fim de semana ou horário especial)',
+      partial,
+      inHoursMinutes: inHoursMin,
+      offDayMinutes: offDayMin,
+      offNightMinutes: offNightMin,
+      totalMinutes: totalMin,
+    };
+  }
+
+  if (offNightMin > 0 && offDayMin === 0) {
+    return {
+      kind: 'off_night',
+      label: partial ? 'Mista · Expediente e Noturna' : 'Fora do Expediente · Noturna',
+      short: partial ? 'Expediente + Noturna' : 'Fora Exp. (Noturna)',
+      icon: '🌙',
+      detail: partial
+        ? `Possui ${Math.round(inHoursMin / 60)}h em expediente e ${(offNightMin / 60).toFixed(1)}h fora do expediente em período noturno`
+        : 'Horário realizado fora do expediente comercial em período noturno (após 18h ou madrugada)',
+      partial,
+      inHoursMinutes: inHoursMin,
+      offDayMinutes: offDayMin,
+      offNightMinutes: offNightMin,
+      totalMinutes: totalMin,
+    };
+  }
+
+  return {
+    kind: 'off_mixed',
+    label: partial ? 'Mista · Expediente, Diurna e Noturna' : 'Fora do Expediente · Diurna e Noturna',
+    short: 'Fora Exp. (Mista)',
+    icon: '🌗',
+    detail: `Horário fora do expediente abrangendo períodos diurnos (${(offDayMin / 60).toFixed(1)}h) e noturnos (${(offNightMin / 60).toFixed(1)}h)`,
+    partial,
+    inHoursMinutes: inHoursMin,
+    offDayMinutes: offDayMin,
+    offNightMinutes: offNightMin,
+    totalMinutes: totalMin,
+  };
+}
+
 

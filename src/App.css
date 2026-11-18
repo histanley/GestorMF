@@ -48638,5 +48638,121 @@ body.light-theme .aphl-approval-by,
   color: #334155;
 }
 
+/* ==========================================================================
+   BADGES DE TURNO DA MISSÃO (EXPEDIENTE vs. FORA DO EXPEDIENTE DIURNO/NOTURNO)
+   ========================================================================== */
+.agenda-shift-row {
+  margin: 4px 0 6px 0;
+  display: flex;
+  align-items: center;
+}
+
+.mmc-shift-row {
+  margin: 6px 0 8px 0;
+  display: flex;
+  align-items: center;
+}
+
+.shift-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.shift-badge.shift-compact {
+  padding: 2px 7px;
+  font-size: 0.68rem;
+  gap: 4px;
+}
+
+.shift-badge .shift-icon {
+  font-size: 0.85em;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 1. Dentro do Expediente Comercial · Diurna (Verde Esmeralda) */
+.shift-badge.shift-in_hours {
+  background: rgba(16, 185, 129, 0.14);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+.shift-badge.shift-in_hours:hover {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+/* 2. Fora do Expediente · Diurna (Âmbar / Amarelo Dourado) */
+.shift-badge.shift-off_day {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.shift-badge.shift-off_day:hover {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: rgba(245, 158, 11, 0.7);
+}
+
+/* 3. Fora do Expediente · Noturna (Índigo / Azul Escuro Lunar) */
+.shift-badge.shift-off_night {
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+  border-color: rgba(129, 140, 248, 0.45);
+}
+.shift-badge.shift-off_night:hover {
+  background: rgba(99, 102, 241, 0.28);
+  border-color: rgba(129, 140, 248, 0.75);
+}
+
+/* 4. Fora do Expediente · Mista Diurna & Noturna (Gradiente Sutil) */
+.shift-badge.shift-off_mixed {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(139, 92, 246, 0.22) 100%);
+  color: #fcd34d;
+  border-color: rgba(217, 119, 6, 0.45);
+}
+.shift-badge.shift-off_mixed:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.26) 0%, rgba(139, 92, 246, 0.32) 100%);
+  border-color: rgba(217, 119, 6, 0.75);
+}
+
+/* Adaptações para o Tema Claro (Light Mode) */
+body.light-theme .shift-badge.shift-in_hours,
+[data-theme='light'] .shift-badge.shift-in_hours {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+body.light-theme .shift-badge.shift-off_day,
+[data-theme='light'] .shift-badge.shift-off_day {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+body.light-theme .shift-badge.shift-off_night,
+[data-theme='light'] .shift-badge.shift-off_night {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+body.light-theme .shift-badge.shift-off_mixed,
+[data-theme='light'] .shift-badge.shift-off_mixed {
+  background: #fdf4ff;
+  color: #86198f;
+  border-color: #f5d0fe;
+}
+
 
 

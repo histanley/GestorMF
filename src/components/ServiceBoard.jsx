@@ -66,6 +66,7 @@ import {
 } from '../utils/geo';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { normalizeRole } from '../utils/auth';
+import { classifyMissionShift } from '../utils/workHours';
 import { sendPushNotification, clearPostProductionNotification } from '../utils/notifications';
 import MissionHistoryModal from './MissionHistoryModal';
 import RejectPostProductionModal from './RejectPostProductionModal';
@@ -94,6 +95,21 @@ function addMinutesToTime(timeStr, deltaMinutes) {
   const nh = Math.floor(total / 60);
   const nm = total % 60;
   return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
+}
+
+// Selo de turno da missão: dentro do expediente (diurna) / fora do expediente (diurna ou noturna)
+function ShiftBadge({ mission, compact = false }) {
+  const shift = classifyMissionShift(mission);
+  if (shift.kind === 'unknown') return null;
+  return (
+    <span
+      className={`shift-badge shift-${shift.kind}${compact ? ' shift-compact' : ''}`}
+      title={`${shift.label} — ${shift.detail}`}
+    >
+      <span className="shift-icon">{shift.icon}</span>
+      <span className="shift-text">{compact ? shift.short : shift.label}</span>
+    </span>
+  );
 }
 
 export default function ServiceBoard({
@@ -982,6 +998,7 @@ export default function ServiceBoard({
                               : formatDateBR(mission.date)}
                           </strong>
                         </div>
+                        <div className="agenda-shift-row"><ShiftBadge mission={mission} compact /></div>
                         <div className={`agenda-times-grid ${mission.eventStartTime ? 'has-event-slot' : ''}`}>
                           <div className="ag-time-item highlight">
                             <span>Saída</span>
@@ -1594,6 +1611,7 @@ export default function ServiceBoard({
                               : formatDateBR(mission.date)}
                           </strong>
                         </div>
+                        <div className="agenda-shift-row"><ShiftBadge mission={mission} compact /></div>
                         <div className={`agenda-times-grid ${mission.eventStartTime ? 'has-event-slot' : ''}`}>
                           <div className="ag-time-item highlight">
                             <span>Saída</span>
@@ -2240,6 +2258,7 @@ export default function ServiceBoard({
                         : formatDateBR(mission.date)}
                     </span>
                   </div>
+                  <div className="mmc-shift-row"><ShiftBadge mission={mission} /></div>
                   <div className="mmc-times-grid">
                     <div className="mmc-time-box saida">
                       <span className="mmc-time-label">Saída Base</span>
@@ -2697,6 +2716,8 @@ export default function ServiceBoard({
                     <span className="mdm-edition-badge">
                       Pós-Produção: <strong>{deliverySummary.hasMultipleEditors ? (deliverySummary.isFullyDelivered ? 'Edição Concluída' : deliverySummary.summaryBadgeText) : (detailMission.editionStatus || 'Pendente')}</strong>
                     </span>
+
+                    <ShiftBadge mission={detailMission} />
 
                     <span className="mdm-roundtrip-badge">
                       🔄 Ida e Volta à Base
