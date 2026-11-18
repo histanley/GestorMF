@@ -3261,8 +3261,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
 
                     <div className="photo-url-wrap">
                       <input
-                        type="url"
-                        placeholder="Ou cole o link direto da imagem (https://...)"
+                        type="text"
+                        placeholder="Ou cole o link direto ou caminho da imagem (https://... ou /images/...)"
                         value={editEquipPhoto.startsWith('data:') ? '' : editEquipPhoto}
                         onChange={(e) => setEditEquipPhoto(e.target.value)}
                         className="photo-url-input"

@@ -56,6 +56,7 @@ const managerContent = fs.readFileSync(managerPath, 'utf8');
 assert.ok(managerContent.includes('EquipmentDetailModal'), 'EquipmentRentalManager deve importar EquipmentDetailModal');
 assert.ok(managerContent.includes('selectedDetailEquipment'), 'EquipmentRentalManager deve controlar selectedDetailEquipment');
 assert.ok(managerContent.includes('modal-box equip-edit-modal'), 'Modal de edição deve usar modal-box');
+assert.ok(!managerContent.includes('type="url"'), 'Campo de foto não deve usar type="url" para aceitar caminhos locais como /images/equipment/eq-010.jpg');
 
 // 3. Verifica API PHP
 const apiPath = path.join(__dirname, '../public/api/rentals.php');
