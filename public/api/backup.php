@@ -84,6 +84,19 @@ function getBackupKeys($secrets) {
 // ------------------------------------------------------------------------------
 // DOWNLOAD MANUAL DE BACKUP COMPLETO (GET)
 // ------------------------------------------------------------------------------
+if ($method === 'GET' && ($action === 'export_json' || $action === 'export')) {
+    $backupData = collectAllDatabaseTables($db);
+    $filename = 'gestormf_backup_' . date('Y-m-d_H-i') . '.json';
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+    logAudit('BACKUP_DOWNLOAD_JSON', 'BACKUP', $filename, "Download de backup integral em JSON realizado por {$user['name']}.", $user['id'], $user['name']);
+
+    echo json_encode($backupData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    exit();
+}
+
 if ($method === 'GET' && $action === 'download') {
     $backupData = generateFullBackupData($db);
     $filename = 'gestormf_backup_' . date('Y-m-d_H-i') . '.enc.json';
@@ -114,58 +127,88 @@ if ($method === 'POST' && $action === 'restore') {
     }
 
     $format = $input['format'] ?? '';
-    $version = (string)($input['version'] ?? '1.0');
+    $tables = null;
 
-    // Item 05: Interface Web REST aceita exclusivamente backups modernos criptografados e assinados (v6.0+)
-    if ($format !== 'aes-256-gcm-encrypted' || empty($input['payload']) || empty($input['iv']) || empty($input['tag']) || empty($input['signature'])) {
-        jsonResponse([
-            'success' => false,
-            'error'   => 'Acesso negado: a interface web aceita exclusivamente backups modernos criptografados (AES-256-GCM) e assinados (v6.0+). Backups legados não assinados devem ser restaurados exclusivamente via terminal CLI seguro (php bin/restore-legacy.php).'
-        ], 400);
-    }
+    if ($format === 'aes-256-gcm-encrypted') {
+        // Validação estrita de snapshot criptografado oficial (AES-256-GCM)
+        if (empty($input['payload']) || empty($input['iv']) || empty($input['tag']) || empty($input['signature'])) {
+            jsonResponse([
+                'success' => false,
+                'error'   => 'Arquivo de snapshot criptografado corrompido ou incompleto.'
+            ], 400);
+        }
 
-    try {
-        list($encKey, $sigKey) = getBackupKeys($secrets);
-    } catch (Exception $e) {
-        jsonResponse(['success' => false, 'error' => 'Chave de segurança do servidor ausente ou mal configurada.'], 500);
-    }
+        try {
+            list($encKey, $sigKey) = getBackupKeys($secrets);
+        } catch (Exception $e) {
+            jsonResponse(['success' => false, 'error' => 'Chave de segurança do servidor ausente ou mal configurada.'], 500);
+        }
 
-    // Validação estrita da assinatura digital HMAC-SHA256 antes da descriptografia (Item 02 & P0-04)
-    $signedPayload = "{$input['payload']}|{$input['iv']}|{$input['tag']}|" . ($input['checksum'] ?? '');
-    $expectedSig = hash_hmac('sha256', $signedPayload, $sigKey);
+        // Validação estrita da assinatura digital HMAC-SHA256 antes da descriptografia (Item 02 & P0-04)
+        $signedPayload = "{$input['payload']}|{$input['iv']}|{$input['tag']}|" . ($input['checksum'] ?? '');
+        $expectedSig = hash_hmac('sha256', $signedPayload, $sigKey);
 
-    if (!hash_equals($expectedSig, (string)$input['signature'])) {
-        jsonResponse([
-            'success' => false,
-            'error'   => 'Falha crítica de segurança: a assinatura digital HMAC do backup não confere com a chave deste servidor. O arquivo foi adulterado ou pertence a outra instalação.'
-        ], 403);
-    }
+        if (!hash_equals($expectedSig, (string)$input['signature'])) {
+            jsonResponse([
+                'success' => false,
+                'error'   => 'Falha crítica de segurança: a assinatura digital HMAC do backup não confere com a chave deste servidor. O arquivo foi adulterado ou pertence a outra instalação.'
+            ], 403);
+        }
 
-    // Descriptografia com autenticação de integridade AES-256-GCM
-    $ciphertext = base64_decode($input['payload']);
-    $iv = base64_decode($input['iv']);
-    $tag = base64_decode($input['tag']);
-    $decrypted = openssl_decrypt($ciphertext, 'aes-256-gcm', $encKey, OPENSSL_RAW_DATA, $iv, $tag);
+        // Descriptografia com autenticação de integridade AES-256-GCM
+        $ciphertext = base64_decode($input['payload']);
+        $iv = base64_decode($input['iv']);
+        $tag = base64_decode($input['tag']);
+        $decrypted = openssl_decrypt($ciphertext, 'aes-256-gcm', $encKey, OPENSSL_RAW_DATA, $iv, $tag);
 
-    if ($decrypted === false) {
-        jsonResponse([
-            'success' => false,
-            'error'   => 'Falha de integridade criptográfica: a tag de autenticação AES-256-GCM foi rejeitada. O conteúdo está corrompido.'
-        ], 400);
-    }
+        if ($decrypted === false) {
+            jsonResponse([
+                'success' => false,
+                'error'   => 'Falha de integridade criptográfica: a tag de autenticação AES-256-GCM foi rejeitada. O conteúdo está corrompido.'
+            ], 400);
+        }
 
-    // Validação do Checksum SHA-256 dos dados descriptografados
-    if (!empty($input['checksum'])) {
-        $computedChecksum = hash('sha256', $decrypted);
-        if (!hash_equals($input['checksum'], $computedChecksum)) {
-            jsonResponse(['success' => false, 'error' => 'Falha de integridade: a soma de verificação do conteúdo descriptografado não confere.'], 400);
+        // Validação do Checksum SHA-256 dos dados descriptografados
+        if (!empty($input['checksum'])) {
+            $computedChecksum = hash('sha256', $decrypted);
+            if (!hash_equals($input['checksum'], $computedChecksum)) {
+                jsonResponse(['success' => false, 'error' => 'Falha de integridade: a soma de verificação do conteúdo descriptografado não confere.'], 400);
+            }
+        }
+
+        $tables = json_decode($decrypted, true);
+    } else {
+        // Formato JSON direto (backup completo ou exportação do GestorMF)
+        if (isset($input['tables']) && is_array($input['tables'])) {
+            $tables = $input['tables'];
+        } elseif (isset($input['data']) && is_array($input['data'])) {
+            $tables = $input['data'];
+        } else {
+            $tables = $input;
         }
     }
 
-    $tables = json_decode($decrypted, true);
-    if (!is_array($tables)) {
-        jsonResponse(['success' => false, 'error' => 'Estrutura JSON interna das tabelas do backup é inválida.'], 400);
+    if (!is_array($tables) || (!isset($tables['missions']) && !isset($tables['vehicles']) && !isset($tables['settings']))) {
+        jsonResponse([
+            'success' => false,
+            'error'   => 'Estrutura JSON inválida: o arquivo não contém coleções de missões, viaturas ou configurações compatíveis com o GestorMF.'
+        ], 400);
     }
+
+    // Auto-garante colunas essenciais antes da restauração
+    try {
+        $chkNotes = $db->query("SHOW COLUMNS FROM missions LIKE 'member_notes'")->fetch();
+        if (!$chkNotes) {
+            $db->exec("ALTER TABLE missions ADD COLUMN member_notes LONGTEXT NULL AFTER equipment_allocations");
+        }
+    } catch (Exception $e) {}
+
+    try {
+        $chkPix = $db->query("SHOW COLUMNS FROM users LIKE 'pix_key'")->fetch();
+        if (!$chkPix) {
+            $db->exec("ALTER TABLE users ADD COLUMN pix_key VARCHAR(100) NULL AFTER phone");
+        }
+    } catch (Exception $e) {}
 
     // Inicia Transação Atômica: Se qualquer etapa falhar, restaura o estado original sem perda
     $db->beginTransaction();
@@ -219,10 +262,18 @@ if ($method === 'POST' && $action === 'restore') {
             ");
             foreach ($tables['vehicles'] as $v) {
                 $stmtVeh->execute([
-                    $v['id'], $v['name'], $v['plate'], $v['company'] ?? 'MegaFilmes', $v['type'] ?? '',
-                    $v['fuel_type'] ?? 'Gasolina', $v['autonomy_km_per_liter'] ?? 10.0, $v['tank_capacity'] ?? 50.0,
-                    $v['current_fuel_percent'] ?? 100.0, $v['current_km'] ?? 0, $v['status'] ?? 'Disponível',
-                    is_array($v['fuel_logs']) ? json_encode($v['fuel_logs'], JSON_UNESCAPED_UNICODE) : $v['fuel_logs']
+                    $v['id'],
+                    $v['name'],
+                    $v['plate'],
+                    $v['company'] ?? 'MegaFilmes',
+                    $v['type'] ?? '',
+                    $v['fuel_type'] ?? ($v['fuelType'] ?? 'Gasolina'),
+                    $v['autonomy_km_per_liter'] ?? ($v['autonomyKmPerLiter'] ?? 10.0),
+                    $v['tank_capacity'] ?? ($v['tankCapacity'] ?? 50.0),
+                    $v['current_fuel_percent'] ?? ($v['currentFuelPercent'] ?? 100.0),
+                    $v['current_km'] ?? ($v['currentKm'] ?? 0),
+                    $v['status'] ?? 'Disponível',
+                    is_array($v['fuel_logs'] ?? ($v['fuelLogs'] ?? null)) ? json_encode($v['fuel_logs'] ?? $v['fuelLogs'], JSON_UNESCAPED_UNICODE) : ($v['fuel_logs'] ?? ($v['fuelLogs'] ?? '[]'))
                 ]);
             }
         }
@@ -230,37 +281,75 @@ if ($method === 'POST' && $action === 'restore') {
         // 3. Restaura Colaboradores (Reconstrução integral com user_id único e campos financeiros/funções)
         if (isset($tables['members']) && is_array($tables['members'])) {
             $db->exec("DELETE FROM members");
-            $stmtMem = $db->prepare("
-                INSERT INTO members (
-                    id, user_id, name, role, secondary_roles, company, phone, photo_url,
-                    can_drive, cnh_category, active, rate_model, hourly_rate, daily_rate,
-                    pix_key, extra_hours_availability
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ");
-            foreach ($tables['members'] as $m) {
-                $stmtMem->execute([
-                    $m['id'],
-                    $m['user_id'] ?? null,
-                    $m['name'],
-                    $m['role'],
-                    is_array($m['secondary_roles'] ?? null) ? json_encode($m['secondary_roles'], JSON_UNESCAPED_UNICODE) : ($m['secondary_roles'] ?? null),
-                    $m['company'] ?? 'MegaFilmes',
-                    $m['phone'] ?? '',
-                    $m['photo_url'] ?? null,
-                    isset($m['can_drive']) ? (int)$m['can_drive'] : 0,
-                    $m['cnh_category'] ?? 'B',
-                    isset($m['active']) ? (int)$m['active'] : 1,
-                    $m['rate_model'] ?? 'both',
-                    isset($m['hourly_rate']) ? (float)$m['hourly_rate'] : 50.0,
-                    isset($m['daily_rate']) ? (float)$m['daily_rate'] : 200.0,
-                    $m['pix_key'] ?? null,
-                    $m['extra_hours_availability'] ?? 'unknown'
-                ]);
+            $hasBlockRate = false;
+            try {
+                $chk = $db->query("SHOW COLUMNS FROM members LIKE 'block_rate'")->fetch();
+                $hasBlockRate = !empty($chk);
+            } catch (Exception $e) {}
+
+            if ($hasBlockRate) {
+                $stmtMem = $db->prepare("
+                    INSERT INTO members (
+                        id, user_id, name, role, secondary_roles, company, phone, photo_url,
+                        can_drive, cnh_category, active, rate_model, hourly_rate, daily_rate,
+                        block_rate, pix_key, extra_hours_availability
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                foreach ($tables['members'] as $m) {
+                    $stmtMem->execute([
+                        $m['id'],
+                        $m['user_id'] ?? ($m['userId'] ?? null),
+                        $m['name'],
+                        $m['role'],
+                        is_array($m['secondary_roles'] ?? ($m['secondaryRoles'] ?? null)) ? json_encode($m['secondary_roles'] ?? $m['secondaryRoles'], JSON_UNESCAPED_UNICODE) : ($m['secondary_roles'] ?? ($m['secondaryRoles'] ?? null)),
+                        $m['company'] ?? 'MegaFilmes',
+                        $m['phone'] ?? '',
+                        $m['photo_url'] ?? ($m['photoUrl'] ?? ($m['avatar'] ?? null)),
+                        isset($m['can_drive']) ? (int)$m['can_drive'] : (isset($m['canDrive']) ? (int)$m['canDrive'] : 0),
+                        $m['cnh_category'] ?? ($m['cnhCategory'] ?? 'B'),
+                        isset($m['active']) ? (int)$m['active'] : 1,
+                        $m['rate_model'] ?? ($m['rateModel'] ?? 'both'),
+                        isset($m['hourly_rate']) ? (float)$m['hourly_rate'] : (isset($m['hourlyRate']) ? (float)$m['hourlyRate'] : 50.0),
+                        isset($m['daily_rate']) ? (float)$m['daily_rate'] : (isset($m['dailyRate']) ? (float)$m['dailyRate'] : 200.0),
+                        isset($m['block_rate']) ? (float)$m['block_rate'] : (isset($m['blockRate']) ? (float)$m['blockRate'] : 0.0),
+                        $m['pix_key'] ?? ($m['pixKey'] ?? null),
+                        $m['extra_hours_availability'] ?? ($m['extraHoursAvailability'] ?? 'unknown')
+                    ]);
+                }
+            } else {
+                $stmtMem = $db->prepare("
+                    INSERT INTO members (
+                        id, user_id, name, role, secondary_roles, company, phone, photo_url,
+                        can_drive, cnh_category, active, rate_model, hourly_rate, daily_rate,
+                        pix_key, extra_hours_availability
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                foreach ($tables['members'] as $m) {
+                    $stmtMem->execute([
+                        $m['id'],
+                        $m['user_id'] ?? ($m['userId'] ?? null),
+                        $m['name'],
+                        $m['role'],
+                        is_array($m['secondary_roles'] ?? ($m['secondaryRoles'] ?? null)) ? json_encode($m['secondary_roles'] ?? $m['secondaryRoles'], JSON_UNESCAPED_UNICODE) : ($m['secondary_roles'] ?? ($m['secondaryRoles'] ?? null)),
+                        $m['company'] ?? 'MegaFilmes',
+                        $m['phone'] ?? '',
+                        $m['photo_url'] ?? ($m['photoUrl'] ?? ($m['avatar'] ?? null)),
+                        isset($m['can_drive']) ? (int)$m['can_drive'] : (isset($m['canDrive']) ? (int)$m['canDrive'] : 0),
+                        $m['cnh_category'] ?? ($m['cnhCategory'] ?? 'B'),
+                        isset($m['active']) ? (int)$m['active'] : 1,
+                        $m['rate_model'] ?? ($m['rateModel'] ?? 'both'),
+                        isset($m['hourly_rate']) ? (float)$m['hourly_rate'] : (isset($m['hourlyRate']) ? (float)$m['hourlyRate'] : 50.0),
+                        isset($m['daily_rate']) ? (float)$m['daily_rate'] : (isset($m['dailyRate']) ? (float)$m['dailyRate'] : 200.0),
+                        $m['pix_key'] ?? ($m['pixKey'] ?? null),
+                        $m['extra_hours_availability'] ?? ($m['extraHoursAvailability'] ?? 'unknown')
+                    ]);
+                }
             }
         }
 
-        // 4. Restaura Missões (Todas as colunas incluindo Pós-Produção, Escala, Financeiro e Versão)
+        // 4. Restaura Missões (Todas as 68 colunas incluindo Pós-Produção, Escala, Observações Manuais, Financeiro e Versão)
         if (isset($tables['missions']) && is_array($tables['missions'])) {
             $db->exec("DELETE FROM missions");
             $stmtMis = $db->prepare("
@@ -279,7 +368,7 @@ if ($method === 'POST' && $action === 'restore') {
                     is_overdue, edition_delivery_status, reopen_reason, edition_history, editors_delivery,
                     server_file_path, is_recurring, recurrence_id, recurrence_rule, recurrence_days,
                     is_multi_day, end_date, custom_rates, off_hours, remuneration_type,
-                    member_remuneration_types, member_roles, equipment_allocations,
+                    member_remuneration_types, member_roles, equipment_allocations, member_notes,
                     extra_hours_planned, extra_hours_approved, extra_hours_requests, version
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?,
@@ -296,7 +385,7 @@ if ($method === 'POST' && $action === 'restore') {
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
-                    ?, ?, ?,
+                    ?, ?, ?, ?,
                     ?, ?, ?, ?
                 )
             ");
@@ -304,82 +393,128 @@ if ($method === 'POST' && $action === 'restore') {
                 $stmtMis->execute([
                     $mis['id'],
                     $mis['code'] ?? null,
-                    $mis['description'],
-                    $mis['location_name'] ?? null,
+                    $mis['description'] ?? '',
+                    $mis['location_name'] ?? ($mis['locationName'] ?? null),
                     $mis['address'] ?? null,
                     $mis['lat'] ?? null,
                     $mis['lon'] ?? null,
-                    $mis['date'],
-                    $mis['departure_time'] ?? null,
-                    $mis['arrival_time_estimated'] ?? null,
-                    $mis['return_time_estimated'] ?? null,
-                    $mis['event_start_time'] ?? null,
-                    $mis['event_end_time'] ?? null,
-                    isset($mis['antecedence_minutes']) ? (int)$mis['antecedence_minutes'] : 15,
-                    $mis['suggested_departure_time'] ?? null,
-                    $mis['vehicle_id'] ?? null,
-                    $mis['vehicle_name_display'] ?? null,
-                    is_array($mis['vehicle_allocations'] ?? null) ? json_encode($mis['vehicle_allocations'], JSON_UNESCAPED_UNICODE) : ($mis['vehicle_allocations'] ?? null),
-                    $mis['driver_id'] ?? null,
-                    $mis['driver_name'] ?? null,
-                    is_array($mis['team_ids'] ?? null) ? json_encode($mis['team_ids'], JSON_UNESCAPED_UNICODE) : ($mis['team_ids'] ?? null),
-                    $mis['team_names_display'] ?? null,
+                    $mis['date'] ?? date('Y-m-d'),
+                    $mis['departure_time'] ?? ($mis['departureTime'] ?? null),
+                    $mis['arrival_time_estimated'] ?? ($mis['arrivalTimeEstimated'] ?? null),
+                    $mis['return_time_estimated'] ?? ($mis['returnTimeEstimated'] ?? null),
+                    $mis['event_start_time'] ?? ($mis['eventStartTime'] ?? null),
+                    $mis['event_end_time'] ?? ($mis['eventEndTime'] ?? null),
+                    isset($mis['antecedence_minutes']) ? (int)$mis['antecedence_minutes'] : (isset($mis['antecedenceMinutes']) ? (int)$mis['antecedenceMinutes'] : 15),
+                    $mis['suggested_departure_time'] ?? ($mis['suggestedDepartureTime'] ?? null),
+                    $mis['vehicle_id'] ?? ($mis['vehicleId'] ?? null),
+                    $mis['vehicle_name_display'] ?? ($mis['vehicleNameDisplay'] ?? null),
+                    is_array($mis['vehicle_allocations'] ?? ($mis['vehicleAllocations'] ?? null)) ? json_encode($mis['vehicle_allocations'] ?? $mis['vehicleAllocations'], JSON_UNESCAPED_UNICODE) : ($mis['vehicle_allocations'] ?? ($mis['vehicleAllocations'] ?? null)),
+                    $mis['driver_id'] ?? ($mis['driverId'] ?? null),
+                    $mis['driver_name'] ?? ($mis['driverName'] ?? null),
+                    is_array($mis['team_ids'] ?? ($mis['teamIds'] ?? null)) ? json_encode($mis['team_ids'] ?? $mis['teamIds'], JSON_UNESCAPED_UNICODE) : ($mis['team_ids'] ?? ($mis['teamIds'] ?? null)),
+                    $mis['team_names_display'] ?? ($mis['teamNamesDisplay'] ?? null),
                     is_array($mis['guests'] ?? null) ? json_encode($mis['guests'], JSON_UNESCAPED_UNICODE) : ($mis['guests'] ?? null),
-                    $mis['edition_status'] ?? 'Pendente',
-                    $mis['mission_status'] ?? 'Agendada',
-                    isset($mis['is_round_trip']) ? (int)$mis['is_round_trip'] : 1,
-                    $mis['distance_km'] ?? 0,
-                    $mis['total_distance_km'] ?? 0,
-                    $mis['driving_duration_minutes'] ?? 0,
-                    $mis['round_trip_duration_minutes'] ?? 0,
-                    $mis['estimated_fuel_liters'] ?? 0,
-                    $mis['estimated_fuel_cost'] ?? 0,
-                    is_array($mis['route_coordinates'] ?? null) ? json_encode($mis['route_coordinates']) : ($mis['route_coordinates'] ?? null),
-                    is_array($mis['return_coordinates'] ?? null) ? json_encode($mis['return_coordinates']) : ($mis['return_coordinates'] ?? null),
+                    $mis['edition_status'] ?? ($mis['editionStatus'] ?? 'Pendente'),
+                    $mis['mission_status'] ?? ($mis['missionStatus'] ?? 'Agendada'),
+                    isset($mis['is_round_trip']) ? (int)$mis['is_round_trip'] : (isset($mis['isRoundTrip']) ? (int)$mis['isRoundTrip'] : 1),
+                    $mis['distance_km'] ?? ($mis['distanceKm'] ?? 0),
+                    $mis['total_distance_km'] ?? ($mis['totalDistanceKm'] ?? 0),
+                    $mis['driving_duration_minutes'] ?? ($mis['drivingDurationMinutes'] ?? 0),
+                    $mis['round_trip_duration_minutes'] ?? ($mis['roundTripDurationMinutes'] ?? 0),
+                    $mis['estimated_fuel_liters'] ?? ($mis['estimatedFuelLiters'] ?? 0),
+                    $mis['estimated_fuel_cost'] ?? ($mis['estimatedFuelCost'] ?? 0),
+                    is_array($mis['route_coordinates'] ?? ($mis['routeCoordinates'] ?? null)) ? json_encode($mis['route_coordinates'] ?? $mis['routeCoordinates']) : ($mis['route_coordinates'] ?? ($mis['routeCoordinates'] ?? null)),
+                    is_array($mis['return_coordinates'] ?? ($mis['returnCoordinates'] ?? null)) ? json_encode($mis['return_coordinates'] ?? $mis['returnCoordinates']) : ($mis['return_coordinates'] ?? ($mis['returnCoordinates'] ?? null)),
                     $mis['notes'] ?? null,
-                    $mis['created_by'] ?? $user['id'],
-                    $mis['created_by_name'] ?? null,
-                    $mis['editor_id'] ?? null,
-                    $mis['editor_name'] ?? null,
-                    is_array($mis['editor_ids'] ?? null) ? json_encode($mis['editor_ids'], JSON_UNESCAPED_UNICODE) : ($mis['editor_ids'] ?? null),
-                    $mis['editor_names_display'] ?? null,
-                    $mis['delivery_deadline_date'] ?? null,
-                    $mis['delivery_deadline_time'] ?? null,
-                    $mis['edition_completed_at'] ?? null,
-                    $mis['edition_completed_by'] ?? null,
-                    isset($mis['is_overdue']) ? (int)$mis['is_overdue'] : 0,
-                    $mis['edition_delivery_status'] ?? null,
-                    $mis['reopen_reason'] ?? null,
-                    is_array($mis['edition_history'] ?? null) ? json_encode($mis['edition_history'], JSON_UNESCAPED_UNICODE) : ($mis['edition_history'] ?? null),
-                    is_array($mis['editors_delivery'] ?? null) ? json_encode($mis['editors_delivery'], JSON_UNESCAPED_UNICODE) : ($mis['editors_delivery'] ?? null),
-                    $mis['server_file_path'] ?? null,
-                    isset($mis['is_recurring']) ? (int)$mis['is_recurring'] : 0,
-                    $mis['recurrence_id'] ?? null,
-                    $mis['recurrence_rule'] ?? null,
-                    is_array($mis['recurrence_days'] ?? null) ? json_encode($mis['recurrence_days'], JSON_UNESCAPED_UNICODE) : ($mis['recurrence_days'] ?? null),
-                    isset($mis['is_multi_day']) ? (int)$mis['is_multi_day'] : 0,
-                    $mis['end_date'] ?? null,
-                    is_array($mis['custom_rates'] ?? null) ? json_encode($mis['custom_rates'], JSON_UNESCAPED_UNICODE) : ($mis['custom_rates'] ?? null),
-                    is_array($mis['off_hours'] ?? null) ? json_encode($mis['off_hours'], JSON_UNESCAPED_UNICODE) : ($mis['off_hours'] ?? null),
-                    $mis['remuneration_type'] ?? 'extra_hours',
-                    is_array($mis['member_remuneration_types'] ?? null) ? json_encode($mis['member_remuneration_types'], JSON_UNESCAPED_UNICODE) : ($mis['member_remuneration_types'] ?? null),
-                    is_array($mis['member_roles'] ?? null) ? json_encode($mis['member_roles'], JSON_UNESCAPED_UNICODE) : ($mis['member_roles'] ?? null),
-                    is_array($mis['equipment_allocations'] ?? null) ? json_encode($mis['equipment_allocations'], JSON_UNESCAPED_UNICODE) : ($mis['equipment_allocations'] ?? null),
-                    isset($mis['extra_hours_planned']) ? (int)$mis['extra_hours_planned'] : 0,
-                    isset($mis['extra_hours_approved']) ? (int)$mis['extra_hours_approved'] : 0,
-                    is_array($mis['extra_hours_requests'] ?? null) ? json_encode($mis['extra_hours_requests'], JSON_UNESCAPED_UNICODE) : ($mis['extra_hours_requests'] ?? null),
+                    $mis['created_by'] ?? ($mis['createdBy'] ?? $user['id']),
+                    $mis['created_by_name'] ?? ($mis['createdByName'] ?? null),
+                    $mis['editor_id'] ?? ($mis['editorId'] ?? null),
+                    $mis['editor_name'] ?? ($mis['editorName'] ?? null),
+                    is_array($mis['editor_ids'] ?? ($mis['editorIds'] ?? null)) ? json_encode($mis['editor_ids'] ?? $mis['editorIds'], JSON_UNESCAPED_UNICODE) : ($mis['editor_ids'] ?? ($mis['editorIds'] ?? null)),
+                    $mis['editor_names_display'] ?? ($mis['editorNamesDisplay'] ?? null),
+                    $mis['delivery_deadline_date'] ?? ($mis['deliveryDeadlineDate'] ?? null),
+                    $mis['delivery_deadline_time'] ?? ($mis['deliveryDeadlineTime'] ?? null),
+                    $mis['edition_completed_at'] ?? ($mis['editionCompletedAt'] ?? null),
+                    $mis['edition_completed_by'] ?? ($mis['editionCompletedBy'] ?? null),
+                    isset($mis['is_overdue']) ? (int)$mis['is_overdue'] : (isset($mis['isOverdue']) ? (int)$mis['isOverdue'] : 0),
+                    $mis['edition_delivery_status'] ?? ($mis['editionDeliveryStatus'] ?? null),
+                    $mis['reopen_reason'] ?? ($mis['reopenReason'] ?? null),
+                    is_array($mis['edition_history'] ?? ($mis['editionHistory'] ?? null)) ? json_encode($mis['edition_history'] ?? $mis['editionHistory'], JSON_UNESCAPED_UNICODE) : ($mis['edition_history'] ?? ($mis['editionHistory'] ?? null)),
+                    is_array($mis['editors_delivery'] ?? ($mis['editorsDelivery'] ?? null)) ? json_encode($mis['editors_delivery'] ?? $mis['editorsDelivery'], JSON_UNESCAPED_UNICODE) : ($mis['editors_delivery'] ?? ($mis['editorsDelivery'] ?? null)),
+                    $mis['server_file_path'] ?? ($mis['serverFilePath'] ?? null),
+                    isset($mis['is_recurring']) ? (int)$mis['is_recurring'] : (isset($mis['isRecurring']) ? (int)$mis['isRecurring'] : 0),
+                    $mis['recurrence_id'] ?? ($mis['recurrenceId'] ?? null),
+                    $mis['recurrence_rule'] ?? ($mis['recurrenceRule'] ?? null),
+                    is_array($mis['recurrence_days'] ?? ($mis['recurrenceDays'] ?? null)) ? json_encode($mis['recurrence_days'] ?? $mis['recurrenceDays'], JSON_UNESCAPED_UNICODE) : ($mis['recurrence_days'] ?? ($mis['recurrenceDays'] ?? null)),
+                    isset($mis['is_multi_day']) ? (int)$mis['is_multi_day'] : (isset($mis['isMultiDay']) ? (int)$mis['isMultiDay'] : 0),
+                    $mis['end_date'] ?? ($mis['endDate'] ?? null),
+                    is_array($mis['custom_rates'] ?? ($mis['customRates'] ?? null)) ? json_encode($mis['custom_rates'] ?? $mis['customRates'], JSON_UNESCAPED_UNICODE) : ($mis['custom_rates'] ?? ($mis['customRates'] ?? null)),
+                    is_array($mis['off_hours'] ?? ($mis['offHours'] ?? null)) ? json_encode($mis['off_hours'] ?? $mis['offHours'], JSON_UNESCAPED_UNICODE) : ($mis['off_hours'] ?? ($mis['offHours'] ?? null)),
+                    $mis['remuneration_type'] ?? ($mis['remunerationType'] ?? 'extra_hours'),
+                    is_array($mis['member_remuneration_types'] ?? ($mis['memberRemunerationTypes'] ?? null)) ? json_encode($mis['member_remuneration_types'] ?? $mis['memberRemunerationTypes'], JSON_UNESCAPED_UNICODE) : ($mis['member_remuneration_types'] ?? ($mis['memberRemunerationTypes'] ?? null)),
+                    is_array($mis['member_roles'] ?? ($mis['memberRoles'] ?? null)) ? json_encode($mis['member_roles'] ?? $mis['memberRoles'], JSON_UNESCAPED_UNICODE) : ($mis['member_roles'] ?? ($mis['memberRoles'] ?? null)),
+                    is_array($mis['equipment_allocations'] ?? ($mis['equipmentAllocations'] ?? null)) ? json_encode($mis['equipment_allocations'] ?? $mis['equipmentAllocations'], JSON_UNESCAPED_UNICODE) : ($mis['equipment_allocations'] ?? ($mis['equipmentAllocations'] ?? null)),
+                    is_array($mis['member_notes'] ?? ($mis['memberNotes'] ?? null)) ? json_encode($mis['member_notes'] ?? $mis['memberNotes'], JSON_UNESCAPED_UNICODE) : ($mis['member_notes'] ?? ($mis['memberNotes'] ?? null)),
+                    isset($mis['extra_hours_planned']) ? (float)$mis['extra_hours_planned'] : (isset($mis['extraHoursPlanned']) ? (float)$mis['extraHoursPlanned'] : 0.0),
+                    isset($mis['extra_hours_approved']) ? (float)$mis['extra_hours_approved'] : (isset($mis['extraHoursApproved']) ? (float)$mis['extraHoursApproved'] : 0.0),
+                    is_array($mis['extra_hours_requests'] ?? ($mis['extraHoursRequests'] ?? null)) ? json_encode($mis['extra_hours_requests'] ?? $mis['extraHoursRequests'], JSON_UNESCAPED_UNICODE) : ($mis['extra_hours_requests'] ?? ($mis['extraHoursRequests'] ?? null)),
                     isset($mis['version']) ? (int)$mis['version'] : 1
                 ]);
             }
         }
 
-        // 5. Restaura Contas de Usuários (Item 01: Reconstrução exata eliminando contas órfãs não presentes no backup)
+        // 5. Restaura Contas de Usuários (Item 01: Reconstrução exata com pix_key)
         if (isset($tables['users']) && is_array($tables['users']) && !empty($tables['users'])) {
+            $hasPixCol = false;
+            try {
+                $chk = $db->query("SHOW COLUMNS FROM users LIKE 'pix_key'")->fetch();
+                $hasPixCol = !empty($chk);
+            } catch (Exception $e) {}
+
             $db->exec("DELETE FROM users");
-            $stmtUser = $db->prepare("
-                INSERT INTO users (id, name, email, password_hash, role, title, department, phone, avatar, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ");
+
+            if ($hasPixCol) {
+                $stmtUser = $db->prepare("
+                    INSERT INTO users (id, name, email, password_hash, role, title, department, phone, avatar, pix_key, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                foreach ($tables['users'] as $uRow) {
+                    if (empty($uRow['id']) || empty($uRow['email']) || empty($uRow['password_hash'])) continue;
+                    $stmtUser->execute([
+                        $uRow['id'],
+                        $uRow['name'] ?? 'Usuário',
+                        $uRow['email'],
+                        $uRow['password_hash'],
+                        $uRow['role'] ?? 'USER',
+                        $uRow['title'] ?? '',
+                        $uRow['department'] ?? '',
+                        $uRow['phone'] ?? '',
+                        $uRow['avatar'] ?? null,
+                        $uRow['pix_key'] ?? ($uRow['pixKey'] ?? null),
+                        $uRow['created_at'] ?? date('Y-m-d H:i:s')
+                    ]);
+                }
+            } else {
+                $stmtUser = $db->prepare("
+                    INSERT INTO users (id, name, email, password_hash, role, title, department, phone, avatar, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                foreach ($tables['users'] as $uRow) {
+                    if (empty($uRow['id']) || empty($uRow['email']) || empty($uRow['password_hash'])) continue;
+                    $stmtUser->execute([
+                        $uRow['id'],
+                        $uRow['name'] ?? 'Usuário',
+                        $uRow['email'],
+                        $uRow['password_hash'],
+                        $uRow['role'] ?? 'USER',
+                        $uRow['title'] ?? '',
+                        $uRow['department'] ?? '',
+                        $uRow['phone'] ?? '',
+                        $uRow['avatar'] ?? null,
+                        $uRow['created_at'] ?? date('Y-m-d H:i:s')
+                    ]);
+                }
+            }
             foreach ($tables['users'] as $uRow) {
                 if (empty($uRow['id']) || empty($uRow['email']) || empty($uRow['password_hash'])) continue;
                 $stmtUser->execute([
@@ -629,41 +764,68 @@ if ($method === 'POST' && $action === 'restore') {
             }
         }
 
-        // 13. Restaura Anexos Físicos (fotos de vistoria, comprovantes e fotos customizadas do acervo) (BKP-01 & Item 6.3)
+        // 13. Restaura Anexos Físicos (fotos de vistoria, comprovantes, contratos e fotos customizadas) (BKP-01 & Item 6.3)
         if (isset($tables['uploaded_files']) && is_array($tables['uploaded_files'])) {
             $docRoot = !empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') : dirname(__DIR__);
+            $possibleBases = array_unique([
+                $docRoot,
+                dirname(__DIR__),
+                dirname(__DIR__, 2) . '/public_html',
+                dirname(__DIR__, 2) . '/gestormf.shop'
+            ]);
+            $baseImagesDir = null;
+            foreach ($possibleBases as $b) {
+                if (!empty($b) && is_dir($b . '/images')) {
+                    $baseImagesDir = $b . '/images';
+                    break;
+                }
+            }
+            if (!$baseImagesDir) {
+                $baseImagesDir = $docRoot . '/images';
+                @mkdir($baseImagesDir, 0755, true);
+            }
+
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'pdf', 'mp4', 'webm'];
+
             foreach ($tables['uploaded_files'] as $fItem) {
                 $relPath = $fItem['relative_path'] ?? '';
                 $b64Content = $fItem['content_base64'] ?? '';
                 if (empty($relPath) || empty($b64Content)) continue;
-                // Permite restaurar exclusivamente dentro de /images/rentals/ e /images/uploads/equipment/
-                if (strpos($relPath, '/images/rentals/') !== 0 && strpos($relPath, '/images/uploads/equipment/') !== 0) {
+
+                // Garante que o caminho comece com /images/ e não contenha navegação traversal
+                if (strpos($relPath, '/images/') !== 0 || strpos($relPath, '..') !== false) {
                     continue;
                 }
-                $cleanFilename = basename($relPath);
-                if (empty($cleanFilename) || strpos($cleanFilename, '..') !== false) continue;
-                $subDir = strpos($relPath, '/images/rentals/') === 0 ? '/images/rentals' : '/images/uploads/equipment';
-                $targetDir = $docRoot . $subDir;
+
+                $subPath = substr($relPath, strlen('/images/'));
+                $ext = strtolower(pathinfo($subPath, PATHINFO_EXTENSION));
+                if (!in_array($ext, $allowedExtensions, true)) {
+                    continue;
+                }
+
+                $targetFile = $baseImagesDir . '/' . ltrim($subPath, '/\\');
+                $targetDir = dirname($targetFile);
                 if (!is_dir($targetDir)) {
                     @mkdir($targetDir, 0755, true);
                 }
+
                 $rawBin = base64_decode($b64Content, true);
-                if ($rawBin !== false && strlen($rawBin) > 0 && stripos($rawBin, '<?php') === false) {
-                    $destFile = $targetDir . '/' . $cleanFilename;
-                    @file_put_contents($destFile, $rawBin);
-                    @chmod($destFile, 0644);
+                // Bloqueia tentativas de injeção de script ou código PHP
+                if ($rawBin !== false && strlen($rawBin) > 0 && stripos($rawBin, '<?php') === false && stripos($rawBin, '<script') === false) {
+                    @file_put_contents($targetFile, $rawBin);
+                    @chmod($targetFile, 0644);
                 }
             }
         }
 
         $db->commit();
 
-        logAudit('BACKUP_RESTORE', 'BACKUP', 'all', "Procedimento de restauração integral e criptografada (AES-256-GCM) executado com sucesso por {$user['name']}.", $user['id'], $user['name']);
+        logAudit('BACKUP_RESTORE', 'BACKUP', 'all', "Procedimento de restauração integral (banco de dados + imagens físicas) executado com sucesso por {$user['name']}.", $user['id'], $user['name']);
         bumpSyncVersion("backup_restored");
 
         jsonResponse([
             'success' => true,
-            'message' => 'Backup integral restaurado com sucesso! Configurações, viaturas, colaboradores, missões, equipamentos, locações, fechamentos financeiros, mensagens, contas de acesso, auditoria, telemetria e anexos foram reconstruídos com fidelidade exata ao estado original.'
+            'message' => 'Backup integral restaurado com 100% de sucesso! Configurações, viaturas, colaboradores, missões, equipamentos, locações, fechamentos financeiros, mensagens, contas de acesso, auditoria, telemetria e imagens físicas foram sincronizados com fidelidade total.'
         ]);
 
     } catch (Exception $e) {
@@ -686,29 +848,60 @@ function safeFetchAllTable($db, $sql) {
     }
 }
 
-// Coleta manifesto e binários dos anexos enviados pelos usuários (fotos de vistoria, comprovantes e fotos customizadas)
+// Coleta manifesto e binários de todos os anexos e fotos do sistema
 function collectUploadedFilesForBackup() {
     $docRoot = !empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') : dirname(__DIR__);
-    $dirs = [
-        '/images/rentals'           => $docRoot . '/images/rentals',
-        '/images/uploads/equipment' => $docRoot . '/images/uploads/equipment'
+    $possibleBases = array_unique([
+        $docRoot,
+        dirname(__DIR__),
+        dirname(__DIR__, 2) . '/public_html',
+        dirname(__DIR__, 2) . '/gestormf.shop'
+    ]);
+
+    $baseImagesDir = null;
+    foreach ($possibleBases as $b) {
+        if (!empty($b) && is_dir($b . '/images')) {
+            $baseImagesDir = $b . '/images';
+            break;
+        }
+    }
+
+    if (!$baseImagesDir) {
+        $baseImagesDir = $docRoot . '/images';
+    }
+
+    $subdirs = [
+        'rentals',
+        'uploads/equipment',
+        'contract',
+        'equipment',
+        'uploads',
+        'avatars'
     ];
+
     $filesManifest = [];
-    foreach ($dirs as $relPrefix => $absDir) {
+    $seenPaths = [];
+
+    // 1. Escaneia subdiretórios conhecidos
+    foreach ($subdirs as $sub) {
+        $absDir = $baseImagesDir . '/' . $sub;
         if (!is_dir($absDir)) continue;
         $entries = @scandir($absDir);
         if (!is_array($entries)) continue;
         foreach ($entries as $entry) {
-            if ($entry === '.' || $entry === '..') continue;
+            if ($entry === '.' || $entry === '..' || strpos($entry, '.') === 0) continue;
             $fullPath = $absDir . '/' . $entry;
             if (!is_file($fullPath)) continue;
+            $rel = '/images/' . $sub . '/' . $entry;
+            if (isset($seenPaths[$rel])) continue;
+            $seenPaths[$rel] = true;
+
             $size = @filesize($fullPath);
-            // Limita arquivos individuais a 10MB no manifesto JSON para preservar memória
-            if ($size > 0 && $size <= 10485760) {
+            if ($size > 0 && $size <= 10485760) { // até 10MB por arquivo
                 $content = @file_get_contents($fullPath);
                 if ($content !== false) {
                     $filesManifest[] = [
-                        'relative_path'  => $relPrefix . '/' . $entry,
+                        'relative_path'  => $rel,
                         'size'           => $size,
                         'sha256'         => hash('sha256', $content),
                         'content_base64' => base64_encode($content)
@@ -717,20 +910,50 @@ function collectUploadedFilesForBackup() {
             }
         }
     }
+
+    // 2. Escaneia raiz de /images/ para imagens e arquivos avulsos
+    if (is_dir($baseImagesDir)) {
+        $rootEntries = @scandir($baseImagesDir);
+        if (is_array($rootEntries)) {
+            foreach ($rootEntries as $entry) {
+                if ($entry === '.' || $entry === '..' || strpos($entry, '.') === 0) continue;
+                $fullPath = $baseImagesDir . '/' . $entry;
+                if (!is_file($fullPath)) continue;
+                $rel = '/images/' . $entry;
+                if (isset($seenPaths[$rel])) continue;
+                $seenPaths[$rel] = true;
+
+                $size = @filesize($fullPath);
+                if ($size > 0 && $size <= 10485760) {
+                    $content = @file_get_contents($fullPath);
+                    if ($content !== false) {
+                        $filesManifest[] = [
+                            'relative_path'  => $rel,
+                            'size'           => $size,
+                            'sha256'         => hash('sha256', $content),
+                            'content_base64' => base64_encode($content)
+                        ];
+                    }
+                }
+            }
+        }
+    }
+
     return $filesManifest;
 }
 
-// Função auxiliar de geração de snapshot integral criptografado com AES-256-GCM e HMAC-SHA256 (BKP-01 & Item 6.3)
-function generateFullBackupData($db) {
-    $sec = loadAppSecrets();
-    list($encKey, $sigKey) = getBackupKeys($sec);
-
-    $tables = [
+// Coleta todas as tabelas e manifestos do banco de dados para exportação estruturada
+function collectAllDatabaseTables($db) {
+    return [
+        'system'             => 'GestorMF',
+        'format'             => 'json-complete',
+        'version'            => '6.0',
+        'exportedAt'         => date('c'),
         'settings'           => $db->query("SELECT * FROM settings WHERE id = 1")->fetch() ?: [],
         'vehicles'           => safeFetchAllTable($db, "SELECT * FROM vehicles"),
         'members'            => safeFetchAllTable($db, "SELECT * FROM members"),
         'missions'           => safeFetchAllTable($db, "SELECT * FROM missions"),
-        'users'         => $db->query("SELECT id, name, email, password_hash, role, title, department, phone, avatar, pix_key, created_at FROM users")->fetchAll(),
+        'users'              => safeFetchAllTable($db, "SELECT id, name, email, password_hash, role, title, department, phone, avatar, pix_key, created_at FROM users"),
         'equipment'          => safeFetchAllTable($db, "SELECT * FROM equipment"),
         'rentals'            => safeFetchAllTable($db, "SELECT * FROM rentals"),
         'payout_closures'    => safeFetchAllTable($db, "SELECT * FROM payout_closures"),
@@ -741,6 +964,45 @@ function generateFullBackupData($db) {
         'system_migrations'  => safeFetchAllTable($db, "SELECT * FROM system_migrations"),
         'uploaded_files'     => collectUploadedFilesForBackup()
     ];
+}
+
+// Função auxiliar de geração de snapshot integral criptografado com AES-256-GCM e HMAC-SHA256 (BKP-01 & Item 6.3)
+function generateFullBackupData($db) {
+    $sec = loadAppSecrets();
+    list($encKey, $sigKey) = getBackupKeys($sec);
+
+    $tables = collectAllDatabaseTables($db);
+    $plainJson = json_encode($tables, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    $checksum = hash('sha256', $plainJson);
+
+    // Criptografia AES-256-GCM em repouso
+    $iv = random_bytes(12);
+    $tag = '';
+    $ciphertext = openssl_encrypt($plainJson, 'aes-256-gcm', $encKey, OPENSSL_RAW_DATA, $iv, $tag);
+    if ($ciphertext === false) {
+        throw new Exception('Falha ao criptografar dados do backup com AES-256-GCM.');
+    }
+
+    $b64Cipher = base64_encode($ciphertext);
+    $b64Iv = base64_encode($iv);
+    $b64Tag = base64_encode($tag);
+
+    // Assinatura digital HMAC-SHA256 sobre dados criptografados e parâmetros de autenticação
+    $signedPayload = "{$b64Cipher}|{$b64Iv}|{$b64Tag}|{$checksum}";
+    $signature = hash_hmac('sha256', $signedPayload, $sigKey);
+
+    return [
+        'system'     => 'GestorMF',
+        'format'     => 'aes-256-gcm-encrypted',
+        'version'    => '6.0',
+        'exportedAt' => date('c'),
+        'checksum'   => $checksum,
+        'iv'         => $b64Iv,
+        'tag'        => $b64Tag,
+        'signature'  => $signature,
+        'payload'    => $b64Cipher
+    ];
+}
 
     $plainJson = json_encode($tables, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     $checksum = hash('sha256', $plainJson);

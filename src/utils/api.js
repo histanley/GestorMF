@@ -378,18 +378,20 @@ export async function apiRestoreBackup(backupJsonData) {
   });
 }
 
-export async function apiDownloadBackup() {
+export async function apiDownloadFullJsonBackup() {
+  const csrf = getCsrfToken();
   const headers = {
-    'X-Requested-With': 'XMLHttpRequest'
+    'X-Requested-With': 'XMLHttpRequest',
+    ...(csrf ? { 'X-CSRF-Token': csrf } : {})
   };
 
-  const res = await fetch(`${API_BASE}/backup.php?action=download`, {
+  const res = await fetch(`${API_BASE}/backup.php?action=export_json&_t=${Date.now()}`, {
     credentials: 'include',
     headers
   });
 
   if (!res.ok) {
-    throw new Error('Falha ao baixar backup. Verifique se possui permissão de Administrador.');
+    throw new Error('Falha ao baixar backup completo em JSON do servidor.');
   }
 
   const blob = await res.blob();
@@ -397,6 +399,33 @@ export async function apiDownloadBackup() {
   const a = document.createElement('a');
   a.href = blobUrl;
   a.download = `gestormf_backup_${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(blobUrl);
+}
+
+export async function apiDownloadBackup() {
+  const csrf = getCsrfToken();
+  const headers = {
+    'X-Requested-With': 'XMLHttpRequest',
+    ...(csrf ? { 'X-CSRF-Token': csrf } : {})
+  };
+
+  const res = await fetch(`${API_BASE}/backup.php?action=download&_t=${Date.now()}`, {
+    credentials: 'include',
+    headers
+  });
+
+  if (!res.ok) {
+    throw new Error('Falha ao baixar snapshot do banco de dados. Verifique suas credenciais.');
+  }
+
+  const blob = await res.blob();
+  const blobUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = `gestormf_snapshot_${new Date().toISOString().slice(0, 10)}.enc.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();

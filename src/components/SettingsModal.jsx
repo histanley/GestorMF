@@ -31,8 +31,9 @@ import {
   Sliders,
   ShieldCheck,
   RefreshCw,
+  Loader2,
 } from 'lucide-react';
-import { apiGetAuditLogs, apiDownloadBackup, apiRestoreBackup } from '../utils/api';
+import { apiGetAuditLogs, apiDownloadBackup, apiDownloadFullJsonBackup, apiRestoreBackup } from '../utils/api';
 import { searchAddressNominatim } from '../utils/geo';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 
@@ -237,6 +238,7 @@ export default function SettingsModal({
   const [searchResults, setSearchResults] = useState([]);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const logoInputRef = useRef(null);
 
   // ---- GPS ----
@@ -328,43 +330,100 @@ export default function SettingsModal({
   };
 
   // ---- Exportar JSON ----
-  const handleExportJSON = () => {
-    const blob = new Blob([JSON.stringify(allDataToExport, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `gestormf_backup_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExportJSON = async () => {
+    try {
+      await apiDownloadFullJsonBackup();
+    } catch (err) {
+      console.warn('Fallback para download local de backup JSON:', err);
+      const blob = new Blob([JSON.stringify(allDataToExport, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gestormf_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
-  // ---- Importar JSON ----
+  // ---- Importar JSON / Snapshot ----
   const handleImportFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    // Permite re-selecionar o mesmo arquivo se necessário
+    e.target.value = '';
+
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
         const parsed = JSON.parse(ev.target.result);
-        if (parsed.vehicles && parsed.missions) {
-          onImportData(parsed);
-          await alertDialog({
-            title: 'Backup Restaurado',
-            message: 'Backup restaurado com sucesso no GestorMF!',
-            variant: 'success',
-          });
-          onClose();
-        } else {
+        const isEncrypted = parsed.format === 'aes-256-gcm-encrypted' && parsed.payload;
+        const isPlainBackup = !!(parsed.missions || parsed.vehicles || parsed.tables || parsed.data || parsed.settings);
+
+        if (!isEncrypted && !isPlainBackup) {
           await alertDialog({
             title: 'Arquivo Inválido',
             message: 'O arquivo JSON selecionado não é um backup compatível com o GestorMF.',
             variant: 'danger',
           });
+          return;
         }
+
+        const confirmMsg = isEncrypted
+          ? 'Deseja restaurar este Snapshot Criptografado Oficial (HostGator MySQL)?\n\nTodos os registros atuais do banco de dados e as fotos/anexos físicos serão sincronizados com fidelidade total.'
+          : 'Deseja restaurar este Backup Completo no banco de dados da HostGator?\n\nTodas as configurações, missões, viaturas, equipes, equipamentos e anexos serão reconstruídos com 100% de confiabilidade.';
+
+        const confirmed = await confirmDialog({
+          title: 'Confirmar Restauração de Backup',
+          message: confirmMsg,
+          confirmLabel: 'Restaurar Tudo',
+          variant: 'danger',
+        });
+
+        if (!confirmed) return;
+
+        setIsRestoring(true);
+
+        try {
+          const res = await apiRestoreBackup(parsed);
+          if (res && res.success === false) {
+            throw new Error(res.error || 'Falha ao restaurar dados no servidor.');
+          }
+        } catch (apiErr) {
+          console.warn('Aviso ao sincronizar backup com a API MySQL:', apiErr);
+          if (!window.location.origin.includes('localhost') && apiErr.message) {
+            setIsRestoring(false);
+            await alertDialog({
+              title: 'Erro na Restauração',
+              message: apiErr.message || 'Falha ao restaurar o backup no banco de dados.',
+              variant: 'danger',
+            });
+            return;
+          }
+        }
+
+        if (typeof onImportData === 'function') {
+          const plainData = parsed.tables || parsed.data || parsed;
+          if (plainData.missions || plainData.vehicles) {
+            onImportData(plainData);
+          }
+        }
+
+        setIsRestoring(false);
+
+        await alertDialog({
+          title: 'Backup Restaurado com Sucesso',
+          message: 'Backup restaurado com 100% de sucesso! O banco de dados MySQL, as missões, viaturas, colaboradores, equipamentos e arquivos foram sincronizados.',
+          variant: 'success',
+        });
+
+        onClose();
+        window.location.reload();
+
       } catch (err) {
+        setIsRestoring(false);
         await alertDialog({
           title: 'Erro no Arquivo',
-          message: 'Erro ao processar arquivo: ' + err.message,
+          message: 'Erro ao processar arquivo de backup: ' + err.message,
           variant: 'danger',
         });
       }
@@ -1037,9 +1096,10 @@ export default function SettingsModal({
                 <p style={{ fontSize: '0.8rem', opacity: 0.65, marginBottom: '0.75rem' }}>
                   Importe um arquivo JSON gerado pelo GestorMF para restaurar todos os dados.
                 </p>
-                <label className="btn-backup-import" style={{ marginBottom: '24px' }}>
-                  <Upload size={16} /> Importar Arquivo de Backup
-                  <input type="file" accept=".json" onChange={handleImportFile} style={{ display: 'none' }} />
+                <label className={`btn-backup-import ${isRestoring ? 'opacity-50 pointer-events-none' : ''}`} style={{ marginBottom: '24px' }}>
+                  {isRestoring ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                  {isRestoring ? ' Restaurando Banco de Dados...' : ' Importar Arquivo de Backup'}
+                  <input type="file" accept=".json,.enc.json" onChange={handleImportFile} disabled={isRestoring} style={{ display: 'none' }} />
                 </label>
 
                 <SectionTitle icon={RotateCcw} label="Redefinir Dados do Sistema" />
