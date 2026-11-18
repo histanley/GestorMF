@@ -131,6 +131,15 @@ function EditableList({ items = [], onAdd, onRename, onDelete, placeholder = 'No
   );
 }
 
+// Função auxiliar para parsing de valores numéricos em formato BRL (aceita vírgula ou ponto)
+function parseBrlNumber(val, fallback = 0) {
+  if (val === undefined || val === null || val === '') return fallback;
+  if (typeof val === 'number') return isNaN(val) ? fallback : val;
+  const str = String(val).trim().replace(/\s/g, '').replace('R$', '').replace(',', '.');
+  const num = parseFloat(str);
+  return isNaN(num) ? fallback : num;
+}
+
 // ======================================================
 // Componente Principal: Painel de Configurações
 // ======================================================
@@ -164,9 +173,9 @@ export default function SettingsModal({
     cnpj: settings?.cnpj || '',
     // Combustível
     fuelPricePerLiter: settings?.fuelPricePerLiter || 6.45,
-    gasolinePricePerLiter: settings?.gasolinePricePerLiter ?? (settings?.fuelPricePerLiter || 6.45),
-    dieselPricePerLiter: settings?.dieselPricePerLiter ?? 6.89,
-    electricPricePerKwh: settings?.electricPricePerKwh ?? 0.95,
+    gasolinePricePerLiter: String(settings?.gasolinePricePerLiter ?? (settings?.fuelPricePerLiter || 6.45)).replace('.', ','),
+    dieselPricePerLiter: String(settings?.dieselPricePerLiter ?? 6.89).replace('.', ','),
+    electricPricePerKwh: String(settings?.electricPricePerKwh ?? 0.95).replace('.', ','),
     defaultAutonomy: settings?.defaultAutonomy || 10,
     // Sede MegaFilmes & Mega Print
     baseName: settings?.baseLocation?.name || 'Sede MegaFilmes & Mega Print',
@@ -179,9 +188,13 @@ export default function SettingsModal({
     logoUrl: settings?.logoUrl || '',
   });
 
-  // Atualiza os campos sempre que as configurações do banco forem carregadas ou a modal for aberta
+  const wasOpenRef = useRef(false);
+
+  // Inicializa os campos quando a modal é aberta (transição de fechado para aberto)
+  // IMPORTANTE: Não recria o estado quando `settings` é atualizado em background pelo polling do App.jsx,
+  // permitindo que o usuário digite com calma sem ter seus dados sobrescritos enquanto edita!
   useEffect(() => {
-    if (isOpen && settings) {
+    if (isOpen && !wasOpenRef.current && settings) {
       setFormData({
         companyName: settings.companyName || 'MegaFilmes & Mega Print',
         companyName2: settings.companyName2 || 'Mega Print',
@@ -191,9 +204,9 @@ export default function SettingsModal({
         website: settings.website || '',
         cnpj: settings.cnpj || '',
         fuelPricePerLiter: settings.fuelPricePerLiter || 6.45,
-        gasolinePricePerLiter: settings.gasolinePricePerLiter ?? (settings.fuelPricePerLiter || 6.45),
-        dieselPricePerLiter: settings.dieselPricePerLiter ?? 6.89,
-        electricPricePerKwh: settings.electricPricePerKwh ?? 0.95,
+        gasolinePricePerLiter: String(settings.gasolinePricePerLiter ?? (settings.fuelPricePerLiter || 6.45)).replace('.', ','),
+        dieselPricePerLiter: String(settings.dieselPricePerLiter ?? 6.89).replace('.', ','),
+        electricPricePerKwh: String(settings.electricPricePerKwh ?? 0.95).replace('.', ','),
         defaultAutonomy: settings.defaultAutonomy || 10,
         baseName: settings.baseLocation?.name || 'Sede MegaFilmes & Mega Print',
         baseAddress: settings.baseLocation?.address || 'R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR, 69314-117',
@@ -203,7 +216,12 @@ export default function SettingsModal({
         accentColorSecondary: settings.accentColorSecondary || '#06b6d4',
         logoUrl: settings.logoUrl || '',
       });
+      if (settings.missionStatuses) setMissionStatuses(settings.missionStatuses);
+      if (settings.editionStatuses) setEditionStatuses(settings.editionStatuses);
+      if (settings.vehicleTypes) setVehicleTypes(settings.vehicleTypes);
+      if (settings.companies) setCompanies(settings.companies);
     }
+    wasOpenRef.current = isOpen;
   }, [isOpen, settings]);
 
   // ---- Status de missão personalizáveis ----
@@ -298,6 +316,11 @@ export default function SettingsModal({
 
   // ---- Salvar todas as configurações ----
   const handleSave = () => {
+    const gasPrice = parseBrlNumber(formData.gasolinePricePerLiter, 6.45);
+    const diePrice = parseBrlNumber(formData.dieselPricePerLiter, 6.89);
+    const elecPrice = parseBrlNumber(formData.electricPricePerKwh, 0.95);
+    const autonomy = parseBrlNumber(formData.defaultAutonomy, 12);
+
     onSaveSettings({
       companyName: formData.companyName,
       companyName2: formData.companyName2,
@@ -306,11 +329,11 @@ export default function SettingsModal({
       email: formData.email,
       website: formData.website,
       cnpj: formData.cnpj,
-      fuelPricePerLiter: parseFloat(formData.gasolinePricePerLiter) || parseFloat(formData.fuelPricePerLiter) || 6.45,
-      gasolinePricePerLiter: parseFloat(formData.gasolinePricePerLiter) || 6.45,
-      dieselPricePerLiter: parseFloat(formData.dieselPricePerLiter) || 6.89,
-      electricPricePerKwh: parseFloat(formData.electricPricePerKwh) || 0.95,
-      defaultAutonomy: parseFloat(formData.defaultAutonomy) || 12,
+      fuelPricePerLiter: gasPrice,
+      gasolinePricePerLiter: gasPrice,
+      dieselPricePerLiter: diePrice,
+      electricPricePerKwh: elecPrice,
+      defaultAutonomy: autonomy,
       accentColor: formData.accentColor,
       accentColorSecondary: formData.accentColorSecondary,
       logoUrl: formData.logoUrl,
@@ -321,8 +344,8 @@ export default function SettingsModal({
       baseLocation: {
         name: formData.baseName,
         address: formData.baseAddress,
-        lat: parseFloat(formData.baseLat),
-        lon: parseFloat(formData.baseLon),
+        lat: parseFloat(formData.baseLat) || 2.829382,
+        lon: parseFloat(formData.baseLon) || -60.730887,
       },
     });
     setSaveSuccess(true);
@@ -741,38 +764,73 @@ export default function SettingsModal({
               <div className="settings-panel">
                 <SectionTitle icon={Fuel} label="Configurações de Combustível" />
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>⛽ Preço da Gasolina (R$/L)</label>
-                    <input
-                      type="number" step="0.01" min="1"
-                      value={formData.gasolinePricePerLiter}
-                      onChange={(e) => setFormData({ ...formData, gasolinePricePerLiter: e.target.value })}
-                    />
-                    <small className="helper-text">
-                      Referência Boa Vista - RR: R$ 6.45/L.
+                <div className="fuel-inputs-row">
+                  <div className="fuel-input-col">
+                    <label className="fuel-input-label">
+                      <span className="fuel-label-icon">⛽</span>
+                      <span className="fuel-label-text">Preço da Gasolina</span>
+                      <span className="fuel-unit-badge">R$/L</span>
+                    </label>
+                    <div className="brl-currency-input-wrap">
+                      <span className="brl-currency-prefix">R$</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        className="brl-currency-input"
+                        placeholder="6,45"
+                        value={formData.gasolinePricePerLiter}
+                        onChange={(e) => setFormData({ ...formData, gasolinePricePerLiter: e.target.value })}
+                      />
+                      <span className="brl-currency-suffix">/L</span>
+                    </div>
+                    <small className="helper-text fuel-helper">
+                      Ref. Boa Vista - RR: R$ 6,45/L
                     </small>
                   </div>
-                  <div className="form-group">
-                    <label>🛢️ Preço do Diesel (R$/L)</label>
-                    <input
-                      type="number" step="0.01" min="1"
-                      value={formData.dieselPricePerLiter}
-                      onChange={(e) => setFormData({ ...formData, dieselPricePerLiter: e.target.value })}
-                    />
-                    <small className="helper-text">
-                      Referência Boa Vista - RR: R$ 6.89/L.
+
+                  <div className="fuel-input-col">
+                    <label className="fuel-input-label">
+                      <span className="fuel-label-icon">🛢️</span>
+                      <span className="fuel-label-text">Preço do Diesel</span>
+                      <span className="fuel-unit-badge">R$/L</span>
+                    </label>
+                    <div className="brl-currency-input-wrap">
+                      <span className="brl-currency-prefix">R$</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        className="brl-currency-input"
+                        placeholder="6,89"
+                        value={formData.dieselPricePerLiter}
+                        onChange={(e) => setFormData({ ...formData, dieselPricePerLiter: e.target.value })}
+                      />
+                      <span className="brl-currency-suffix">/L</span>
+                    </div>
+                    <small className="helper-text fuel-helper">
+                      Ref. Boa Vista - RR: R$ 6,89/L
                     </small>
                   </div>
-                  <div className="form-group">
-                    <label>⚡ Tarifa de Energia / kWh (R$/kWh)</label>
-                    <input
-                      type="number" step="0.01" min="0.1"
-                      value={formData.electricPricePerKwh}
-                      onChange={(e) => setFormData({ ...formData, electricPricePerKwh: e.target.value })}
-                    />
-                    <small className="helper-text">
-                      Referência Roraima Energia: R$ 0.95/kWh.
+
+                  <div className="fuel-input-col">
+                    <label className="fuel-input-label">
+                      <span className="fuel-label-icon">⚡</span>
+                      <span className="fuel-label-text">Tarifa de Energia</span>
+                      <span className="fuel-unit-badge">R$/kWh</span>
+                    </label>
+                    <div className="brl-currency-input-wrap is-patrimony">
+                      <span className="brl-currency-prefix">R$</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        className="brl-currency-input"
+                        placeholder="0,95"
+                        value={formData.electricPricePerKwh}
+                        onChange={(e) => setFormData({ ...formData, electricPricePerKwh: e.target.value })}
+                      />
+                      <span className="brl-currency-suffix">/kWh</span>
+                    </div>
+                    <small className="helper-text fuel-helper">
+                      Ref. Roraima Energia: R$ 0,95/kWh
                     </small>
                   </div>
                 </div>
@@ -780,60 +838,60 @@ export default function SettingsModal({
                 <div className="fuel-preview-section">
                   <div className="fuel-preview-block">
                     <div className="fuel-preview-title" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary, #94a3b8)', marginBottom: 8 }}>
-                      ⛽ Simulação Gasolina (R$ {parseFloat(formData.gasolinePricePerLiter || 6.45).toFixed(2)}/L)
+                      ⛽ Simulação Gasolina (R$ {parseBrlNumber(formData.gasolinePricePerLiter, 6.45).toFixed(2).replace('.', ',')}/L)
                     </div>
                     <div className="fuel-price-preview">
                       <div className="preview-item">
-                        <span>50 km a {formData.defaultAutonomy || 12} km/L</span>
-                        <strong>R$ {((50 / (parseFloat(formData.defaultAutonomy) || 12)) * parseFloat(formData.gasolinePricePerLiter || 6.45)).toFixed(2)}</strong>
+                        <span>50 km a {parseBrlNumber(formData.defaultAutonomy, 12)} km/L</span>
+                        <strong>R$ {((50 / (parseBrlNumber(formData.defaultAutonomy, 12))) * parseBrlNumber(formData.gasolinePricePerLiter, 6.45)).toFixed(2).replace('.', ',')}</strong>
                       </div>
                       <div className="preview-item">
-                        <span>100 km a {formData.defaultAutonomy || 12} km/L</span>
-                        <strong>R$ {((100 / (parseFloat(formData.defaultAutonomy) || 12)) * parseFloat(formData.gasolinePricePerLiter || 6.45)).toFixed(2)}</strong>
+                        <span>100 km a {parseBrlNumber(formData.defaultAutonomy, 12)} km/L</span>
+                        <strong>R$ {((100 / (parseBrlNumber(formData.defaultAutonomy, 12))) * parseBrlNumber(formData.gasolinePricePerLiter, 6.45)).toFixed(2).replace('.', ',')}</strong>
                       </div>
                       <div className="preview-item">
                         <span>Tanque 50L</span>
-                        <strong>R$ {(50 * parseFloat(formData.gasolinePricePerLiter || 6.45)).toFixed(2)}</strong>
+                        <strong>R$ {(50 * parseBrlNumber(formData.gasolinePricePerLiter, 6.45)).toFixed(2).replace('.', ',')}</strong>
                       </div>
                     </div>
                   </div>
 
                   <div className="fuel-preview-block" style={{ marginTop: 12 }}>
                     <div className="fuel-preview-title" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary, #94a3b8)', marginBottom: 8 }}>
-                      🛢️ Simulação Diesel (R$ {parseFloat(formData.dieselPricePerLiter || 6.89).toFixed(2)}/L)
+                      🛢️ Simulação Diesel (R$ {parseBrlNumber(formData.dieselPricePerLiter, 6.89).toFixed(2).replace('.', ',')}/L)
                     </div>
                     <div className="fuel-price-preview">
                       <div className="preview-item">
-                        <span>50 km a {formData.defaultAutonomy || 12} km/L</span>
-                        <strong>R$ {((50 / (parseFloat(formData.defaultAutonomy) || 12)) * parseFloat(formData.dieselPricePerLiter || 6.89)).toFixed(2)}</strong>
+                        <span>50 km a {parseBrlNumber(formData.defaultAutonomy, 12)} km/L</span>
+                        <strong>R$ {((50 / (parseBrlNumber(formData.defaultAutonomy, 12))) * parseBrlNumber(formData.dieselPricePerLiter, 6.89)).toFixed(2).replace('.', ',')}</strong>
                       </div>
                       <div className="preview-item">
-                        <span>100 km a {formData.defaultAutonomy || 12} km/L</span>
-                        <strong>R$ {((100 / (parseFloat(formData.defaultAutonomy) || 12)) * parseFloat(formData.dieselPricePerLiter || 6.89)).toFixed(2)}</strong>
+                        <span>100 km a {parseBrlNumber(formData.defaultAutonomy, 12)} km/L</span>
+                        <strong>R$ {((100 / (parseBrlNumber(formData.defaultAutonomy, 12))) * parseBrlNumber(formData.dieselPricePerLiter, 6.89)).toFixed(2).replace('.', ',')}</strong>
                       </div>
                       <div className="preview-item">
                         <span>Tanque 50L</span>
-                        <strong>R$ {(50 * parseFloat(formData.dieselPricePerLiter || 6.89)).toFixed(2)}</strong>
+                        <strong>R$ {(50 * parseBrlNumber(formData.dieselPricePerLiter, 6.89)).toFixed(2).replace('.', ',')}</strong>
                       </div>
                     </div>
                   </div>
 
                   <div className="fuel-preview-block" style={{ marginTop: 12 }}>
                     <div className="fuel-preview-title" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-green, #10b981)', marginBottom: 8 }}>
-                      ⚡ Simulação Carro Elétrico (R$ {parseFloat(formData.electricPricePerKwh || 0.95).toFixed(2)}/kWh)
+                      ⚡ Simulação Carro Elétrico (R$ {parseBrlNumber(formData.electricPricePerKwh, 0.95).toFixed(2).replace('.', ',')}/kWh)
                     </div>
                     <div className="fuel-price-preview">
                       <div className="preview-item">
                         <span>50 km a 6.5 km/kWh</span>
-                        <strong>R$ {((50 / 6.5) * parseFloat(formData.electricPricePerKwh || 0.95)).toFixed(2)}</strong>
+                        <strong>R$ {((50 / 6.5) * parseBrlNumber(formData.electricPricePerKwh, 0.95)).toFixed(2).replace('.', ',')}</strong>
                       </div>
                       <div className="preview-item">
                         <span>100 km a 6.5 km/kWh</span>
-                        <strong>R$ {((100 / 6.5) * parseFloat(formData.electricPricePerKwh || 0.95)).toFixed(2)}</strong>
+                        <strong>R$ {((100 / 6.5) * parseBrlNumber(formData.electricPricePerKwh, 0.95)).toFixed(2).replace('.', ',')}</strong>
                       </div>
                       <div className="preview-item">
                         <span>Bateria 60 kWh</span>
-                        <strong>R$ {(60 * parseFloat(formData.electricPricePerKwh || 0.95)).toFixed(2)}</strong>
+                        <strong>R$ {(60 * parseBrlNumber(formData.electricPricePerKwh, 0.95)).toFixed(2).replace('.', ',')}</strong>
                       </div>
                     </div>
                   </div>
