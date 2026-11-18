@@ -1,6 +1,6 @@
 // Utilitário para formatação e compartilhamento de ordens de serviço / missões via WhatsApp
-import { formatDateBR, getMissionCode } from './geo';
-import { classifyMissionShift } from './workHours';
+import { formatDateBR, getMissionCode } from './geo.js';
+import { classifyMissionShift } from './workHours.js';
 
 /**
  * Monta o texto oficial e humanizado de uma missão para envio via WhatsApp.
@@ -135,7 +135,48 @@ export function formatMissionWhatsAppText(mission, { missions = [], vehicles = [
     lines.push(`• 💻 *Pós-Produção / Edição:* ${editorNames}${deadlineStr ? ` (Prazo: ${deadlineStr})` : ''}`);
   }
 
-  if (kits) {
+  // Kits & Equipamentos Detalhados (Acervo + Itens Manuais por Integrante)
+  const equipAllocations = Array.isArray(mission.equipmentAllocations) ? mission.equipmentAllocations : [];
+  const memberNotes = mission.memberNotes || {};
+  const hasDetailedEquips = equipAllocations.length > 0 || Object.keys(memberNotes).length > 0;
+
+  if (hasDetailedEquips) {
+    lines.push('');
+    lines.push(`🎒 *Kits & Equipamentos por Integrante:*`);
+
+    // Processa cada grupo de alocação
+    equipAllocations.forEach((grp) => {
+      const itemsStr = (grp.items || [])
+        .map((it) => `${it.quantity > 1 ? `(${it.quantity}x) ` : ''}${it.name}${it.notes ? ` [${it.notes}]` : ''}`)
+        .join(', ');
+      const customNote = grp.customNotes || memberNotes[grp.collaboratorId] || '';
+
+      const parts = [];
+      if (itemsStr) parts.push(itemsStr);
+      if (customNote) parts.push(`⚠️ *Levar:* ${customNote}`);
+
+      if (parts.length > 0) {
+        const isGen = grp.collaboratorId === 'general';
+        const label = isGen ? '📦 *Kit Coletivo (Van):*' : `• *${grp.collaboratorName}:*`;
+        lines.push(`${label} ${parts.join(' | ')}`);
+      }
+    });
+
+    // Se houver notas manuais de colaboradores que não estão em equipmentAllocations
+    Object.entries(memberNotes).forEach(([mId, note]) => {
+      if (!note || !note.trim()) return;
+      const alreadyInAlloc = equipAllocations.some((g) => g.collaboratorId === mId);
+      if (!alreadyInAlloc) {
+        if (mId === 'general') {
+          lines.push(`📦 *Kit Coletivo (Van):* ⚠️ *Levar:* ${note}`);
+        } else {
+          const mem = members.find((m) => String(m.id) === String(mId));
+          const name = mem ? mem.name : mId;
+          lines.push(`• *${name}:* ⚠️ *Levar:* ${note}`);
+        }
+      }
+    });
+  } else if (kits) {
     lines.push('');
     lines.push(`🎒 *Kits & Equipamentos:*`);
     lines.push(`• ${kits}`);

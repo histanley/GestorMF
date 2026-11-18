@@ -3162,6 +3162,81 @@ export default function ServiceBoard({
                   </div>
                 </div>
 
+                {/* EQUIPAMENTOS & KITS DE CAMPO VINCULADOS */}
+                {((Array.isArray(detailMission.equipmentAllocations) && detailMission.equipmentAllocations.length > 0) || (detailMission.memberNotes && Object.keys(detailMission.memberNotes).length > 0)) && (
+                  <div className="mdm-equip-section" style={{ marginTop: '14px' }}>
+                    <div className="mdm-equip-header">
+                      <Package size={15} className="text-purple" />
+                      <strong>Equipamentos &amp; Kits de Campo Vinculados</strong>
+                    </div>
+
+                    <div className="mdm-equip-groups-grid">
+                      {(detailMission.equipmentAllocations || []).map((grp, gIdx) => {
+                        const items = grp.items || [];
+                        const customNotes = grp.customNotes || (detailMission.memberNotes && detailMission.memberNotes[grp.collaboratorId]);
+                        if (items.length === 0 && !customNotes) return null;
+                        const isGeneral = grp.collaboratorId === 'general';
+
+                        return (
+                          <div key={gIdx} className={`mdm-equip-group-card ${isGeneral ? 'card-general' : ''}`}>
+                            <div className="megc-top">
+                              <strong>{grp.collaboratorName}</strong>
+                              <span className="megc-role">{grp.role || (isGeneral ? 'Geral' : 'Equipe')}</span>
+                            </div>
+
+                            {items.length > 0 && (
+                              <div className="megc-items-list">
+                                {items.map((it, iIdx) => (
+                                  <div key={iIdx} className="megc-item-row">
+                                    <span className="megc-item-name">
+                                      {it.quantity > 1 ? `(${it.quantity}x) ` : ''}{it.name}
+                                    </span>
+                                    {it.notes && <small className="megc-item-notes">{it.notes}</small>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {customNotes && (
+                              <div className="megc-custom-notes">
+                                <span className="megc-custom-notes-label">
+                                  <FileText size={11} /> Itens / Obs. Manuais:
+                                </span>
+                                <p className="megc-custom-notes-text">{customNotes}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Exibe notas manuais de colaboradores que não estão na lista de equipmentAllocations */}
+                      {Object.entries(detailMission.memberNotes || {}).map(([cId, note]) => {
+                        if (!note || !note.trim()) return null;
+                        const alreadyShown = (detailMission.equipmentAllocations || []).some((g) => g.collaboratorId === cId);
+                        if (alreadyShown) return null;
+                        const mem = members.find((m) => String(m.id) === String(cId));
+                        const name = mem ? mem.name : (cId === 'general' ? 'Kit Geral & Itens Coletivos' : cId);
+                        const role = mem ? mem.role : (cId === 'general' ? 'Uso Compartilhado' : 'Equipe');
+
+                        return (
+                          <div key={`extra-note-${cId}`} className={`mdm-equip-group-card ${cId === 'general' ? 'card-general' : ''}`}>
+                            <div className="megc-top">
+                              <strong>{name}</strong>
+                              <span className="megc-role">{role}</span>
+                            </div>
+                            <div className="megc-custom-notes">
+                              <span className="megc-custom-notes-label">
+                                <FileText size={11} /> Itens / Obs. Manuais:
+                              </span>
+                              <p className="megc-custom-notes-text">{note}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* 6. PÓS-PRODUÇÃO, EDIÇÃO & PRAZOS DE ENTREGA */}
                 <div className="mdm-section mdm-postprod-section">
                   <div className="mdm-section-title">

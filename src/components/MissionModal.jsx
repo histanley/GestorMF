@@ -273,6 +273,7 @@ export default function MissionModal({
     memberRemunerationTypes: {},
     memberRoles: {},
     customRates: {},
+    memberNotes: {},
   });
 
   const [searchResults, setSearchResults] = useState([]);
@@ -375,7 +376,7 @@ export default function MissionModal({
           };
         }
         return g;
-      }).filter((g) => (g.items && g.items.length > 0) || g.collaboratorId === 'general');
+      }).filter((g) => (g.items && g.items.length > 0) || (g.customNotes && g.customNotes.trim()) || g.collaboratorId === 'general');
 
       return {
         ...prev,
@@ -428,6 +429,40 @@ export default function MissionModal({
 
       return {
         ...prev,
+        equipmentAllocations: currentAllocations
+      };
+    });
+  };
+
+  const handleUpdatePersonCustomNotes = (collaboratorId, collaboratorName, role, customNotes) => {
+    setFormData((prev) => {
+      const currentAllocations = Array.isArray(prev.equipmentAllocations)
+        ? JSON.parse(JSON.stringify(prev.equipmentAllocations))
+        : [];
+      let personGroup = currentAllocations.find((g) => g.collaboratorId === collaboratorId);
+
+      const roleStr = typeof role === 'string' ? role : (Array.isArray(role) ? role.join(' • ') : 'Colaborador');
+
+      if (!personGroup) {
+        personGroup = {
+          collaboratorId,
+          collaboratorName: collaboratorName || 'Colaborador',
+          role: roleStr,
+          customNotes: customNotes,
+          items: []
+        };
+        currentAllocations.push(personGroup);
+      } else {
+        personGroup.customNotes = customNotes;
+        if (collaboratorName) personGroup.collaboratorName = collaboratorName;
+        if (roleStr) personGroup.role = roleStr;
+      }
+
+      const nextMemberNotes = { ...(prev.memberNotes || {}), [collaboratorId]: customNotes };
+
+      return {
+        ...prev,
+        memberNotes: nextMemberNotes,
         equipmentAllocations: currentAllocations
       };
     });
@@ -529,6 +564,17 @@ export default function MissionModal({
         memberRemunerationTypes: editingMission.memberRemunerationTypes || {},
         memberRoles: editingMission.memberRoles || {},
         customRates: editingMission.customRates || {},
+        memberNotes: (() => {
+          const mNotes = { ...(editingMission.memberNotes || {}) };
+          if (Array.isArray(editingMission.equipmentAllocations)) {
+            editingMission.equipmentAllocations.forEach((g) => {
+              if (g && g.collaboratorId && g.customNotes && !mNotes[g.collaboratorId]) {
+                mNotes[g.collaboratorId] = g.customNotes;
+              }
+            });
+          }
+          return mNotes;
+        })(),
         isRecurring: Boolean(editingMission.isRecurring || editingMission.recurrenceId),
         recurrenceId: editingMission.recurrenceId || null,
         recurrenceRule: editingMission.recurrenceRule || 'weekly',
@@ -1540,6 +1586,7 @@ export default function MissionModal({
       memberRemunerationTypes: formData.memberRemunerationTypes || {},
       memberRoles: formData.memberRoles || {},
       equipmentAllocations: formData.equipmentAllocations || [],
+      memberNotes: formData.memberNotes || {},
       extraHoursPlanned: isMultiDay ? 0 : (missionOffHours.offHours || 0),
       extraHoursApproved: editingMission?.extraHoursApproved || 0,
       extraHoursRequests: editingMission?.extraHoursRequests || [],
@@ -3930,6 +3977,8 @@ export default function MissionModal({
                 const personGroup = (formData.equipmentAllocations || []).find((g) => g.collaboratorId === mId) || { items: [] };
                 const itemsCount = (personGroup.items || []).reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
                 const selectedEquipId = selectedEquipByPerson[mId] || '';
+                const customNotesVal = personGroup.customNotes || formData.memberNotes?.[mId] || '';
+                const hasCustomNotes = Boolean(customNotesVal && customNotesVal.trim());
 
                 return (
                   <div key={mId} className="mm-equip-person-card">
@@ -3944,8 +3993,10 @@ export default function MissionModal({
                         </div>
                       </div>
 
-                      <span className={`mepc-items-badge ${itemsCount > 0 ? 'has-items' : ''}`}>
-                        {itemsCount === 0 ? 'Nenhum equipamento' : `${itemsCount} ${itemsCount === 1 ? 'equipamento' : 'equipamentos'}`}
+                      <span className={`mepc-items-badge ${itemsCount > 0 || hasCustomNotes ? 'has-items' : ''}`}>
+                        {itemsCount === 0
+                          ? (hasCustomNotes ? '📝 Com itens manuais' : 'Nenhum equipamento')
+                          : `${itemsCount} ${itemsCount === 1 ? 'equipamento' : 'equipamentos'}${hasCustomNotes ? ' (+ manual)' : ''}`}
                       </span>
                     </div>
 
@@ -4012,6 +4063,21 @@ export default function MissionModal({
                       </div>
                     )}
 
+                    {/* Observações Manuais & Itens Fora da Lista do Acervo */}
+                    <div className="mepc-custom-notes-block">
+                      <div className="mepc-custom-notes-header">
+                        <FileText size={13} className="text-amber" />
+                        <span>Itens &amp; Observações Manuais deste Colaborador (fora da lista):</span>
+                      </div>
+                      <textarea
+                        rows={2}
+                        className="mepc-custom-notes-textarea"
+                        placeholder='Ex: Levar monitor 24", computador / notebook, cabos de força, leitor de cartão SD...'
+                        value={personGroup.customNotes || formData.memberNotes?.[mId] || ''}
+                        onChange={(e) => handleUpdatePersonCustomNotes(mId, mem?.name || 'Colaborador', roleDisplay, e.target.value)}
+                      />
+                    </div>
+
                     {/* Seletor para Adicionar Equipamento ao Kit deste Colaborador */}
                     <div className="mepc-add-bar">
                       <select
@@ -4051,11 +4117,159 @@ export default function MissionModal({
                 );
               })}
 
+              {/* Blocos de Equipamentos para Convidados Externos / Freelancers */}
+              {Array.isArray(formData.guests) && formData.guests.map((guest, gIdx) => {
+                const guestName = typeof guest === 'string' ? guest : (guest.name || `Convidado ${gIdx + 1}`);
+                const guestId = `guest-${gIdx}-${guestName.replace(/\s+/g, '-').toLowerCase()}`;
+                const roleDisplay = 'Convidado / Freelancer Externo';
+                const personGroup = (formData.equipmentAllocations || []).find((g) => g.collaboratorId === guestId) || { items: [] };
+                const itemsCount = (personGroup.items || []).reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
+                const selectedEquipId = selectedEquipByPerson[guestId] || '';
+                const customNotesVal = personGroup.customNotes || formData.memberNotes?.[guestId] || '';
+                const hasCustomNotes = Boolean(customNotesVal && customNotesVal.trim());
+
+                return (
+                  <div key={guestId} className="mm-equip-person-card mepc-guest-card">
+                    <div className="mepc-header">
+                      <div className="mepc-user-info">
+                        <div className="mepc-avatar guest-avatar" style={{ background: '#7c3aed', color: '#fff' }}>
+                          <UserPlus size={16} />
+                        </div>
+                        <div>
+                          <strong className="mepc-name">{guestName}</strong>
+                          <span className="mepc-role-badge guest-badge" style={{ background: 'rgba(124, 58, 237, 0.15)', color: '#c4b5fd', borderColor: 'rgba(124, 58, 237, 0.3)' }}>{roleDisplay}</span>
+                        </div>
+                      </div>
+
+                      <span className={`mepc-items-badge ${itemsCount > 0 || hasCustomNotes ? 'has-items' : ''}`}>
+                        {itemsCount === 0
+                          ? (hasCustomNotes ? '📝 Com itens manuais' : 'Nenhum equipamento')
+                          : `${itemsCount} ${itemsCount === 1 ? 'equipamento' : 'equipamentos'}${hasCustomNotes ? ' (+ manual)' : ''}`}
+                      </span>
+                    </div>
+
+                    {(!personGroup.items || personGroup.items.length === 0) ? (
+                      <div className="mepc-empty-list">
+                        <span>Nenhum equipamento do acervo associado a este convidado. Você pode selecionar do acervo ou registrar itens manuais abaixo.</span>
+                      </div>
+                    ) : (
+                      <div className="mepc-items-list">
+                        {personGroup.items.map((it) => (
+                          <div key={it.equipmentId} className="mepc-item-row">
+                            <div className="mepc-item-left">
+                              <span className="mepc-item-icon"><Camera size={14} /></span>
+                              <div className="mepc-item-titles">
+                                <strong>{it.name}</strong>
+                                <span className="mepc-item-cat">
+                                  {CATEGORY_LABELS[it.category] || it.category}
+                                  {it.serialNumber ? ` • Nº: ${it.serialNumber}` : ''}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mepc-item-controls">
+                              <div className="mepc-qty-selector">
+                                <button
+                                  type="button"
+                                  className="mepc-qty-btn"
+                                  onClick={() => handleUpdateEquipmentQuantity(guestId, it.equipmentId, -1)}
+                                  title="Diminuir quantidade"
+                                >
+                                  -
+                                </button>
+                                <span className="mepc-qty-display">{it.quantity || 1}</span>
+                                <button
+                                  type="button"
+                                  className="mepc-qty-btn"
+                                  onClick={() => handleUpdateEquipmentQuantity(guestId, it.equipmentId, 1)}
+                                  title="Aumentar quantidade"
+                                >
+                                  +
+                                </button>
+                              </div>
+
+                              <input
+                                type="text"
+                                className="mepc-item-notes-input"
+                                placeholder="Acessórios (ex: 2 baterias)..."
+                                value={it.notes || ''}
+                                onChange={(e) => handleUpdateEquipmentNote(guestId, it.equipmentId, e.target.value)}
+                              />
+
+                              <button
+                                type="button"
+                                className="mepc-remove-btn"
+                                onClick={() => handleRemoveEquipmentFromPerson(guestId, it.equipmentId)}
+                                title="Remover item do kit deste convidado"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Observações Manuais & Itens Fora da Lista do Acervo */}
+                    <div className="mepc-custom-notes-block">
+                      <div className="mepc-custom-notes-header">
+                        <FileText size={13} className="text-amber" />
+                        <span>Itens &amp; Observações Manuais deste Convidado (fora da lista):</span>
+                      </div>
+                      <textarea
+                        rows={2}
+                        className="mepc-custom-notes-textarea"
+                        placeholder='Ex: Trazer câmera própria, monitor 24", computador / notebook, tripé pesado...'
+                        value={personGroup.customNotes || formData.memberNotes?.[guestId] || ''}
+                        onChange={(e) => handleUpdatePersonCustomNotes(guestId, guestName, roleDisplay, e.target.value)}
+                      />
+                    </div>
+
+                    <div className="mepc-add-bar">
+                      <select
+                        className="mepc-select"
+                        value={selectedEquipId}
+                        onChange={(e) => setSelectedEquipByPerson((prev) => ({ ...prev, [guestId]: e.target.value }))}
+                      >
+                        <option value="">Selecione um equipamento do acervo para adicionar ao kit...</option>
+                        {['cameras', 'lenses', 'lighting', 'audio', 'video', 'accessories'].map((catKey) => {
+                          const catEquips = equipmentList.filter((e) => e.category === catKey);
+                          if (catEquips.length === 0) return null;
+                          return (
+                            <optgroup key={catKey} label={CATEGORY_LABELS[catKey] || catKey}>
+                              {catEquips.map((eq) => {
+                                const isOut = Number(eq.availableQty) <= 0;
+                                return (
+                                  <option key={eq.id} value={eq.id}>
+                                    {eq.name} {isOut ? '(🔴 Alugado / Esgotado)' : `(Disp: ${eq.availableQty} un.)`}
+                                  </option>
+                                );
+                              })}
+                            </optgroup>
+                          );
+                        })}
+                      </select>
+
+                      <button
+                        type="button"
+                        className="btn-secondary mepc-add-btn"
+                        disabled={!selectedEquipId}
+                        onClick={() => handleAddEquipmentToPerson(guestId, guestName, roleDisplay, selectedEquipId)}
+                      >
+                        <Plus size={14} /> Adicionar ao Kit
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
               {/* Bloco Coletivo: Equipamentos Gerais / Kit Compartilhado da Missão */}
               {(() => {
                 const generalGroup = (formData.equipmentAllocations || []).find((g) => g.collaboratorId === 'general') || { items: [] };
                 const generalCount = (generalGroup.items || []).reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
                 const generalEquipId = selectedEquipByPerson['general'] || '';
+                const genCustomNotes = generalGroup.customNotes || formData.memberNotes?.['general'] || '';
+                const hasGenNotes = Boolean(genCustomNotes && genCustomNotes.trim());
 
                 return (
                   <div className="mm-equip-person-card mepc-general-card">
@@ -4070,8 +4284,10 @@ export default function MissionModal({
                         </div>
                       </div>
 
-                      <span className={`mepc-items-badge ${generalCount > 0 ? 'has-items' : ''}`}>
-                        {generalCount === 0 ? 'Nenhum equipamento' : `${generalCount} ${generalCount === 1 ? 'equipamento' : 'equipamentos'}`}
+                      <span className={`mepc-items-badge ${generalCount > 0 || hasGenNotes ? 'has-items' : ''}`}>
+                        {generalCount === 0
+                          ? (hasGenNotes ? '📝 Com itens manuais' : 'Nenhum equipamento')
+                          : `${generalCount} ${generalCount === 1 ? 'equipamento' : 'equipamentos'}${hasGenNotes ? ' (+ manual)' : ''}`}
                       </span>
                     </div>
 
@@ -4136,6 +4352,21 @@ export default function MissionModal({
                         ))}
                       </div>
                     )}
+
+                    {/* Observações Manuais & Itens Coletivos da Missão */}
+                    <div className="mepc-custom-notes-block">
+                      <div className="mepc-custom-notes-header">
+                        <Package size={13} className="text-amber" />
+                        <span>Itens &amp; Observações Coletivas da Missão (fora da lista):</span>
+                      </div>
+                      <textarea
+                        rows={2}
+                        className="mepc-custom-notes-textarea"
+                        placeholder="Ex: Levar mesa dobrável da van, tenda pantográfica, filtro de linha 20A, fita gaffer..."
+                        value={generalGroup.customNotes || formData.memberNotes?.['general'] || ''}
+                        onChange={(e) => handleUpdatePersonCustomNotes('general', 'Kit Geral & Itens Coletivos', 'Uso Compartilhado / Van', e.target.value)}
+                      />
+                    </div>
 
                     <div className="mepc-add-bar">
                       <select

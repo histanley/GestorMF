@@ -43950,6 +43950,116 @@ body.light-theme .megc-item-name,
   font-style: italic;
 }
 
+/* Observações Manuais & Itens Fora da Lista do Acervo (Modal de Missão) */
+.mepc-custom-notes-block {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px dashed rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+}
+
+body.light-theme .mepc-custom-notes-block,
+[data-theme="light"] .mepc-custom-notes-block {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.mepc-custom-notes-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+body.light-theme .mepc-custom-notes-header,
+[data-theme="light"] .mepc-custom-notes-header {
+  color: #b45309;
+}
+
+.mepc-custom-notes-textarea {
+  width: 100%;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #f1f5f9;
+  resize: vertical;
+  min-height: 48px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.mepc-custom-notes-textarea:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+body.light-theme .mepc-custom-notes-textarea,
+[data-theme="light"] .mepc-custom-notes-textarea {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+body.light-theme .mepc-custom-notes-textarea:focus,
+[data-theme="light"] .mepc-custom-notes-textarea:focus {
+  border-color: #d97706;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.15);
+}
+
+/* Exibição na Ficha de Detalhes da Missão (Megc) */
+.megc-custom-notes {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 6px;
+  border-left: 3px solid #f59e0b;
+}
+
+body.light-theme .megc-custom-notes,
+[data-theme="light"] .megc-custom-notes {
+  background: #fffbeb;
+  border-left-color: #d97706;
+}
+
+.megc-custom-notes-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fbbf24;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+body.light-theme .megc-custom-notes-label,
+[data-theme="light"] .megc-custom-notes-label {
+  color: #b45309;
+}
+
+.megc-custom-notes-text {
+  font-size: 0.73rem;
+  color: #f1f5f9;
+  margin: 0;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+body.light-theme .megc-custom-notes-text,
+[data-theme="light"] .megc-custom-notes-text {
+  color: #334155;
+}
+
 
 /* Botão de Excluir Registro do Histórico (Exclusivo Administrador) */
 .erc-btn-delete {

@@ -727,7 +727,8 @@ export default function MissionDetailModal({
               </div>
 
               {/* Kits de Equipamentos Escalados por Pessoa */}
-              {Array.isArray(mission.equipmentAllocations) && mission.equipmentAllocations.length > 0 && (
+              {/* 5. EQUIPAMENTOS & KITS DE CAMPO VINCULADOS */}
+              {((Array.isArray(mission.equipmentAllocations) && mission.equipmentAllocations.length > 0) || (mission.memberNotes && Object.keys(mission.memberNotes).length > 0)) && (
                 <div className="mdm-equip-section">
                   <div className="mdm-equip-header">
                     <Package size={15} className="text-purple" />
@@ -735,9 +736,10 @@ export default function MissionDetailModal({
                   </div>
 
                   <div className="mdm-equip-groups-grid">
-                    {mission.equipmentAllocations.map((grp, gIdx) => {
+                    {(mission.equipmentAllocations || []).map((grp, gIdx) => {
                       const items = grp.items || [];
-                      if (items.length === 0) return null;
+                      const customNotes = grp.customNotes || (mission.memberNotes && mission.memberNotes[grp.collaboratorId]);
+                      if (items.length === 0 && !customNotes) return null;
                       const isGeneral = grp.collaboratorId === 'general';
 
                       return (
@@ -747,15 +749,51 @@ export default function MissionDetailModal({
                             <span className="megc-role">{grp.role || (isGeneral ? 'Geral' : 'Equipe')}</span>
                           </div>
 
-                          <div className="megc-items-list">
-                            {items.map((it, iIdx) => (
-                              <div key={iIdx} className="megc-item-row">
-                                <span className="megc-item-name">
-                                  {it.quantity > 1 ? `(${it.quantity}x) ` : ''}{it.name}
-                                </span>
-                                {it.notes && <small className="megc-item-notes">{it.notes}</small>}
-                              </div>
-                            ))}
+                          {items.length > 0 && (
+                            <div className="megc-items-list">
+                              {items.map((it, iIdx) => (
+                                <div key={iIdx} className="megc-item-row">
+                                  <span className="megc-item-name">
+                                    {it.quantity > 1 ? `(${it.quantity}x) ` : ''}{it.name}
+                                  </span>
+                                  {it.notes && <small className="megc-item-notes">{it.notes}</small>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {customNotes && (
+                            <div className="megc-custom-notes">
+                              <span className="megc-custom-notes-label">
+                                <FileText size={11} /> Itens / Obs. Manuais:
+                              </span>
+                              <p className="megc-custom-notes-text">{customNotes}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Exibe notas manuais de colaboradores que não estão na lista de equipmentAllocations */}
+                    {Object.entries(mission.memberNotes || {}).map(([cId, note]) => {
+                      if (!note || !note.trim()) return null;
+                      const alreadyShown = (mission.equipmentAllocations || []).some((g) => g.collaboratorId === cId);
+                      if (alreadyShown) return null;
+                      const mem = members.find((m) => String(m.id) === String(cId));
+                      const name = mem ? mem.name : (cId === 'general' ? 'Kit Geral & Itens Coletivos' : cId);
+                      const role = mem ? mem.role : (cId === 'general' ? 'Uso Compartilhado' : 'Equipe');
+
+                      return (
+                        <div key={`extra-note-${cId}`} className={`mdm-equip-group-card ${cId === 'general' ? 'card-general' : ''}`}>
+                          <div className="megc-top">
+                            <strong>{name}</strong>
+                            <span className="megc-role">{role}</span>
+                          </div>
+                          <div className="megc-custom-notes">
+                            <span className="megc-custom-notes-label">
+                              <FileText size={11} /> Itens / Obs. Manuais:
+                            </span>
+                            <p className="megc-custom-notes-text">{note}</p>
                           </div>
                         </div>
                       );
