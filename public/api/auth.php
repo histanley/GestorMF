@@ -48,6 +48,26 @@ if ($method === 'POST' && $action === 'login') {
     // Cria sessão segura revogável no banco MySQL e emite cookie HttpOnly
     $token = createUserSession($db, $user['id']);
 
+    // Registra e apura o login anterior para exibição na saudação ("Último acesso")
+    $prevLogin = $user['last_login_at'] ?? null;
+    if (empty($prevLogin)) {
+        try {
+            $sLog = $db->prepare("SELECT created_at FROM audit_logs WHERE user_id = ? AND action = 'LOGIN_SUCCESS' ORDER BY created_at DESC LIMIT 1 OFFSET 1");
+            $sLog->execute([$user['id']]);
+            $rLog = $sLog->fetch();
+            if ($rLog && !empty($rLog['created_at'])) {
+                $prevLogin = $rLog['created_at'];
+            }
+        } catch (Exception $e) {}
+    }
+
+    try {
+        $db->prepare("UPDATE users SET previous_login_at = ?, last_login_at = NOW() WHERE id = ?")->execute([$prevLogin, $user['id']]);
+    } catch (Exception $e) {}
+
+    $user['last_login_at'] = date('Y-m-d H:i:s');
+    $user['previous_login_at'] = $prevLogin;
+
     logAudit('LOGIN_SUCCESS', 'AUTH', $user['id'], 'Login efetuado com sucesso.', $user['id'], $user['name']);
 
     $csrfToken = generateCsrfToken($token);
@@ -60,7 +80,7 @@ if ($method === 'POST' && $action === 'login') {
 }
 
 // Garante colunas de perfil e disponibilidade via migração versionada única (DB-01)
-runVersionedMigration($db, 'schema_auth_profile_v2', function($pdo) {
+runVersionedMigration($db, 'schema_auth_profile_v3', function($pdo) {
     try {
         $chk = $pdo->query("SHOW COLUMNS FROM users LIKE 'pix_key'")->fetch();
         if (!$chk) {
@@ -73,6 +93,16 @@ runVersionedMigration($db, 'schema_auth_profile_v2', function($pdo) {
             $pdo->exec("ALTER TABLE members ADD COLUMN extra_hours_availability LONGTEXT NULL AFTER pix_key");
         }
     } catch (Exception $e) {}
+    try {
+        $chkLast = $pdo->query("SHOW COLUMNS FROM users LIKE 'last_login_at'")->fetch();
+        if (!$chkLast) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL");
+        }
+        $chkPrev = $pdo->query("SHOW COLUMNS FROM users LIKE 'previous_login_at'")->fetch();
+        if (!$chkPrev) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN previous_login_at DATETIME NULL");
+        }
+    } catch (Exception $e) {}
 });
 
 // ------------------------------------------------------------------------------
@@ -83,12 +113,30 @@ if ($method === 'GET' && $action === 'me') {
 
     $stmt = $db->prepare("
         SELECT u.id, u.name, u.email, u.role, u.title, u.department, u.phone, u.avatar, u.pix_key, u.created_at,
+               u.last_login_at, u.previous_login_at,
                m.pix_key AS member_pix_key
         FROM users u
         LEFT JOIN members m ON m.user_id = u.id
         WHERE u.id = ?
         LIMIT 1
     ");
+    $stmt->execute([$auth['id']]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        jsonResponse(['success' => false, 'error' => 'Usuário não encontrado.'], 404);
+    }
+
+    if (empty($user['previous_login_at'])) {
+        try {
+            $sLog = $db->prepare("SELECT created_at FROM audit_logs WHERE user_id = ? AND action = 'LOGIN_SUCCESS' ORDER BY created_at DESC LIMIT 1 OFFSET 1");
+            $sLog->execute([$user['id']]);
+            $rLog = $sLog->fetch();
+            if ($rLog && !empty($rLog['created_at'])) {
+                $user['previous_login_at'] = $rLog['created_at'];
+            }
+        } catch (Exception $e) {}
+    }
     $stmt->execute([$auth['id']]);
     $user = $stmt->fetch();
 

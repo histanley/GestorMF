@@ -109,6 +109,85 @@ export function setCurrentUser(user) {
     const clone = { ...user, role: normalizeRole(user.role) };
     delete clone.password;
     localStorage.setItem('gestormf_current_user', JSON.stringify(clone));
+    if (user.id) {
+      recordUserLoginTime(user.id);
+    }
+  }
+}
+
+// Rastreamento persistente de último login por usuário
+export function recordUserLoginTime(userId) {
+  if (!userId) return;
+  try {
+    const key = `gestormf_login_tracker_${userId}`;
+    const raw = localStorage.getItem(key);
+    const nowIso = new Date().toISOString();
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Mantém previous fixo durante a mesma sessão de navegação recente (5 min) para não sobrescrever a si mesmo
+      const lastCur = parsed.current;
+      const lastCurTime = lastCur ? new Date(lastCur).getTime() : 0;
+      const diffMs = Date.now() - lastCurTime;
+      if (diffMs > 5 * 60 * 1000) {
+        localStorage.setItem(key, JSON.stringify({ current: nowIso, previous: lastCur }));
+      }
+    } else {
+      localStorage.setItem(key, JSON.stringify({ current: nowIso, previous: null }));
+    }
+  } catch (e) {}
+}
+
+export function getLastLoginTime(user) {
+  if (!user) return null;
+  // 1. Dados do MySQL retornados na autenticação
+  if (user.previous_login_at) return user.previous_login_at;
+  if (user.previousLoginAt) return user.previousLoginAt;
+
+  // 2. Registro local no navegador
+  try {
+    const key = `gestormf_login_tracker_${user.id}`;
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.previous) return parsed.previous;
+      if (parsed.current) return parsed.current;
+    }
+  } catch (e) {}
+
+  if (user.last_login_at) return user.last_login_at;
+  if (user.lastLoginAt) return user.lastLoginAt;
+  return null;
+}
+
+export function formatLastLoginDisplay(dateInput) {
+  if (!dateInput) return 'Primeiro acesso registrado';
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = d.toDateString() === yesterday.toDateString();
+
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+
+    if (isToday) {
+      return `Hoje às ${timeStr}`;
+    }
+    if (isYesterday) {
+      return `Ontem às ${timeStr}`;
+    }
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year} às ${timeStr}`;
+  } catch (e) {
+    return 'Recente';
   }
 }
 

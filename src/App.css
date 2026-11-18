@@ -28594,9 +28594,54 @@ body.light-theme .mori-input {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: #94a3b8;
   font-weight: 500;
+  flex-wrap: wrap;
+}
+
+.sh-last-login-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sh-last-login-tag:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.sh-last-login-ico {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.sh-last-login-val {
+  color: #f8fafc;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.sh-hero-role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
 }
 
 .sh-hero-dot {
@@ -28614,6 +28659,18 @@ body.light-theme .mori-input {
   border-radius: 999px;
   font-weight: 700;
   font-size: 0.72rem;
+}
+
+.sh-hero-badge-active.is-clickable {
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sh-hero-badge-active.is-clickable:hover {
+  transform: translateY(-1px);
+  background: rgba(56, 189, 248, 0.22);
+  border-color: #38bdf8;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
 }
 
 /* 2. Lado Direito: Grupo de Cápsulas Executivas */
@@ -29170,6 +29227,30 @@ body.light-theme .sh-hero-badge-active {
   background: #e0f2fe !important;
   border-color: #bae6fd !important;
   color: #0369a1 !important;
+}
+
+[data-theme="light"] .sh-last-login-tag,
+body.light-theme .sh-last-login-tag {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] .sh-last-login-ico,
+body.light-theme .sh-last-login-ico {
+  color: #d97706 !important;
+}
+
+[data-theme="light"] .sh-last-login-val,
+body.light-theme .sh-last-login-val {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .sh-hero-role-pill,
+body.light-theme .sh-hero-role-pill {
+  background: #f0f9ff !important;
+  border-color: #bae6fd !important;
+  color: #0284c7 !important;
 }
 
 /* Cápsulas no Modo Claro */

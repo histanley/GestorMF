@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { formatDateBR, getMissionCode } from '../utils/geo';
 import { isNativeApp } from '../utils/nativeBridge';
+import { getLastLoginTime, formatLastLoginDisplay } from '../utils/auth';
 
 // Mapeia códigos de clima da WMO (Open-Meteo) para descrições e ícones
 function getWeatherDetails(code, isDay = 1) {
@@ -131,6 +132,12 @@ export default function SmartHeaderGreeting({
       dateFormatted: dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1),
     };
   }, [currentTime, currentUser]);
+
+  // Última vez que a pessoa logou no sistema (dia e hora)
+  const lastLoginFormatted = useMemo(() => {
+    const rawTime = getLastLoginTime(currentUser);
+    return formatLastLoginDisplay(rawTime);
+  }, [currentUser]);
 
   // Clima em Tempo Real (Boa Vista - RR por padrão ou coordenadas da base) com Cache de 30min
   const [weatherData, setWeatherData] = useState(() => {
@@ -327,7 +334,7 @@ export default function SmartHeaderGreeting({
     <div className="dynamic-body-greeting premium-smart-header">
       {/* 1. LADO ESQUERDO: SAUDAÇÃO & DATA OPERACIONAL */}
       <div className="sh-hero-identity">
-        <div className="sh-hero-icon-wrap" title="Horário de Boa Vista, RR">
+        <div className="sh-hero-icon-wrap" title="Horário e Clima de Boa Vista, RR">
           <span className="sh-hero-icon">{greeting.icon}</span>
         </div>
         <div className="sh-hero-info">
@@ -335,13 +342,27 @@ export default function SmartHeaderGreeting({
             <h1 className="sh-hero-title">
               {greeting.text}, <span className="sh-hero-name">{greeting.firstName}</span>!
             </h1>
+            {currentUser?.title && (
+              <span className="sh-hero-role-pill">{currentUser.title}</span>
+            )}
           </div>
           <div className="sh-hero-sub-row">
+            {/* Informação da última vez que a pessoa logou no sistema (dia e hora) */}
+            <span className="sh-last-login-tag" title="Última vez que você acessou o sistema">
+              <Clock size={11} className="sh-last-login-ico" />
+              <span className="sh-last-login-txt">Último login: <strong className="sh-last-login-val">{lastLoginFormatted}</strong></span>
+            </span>
+
+            <span className="sh-hero-dot">•</span>
             <span className="sh-hero-date">{greeting.dateFormatted}</span>
             <span className="sh-hero-dot">•</span>
-            <span className="sh-hero-badge-active">
+            <span
+              className="sh-hero-badge-active is-clickable"
+              onClick={() => onNavigateTab && onNavigateTab('table')}
+              title="Clique para ver a grade de missões ativas na Tabela de Serviço"
+            >
               <span className="sh-pulse-dot green" />
-              {countAtivas} {countAtivas === 1 ? 'missão ativa' : 'missões ativas'}
+              <span>{countAtivas} {countAtivas === 1 ? 'missão ativa' : 'missões ativas'}</span>
             </span>
           </div>
         </div>
