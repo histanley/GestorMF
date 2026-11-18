@@ -74,6 +74,7 @@ import {
   resolveMissionEditors,
   getMissionEditionDeliverySummary,
   getMissionEditorsDeliveryMap,
+  formatDeliveryDateTimeBR,
 } from '../utils/postProduction';
 
 // Formata YYYY-MM-DD para DD/MM/AAAA
@@ -389,19 +390,34 @@ export default function ServiceBoard({
     if (targetEditorId && targetEditorId !== 'ALL') {
       const targetEd = assignedEditors.find((e) => String(e.id) === String(targetEditorId));
       targetDesc = targetEd ? targetEd.name : `Editor #${targetEditorId}`;
-      if (updatedDelivery[String(targetEditorId)]) {
-        updatedDelivery[String(targetEditorId)] = {
-          ...updatedDelivery[String(targetEditorId)],
+      const existingTarget = updatedDelivery[String(targetEditorId)] || {};
+      updatedDelivery[String(targetEditorId)] = {
+        ...existingTarget,
+        editorId: String(targetEditorId),
+        editorName: targetDesc,
+        status: 'pending',
+        deliveredAt: null,
+        reopenReason: reason,
+        reopenedAt: now.toISOString(),
+      };
+    } else {
+      assignedEditors.forEach((ed) => {
+        const k = String(ed.id);
+        updatedDelivery[k] = {
+          ...(updatedDelivery[k] || {}),
+          editorId: k,
+          editorName: ed.name,
           status: 'pending',
+          deliveredAt: null,
           reopenReason: reason,
           reopenedAt: now.toISOString(),
         };
-      }
-    } else {
+      });
       Object.keys(updatedDelivery).forEach((k) => {
         updatedDelivery[k] = {
           ...updatedDelivery[k],
           status: 'pending',
+          deliveredAt: null,
           reopenReason: reason,
           reopenedAt: now.toISOString(),
         };
@@ -413,8 +429,8 @@ export default function ServiceBoard({
       type: 'REOPENED',
       user: currentUser?.name || 'Administrador',
       timestamp: now.toISOString(),
-      title: `Material Rejeitado e Reaberto (${targetDesc})`,
-      description: `Motivo da rejeição / ajustes solicitados: "${reason}". Devolução direcionada para: ${targetDesc}.` + (hasDeadlineVal ? ` Novo prazo estipulado: ${newDeadlineStr}.` : ''),
+      title: `Missão Reaberta para Pós-Produção (${targetDesc})`,
+      description: `Motivo da reabertura / ajustes solicitados: "${reason}". Entregas reabertas para: ${targetDesc}.` + (hasDeadlineVal ? ` Novo prazo estipulado: ${newDeadlineStr}.` : ''),
       reason,
       targetEditorId: targetEditorId || 'ALL',
       newDeadline: hasDeadlineVal ? newDeadlineStr : null,
@@ -430,6 +446,8 @@ export default function ServiceBoard({
       ...m,
       editionStatus: 'Em Edição',
       missionStatus: 'Pendente',
+      editionCompletedAt: null,
+      editionCompletedBy: null,
       isOverdue: 1,
       reopenReason: reason,
       deliveryDeadlineDate: hasDeadlineVal ? newDeadlineDate : m.deliveryDeadlineDate,
@@ -437,6 +455,8 @@ export default function ServiceBoard({
       editorsDelivery: updatedDelivery,
       editionHistory: updatedHistory,
       version: mVer,
+      forceOverwrite: true,
+      ignoreConflicts: true,
     };
 
     if (onSaveMission) {
@@ -1696,6 +1716,9 @@ export default function ServiceBoard({
                                     const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
                                     const isDelivered = edDeliv && edDeliv.status === 'delivered';
                                     const isMe = matchedEditorObj && String(matchedEditorObj.id) === String(ed.id);
+                                    const deliveredTimeLabel = isDelivered && edDeliv?.deliveredAt
+                                      ? formatDeliveryDateTimeBR(edDeliv.deliveredAt, true)
+                                      : '';
 
                                     return (
                                       <div
@@ -1703,17 +1726,26 @@ export default function ServiceBoard({
                                         className={`pp-editor-status-chip ${isDelivered ? 'is-delivered' : 'is-pending'} ${isMe ? 'is-me' : ''}`}
                                         title={
                                           isDelivered
-                                            ? `${ed.name}: Concluído e entregue ${edDeliv.deliveredAt ? `em ${formatDateBR(edDeliv.deliveredAt.slice(0, 10))} às ${edDeliv.deliveredAt.slice(11, 16)}` : ''}`
+                                            ? `${ed.name}: Concluído e entregue ${edDeliv?.deliveredAt ? `em ${formatDeliveryDateTimeBR(edDeliv.deliveredAt)}` : ''}`
                                             : `${ed.name}: Aguardando conclusão da sua parte`
                                         }
+                                        style={{ flexDirection: 'column', alignItems: 'stretch', gap: '3px' }}
                                       >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
-                                          <Film size={10} style={{ flexShrink: 0 }} />
-                                          <span className="pp-chip-name">{ed.name}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', width: '100%' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                                            <Film size={10} style={{ flexShrink: 0 }} />
+                                            <span className="pp-chip-name">{ed.name}</span>
+                                          </div>
+                                          <span className={`pp-chip-tag ${isDelivered ? 'tag-delivered' : 'tag-pending'}`}>
+                                            {isDelivered ? '✅ Entregou' : '⏳ Pendente'}
+                                          </span>
                                         </div>
-                                        <span className={`pp-chip-tag ${isDelivered ? 'tag-delivered' : 'tag-pending'}`}>
-                                          {isDelivered ? '✅ Entregou' : '⏳ Pendente'}
-                                        </span>
+                                        {deliveredTimeLabel && (
+                                          <div style={{ fontSize: '0.64rem', color: '#6ee7b7', display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.92 }}>
+                                            <Clock size={9} style={{ flexShrink: 0 }} />
+                                            <span>Entregue: {deliveredTimeLabel}</span>
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   })}
@@ -1890,11 +1922,25 @@ export default function ServiceBoard({
                               </div>
                             )}
 
-                            {/* 3. Missão já finalizada */}
+                            {/* 3. Missão já finalizada (com botão de Reabertura para o Administrador) */}
                             {mission.missionStatus === 'Finalizada' && (
-                              <span className="pp-concluded-badge">
-                                <Check size={11} /> Finalizada
-                              </span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                <span className="pp-concluded-badge">
+                                  <Check size={11} /> Finalizada
+                                </span>
+                                {canAdminManageEdition && (
+                                  <button
+                                    type="button"
+                                    className="btn-pp-reopen"
+                                    onClick={() => handleReopenClick(mission)}
+                                    title="Reabrir missão e deixar em aberto novamente as entregas da pós-produção"
+                                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.7rem', padding: '4px 8px' }}
+                                  >
+                                    <RotateCcw size={11} />
+                                    <span>Reabrir Pós-Produção</span>
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </div>
                         )}
@@ -3121,34 +3167,73 @@ export default function ServiceBoard({
                             {assignedEditors.map((ed, idx) => {
                               const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
                               const isDone = edDeliv && edDeliv.status === 'delivered';
+                              const deliveredFullStr = isDone && edDeliv?.deliveredAt
+                                ? formatDeliveryDateTimeBR(edDeliv.deliveredAt)
+                                : '';
                               return (
-                                <div key={ed.id || idx} className="mdm-editor-tag" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span className="mdm-editor-avatar">
-                                      {ed.photoUrl ? (
-                                        <img src={ed.photoUrl} alt={ed.name} />
-                                      ) : (
-                                        <span>{ed.name.slice(0, 2).toUpperCase()}</span>
-                                      )}
-                                    </span>
-                                    <div className="mdm-editor-info">
-                                      <strong>{ed.name}</strong>
-                                      <small>{ed.role || 'Editor de Vídeo'}</small>
+                                <div key={ed.id || idx} className="mdm-editor-tag" style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span className="mdm-editor-avatar">
+                                        {ed.photoUrl ? (
+                                          <img src={ed.photoUrl} alt={ed.name} />
+                                        ) : (
+                                          <span>{ed.name.slice(0, 2).toUpperCase()}</span>
+                                        )}
+                                      </span>
+                                      <div className="mdm-editor-info">
+                                        <strong>{ed.name}</strong>
+                                        <small>{ed.role || 'Editor de Vídeo'}</small>
+                                      </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <span style={{
+                                        fontSize: '0.72rem',
+                                        padding: '3px 8px',
+                                        borderRadius: '4px',
+                                        background: isDone ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                        color: isDone ? '#34d399' : '#fbbf24',
+                                        border: `1px solid ${isDone ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                                        fontWeight: 700
+                                      }}>
+                                        {isDone ? '✅ Concluído' : '⏳ Pendente'}
+                                      </span>
                                     </div>
                                   </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{
-                                      fontSize: '0.72rem',
-                                      padding: '3px 8px',
-                                      borderRadius: '4px',
-                                      background: isDone ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                                      color: isDone ? '#34d399' : '#fbbf24',
-                                      border: `1px solid ${isDone ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                                      fontWeight: 700
+
+                                  {isDone && (
+                                    <div style={{
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: '3px',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      background: 'rgba(16, 185, 129, 0.07)',
+                                      border: '1px solid rgba(16, 185, 129, 0.2)',
+                                      fontSize: '0.74rem',
+                                      color: '#a7f3d0',
                                     }}>
-                                      {isDone ? '✅ Concluído' : '⏳ Pendente'}
-                                    </span>
-                                  </div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                                        <Clock size={12} style={{ color: '#34d399', flexShrink: 0 }} />
+                                        <span>
+                                          Entregue em: <strong style={{ color: '#ecfdf5' }}>{deliveredFullStr || 'Data/hora registrada'}</strong>
+                                        </span>
+                                      </div>
+                                      {edDeliv?.serverFilePath && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7dd3fc', fontSize: '0.71rem' }}>
+                                          <Folder size={11} style={{ flexShrink: 0 }} />
+                                          <code style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={edDeliv.serverFilePath}>
+                                            {edDeliv.serverFilePath}
+                                          </code>
+                                        </div>
+                                      )}
+                                      {edDeliv?.notes && (
+                                        <div style={{ fontSize: '0.71rem', color: '#cbd5e1', fontStyle: 'italic' }}>
+                                          💬 "{edDeliv.notes}"
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -3329,9 +3414,22 @@ export default function ServiceBoard({
                         )}
 
                         {detailMission.missionStatus === 'Finalizada' && (
-                          <span className="pp-concluded-badge">
-                            <Check size={12} /> Missão Finalizada
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <span className="pp-concluded-badge">
+                              <Check size={12} /> Missão Finalizada
+                            </span>
+                            {canAdminManageEdition && (
+                              <button
+                                type="button"
+                                className="btn-pp-reopen"
+                                onClick={() => handleReopenClick(detailMission)}
+                                title="Reabrir missão e deixar em aberto novamente as entregas da pós-produção"
+                              >
+                                <RotateCcw size={13} />
+                                <span>Reabrir Missão &amp; Pós-Produção</span>
+                              </button>
+                            )}
+                          </div>
                         )}
 
                         {/* Exibição Destacada do Caminho no Servidor */}

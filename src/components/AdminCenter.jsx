@@ -44,6 +44,7 @@ import {
   resolveMissionEditors,
   getMissionEditionDeliverySummary,
   getMissionEditorsDeliveryMap,
+  formatDeliveryDateTimeBR,
 } from '../utils/postProduction';
 
 function formatDateBR(dateStr) {
@@ -265,20 +266,35 @@ export default function AdminCenter({
     if (targetEditorId && targetEditorId !== 'ALL') {
       const targetEd = assignedEditors.find((e) => String(e.id) === String(targetEditorId));
       targetDesc = targetEd ? targetEd.name : `Editor #${targetEditorId}`;
-      if (updatedDelivery[String(targetEditorId)]) {
-        updatedDelivery[String(targetEditorId)] = {
-          ...updatedDelivery[String(targetEditorId)],
+      const existingTarget = updatedDelivery[String(targetEditorId)] || {};
+      updatedDelivery[String(targetEditorId)] = {
+        ...existingTarget,
+        editorId: String(targetEditorId),
+        editorName: targetDesc,
+        status: 'pending',
+        deliveredAt: null,
+        reopenReason: reason,
+        reopenedAt: now.toISOString(),
+      };
+    } else {
+      // Reabre para todos os editores
+      assignedEditors.forEach((ed) => {
+        const k = String(ed.id);
+        updatedDelivery[k] = {
+          ...(updatedDelivery[k] || {}),
+          editorId: k,
+          editorName: ed.name,
           status: 'pending',
+          deliveredAt: null,
           reopenReason: reason,
           reopenedAt: now.toISOString(),
         };
-      }
-    } else {
-      // Reabre para todos
+      });
       Object.keys(updatedDelivery).forEach((k) => {
         updatedDelivery[k] = {
           ...updatedDelivery[k],
           status: 'pending',
+          deliveredAt: null,
           reopenReason: reason,
           reopenedAt: now.toISOString(),
         };
@@ -290,7 +306,7 @@ export default function AdminCenter({
       type: 'REOPENED',
       user: currentUser?.name || 'Administrador',
       timestamp: now.toISOString(),
-      title: `Material Rejeitado e Reaberto (${targetDesc})`,
+      title: `Missão Reaberta para Pós-Produção (${targetDesc})`,
       description: `Ajustes solicitados pela Diretoria: "${reason}". Devolução direcionada para: ${targetDesc}.` + (hasDeadlineVal ? ` Novo prazo: ${newDeadlineStr}.` : ''),
       reason,
       targetEditorId: targetEditorId || 'ALL',
@@ -307,6 +323,8 @@ export default function AdminCenter({
       ...m,
       editionStatus: 'Em Edição',
       missionStatus: 'Pendente',
+      editionCompletedAt: null,
+      editionCompletedBy: null,
       isOverdue: 1,
       reopenReason: reason,
       deliveryDeadlineDate: hasDeadlineVal ? newDeadlineDate : m.deliveryDeadlineDate,
@@ -315,6 +333,7 @@ export default function AdminCenter({
       editionHistory: updatedHistory,
       version: mVer,
       forceOverwrite: true,
+      ignoreConflicts: true,
     };
 
     if (onSaveMission) {
@@ -692,6 +711,9 @@ export default function AdminCenter({
                               const isDone = edDeliv && edDeliv.status === 'delivered';
                               const edPath = edDeliv?.serverFilePath || serverPath;
                               const edNote = edDeliv?.notes || (ed.name.toLowerCase().includes('mateus') ? editorMessage : null);
+                              const deliveredFullStr = isDone && edDeliv?.deliveredAt
+                                ? formatDeliveryDateTimeBR(edDeliv.deliveredAt)
+                                : '';
 
                               if (!isDone && !edPath && !edNote) return null;
 
@@ -702,7 +724,15 @@ export default function AdminCenter({
                                       <div className="ac-pp-avatar-circle" style={{ width: '24px', height: '24px', fontSize: '0.68rem' }}>
                                         {ed.name.slice(0, 2).toUpperCase()}
                                       </div>
-                                      <span>Entrega: <strong>{ed.name}</strong></span>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span>Entrega: <strong>{ed.name}</strong></span>
+                                        {deliveredFullStr && (
+                                          <small style={{ fontSize: '0.72rem', color: '#6ee7b7', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                                            <Clock size={11} />
+                                            <span>Entregue em {deliveredFullStr}</span>
+                                          </small>
+                                        )}
+                                      </div>
                                     </div>
                                     <span className={`ac-pp-delivery-done-tag ${isDone ? 'tag-done' : 'tag-pending'}`}>
                                       {isDone ? (
@@ -761,6 +791,36 @@ export default function AdminCenter({
                           </div>
                         ) : (
                           <>
+                            {/* Data e Hora de Entrega (Editor Único) */}
+                            {(() => {
+                              const singleEd = assignedEditors[0];
+                              const singleDeliv = singleEd ? deliverySummary.deliveryMap[String(singleEd.id)] : null;
+                              const singleTimeStr = formatDeliveryDateTimeBR(
+                                singleDeliv?.deliveredAt || mission.editionCompletedAt || lastConcludeEvent?.timestamp
+                              );
+                              if (!singleTimeStr) return null;
+                              return (
+                                <div className="ac-pp-section-block">
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '7px',
+                                    padding: '7px 11px',
+                                    borderRadius: '7px',
+                                    background: 'rgba(16, 185, 129, 0.08)',
+                                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                                    fontSize: '0.78rem',
+                                    color: '#a7f3d0',
+                                  }}>
+                                    <Clock size={13} style={{ color: '#34d399', flexShrink: 0 }} />
+                                    <span>
+                                      Material entregue em: <strong style={{ color: '#ecfdf5' }}>{singleTimeStr}</strong>
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
                             {/* Caminho dos Arquivos no Servidor */}
                             {serverPath && (
                               <div className="ac-pp-section-block">
@@ -841,7 +901,7 @@ export default function AdminCenter({
                       </div>
 
                       {/* Botões de Ação para o Administrador - Perfeitamente Proporcionais */}
-                      {isPending && (
+                      {isPending ? (
                         <div className="ac-rc-actions-row ac-pp-actions-footer">
                           <button
                             type="button"
@@ -868,6 +928,26 @@ export default function AdminCenter({
                           >
                             <CheckCheck size={17} />
                             <span>Confirmar Finalização</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="ac-rc-actions-row ac-pp-actions-footer">
+                          <button
+                            type="button"
+                            className="ac-btn-reject ac-pp-btn-action"
+                            style={{ width: '100%', justifyContent: 'center' }}
+                            onClick={() => setReopenModal({
+                              isOpen: true,
+                              mission,
+                              reason: '',
+                              hasNewDeadline: false,
+                              newDeadlineDate: mission.deliveryDeadlineDate || '',
+                              newDeadlineTime: mission.deliveryDeadlineTime || '18:00',
+                            })}
+                            title="Reabrir esta missão finalizada e deixar em aberto novamente as entregas da pós-produção"
+                          >
+                            <RotateCcw size={16} />
+                            <span>Reabrir Missão &amp; Pós-Produção</span>
                           </button>
                         </div>
                       )}

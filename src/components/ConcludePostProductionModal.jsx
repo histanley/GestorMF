@@ -21,6 +21,7 @@ import {
   resolveMissionEditors,
   getMissionEditionDeliverySummary,
   canUserDeliverForEditor,
+  formatDeliveryDateTimeBR,
 } from '../utils/postProduction';
 
 export default function ConcludePostProductionModal({
@@ -208,7 +209,8 @@ export default function ConcludePostProductionModal({
               </div>
               <div className="mrh-wc-text" style={{ color: '#d1fae5' }}>
                 <span>
-                  <strong>Entrega Já Concluída:</strong> A parte do editor <strong>{editorName}</strong> já foi entregue com sucesso e está na fila da Diretoria. Não é permitido editar ou reenviar a menos que haja solicitação de refação pela Administração.
+                  <strong>Entrega Já Concluída:</strong> A parte do editor <strong>{editorName}</strong> já foi entregue com sucesso
+                  {selectedDeliv?.deliveredAt ? ` em ${formatDeliveryDateTimeBR(selectedDeliv.deliveredAt)}` : ''} e está na fila da Diretoria. Não é permitido editar ou reenviar a menos que haja solicitação de refação pela Administração.
                 </span>
               </div>
             </div>

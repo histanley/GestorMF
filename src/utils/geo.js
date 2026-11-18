@@ -297,7 +297,8 @@ export function computeMissionAutoStatus(mission, now = new Date(), forceRecompu
   const hasPostProd = hasMissionPostProduction(mission);
 
   const history = Array.isArray(mission.editionHistory) ? mission.editionHistory : [];
-  const isApprovedByAdmin = history.some((h) => h.type === 'APPROVED');
+  const lastDecision = [...history].reverse().find((h) => h && (h.type === 'APPROVED' || h.type === 'REOPENED'));
+  const isApprovedByAdmin = Boolean(lastDecision && lastDecision.type === 'APPROVED');
 
   if (!forceRecompute && (currentStatus === 'Finalizada' || currentStatus === 'Finalizado' || currentStatus === 'Concluída')) {
     if (hasPostProd && !isApprovedByAdmin) {

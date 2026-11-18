@@ -17,7 +17,11 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { getMissionCode, formatDateBR } from '../utils/geo';
-import { resolveMissionEditors, getMissionEditionDeliverySummary } from '../utils/postProduction';
+import {
+  resolveMissionEditors,
+  getMissionEditionDeliverySummary,
+  formatDeliveryDateTimeBR,
+} from '../utils/postProduction';
 
 export default function RejectPostProductionModal({
   isOpen,
@@ -152,13 +156,13 @@ export default function RejectPostProductionModal({
                       type="button"
                       className={`mrh-target-pill ${isSelected ? 'active' : ''}`}
                       onClick={() => setTargetEditorId(String(ed.id))}
-                      title={isDone ? `Já entregou sua parte. Clique para solicitar ajustes especificamente a ele.` : `Ainda pendente.`}
+                      title={isDone ? `Entregue ${edDeliv?.deliveredAt ? `em ${formatDeliveryDateTimeBR(edDeliv.deliveredAt)}` : ''}. Clique para solicitar ajustes especificamente a ele.` : `Ainda pendente.`}
                     >
                       <User size={13} />
                       <span>Apenas {ed.name}</span>
                       {isDone ? (
                         <span className="mrh-pill-tag done" title="Parte entregue">
-                          ✅ Entregue
+                          ✅ Entregue {edDeliv?.deliveredAt ? `(${formatDeliveryDateTimeBR(edDeliv.deliveredAt, true)})` : ''}
                         </span>
                       ) : (
                         <span className="mrh-pill-tag pending" title="Parte pendente">

@@ -149,18 +149,54 @@ export function resolveMissionEditors(mission, members = []) {
 }
 
 /**
+ * Formata data/hora ISO de entrega (ex: "2026-11-18T14:32:00.000Z" ou "2026-11-18 14:32:00")
+ * para exibição clara de Dia e Hora: "18/11/2026 às 14:32" (ou versão curta "18/11 às 14:32").
+ */
+export function formatDeliveryDateTimeBR(isoStr, shortYear = false) {
+  if (!isoStr) return '';
+  try {
+    const str = String(isoStr).trim();
+    if (!str) return '';
+    const d = new Date(str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str);
+    if (!isNaN(d.getTime())) {
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return shortYear ? `${dd}/${mm} às ${hh}:${min}` : `${dd}/${mm}/${yyyy} às ${hh}:${min}`;
+    }
+    // Fallback para string YYYY-MM-DD...
+    const datePart = str.slice(0, 10);
+    const timePart = str.slice(11, 16);
+    const [y, m, day] = datePart.split('-');
+    if (y && m && day) {
+      return shortYear
+        ? `${day}/${m}${timePart ? ` às ${timePart}` : ''}`
+        : `${day}/${m}/${y}${timePart ? ` às ${timePart}` : ''}`;
+    }
+    return str;
+  } catch {
+    return String(isoStr);
+  }
+}
+
+/**
  * Verifica se a missão já foi aprovada pela gestão ou está finalizada.
  */
 export function isMissionApprovedOrFinished(mission) {
   if (!mission) return false;
-  const st = String(mission.missionStatus || '').trim();
-  if (st === 'Finalizada' || st === 'Finalizado' || st === 'Concluída') return true;
-  if (Array.isArray(mission.editionHistory)) {
+  if (Array.isArray(mission.editionHistory) && mission.editionHistory.length > 0) {
     const lastDecision = [...mission.editionHistory]
       .reverse()
       .find((h) => h && (h.type === 'APPROVED' || h.type === 'REOPENED'));
-    if (lastDecision && lastDecision.type === 'APPROVED') return true;
+    if (lastDecision) {
+      if (lastDecision.type === 'REOPENED') return false;
+      if (lastDecision.type === 'APPROVED') return true;
+    }
   }
+  const st = String(mission.missionStatus || '').trim();
+  if (st === 'Finalizada' || st === 'Finalizado' || st === 'Concluída') return true;
   return false;
 }
 
@@ -238,18 +274,30 @@ export function getMissionEditorsDeliveryMap(mission, members = []) {
       return;
     }
 
-    // Fallback inteligente: verifica se há registro de entrega deste editor no editionHistory da missão
+    // Fallback inteligente: verifica se há registro de entrega deste editor no editionHistory da missão (COMPLETED ou PARTIAL_COMPLETED após eventual REOPENED)
     if (Array.isArray(mission.editionHistory) && mission.editionHistory.length > 0) {
       const eNameClean = cleanStr(editor.name);
-      const histMatch = [...mission.editionHistory].reverse().find((h) => {
+      const reversedHist = [...mission.editionHistory].reverse();
+      // Encontra o último REOPENED que afetou este editor ou todos
+      const lastReopenIdx = reversedHist.findIndex((h) => {
+        if (!h || h.type !== 'REOPENED') return false;
+        const targetId = String(h.targetEditorId || 'ALL');
+        return targetId === 'ALL' || targetId === eKey || cleanStr(h.description || '').includes(eNameClean);
+      });
+      const eventsSinceLastReopen = lastReopenIdx >= 0 ? reversedHist.slice(0, lastReopenIdx) : reversedHist;
+
+      const histMatch = eventsSinceLastReopen.find((h) => {
         if (!h) return false;
+        const hType = String(h.type || '').toUpperCase();
+        if (hType !== 'COMPLETED' && hType !== 'PARTIAL_COMPLETED' && hType !== 'CONCLUDED') {
+          return false;
+        }
         const uClean = cleanStr(h.user || '');
         const tClean = cleanStr(h.title || '');
         const dClean = cleanStr(h.description || '');
         return (
           uClean === eNameClean ||
-          uClean.includes(eNameClean) ||
-          eNameClean.includes(uClean) ||
+          (uClean.length >= 3 && (uClean.includes(eNameClean) || eNameClean.includes(uClean))) ||
           tClean.includes(eNameClean) ||
           dClean.includes(eNameClean)
         );

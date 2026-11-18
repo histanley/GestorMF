@@ -188,9 +188,14 @@ if ($method === 'GET') {
 
         $isAlreadyFinished = in_array($m['mission_status'] ?? '', ['Finalizada', 'Finalizado', 'Concluída']);
         $edHistory = !empty($m['edition_history']) ? json_decode($m['edition_history'], true) : [];
-        if (is_array($edHistory)) {
-            foreach ($edHistory as $ev) {
-                if (($ev['type'] ?? '') === 'APPROVED') {
+        if (is_array($edHistory) && !empty($edHistory)) {
+            for ($i = count($edHistory) - 1; $i >= 0; $i--) {
+                $evType = $edHistory[$i]['type'] ?? '';
+                if ($evType === 'REOPENED') {
+                    $isAlreadyFinished = false;
+                    break;
+                }
+                if ($evType === 'APPROVED') {
                     $isAlreadyFinished = true;
                     break;
                 }
@@ -202,17 +207,21 @@ if ($method === 'GET') {
         if (!is_array($assignedEditorIds))
             $assignedEditorIds = [];
 
-        // Auto-recuperação: se houver entregas registradas no edition_history que não estejam no editors_delivery
+        // Auto-recuperação: se houver entregas reais (COMPLETED / PARTIAL_COMPLETED) registradas no edition_history que não estejam no editors_delivery
+        // (NUNCA sobrescreve se o editor já tiver entrada explícita em editors_delivery, p.ex. 'pending' após reabertura)
         if (is_array($edHistory) && !empty($edHistory) && !empty($assignedEditorIds)) {
             foreach ($edHistory as $hist) {
                 if (empty($hist) || !is_array($hist))
+                    continue;
+                $hType = strtoupper(trim($hist['type'] ?? ''));
+                if (!in_array($hType, ['COMPLETED', 'PARTIAL_COMPLETED', 'CONCLUDED'], true))
                     continue;
                 $hUser = strtolower(trim($hist['user'] ?? ''));
                 $hDesc = strtolower(trim($hist['description'] ?? ''));
                 $hTitle = strtolower(trim($hist['title'] ?? ''));
                 foreach ($assignedEditorIds as $aId) {
                     $aIdStr = (string) $aId;
-                    if (empty($editorsDelivery[$aIdStr]) || ($editorsDelivery[$aIdStr]['status'] ?? '') !== 'delivered') {
+                    if (!isset($editorsDelivery[$aIdStr])) {
                         try {
                             $memStmt = $db->prepare("SELECT id, name FROM members WHERE id = ?");
                             $memStmt->execute([$aIdStr]);

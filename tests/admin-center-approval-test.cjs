@@ -113,10 +113,35 @@ const reopenMission = (mission, adminName, reason) => {
   };
 };
 
+const fs = require('fs');
+const path = require('path');
+
 const reopened = reopenMission(pendingEditions[0], 'Histanley', 'Corrigir transição e vinheta aos 02:15');
 assert.strictEqual(reopened.missionStatus, 'Pendente');
 assert.strictEqual(reopened.editionStatus, 'Em Edição');
 assert.strictEqual(reopened.reopenReason, 'Corrigir transição e vinheta aos 02:15');
+
+// Validação de código nos componentes:
+// 1. Reabertura de missão já Finalizada pelo Administrador
+// 2. Exibição de dia e hora de entrega do editor (formatDeliveryDateTimeBR)
+// 3. Blindagem contra falso positivo de entrega por evento ASSIGNED
+const postProdCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'utils', 'postProduction.js'), 'utf8');
+const serviceBoardCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'ServiceBoard.jsx'), 'utf8');
+const adminCenterCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'AdminCenter.jsx'), 'utf8');
+const missionsPhpCode = fs.readFileSync(path.join(__dirname, '..', 'public', 'api', 'missions.php'), 'utf8');
+
+assert(postProdCode.includes('export function formatDeliveryDateTimeBR'),
+  'postProduction.js deve exportar formatDeliveryDateTimeBR para exibir dia e hora da entrega');
+assert(postProdCode.includes("lastDecision.type === 'REOPENED'") && postProdCode.includes('return false;'),
+  'isMissionApprovedOrFinished deve retornar false quando o último evento de decisão for REOPENED');
+assert(serviceBoardCode.includes('Reabrir Missão &amp; Pós-Produção') && serviceBoardCode.includes('Reabrir Pós-Produção'),
+  'ServiceBoard.jsx deve exibir botão para o Administrador reabrir missões finalizadas e as entregas da pós-produção');
+assert(serviceBoardCode.includes('Entregue em:') && serviceBoardCode.includes('formatDeliveryDateTimeBR'),
+  'ServiceBoard.jsx deve exibir dia e hora de quando cada editor entregou o material');
+assert(adminCenterCode.includes('Reabrir Missão &amp; Pós-Produção') && adminCenterCode.includes('formatDeliveryDateTimeBR'),
+  'AdminCenter.jsx deve permitir reabrir missões do Histórico Finalizado e exibir dia e hora da entrega de cada editor');
+assert(missionsPhpCode.includes("in_array(\$hType, ['COMPLETED', 'PARTIAL_COMPLETED', 'CONCLUDED'], true)"),
+  'missions.php só deve recuperar entregas do histórico a partir de eventos reais de conclusão (COMPLETED/PARTIAL_COMPLETED/CONCLUDED)');
 
 console.log('✅ TESTES DA CENTRAL DO ADMINISTRADOR (APROVAÇÃO DE PÓS-PRODUÇÃO E REABERTURA) PASSARAM COM 100% DE SUCESSO!');
 

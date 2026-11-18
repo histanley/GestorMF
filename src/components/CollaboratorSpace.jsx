@@ -44,6 +44,7 @@ import {
   resolveMissionEditors,
   getMissionEditionDeliverySummary,
   getMissionEditorsDeliveryMap,
+  formatDeliveryDateTimeBR,
 } from '../utils/postProduction';
 import {
   OFFICIAL_COMPANY_ROLES,
@@ -1734,7 +1735,13 @@ export default function CollaboratorSpace({
                               )}
 
                               {isMyPartDone ? (
-                                <div style={{ marginTop: '6px' }}>
+                                <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  {myDeliv?.deliveredAt && (
+                                    <div style={{ fontSize: '0.75rem', color: '#6ee7b7', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                                      <Clock size={12} />
+                                      <span>Entregue em: <strong>{formatDeliveryDateTimeBR(myDeliv.deliveredAt)}</strong></span>
+                                    </div>
+                                  )}
                                   <small style={{ color: '#34d399', fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <CheckCircle2 size={13} />
                                     <span>
