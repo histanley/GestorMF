@@ -227,11 +227,16 @@ export function checkPermission(user, action) {
     case 'view_audit_logs':
       return role === ROLES.ADMIN;
 
-    // 2. Exclusões Críticas (Viaturas, Colaboradores, Histórico)
+    // 2. Exclusões Críticas (Viaturas, Colaboradores)
     case 'delete_vehicle':
     case 'delete_team_member':
-    case 'delete_mission':
       return role === ROLES.ADMIN;
+
+    // 5. Agendamento, Criação, Edição e Exclusão de Missões
+    case 'create_mission':
+    case 'edit_mission':
+    case 'delete_mission':
+      return role === ROLES.ADMIN || role === ROLES.MANAGER;
 
     // 3. Gestão Operacional de Equipes e Colaboradores
     case 'create_team_member':
@@ -245,11 +250,6 @@ export function checkPermission(user, action) {
     case 'add_refueling':
     case 'calibrate_tank':
     case 'correct_odometer':
-      return role === ROLES.ADMIN || role === ROLES.MANAGER;
-
-    // 5. Agendamento e Criação de Missões
-    case 'create_mission':
-    case 'edit_mission':
       return role === ROLES.ADMIN || role === ROLES.MANAGER;
 
     // 6. Visualização dos Módulos Estratégicos (Viaturas & Equipes)

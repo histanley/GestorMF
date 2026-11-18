@@ -1678,10 +1678,10 @@ if ($method === 'POST' || $method === 'PUT') {
 }
 
 // ------------------------------------------------------------------------------
-// EXCLUIR MISSÃO (DELETE - Apenas Administrador)
+// EXCLUIR MISSÃO (DELETE - Administrador e Gestor)
 // ------------------------------------------------------------------------------
 if ($method === 'DELETE') {
-    $user = requireAuth(['ADMIN']);
+    $user = requireAuth(['ADMIN', 'MANAGER']);
     $id = $_GET['id'] ?? '';
     if (empty($id)) {
         $input = getJsonInput();

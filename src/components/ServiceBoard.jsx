@@ -118,7 +118,7 @@ export default function ServiceBoard({
   const isAdmin = effectiveRole === 'admin';
   const canCreateMission = effectiveRole === 'admin' || effectiveRole === 'manager';
   const canEditMission = effectiveRole === 'admin' || effectiveRole === 'manager';
-  const canDeleteMission = effectiveRole === 'admin';
+  const canDeleteMission = effectiveRole === 'admin' || effectiveRole === 'manager';
   const canViewFinancials = effectiveRole === 'admin' || effectiveRole === 'manager';
   // REGRA ESTRITA: Apenas Administradores podem aprovar, aceitar ou rejeitar a pós-produção
   const canAdminManageEdition = effectiveRole === 'admin';
@@ -3576,6 +3576,21 @@ export default function ServiceBoard({
                     }
                     return null;
                   })()}
+
+                  {canDeleteMission && (
+                    <button
+                      type="button"
+                      className="btn-danger-outline"
+                      onClick={() => {
+                        const id = detailMission.id;
+                        setSelectedDetailMissionId(null);
+                        onDeleteMission(id);
+                      }}
+                      title="Excluir Missão"
+                    >
+                      <Trash2 size={15} /> Excluir Missão
+                    </button>
+                  )}
 
                   <button
                     type="button"
