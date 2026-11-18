@@ -18,7 +18,15 @@ function ensureMissionColumnsExist($db)
         return;
     $ensured = true;
 
-    runVersionedMigration($db, 'schema_missions_cols_v3', function ($pdo) {
+    // Auto-garantia imediata da coluna member_notes antes de qualquer operação
+    try {
+        $chk = $db->query("SHOW COLUMNS FROM missions LIKE 'member_notes'")->fetch();
+        if (!$chk) {
+            $db->exec("ALTER TABLE missions ADD COLUMN member_notes LONGTEXT NULL AFTER equipment_allocations");
+        }
+    } catch (Exception $e) {}
+
+    runVersionedMigration($db, 'schema_missions_cols_v4', function ($pdo) {
         $cols = [
             'code' => 'VARCHAR(50) NULL',
             'editor_id' => 'VARCHAR(64) NULL',
@@ -1421,8 +1429,23 @@ if ($method === 'POST' || $method === 'PUT') {
             ':created_by_name' => $data['createdByName'] ?? ($user['name'] ?? 'Administrador')
         ];
 
-        $stmtSave = $db->prepare($sql);
-        $stmtSave->execute($saveParams);
+        try {
+            $stmtSave = $db->prepare($sql);
+            $stmtSave->execute($saveParams);
+        } catch (PDOException $e) {
+            // Auto-cura caso a coluna member_notes ainda não tenha sido criada no MySQL
+            if (strpos($e->getMessage(), 'member_notes') !== false || $e->getCode() === '42S22') {
+                try {
+                    $db->exec("ALTER TABLE missions ADD COLUMN member_notes LONGTEXT NULL AFTER equipment_allocations");
+                    $stmtSave = $db->prepare($sql);
+                    $stmtSave->execute($saveParams);
+                } catch (Exception $retryEx) {
+                    throw $e;
+                }
+            } else {
+                throw $e;
+            }
+        }
 
         $createdMissions = [];
         // Se for cadastro de nova missão recorrente (com múltiplas datas programadas)
