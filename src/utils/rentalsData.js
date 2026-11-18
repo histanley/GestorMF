@@ -107,6 +107,53 @@ export function formatCurrency(amount) {
   return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+/**
+ * Converte um valor numérico (ex: 3600 ou 3600.5) para string formatada em Real (ex: "3.600,00")
+ * para inicializar campos de entrada com máscara monetária BRL.
+ */
+export function numberToBRLInput(val, allowEmptyZero = false) {
+  if (val === '' || val === null || val === undefined) return '';
+  const num = typeof val === 'number' ? val : Number(val);
+  if (Number.isNaN(num)) return '';
+  if (num === 0 && allowEmptyZero) return '';
+  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * Máscara progressiva de moeda em Real (padrão bancário/PDV: pontos de milhar e vírgula decimal automáticos).
+ * Basta ir digitando os números:
+ * "3" -> "0,03" | "36" -> "0,36" | "3600" -> "36,00" | "360000" -> "3.600,00"
+ */
+export function formatBRLInputMask(rawInput) {
+  if (rawInput === '' || rawInput === null || rawInput === undefined) return '';
+  if (typeof rawInput === 'number') {
+    return numberToBRLInput(rawInput);
+  }
+  const digits = String(rawInput).replace(/\D/g, '');
+  if (!digits) return '';
+  const cents = parseInt(digits, 10);
+  if (Number.isNaN(cents)) return '';
+  const value = cents / 100;
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * Converte uma string formatada em Real ("3.600,00", "R$ 3.600,00") ou número para float puro (3600.00).
+ */
+export function parseBRLInput(maskedValue) {
+  if (typeof maskedValue === 'number') return Number.isNaN(maskedValue) ? 0 : maskedValue;
+  if (!maskedValue) return 0;
+  const str = String(maskedValue).trim();
+  if (!str) return 0;
+  if (str.includes(',')) {
+    const normalized = str.replace(/[R$\s.]/g, '').replace(',', '.');
+    const parsed = parseFloat(normalized);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  const parsed = parseFloat(str.replace(/[R$\s]/g, ''));
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
 export function formatDateBR(dateStr) {
   if (!dateStr) return '';
   const parts = String(dateStr).split('-');

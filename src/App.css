@@ -48212,3 +48212,177 @@ body.light-theme .ept-total-row,
   background: #f1f5f9;
 }
 
+/* ==========================================================================
+   ALINHAMENTO DO MODAL EDITAR EQUIPAMENTO & MÁSCARA MONETÁRIA EM REAL (BRL)
+   ========================================================================== */
+.equip-edit-modal {
+  max-width: 720px !important;
+  width: 95% !important;
+}
+
+.equip-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px 24px !important;
+}
+
+.equip-edit-form .form-group {
+  margin-bottom: 0 !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.equip-edit-form .form-group > label {
+  font-size: 0.75rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  color: #cbd5e1 !important;
+  margin-bottom: 6px !important;
+  line-height: 1.25 !important;
+  min-height: 16px;
+  display: flex;
+  align-items: center;
+}
+
+body.light-theme .equip-edit-form .form-group > label,
+[data-theme='light'] .equip-edit-form .form-group > label {
+  color: #334155 !important;
+}
+
+.equip-edit-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 18px;
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .equip-edit-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.equip-edit-form input[type='text'],
+.equip-edit-form input[type='number'],
+.equip-edit-form select {
+  height: 44px !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+/* Wrapper de Input Monetário BRL com prefixo R$ integrado */
+.brl-currency-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 44px;
+  border-radius: 10px;
+  background: #1f2937;
+  border: 1px solid #374151;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.brl-currency-input-wrap:focus-within {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18) !important;
+}
+
+.brl-currency-input-wrap.is-patrimony:focus-within {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18) !important;
+}
+
+.brl-currency-prefix {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 12px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.brl-currency-input-wrap.is-patrimony .brl-currency-prefix {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.brl-currency-input-wrap input.brl-currency-input {
+  flex: 1;
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 14px !important;
+  font-size: 0.96rem !important;
+  font-weight: 800 !important;
+  color: #f8fafc !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-variant-numeric: tabular-nums;
+}
+
+body.light-theme .brl-currency-input-wrap,
+[data-theme='light'] .brl-currency-input-wrap {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+body.light-theme .brl-currency-prefix,
+[data-theme='light'] .brl-currency-prefix {
+  background: rgba(245, 158, 11, 0.12);
+  border-right-color: #e2e8f0;
+  color: #b45309;
+}
+
+body.light-theme .brl-currency-input-wrap.is-patrimony .brl-currency-prefix,
+[data-theme='light'] .brl-currency-input-wrap.is-patrimony .brl-currency-prefix {
+  background: rgba(14, 165, 233, 0.12);
+  color: #0369a1;
+}
+
+body.light-theme .brl-currency-input-wrap input.brl-currency-input,
+[data-theme='light'] .brl-currency-input-wrap input.brl-currency-input {
+  color: #0f172a !important;
+}
+
+.equip-edit-form .equip-photo-edit-card {
+  grid-template-columns: 155px 1fr;
+  gap: 18px;
+  padding: 14px 16px;
+}
+
+.equip-edit-form .photo-picker-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.equip-edit-form .rate-unit-pills-row {
+  margin-top: 8px;
+  gap: 6px;
+}
+
+.equip-edit-form .modal-footer {
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+

@@ -43,6 +43,9 @@ import {
   CATEGORY_LABELS,
   INITIAL_EQUIPMENT_CATALOG,
   formatCurrency,
+  numberToBRLInput,
+  formatBRLInputMask,
+  parseBRLInput,
   formatDateBR,
   formatCpfCnpj,
   formatPhoneBR,
@@ -115,6 +118,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   const [isNewEquipModalOpen, setIsNewEquipModalOpen] = useState(false);
   const [editEquipPhoto, setEditEquipPhoto] = useState('');
   const [editRateUnit, setEditRateUnit] = useState('diária');
+  const [editDailyRateMasked, setEditDailyRateMasked] = useState('100,00');
+  const [editAssetValueMasked, setEditAssetValueMasked] = useState('');
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const [returningRental, setReturningRental] = useState(null); // null ou objeto
   const [sendToMaintenance, setSendToMaintenance] = useState(false);
@@ -221,14 +226,22 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     } catch { }
   }, [equipmentList, rentalsList]);
 
-  // Sincroniza foto e unidade de cobrança ao abrir modal de edição
+  // Sincroniza foto, valores monetários e unidade de cobrança ao abrir modal de edição
   useEffect(() => {
     if (editingEquipment) {
       setEditEquipPhoto(editingEquipment.photoUrl || '');
       setEditRateUnit(editingEquipment.rateUnit || 'diária');
+      const dailyNum = Number(editingEquipment.dailyRate) || 100;
+      const assetNum = Number(editingEquipment.assetValue) > 0
+        ? Number(editingEquipment.assetValue)
+        : (dailyNum * 25);
+      setEditDailyRateMasked(numberToBRLInput(dailyNum));
+      setEditAssetValueMasked(numberToBRLInput(assetNum));
     } else {
       setEditEquipPhoto('');
       setEditRateUnit('diária');
+      setEditDailyRateMasked('100,00');
+      setEditAssetValueMasked('');
     }
   }, [editingEquipment, isNewEquipModalOpen]);
 
@@ -539,7 +552,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     }, 0);
   }, [cartItems, rentalDays]);
 
-  const cartTotalAmount = Math.max(0, cartSubtotal - (Number(rentalForm.discount) || 0));
+  const cartTotalAmount = Math.max(0, cartSubtotal - parseBRLInput(rentalForm.discount));
 
   // Ações do Carrinho
   const handleAddToCart = (equip) => {
@@ -645,7 +658,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
 
     // Validação de pagamento parcial
     if (rentalForm.paymentStatus === 'Caução Recebido') {
-      if (rentalForm.paidAmount === '' || parseFloat(rentalForm.paidAmount) < 0) {
+      if (rentalForm.paidAmount === '' || parseBRLInput(rentalForm.paidAmount) < 0) {
         alertDialog({
           title: 'Valor Pago Obrigatório',
           message: 'Como o status selecionado é "Caução / Parcial", informe o valor que já foi pago de entrada.',
@@ -663,7 +676,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       }
     }
 
-    const paidVal = parseFloat(rentalForm.paidAmount) || 0;
+    const paidVal = parseBRLInput(rentalForm.paidAmount);
     const remainingVal = rentalForm.paymentStatus === 'Pago'
       ? 0
       : (rentalForm.paidAmount !== '' ? Math.max(0, cartTotalAmount - paidVal) : cartTotalAmount);
@@ -681,10 +694,10 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       remainingAmount: remainingVal,
       remainingDueTerms: rentalForm.remainingDueTerms || 'Na Devolução dos Equipamentos',
       remainingDueDate: rentalForm.remainingDueDate || null,
-      securityDeposit: parseFloat(rentalForm.securityDeposit) || 0,
+      securityDeposit: parseBRLInput(rentalForm.securityDeposit),
       totalDays: rentalDays,
       subtotal: cartSubtotal,
-      discount: Number(rentalForm.discount) || 0,
+      discount: parseBRLInput(rentalForm.discount),
       totalAmount: cartTotalAmount,
       status: statusToApply,
       items: cartItems.map((it) => ({
@@ -1042,7 +1055,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
   const handleConfirmReturn = async () => {
     if (!returningRental) return;
 
-    const parsedDamageCost = parseFloat(returnDamageCost) || (Number(returningRental.damageCost) || 0);
+    const parsedDamageCost = parseBRLInput(returnDamageCost) || (Number(returningRental.damageCost) || 0);
     const hasDmgFlag = sendToMaintenance || parsedDamageCost > 0 || Boolean(returningRental.hasDamage);
 
     try {
@@ -1149,8 +1162,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
       clientName: target.clientName,
       totalAmount: total,
       paymentStatus: target.paymentStatus || 'Pendente',
-      paidAmount: String(paid),
-      damageCost: target.damageCost !== undefined && Number(target.damageCost) > 0 ? String(target.damageCost) : '',
+      paidAmount: numberToBRLInput(paid),
+      damageCost: target.damageCost !== undefined && Number(target.damageCost) > 0 ? numberToBRLInput(target.damageCost) : '',
       damageType: target.damageType || 'Avaria / Reparo Técnico',
       damageNotes: target.damageNotes || target.returnNotes || '',
       hasDamage: Boolean(target.hasDamage || Number(target.damageCost) > 0),
@@ -1163,11 +1176,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     if (e && e.preventDefault) e.preventDefault();
     if (!financialModalData) return;
 
-    const dmgVal = Math.max(0, parseFloat(financialModalData.damageCost) || 0);
+    const dmgVal = Math.max(0, parseBRLInput(financialModalData.damageCost));
     const total = Number(financialModalData.totalAmount) || 0;
     const paidVal = financialModalData.paymentStatus === 'Pago'
       ? total
-      : Math.max(0, parseFloat(financialModalData.paidAmount) || 0);
+      : Math.max(0, parseBRLInput(financialModalData.paidAmount));
     const remVal = Math.max(0, total - paidVal);
     const hasDmg = dmgVal > 0 || Boolean(financialModalData.hasDamage);
 
@@ -1899,7 +1912,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   {rentalForm.paymentStatus === 'Caução Recebido' && (() => {
                     const remainingBalance = Math.max(
                       0,
-                      cartTotalAmount - (parseFloat(rentalForm.paidAmount) || 0)
+                      cartTotalAmount - parseBRLInput(rentalForm.paidAmount)
                     );
                     const isFullySettled = remainingBalance === 0;
 
@@ -1923,14 +1936,12 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                             <div className="input-with-affix">
                               <span className="input-affix">R$</span>
                               <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                max={cartTotalAmount}
+                                type="text"
+                                inputMode="numeric"
                                 placeholder="0,00"
                                 value={rentalForm.paidAmount}
                                 onChange={(e) =>
-                                  setRentalForm({ ...rentalForm, paidAmount: e.target.value })
+                                  setRentalForm({ ...rentalForm, paidAmount: formatBRLInputMask(e.target.value) })
                                 }
                               />
                             </div>
@@ -1995,15 +2006,14 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                             <div className="input-with-affix">
                               <span className="input-affix">R$</span>
                               <input
-                                type="number"
-                                step="0.01"
-                                min="0"
+                                type="text"
+                                inputMode="numeric"
                                 placeholder="0,00"
                                 value={rentalForm.securityDeposit}
                                 onChange={(e) =>
                                   setRentalForm({
                                     ...rentalForm,
-                                    securityDeposit: e.target.value,
+                                    securityDeposit: formatBRLInputMask(e.target.value),
                                   })
                                 }
                               />
@@ -2024,12 +2034,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                       <div className="input-with-affix">
                         <span className="input-affix">R$</span>
                         <input
-                          type="number"
-                          step="0.01"
-                          min="0"
+                          type="text"
+                          inputMode="numeric"
                           placeholder="0,00"
                           value={rentalForm.securityDeposit}
-                          onChange={(e) => setRentalForm({ ...rentalForm, securityDeposit: e.target.value })}
+                          onChange={(e) => setRentalForm({ ...rentalForm, securityDeposit: formatBRLInputMask(e.target.value) })}
                         />
                       </div>
                       <small className="form-tip">Caso a locação exija depósito em garantia.</small>
@@ -2041,12 +2050,11 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     <div className="input-with-affix">
                       <span className="input-affix">R$</span>
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0"
+                        type="text"
+                        inputMode="numeric"
                         placeholder="0,00"
-                        value={rentalForm.discount}
-                        onChange={(e) => setRentalForm({ ...rentalForm, discount: e.target.value })}
+                        value={rentalForm.discount === 0 ? '' : rentalForm.discount}
+                        onChange={(e) => setRentalForm({ ...rentalForm, discount: formatBRLInputMask(e.target.value) })}
                       />
                     </div>
                     <small className="form-tip">Abatimento aplicado sobre o subtotal.</small>
@@ -3083,7 +3091,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                                     );
                                     setReturningRental(rental);
                                     setReturnNotes(rental.returnNotes || (hasDmg ? 'Avaria constatada na devolução. Encaminhado para reparo.' : ''));
-                                    setReturnDamageCost(rental.damageCost && Number(rental.damageCost) > 0 ? String(rental.damageCost) : '');
+                                    setReturnDamageCost(rental.damageCost && Number(rental.damageCost) > 0 ? numberToBRLInput(rental.damageCost) : '');
                                     setReturnDamageType(rental.damageType || 'Avaria / Reparo Técnico');
                                     setSendToMaintenance(hasDmg);
                                   }}
@@ -3166,6 +3174,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
             </div>
 
             <form
+              key={editingEquipment ? editingEquipment.id : 'new-equip'}
               onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
@@ -3173,8 +3182,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   id: editingEquipment ? editingEquipment.id : '',
                   name: formData.get('name'),
                   category: formData.get('category'),
-                  dailyRate: Number(formData.get('dailyRate')) || 0,
-                  assetValue: Number(formData.get('assetValue')) || 0,
+                  dailyRate: parseBRLInput(editDailyRateMasked),
+                  assetValue: parseBRLInput(editAssetValueMasked),
                   rateUnit: editRateUnit || formData.get('rateUnit') || 'diária',
                   totalQty: Number(formData.get('totalQty')) || 1,
                   serialNumber: formData.get('serialNumber') || '',
@@ -3183,7 +3192,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                 };
                 handleSaveEquipment(equipData);
               }}
-              className="modal-form"
+              className="modal-form equip-edit-form"
             >
               {/* Foto do Equipamento */}
               <div className="form-group equip-photo-group">
@@ -3277,6 +3286,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                 </div>
               </div>
 
+              {/* Linha 1: Nome / Modelo do Equipamento */}
               <div className="form-group">
                 <label>Nome / Modelo do Equipamento *</label>
                 <input
@@ -3288,7 +3298,9 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                 />
               </div>
 
-              <div className="form-group-grid">
+              {/* Grid Principal Simétrico 2 Colunas */}
+              <div className="equip-edit-fields-grid">
+                {/* Linha 2 - Coluna 1: Categoria */}
                 <div className="form-group">
                   <label>Categoria *</label>
                   <select name="category" defaultValue={editingEquipment?.category || 'accessories'}>
@@ -3302,6 +3314,7 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   </select>
                 </div>
 
+                {/* Linha 2 - Coluna 2: Quantidade Total no Acervo */}
                 <div className="form-group">
                   <label>Quantidade Total no Acervo *</label>
                   <input
@@ -3313,33 +3326,48 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   />
                 </div>
 
+                {/* Linha 3 - Coluna 1: Valor da Locação (R$) */}
                 <div className="form-group">
                   <label>Valor da Locação (R$) *</label>
-                  <input
-                    type="number"
-                    name="dailyRate"
-                    step="0.01"
-                    min="0"
-                    required
-                    defaultValue={editingEquipment?.dailyRate || 100}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Valor Patrimonial / Custo de Mercado do Bem (R$)</label>
-                  <input
-                    type="number"
-                    name="assetValue"
-                    step="0.01"
-                    min="0"
-                    defaultValue={editingEquipment?.assetValue || (editingEquipment?.dailyRate ? editingEquipment.dailyRate * 25 : '')}
-                    placeholder="Ex: 11000.00 (Valor de mercado / reposição do item)"
-                  />
+                  <div className="brl-currency-input-wrap">
+                    <span className="brl-currency-prefix">R$</span>
+                    <input
+                      type="text"
+                      name="dailyRate"
+                      inputMode="numeric"
+                      required
+                      placeholder="0,00"
+                      value={editDailyRateMasked}
+                      onChange={(e) => setEditDailyRateMasked(formatBRLInputMask(e.target.value))}
+                      className="brl-currency-input"
+                    />
+                  </div>
                   <small className="form-tip">
-                    Custo de reposição do bem no mercado. Alimenta a consolidação de ativos da produtora e o termo de garantia.
+                    Digite apenas números — formatação automática em Real (R$).
                   </small>
                 </div>
 
+                {/* Linha 3 - Coluna 2: Valor Patrimonial / Custo de Mercado (R$) */}
+                <div className="form-group">
+                  <label>Valor Patrimonial / Custo de Mercado (R$)</label>
+                  <div className="brl-currency-input-wrap is-patrimony">
+                    <span className="brl-currency-prefix">R$</span>
+                    <input
+                      type="text"
+                      name="assetValue"
+                      inputMode="numeric"
+                      placeholder="0,00"
+                      value={editAssetValueMasked}
+                      onChange={(e) => setEditAssetValueMasked(formatBRLInputMask(e.target.value))}
+                      className="brl-currency-input"
+                    />
+                  </div>
+                  <small className="form-tip">
+                    Custo de reposição do bem. Alimenta o patrimônio geral e o termo de garantia.
+                  </small>
+                </div>
+
+                {/* Linha 4 - Coluna 1: Unidade de Cobrança */}
                 <div className="form-group rate-unit-form-group">
                   <label>Unidade de Cobrança *</label>
                   <select
@@ -3374,21 +3402,23 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                     ))}
                   </div>
                 </div>
+
+                {/* Linha 4 - Coluna 2: Número de Série ou Tag de Patrimônio */}
+                <div className="form-group">
+                  <label>Número de Série ou Tag de Patrimônio</label>
+                  <input
+                    type="text"
+                    name="serialNumber"
+                    defaultValue={editingEquipment?.serialNumber || ''}
+                    placeholder="Ex: SN-8837192 (identificador no contrato)"
+                  />
+                  <small className="form-tip">
+                    Identificador exibido no contrato para segurança e conferência no check-in.
+                  </small>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label>Número de Série ou Tag de Patrimônio</label>
-                <input
-                  type="text"
-                  name="serialNumber"
-                  defaultValue={editingEquipment?.serialNumber || ''}
-                  placeholder="Ex: SN-8837192 (essencial para constar no termo e evitar troca de peças)"
-                />
-                <small className="form-tip">
-                  Identificador obrigatório em contrato para segurança e conferência no check-in.
-                </small>
-              </div>
-
+              {/* Linha 5: Descrição Breve / Acessórios Inclusos */}
               <div className="form-group">
                 <label>Descrição Breve / Acessórios Inclusos</label>
                 <input
@@ -3519,14 +3549,17 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   <div className="form-group-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label style={{ fontSize: '0.78rem', color: '#fca5a5' }}>💸 Valor do Prejuízo / Custo de Reparo (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0,00 (Opcional)"
-                        value={returnDamageCost}
-                        onChange={(e) => setReturnDamageCost(e.target.value)}
-                      />
+                      <div className="brl-currency-input-wrap">
+                        <span className="brl-currency-prefix">R$</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0,00 (Opcional)"
+                          value={returnDamageCost}
+                          onChange={(e) => setReturnDamageCost(formatBRLInputMask(e.target.value))}
+                          className="brl-currency-input"
+                        />
+                      </div>
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Tipo de Ocorrência / Prejuízo</label>
@@ -3948,81 +3981,89 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                 </div>
 
                 <div className="form-group-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label>Status do Pagamento</label>
-                    <select
-                      value={financialModalData.paymentStatus}
-                      onChange={(e) => {
-                        const newSt = e.target.value;
-                        setFinancialModalData((prev) => ({
-                          ...prev,
-                          paymentStatus: newSt,
-                          paidAmount: newSt === 'Pago' ? String(prev.totalAmount) : prev.paidAmount,
-                        }));
-                      }}
-                    >
-                      <option value="Pago">✅ Pago (Quitado 100%)</option>
-                      <option value="Caução Recebido">🟡 Parcial / Entrada Recebida</option>
-                      <option value="Pendente">⏳ Pendente a Receber</option>
-                    </select>
-                  </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Status do Pagamento</label>
+                      <select
+                        value={financialModalData.paymentStatus}
+                        onChange={(e) => {
+                          const newSt = e.target.value;
+                          setFinancialModalData((prev) => ({
+                            ...prev,
+                            paymentStatus: newSt,
+                            paidAmount: newSt === 'Pago' ? numberToBRLInput(prev.totalAmount) : prev.paidAmount,
+                          }));
+                        }}
+                      >
+                        <option value="Pago">✅ Pago (Quitado 100%)</option>
+                        <option value="Caução Recebido">🟡 Parcial / Entrada Recebida</option>
+                        <option value="Pendente">⏳ Pendente a Receber</option>
+                      </select>
+                    </div>
 
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label>Valor Efetivamente Recebido (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={financialModalData.paymentStatus === 'Pago' ? financialModalData.totalAmount : financialModalData.paidAmount}
-                      disabled={financialModalData.paymentStatus === 'Pago'}
-                      onChange={(e) =>
-                        setFinancialModalData((prev) => ({
-                          ...prev,
-                          paidAmount: e.target.value,
-                        }))
-                      }
-                    />
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Valor Efetivamente Recebido (R$)</label>
+                      <div className="brl-currency-input-wrap">
+                        <span className="brl-currency-prefix">R$</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0,00"
+                          value={financialModalData.paymentStatus === 'Pago' ? numberToBRLInput(financialModalData.totalAmount) : financialModalData.paidAmount}
+                          disabled={financialModalData.paymentStatus === 'Pago'}
+                          onChange={(e) =>
+                            setFinancialModalData((prev) => ({
+                              ...prev,
+                              paidAmount: formatBRLInputMask(e.target.value),
+                            }))
+                          }
+                          className="brl-currency-input"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Bloco 2: Prejuízos, Avarias ou Perdas */}
-              <div
-                style={{
-                  padding: 14,
-                  borderRadius: 10,
-                  background: 'rgba(239, 68, 68, 0.06)',
-                  border: '1px solid rgba(239, 68, 68, 0.28)',
-                  marginBottom: 16,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <strong style={{ color: '#f87171', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <TrendingDown size={15} /> 2. Prejuízos, Avarias &amp; Custos de Manutenção
-                  </strong>
-                  <span style={{ fontSize: '0.76rem', color: '#fca5a5' }}>
-                    Abatido do saldo líquido do período
-                  </span>
-                </div>
-
-                <div className="form-group-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label>Valor do Prejuízo / Reparo (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="Ex: 150.00 (0 para sem prejuízo)"
-                      value={financialModalData.damageCost}
-                      onChange={(e) =>
-                        setFinancialModalData((prev) => ({
-                          ...prev,
-                          damageCost: e.target.value,
-                          hasDamage: parseFloat(e.target.value) > 0 ? true : prev.hasDamage,
-                        }))
-                      }
-                    />
+                {/* Bloco 2: Prejuízos, Avarias ou Perdas */}
+                <div
+                  style={{
+                    padding: 14,
+                    borderRadius: 10,
+                    background: 'rgba(239, 68, 68, 0.06)',
+                    border: '1px solid rgba(239, 68, 68, 0.28)',
+                    marginBottom: 16,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <strong style={{ color: '#f87171', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <TrendingDown size={15} /> 2. Prejuízos, Avarias &amp; Custos de Manutenção
+                    </strong>
+                    <span style={{ fontSize: '0.76rem', color: '#fca5a5' }}>
+                      Abatido do saldo líquido do período
+                    </span>
                   </div>
+
+                  <div className="form-group-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Valor do Prejuízo / Reparo (R$)</label>
+                      <div className="brl-currency-input-wrap">
+                        <span className="brl-currency-prefix">R$</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0,00"
+                          value={financialModalData.damageCost}
+                          onChange={(e) => {
+                            const masked = formatBRLInputMask(e.target.value);
+                            setFinancialModalData((prev) => ({
+                              ...prev,
+                              damageCost: masked,
+                              hasDamage: parseBRLInput(masked) > 0 ? true : prev.hasDamage,
+                            }));
+                          }}
+                          className="brl-currency-input"
+                        />
+                      </div>
+                    </div>
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Categoria do Prejuízo</label>
@@ -4080,13 +4121,13 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
                   style={{
                     fontSize: '1rem',
                     color:
-                      (Number(financialModalData.totalAmount) || 0) - (parseFloat(financialModalData.damageCost) || 0) >= 0
+                      (Number(financialModalData.totalAmount) || 0) - parseBRLInput(financialModalData.damageCost) >= 0
                         ? '#fbbf24'
                         : '#f87171',
                   }}
                 >
                   {formatCurrency(
-                    (Number(financialModalData.totalAmount) || 0) - (parseFloat(financialModalData.damageCost) || 0)
+                    (Number(financialModalData.totalAmount) || 0) - parseBRLInput(financialModalData.damageCost)
                   )}
                 </strong>
               </div>

@@ -17,6 +17,9 @@ assert.ok(rentalsDataContent.includes('Microfone Sennheiser Mike 600'), 'Deve co
 assert.ok(rentalsDataContent.includes('Tocha AD600 pro II'), 'Deve conter Tocha AD600 pro II');
 assert.ok(rentalsDataContent.includes('formatCpfCnpj'), 'Deve exportar formatCpfCnpj');
 assert.ok(rentalsDataContent.includes('formatPhoneBR'), 'Deve exportar formatPhoneBR');
+assert.ok(rentalsDataContent.includes('formatBRLInputMask'), 'Deve exportar formatBRLInputMask');
+assert.ok(rentalsDataContent.includes('parseBRLInput'), 'Deve exportar parseBRLInput');
+assert.ok(rentalsDataContent.includes('numberToBRLInput'), 'Deve exportar numberToBRLInput');
 assert.ok(rentalsDataContent.includes('/images/equipment/eq-001.jpg'), 'Catálogo deve mapear photoUrl para os equipamentos');
 assert.ok(fs.existsSync(path.join(__dirname, '../public/images/equipment/eq-001.jpg')), 'Foto eq-001.jpg deve existir');
 assert.ok(fs.existsSync(path.join(__dirname, '../public/images/equipment/eq-086.jpg')), 'Foto eq-086.jpg deve existir');
@@ -57,6 +60,7 @@ assert.ok(managerContent.includes('EquipmentDetailModal'), 'EquipmentRentalManag
 assert.ok(managerContent.includes('selectedDetailEquipment'), 'EquipmentRentalManager deve controlar selectedDetailEquipment');
 assert.ok(managerContent.includes('modal-box equip-edit-modal'), 'Modal de edição deve usar modal-box');
 assert.ok(!managerContent.includes('type="url"'), 'Campo de foto não deve usar type="url" para aceitar caminhos locais como /images/equipment/eq-010.jpg');
+assert.ok(managerContent.includes('equip-edit-fields-grid') && managerContent.includes('brl-currency-input-wrap'), 'Modal Editar Equipamento deve usar grid simétrico e máscara monetária em Real (BRL)');
 
 // 3. Verifica API PHP
 const apiPath = path.join(__dirname, '../public/api/rentals.php');

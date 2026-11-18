@@ -15,7 +15,15 @@ import {
   Sparkles,
   Info
 } from 'lucide-react';
-import { formatCurrency, formatDateBR, compressImageFile, handleRentalPhotoError } from '../utils/rentalsData';
+import {
+  formatCurrency,
+  numberToBRLInput,
+  formatBRLInputMask,
+  parseBRLInput,
+  formatDateBR,
+  compressImageFile,
+  handleRentalPhotoError,
+} from '../utils/rentalsData';
 import { apiRequest } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 
@@ -35,7 +43,9 @@ export default function RentalInspectionModal({
   const [returnNotes, setReturnNotes] = useState(rental?.returnNotes || '');
   const [inspectionNotes, setInspectionNotes] = useState(rental?.inspectionNotes || '');
   const [hasDamage, setHasDamage] = useState(Boolean(rental?.hasDamage));
-  const [damageCost, setDamageCost] = useState(rental?.damageCost || '');
+  const [damageCost, setDamageCost] = useState(
+    rental?.damageCost && Number(rental.damageCost) > 0 ? numberToBRLInput(rental.damageCost) : ''
+  );
   const [damageType, setDamageType] = useState(rental?.damageType || 'Avaria / Reparo Técnico');
   const [damageNotes, setDamageNotes] = useState(rental?.damageNotes || '');
 
@@ -145,7 +155,7 @@ export default function RentalInspectionModal({
   const handleSaveInspection = async () => {
     try {
       setIsSaving(true);
-      const parsedDamageCost = hasDamage ? (parseFloat(damageCost) || 0) : 0;
+      const parsedDamageCost = hasDamage ? parseBRLInput(damageCost) : 0;
       const payload = {
         rentalId: rental.id,
         pickupPhotos,
@@ -190,7 +200,7 @@ export default function RentalInspectionModal({
       }
     } catch (err) {
       console.warn('Salvando localmente em caso de offline:', err);
-      const parsedDamageCost = hasDamage ? (parseFloat(damageCost) || 0) : 0;
+      const parsedDamageCost = hasDamage ? parseBRLInput(damageCost) : 0;
       if (onUpdated) {
         onUpdated({
           ...rental,
@@ -548,14 +558,17 @@ export default function RentalInspectionModal({
                   <div className="idfb-grid">
                     <div className="form-group">
                       <label>Valor do Prejuízo / Custo de Reparo (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="Ex: 150.00"
-                        value={damageCost}
-                        onChange={(e) => setDamageCost(e.target.value)}
-                      />
+                      <div className="brl-currency-input-wrap">
+                        <span className="brl-currency-prefix">R$</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0,00"
+                          value={damageCost}
+                          onChange={(e) => setDamageCost(formatBRLInputMask(e.target.value))}
+                          className="brl-currency-input"
+                        />
+                      </div>
                     </div>
                     <div className="form-group">
                       <label>Tipo de Ocorrência / Prejuízo</label>
