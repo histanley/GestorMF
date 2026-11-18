@@ -364,10 +364,18 @@ export default function VehicleManager({
     (v) => v.status === 'Em Missão' || getMissionForVehicle(v)
   ).length;
 
-  // Calcula KM total rodada por todas as viaturas (odômetro base + km das missões)
-  const totalKmFrota = vehiclesWithTelemetry.reduce(
-    (acc, item) => acc + (item.telemetry.effectiveOdometerKm || 0),
-    0
+  // Calcula KM total percorrido em missões por todas as viaturas
+  const totalKmMissoes = parseFloat(
+    vehiclesWithTelemetry
+      .reduce((acc, item) => acc + (parseFloat(item.telemetry?.totalMissionsKm) || 0), 0)
+      .toFixed(1)
+  );
+
+  // Odômetro total acumulado da frota (odômetro base + km das missões)
+  const totalKmOdometroFrota = parseFloat(
+    vehiclesWithTelemetry
+      .reduce((acc, item) => acc + (parseFloat(item.telemetry?.effectiveOdometerKm) || 0), 0)
+      .toFixed(1)
   );
 
   return (
@@ -461,13 +469,18 @@ export default function VehicleManager({
         {/* KPIs Financeiros e Globais: Exclusivos para Administrador */}
         {canViewFinancialKpis && (
           <>
-            <div className="kpi-card kpi-purple">
+            <div
+              className="kpi-card kpi-purple"
+              title={`Total percorrido em missões por todas as viaturas: ${totalKmMissoes.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km (Odômetro total da frota: ${totalKmOdometroFrota.toLocaleString('pt-BR')} km)`}
+            >
               <div className="kpi-icon-box bg-purple">
-                <TrendingUp size={20} />
+                <Gauge size={20} />
               </div>
               <div className="kpi-content">
-                <span className="kpi-label">KM Total Frota</span>
-                <span className="kpi-value">{totalKmFrota.toLocaleString('pt-BR')} km</span>
+                <span className="kpi-label">KM em Missões</span>
+                <span className="kpi-value">
+                  {totalKmMissoes.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km
+                </span>
               </div>
             </div>
 
