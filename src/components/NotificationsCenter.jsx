@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Bell,
   CheckCheck,
@@ -265,6 +265,16 @@ export default function NotificationsCenter({
     }
   };
 
+  const tabsRef = useRef(null);
+
+  const handleTabsWheel = (e) => {
+    if (tabsRef.current && e.deltaY !== 0) {
+      if (tabsRef.current.scrollWidth > tabsRef.current.clientWidth) {
+        tabsRef.current.scrollLeft += e.deltaY;
+      }
+    }
+  };
+
   return (
     <div className="notifications-dropdown-panel" onClick={(e) => e.stopPropagation()}>
       {/* Cabeçalho da Central: Design Centralizado & Elegante */}
@@ -334,7 +344,13 @@ export default function NotificationsCenter({
 
       {/* Barra de Filtros Segmentada Moderna (Com rolagem suave e sem cortes) */}
       <div className="notif-segmented-bar-wrapper">
-        <div className="notif-segmented-bar" role="tablist" aria-label="Filtrar Notificações">
+        <div
+          ref={tabsRef}
+          className="notif-segmented-bar"
+          role="tablist"
+          aria-label="Filtrar Notificações"
+          onWheel={handleTabsWheel}
+        >
           <button
             type="button"
             role="tab"
