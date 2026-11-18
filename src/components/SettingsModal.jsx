@@ -140,6 +140,29 @@ function parseBrlNumber(val, fallback = 0) {
   return isNaN(num) ? fallback : num;
 }
 
+// Máscara e formatação automática de telefone brasileiro (fixo ou celular)
+export function formatPhoneMask(val) {
+  if (!val) return '';
+  const digits = String(val).replace(/\D/g, '').slice(0, 11);
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+}
+
+// Máscara e formatação automática de CNPJ brasileiro (14 dígitos)
+export function formatCnpjMask(val) {
+  if (!val) return '';
+  const digits = String(val).replace(/\D/g, '').slice(0, 14);
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+  if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12, 14)}`;
+}
+
 // ======================================================
 // Componente Principal: Painel de Configurações
 // ======================================================
@@ -167,10 +190,10 @@ export default function SettingsModal({
     companyName: settings?.companyName || 'MegaFilmes & Mega Print',
     companyName2: settings?.companyName2 || 'Mega Print',
     tagline: settings?.tagline || 'Sistema de Agendas, Equipes e Viaturas',
-    phone: settings?.phone || '(95) 99999-9999',
+    phone: formatPhoneMask(settings?.phone || '(95) 99999-9999'),
     email: settings?.email || 'contato@megafilmes.com.br',
-    website: settings?.website || '',
-    cnpj: settings?.cnpj || '',
+    website: settings?.website || 'https://megafilmes.com.br',
+    cnpj: formatCnpjMask(settings?.cnpj || '00.000.000/0001-00'),
     // Combustível
     fuelPricePerLiter: settings?.fuelPricePerLiter || 6.45,
     gasolinePricePerLiter: String(settings?.gasolinePricePerLiter ?? (settings?.fuelPricePerLiter || 6.45)).replace('.', ','),
@@ -199,10 +222,10 @@ export default function SettingsModal({
         companyName: settings.companyName || 'MegaFilmes & Mega Print',
         companyName2: settings.companyName2 || 'Mega Print',
         tagline: settings.tagline || 'Sistema de Agendas, Equipes e Viaturas',
-        phone: settings.phone || '(95) 99999-9999',
+        phone: formatPhoneMask(settings.phone || '(95) 99999-9999'),
         email: settings.email || 'contato@megafilmes.com.br',
-        website: settings.website || '',
-        cnpj: settings.cnpj || '',
+        website: settings.website || 'https://megafilmes.com.br',
+        cnpj: formatCnpjMask(settings.cnpj || '00.000.000/0001-00'),
         fuelPricePerLiter: settings.fuelPricePerLiter || 6.45,
         gasolinePricePerLiter: String(settings.gasolinePricePerLiter ?? (settings.fuelPricePerLiter || 6.45)).replace('.', ','),
         dieselPricePerLiter: String(settings.dieselPricePerLiter ?? 6.89).replace('.', ','),
@@ -615,8 +638,9 @@ export default function SettingsModal({
                     <input
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, phone: formatPhoneMask(e.target.value) })}
                       placeholder="(95) 99999-9999"
+                      maxLength={15}
                     />
                   </div>
                   <div className="form-group flex-1">
@@ -624,7 +648,7 @@ export default function SettingsModal({
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value.toLowerCase().trim() })}
                       placeholder="contato@megafilmes.com.br"
                     />
                   </div>
@@ -637,6 +661,12 @@ export default function SettingsModal({
                       type="text"
                       value={formData.website}
                       onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                      onBlur={(e) => {
+                        const val = e.target.value.trim();
+                        if (val && !val.startsWith('http://') && !val.startsWith('https://')) {
+                          setFormData((prev) => ({ ...prev, website: `https://${val}` }));
+                        }
+                      }}
                       placeholder="https://megafilmes.com.br"
                     />
                   </div>
@@ -645,8 +675,9 @@ export default function SettingsModal({
                     <input
                       type="text"
                       value={formData.cnpj}
-                      onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, cnpj: formatCnpjMask(e.target.value) })}
                       placeholder="00.000.000/0001-00"
+                      maxLength={18}
                     />
                   </div>
                 </div>

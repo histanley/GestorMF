@@ -2,9 +2,16 @@
 
 export const DEFAULT_SETTINGS = {
   companyName: 'MegaFilmes & Mega Print',
+  companyName2: 'Mega Print',
+  tagline: 'Sistema de Agendas, Equipes e Viaturas',
+  phone: '(95) 99999-9999',
+  email: 'contato@megafilmes.com.br',
+  website: 'https://megafilmes.com.br',
+  cnpj: '00.000.000/0001-00',
   fuelPricePerLiter: 6.45, // Preço de referência / gasolina
   gasolinePricePerLiter: 6.45, // Preço médio da Gasolina em Boa Vista - RR
   dieselPricePerLiter: 6.89, // Preço médio do Diesel em Boa Vista - RR
+  electricPricePerKwh: 0.95, // Tarifa de energia Roraima
   defaultAutonomy: 10,
   baseLocation: {
     name: 'Sede MegaFilmes & Mega Print',
@@ -12,6 +19,7 @@ export const DEFAULT_SETTINGS = {
     lat: 2.8293822995808733,
     lon: -60.730887232802566,
   },
+  companies: ['MegaFilmes', 'Mega Print'],
 };
 
 export const DEFAULT_ROLES = [

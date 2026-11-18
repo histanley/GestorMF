@@ -214,43 +214,68 @@ if ($method === 'POST' && $action === 'restore') {
     $db->beginTransaction();
 
     try {
-        // 1. Restaura Configurações
+        // 1. Restaura Configurações (com identidade da empresa e dados de contato)
         if (isset($tables['settings']) && !empty($tables['settings'])) {
             $s = $tables['settings'];
-            $hasElecCol = false;
-            try {
-                $chk = $db->query("SHOW COLUMNS FROM settings LIKE 'electric_price_per_kwh'")->fetch();
-                $hasElecCol = !empty($chk);
-            } catch (Exception $e) {}
+            $comp = $s['company_name'] ?? ($s['companyName'] ?? 'MegaFilmes & Mega Print');
+            $comp2 = $s['company_name2'] ?? ($s['companyName2'] ?? 'Mega Print');
+            $tagline = $s['tagline'] ?? 'Sistema de Agendas, Equipes e Viaturas';
+            $phone = $s['phone'] ?? '(95) 99999-9999';
+            $email = $s['email'] ?? 'contato@megafilmes.com.br';
+            $website = $s['website'] ?? 'https://megafilmes.com.br';
+            $cnpj = $s['cnpj'] ?? '00.000.000/0001-00';
+            $fuel = $s['fuel_price_per_liter'] ?? ($s['fuelPricePerLiter'] ?? 6.45);
+            $gas = $s['gasoline_price_per_liter'] ?? ($s['gasolinePricePerLiter'] ?? 6.45);
+            $die = $s['diesel_price_per_liter'] ?? ($s['dieselPricePerLiter'] ?? 6.89);
+            $elec = $s['electric_price_per_kwh'] ?? ($s['electricPricePerKwh'] ?? 0.95);
+            $auto = $s['default_autonomy'] ?? ($s['defaultAutonomy'] ?? 10.0);
+            $baseLoc = $s['base_location'] ?? ($s['baseLocation'] ?? null);
+            $roles = $s['roles'] ?? [];
 
-            if ($hasElecCol) {
-                $stmtSet = $db->prepare("
-                    REPLACE INTO settings (id, company_name, fuel_price_per_liter, gasoline_price_per_liter, diesel_price_per_liter, electric_price_per_kwh, base_location, roles)
-                    VALUES (1, :comp, :fuel, :gas, :die, :elec, :base, :roles)
-                ");
-                $stmtSet->execute([
-                    ':comp'  => $s['company_name'] ?? 'MegaFilmes & Mega Print',
-                    ':fuel'  => $s['fuel_price_per_liter'] ?? 6.45,
-                    ':gas'   => $s['gasoline_price_per_liter'] ?? 6.45,
-                    ':die'   => $s['diesel_price_per_liter'] ?? 6.89,
-                    ':elec'  => $s['electric_price_per_kwh'] ?? 0.95,
-                    ':base'  => is_array($s['base_location']) ? json_encode($s['base_location'], JSON_UNESCAPED_UNICODE) : $s['base_location'],
-                    ':roles' => is_array($s['roles']) ? json_encode($s['roles'], JSON_UNESCAPED_UNICODE) : $s['roles']
-                ]);
-            } else {
-                $stmtSet = $db->prepare("
-                    REPLACE INTO settings (id, company_name, fuel_price_per_liter, gasoline_price_per_liter, diesel_price_per_liter, base_location, roles)
-                    VALUES (1, :comp, :fuel, :gas, :die, :base, :roles)
-                ");
-                $stmtSet->execute([
-                    ':comp'  => $s['company_name'] ?? 'MegaFilmes & Mega Print',
-                    ':fuel'  => $s['fuel_price_per_liter'] ?? 6.45,
-                    ':gas'   => $s['gasoline_price_per_liter'] ?? 6.45,
-                    ':die'   => $s['diesel_price_per_liter'] ?? 6.89,
-                    ':base'  => is_array($s['base_location']) ? json_encode($s['base_location'], JSON_UNESCAPED_UNICODE) : $s['base_location'],
-                    ':roles' => is_array($s['roles']) ? json_encode($s['roles'], JSON_UNESCAPED_UNICODE) : $s['roles']
-                ]);
+            $sCols = [
+                'company_name2'          => 'VARCHAR(150) NULL',
+                'tagline'                => 'VARCHAR(255) NULL',
+                'phone'                  => 'VARCHAR(50) NULL',
+                'email'                  => 'VARCHAR(150) NULL',
+                'website'                => 'VARCHAR(255) NULL',
+                'cnpj'                   => 'VARCHAR(50) NULL',
+                'electric_price_per_kwh' => 'DECIMAL(6,2) DEFAULT 0.95',
+                'default_autonomy'       => 'DECIMAL(6,2) DEFAULT 10.00',
+                'roles'                  => 'LONGTEXT NULL'
+            ];
+            foreach ($sCols as $col => $def) {
+                try {
+                    $chk = $db->query("SHOW COLUMNS FROM settings LIKE '{$col}'")->fetch();
+                    if (!$chk) {
+                        $db->exec("ALTER TABLE settings ADD COLUMN {$col} {$def}");
+                    }
+                } catch (Exception $e) {}
             }
+
+            $stmtSet = $db->prepare("
+                REPLACE INTO settings (
+                    id, company_name, company_name2, tagline, phone, email, website, cnpj,
+                    fuel_price_per_liter, gasoline_price_per_liter, diesel_price_per_liter, electric_price_per_kwh, default_autonomy,
+                    base_location, roles
+                )
+                VALUES (1, :comp, :comp2, :tagline, :phone, :email, :website, :cnpj, :fuel, :gas, :die, :elec, :auto, :base, :roles)
+            ");
+            $stmtSet->execute([
+                ':comp'    => $comp,
+                ':comp2'   => $comp2,
+                ':tagline' => $tagline,
+                ':phone'   => $phone,
+                ':email'   => $email,
+                ':website' => $website,
+                ':cnpj'    => $cnpj,
+                ':fuel'    => $fuel,
+                ':gas'     => $gas,
+                ':die'     => $die,
+                ':elec'    => $elec,
+                ':auto'    => $auto,
+                ':base'    => is_array($baseLoc) ? json_encode($baseLoc, JSON_UNESCAPED_UNICODE) : $baseLoc,
+                ':roles'   => is_array($roles) ? json_encode($roles, JSON_UNESCAPED_UNICODE) : $roles
+            ]);
         }
 
         // 2. Restaura Viaturas (Reconstrução integral)
