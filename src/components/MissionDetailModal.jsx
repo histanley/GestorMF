@@ -29,6 +29,7 @@ import {
   Folder,
   Package,
   Camera,
+  MessageCircle,
 } from 'lucide-react';
 import {
   getMissionTotalKm,
@@ -46,6 +47,7 @@ import {
 import { alertDialog } from '../utils/dialog';
 import { normalizeRole } from '../utils/auth';
 import MissionHistoryModal from './MissionHistoryModal';
+import MissionWhatsAppShareModal from './MissionWhatsAppShareModal';
 import {
   resolveMissionEditors,
   getMissionEditionDeliverySummary,
@@ -89,6 +91,7 @@ export default function MissionDetailModal({
   onReopenEdition = null,
 }) {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
 
   if (!isOpen || !mission) return null;
 
@@ -1063,6 +1066,15 @@ export default function MissionDetailModal({
             <div className="mdm-footer-actions">
               <button
                 type="button"
+                className="btn-secondary btn-whatsapp-share"
+                onClick={() => setIsWhatsAppOpen(true)}
+                title="Compartilhar informações da missão por WhatsApp"
+              >
+                <MessageCircle size={15} /> WhatsApp
+              </button>
+
+              <button
+                type="button"
                 className="btn-secondary"
                 onClick={() => setIsHistoryOpen(true)}
                 title="Ver Histórico Completo e Auditoria desta Missão"
@@ -1136,6 +1148,19 @@ export default function MissionDetailModal({
           isOpen={isHistoryOpen}
           mission={mission}
           onClose={() => setIsHistoryOpen(false)}
+        />
+      )}
+
+      {/* Modal de Compartilhamento via WhatsApp */}
+      {isWhatsAppOpen && (
+        <MissionWhatsAppShareModal
+          isOpen={isWhatsAppOpen}
+          mission={mission}
+          missions={missions}
+          vehicles={vehicles}
+          members={members}
+          currentUser={currentUser}
+          onClose={() => setIsWhatsAppOpen(false)}
         />
       )}
     </>

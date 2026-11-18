@@ -44,6 +44,7 @@ import {
   Table,
   CalendarRange,
   CalendarDays,
+  MessageCircle,
 } from 'lucide-react';
 import ServiceBoardWeekView from './ServiceBoardWeekView';
 import ServiceBoardMonthView from './ServiceBoardMonthView';
@@ -69,6 +70,7 @@ import { normalizeRole } from '../utils/auth';
 import { classifyMissionShift } from '../utils/workHours';
 import { sendPushNotification, clearPostProductionNotification } from '../utils/notifications';
 import MissionHistoryModal from './MissionHistoryModal';
+import MissionWhatsAppShareModal from './MissionWhatsAppShareModal';
 import RejectPostProductionModal from './RejectPostProductionModal';
 import ConcludePostProductionModal from './ConcludePostProductionModal';
 import {
@@ -158,6 +160,7 @@ export default function ServiceBoard({
   };
   const [selectedDetailMissionId, setSelectedDetailMissionId] = useState(null);
   const [selectedHistoryMission, setSelectedHistoryMission] = useState(null);
+  const [whatsappShareMission, setWhatsappShareMission] = useState(null);
   const [reopenModal, setReopenModal] = useState({
     isOpen: false,
     mission: null,
@@ -2106,6 +2109,13 @@ export default function ServiceBoard({
                         >
                           <Navigation size={14} />
                         </button>
+                        <button
+                          className="action-btn-icon share-whatsapp"
+                          title="Compartilhar informações da missão por WhatsApp (Freelancers, Convidados ou Equipe)"
+                          onClick={() => setWhatsappShareMission(mission)}
+                        >
+                          <MessageCircle size={14} />
+                        </button>
                         {(() => {
                           const isFinalizada = mission.missionStatus === 'Finalizada' || mission.missionStatus === 'Finalizado' || mission.missionStatus === 'Concluída';
                           if (canEditMission && (!isFinalizada || isAdmin)) {
@@ -2526,6 +2536,14 @@ export default function ServiceBoard({
                     title="Histórico Completo"
                   >
                     <History size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    className="mmc-action-pill whatsapp"
+                    onClick={() => setWhatsappShareMission(mission)}
+                    title="Compartilhar via WhatsApp"
+                  >
+                    <MessageCircle size={13} />
                   </button>
                   {(() => {
                     const isFinalizada = mission.missionStatus === 'Finalizada' || mission.missionStatus === 'Finalizado' || mission.missionStatus === 'Concluída';
@@ -3544,6 +3562,15 @@ export default function ServiceBoard({
                 <div className="mdm-footer-actions">
                   <button
                     type="button"
+                    className="btn-secondary btn-whatsapp-share"
+                    onClick={() => setWhatsappShareMission(detailMission)}
+                    title="Compartilhar informações da missão por WhatsApp"
+                  >
+                    <MessageCircle size={15} /> WhatsApp
+                  </button>
+
+                  <button
+                    type="button"
                     className="btn-secondary"
                     onClick={() => {
                       const m = detailMission;
@@ -3638,6 +3665,17 @@ export default function ServiceBoard({
         members={members}
         currentUser={currentUser}
         onSaveMission={onSaveMission}
+      />
+
+      {/* Modal de Compartilhamento da Missão via WhatsApp (Freelancers, Convidados ou Equipe) */}
+      <MissionWhatsAppShareModal
+        isOpen={Boolean(whatsappShareMission)}
+        onClose={() => setWhatsappShareMission(null)}
+        mission={whatsappShareMission}
+        missions={missions}
+        vehicles={vehicles}
+        members={members}
+        currentUser={currentUser}
       />
 
       {/* Modal Moderno para Informar Motivo de Rejeição / Reabertura de Edição */}

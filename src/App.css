@@ -867,7 +867,13 @@ body.light-theme .action-btn-icon.view-details:hover {
   border-color: #64748b !important;
 }
 
-body.light-theme .action-btn-icon.send-whatsapp:hover {
+body.light-theme .action-btn-icon.send-whatsapp,
+body.light-theme .action-btn-icon.share-whatsapp {
+  color: #16a34a !important;
+}
+
+body.light-theme .action-btn-icon.send-whatsapp:hover,
+body.light-theme .action-btn-icon.share-whatsapp:hover {
   background: #dcfce7 !important;
   color: #16a34a !important;
   border-color: #86efac !important;
@@ -4435,6 +4441,19 @@ body.light-theme .marker-label {
   background: rgba(245, 158, 11, 0.2);
   color: var(--accent-gold);
   border-color: var(--accent-gold);
+}
+
+.action-btn-icon.share-whatsapp,
+.action-btn-icon.send-whatsapp {
+  color: #25d366;
+}
+
+.action-btn-icon.share-whatsapp:hover,
+.action-btn-icon.send-whatsapp:hover {
+  background: rgba(37, 211, 102, 0.18) !important;
+  color: #25d366 !important;
+  border-color: rgba(37, 211, 102, 0.45) !important;
+  box-shadow: 0 0 10px rgba(37, 211, 102, 0.25);
 }
 
 .action-btn-icon.delete:hover {
@@ -18172,6 +18191,15 @@ body.light-theme .mbn-center-action {
     background: rgba(245, 158, 11, 0.12);
     color: #fbbf24;
     border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .mmc-action-pill.whatsapp {
+    width: 40px;
+    min-width: 40px;
+    flex: 0 0 40px;
+    background: rgba(37, 211, 102, 0.14);
+    color: #25d366;
+    border: 1px solid rgba(37, 211, 102, 0.35);
   }
 
   .mmc-action-pill.delete {
@@ -49415,6 +49443,394 @@ body.light-theme .ach-unlocked-lbl,
 [data-theme='light'] .ach-unlocked-lbl {
   color: #059669 !important;
 }
+
+/* ==========================================================================
+   COMPARTILHAMENTO DE MISSÕES / ORDENS DE SERVIÇO VIA WHATSAPP
+   ========================================================================== */
+
+.btn-whatsapp-share {
+  background: rgba(37, 211, 102, 0.12) !important;
+  color: #25d366 !important;
+  border: 1px solid rgba(37, 211, 102, 0.35) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-weight: 600 !important;
+  transition: all 0.15s ease !important;
+}
+
+.btn-whatsapp-share:hover {
+  background: #25d366 !important;
+  color: #ffffff !important;
+  border-color: #25d366 !important;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35) !important;
+}
+
+.whatsapp-theme-header {
+  background: linear-gradient(135deg, rgba(37, 211, 102, 0.16) 0%, rgba(18, 140, 126, 0.22) 100%) !important;
+  border-bottom: 1px solid rgba(37, 211, 102, 0.25) !important;
+}
+
+.mwa-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mwa-icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(37, 211, 102, 0.35);
+}
+
+.mwa-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.mwa-subtitle {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.mwa-modal-body {
+  padding: 16px 20px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mwa-pauta-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mwa-code-pill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #25d366;
+  background: rgba(37, 211, 102, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(37, 211, 102, 0.25);
+  flex-shrink: 0;
+}
+
+.mwa-pauta-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mwa-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mwa-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mwa-hint {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mwa-phone-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mwa-phone-input {
+  width: 100%;
+  padding-right: 36px !important;
+  font-size: 0.88rem;
+  border-radius: 8px;
+}
+
+.mwa-clear-phone {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.mwa-clear-phone:hover {
+  color: #ef4444;
+}
+
+.mwa-quick-contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(37, 211, 102, 0.04);
+  border: 1px dashed rgba(37, 211, 102, 0.2);
+  border-radius: 8px;
+}
+
+.mwa-qc-title {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mwa-qc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mwa-qc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  background: rgba(37, 211, 102, 0.08);
+  color: #25d366;
+  border: 1px solid rgba(37, 211, 102, 0.25);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mwa-qc-chip:hover,
+.mwa-qc-chip.active {
+  background: rgba(37, 211, 102, 0.22);
+  border-color: #25d366;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.mwa-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mwa-btn-copy-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mwa-btn-copy-preview:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.mwa-btn-copy-preview.copied {
+  background: rgba(37, 211, 102, 0.2);
+  border-color: #25d366;
+  color: #25d366;
+}
+
+.mwa-textarea-preview {
+  width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  resize: vertical;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.mwa-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mwa-btn-send-whatsapp {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem !important;
+  padding: 9px 18px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35) !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.mwa-btn-send-whatsapp:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.45) !important;
+}
+
+/* Modo Claro: Compartilhamento WhatsApp */
+body.light-theme .whatsapp-theme-header,
+[data-theme='light'] .whatsapp-theme-header {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+  border-bottom: 1px solid #bbf7d0 !important;
+}
+
+body.light-theme .mwa-title,
+[data-theme='light'] .mwa-title {
+  color: #0f172a !important;
+}
+
+body.light-theme .mwa-subtitle,
+[data-theme='light'] .mwa-subtitle {
+  color: #64748b !important;
+}
+
+body.light-theme .mwa-pauta-banner,
+[data-theme='light'] .mwa-pauta-banner {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+body.light-theme .mwa-pauta-name,
+[data-theme='light'] .mwa-pauta-name {
+  color: #0f172a !important;
+}
+
+body.light-theme .mwa-code-pill,
+[data-theme='light'] .mwa-code-pill {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  border-color: #86efac !important;
+}
+
+body.light-theme .mwa-label,
+[data-theme='light'] .mwa-label {
+  color: #334155 !important;
+}
+
+body.light-theme .mwa-hint,
+[data-theme='light'] .mwa-hint {
+  color: #64748b !important;
+}
+
+body.light-theme .mwa-phone-input,
+[data-theme='light'] .mwa-phone-input {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+body.light-theme .mwa-quick-contacts,
+[data-theme='light'] .mwa-quick-contacts {
+  background: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+}
+
+body.light-theme .mwa-qc-chip,
+[data-theme='light'] .mwa-qc-chip {
+  background: #ffffff !important;
+  border-color: #86efac !important;
+  color: #16a34a !important;
+}
+
+body.light-theme .mwa-qc-chip:hover,
+body.light-theme .mwa-qc-chip.active,
+[data-theme='light'] .mwa-qc-chip:hover,
+[data-theme='light'] .mwa-qc-chip.active {
+  background: #dcfce7 !important;
+  border-color: #22c55e !important;
+  color: #15803d !important;
+}
+
+body.light-theme .mwa-btn-copy-preview,
+[data-theme='light'] .mwa-btn-copy-preview {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+body.light-theme .mwa-btn-copy-preview:hover,
+[data-theme='light'] .mwa-btn-copy-preview:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+body.light-theme .mwa-btn-copy-preview.copied,
+[data-theme='light'] .mwa-btn-copy-preview.copied {
+  background: #dcfce7 !important;
+  border-color: #86efac !important;
+  color: #15803d !important;
+}
+
+body.light-theme .mwa-textarea-preview,
+[data-theme='light'] .mwa-textarea-preview {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+body.light-theme .btn-whatsapp-share,
+[data-theme='light'] .btn-whatsapp-share {
+  background: #f0fdf4 !important;
+  color: #16a34a !important;
+  border-color: #86efac !important;
+}
+
+body.light-theme .btn-whatsapp-share:hover,
+[data-theme='light'] .btn-whatsapp-share:hover {
+  background: #16a34a !important;
+  color: #ffffff !important;
+  border-color: #16a34a !important;
+}
+
 
 
 
