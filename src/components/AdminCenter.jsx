@@ -109,7 +109,8 @@ export default function AdminCenter({
   }, [allExtraHoursRequests]);
 
   // 2. Extrai missões de Pós-Produção que precisam de aprovação da Diretoria
-  // Regra Estrita: Se houver múltiplos editores escalados, ela só pode entrar na fila quando TODOS tiverem entregue!
+  // Regra Estrita: Quando todos os editores escalados (1 ou mais) entregaram suas partes,
+  // ou quando o status de edição for Edição Concluída / Entregue, a missão entra imediatamente na fila de decisão!
   const pendingEditions = useMemo(() => {
     return missions.filter((m) => {
       const isFinished = m.missionStatus === 'Finalizada' || m.missionStatus === 'Finalizado' || m.missionStatus === 'Concluída';
@@ -123,16 +124,36 @@ export default function AdminCenter({
         return summary.isFullyDelivered;
       }
 
+      // Se houver 1 editor designado e ele já entregou (ou o status for Edição Concluída / Entregue)
+      if (summary.total === 1 && summary.isFullyDelivered) {
+        return true;
+      }
+
       return m.editionStatus === 'Edição Concluída' || m.editionStatus === 'Entregue';
     });
   }, [missions, members]);
 
   const historyEditions = useMemo(() => {
-    return missions.filter((m) => {
+    const list = missions.filter((m) => {
       const isFinished = m.missionStatus === 'Finalizada' || m.missionStatus === 'Finalizado' || m.missionStatus === 'Concluída';
-      return isFinished && (m.editionStatus === 'Edição Concluída' || m.editionStatus === 'Entregue');
+      if (!isFinished) return false;
+      const summary = getMissionEditionDeliverySummary(m, members);
+      return summary.hasPostProduction || m.editionStatus === 'Edição Concluída' || m.editionStatus === 'Entregue';
     });
-  }, [missions]);
+
+    // Ordena pelas aprovações mais recentes no topo
+    return list.sort((a, b) => {
+      const appA = Array.isArray(a.editionHistory)
+        ? [...a.editionHistory].reverse().find((ev) => ev && ev.type === 'APPROVED')
+        : null;
+      const appB = Array.isArray(b.editionHistory)
+        ? [...b.editionHistory].reverse().find((ev) => ev && ev.type === 'APPROVED')
+        : null;
+      const tA = new Date(appA?.timestamp || a.updatedAt || a.editionCompletedAt || a.date || 0).getTime();
+      const tB = new Date(appB?.timestamp || b.updatedAt || b.editionCompletedAt || b.date || 0).getTime();
+      return tB - tA;
+    });
+  }, [missions, members]);
 
   // Sub-aba inicial: Se houver pós-produção pendente abre nela; se houver hora extra pendente abre nela; senão, fechamento
   const [adminTab, setAdminTab] = useState(() => {
@@ -589,11 +610,198 @@ export default function AdminCenter({
                     : 'Nenhuma missão finalizada corresponde aos filtros informados.'}
                 </p>
               </div>
+            ) : ppSubView === 'history' ? (
+              /* ============================================================ */
+              /* HISTÓRICO DE APROVAÇÃO EM LISTA COM DIA E HORA DA APROVAÇÃO  */
+              /* ============================================================ */
+              <div className="ac-pp-history-list-wrap">
+                <div className="ac-pp-history-list-header">
+                  <div className="aphl-col aphl-col-mission">Missão &amp; Pauta</div>
+                  <div className="aphl-col aphl-col-editors">Editores &amp; Entregas (Dia e Hora)</div>
+                  <div className="aphl-col aphl-col-approval">Aprovação da Diretoria (Dia e Hora)</div>
+                  <div className="aphl-col aphl-col-server">Pasta no Servidor</div>
+                  <div className="aphl-col aphl-col-actions">Ações</div>
+                </div>
+
+                <div className="ac-pp-history-list-rows">
+                  {displayedEditions.map((mission) => {
+                    const mCode = getMissionCode(mission, missions);
+                    const isOverdue = Boolean(mission.isOverdue || mission.editionDeliveryStatus === 'Atrasado' || mission.editionDeliveryStatus === 'Fora do Prazo');
+                    const assignedEditors = resolveMissionEditors(mission, members);
+                    const deliverySummary = getMissionEditionDeliverySummary(mission, members);
+
+                    // Encontra o último evento APPROVED no editionHistory
+                    const lastApprovedEvent = Array.isArray(mission.editionHistory)
+                      ? [...mission.editionHistory].reverse().find((ev) => ev && ev.type === 'APPROVED')
+                      : null;
+
+                    const approvedAtRaw = lastApprovedEvent?.timestamp || mission.updatedAt || mission.editionCompletedAt || null;
+                    const approvedAtStr = formatDeliveryDateTimeBR(approvedAtRaw);
+                    const approvedByStr = lastApprovedEvent?.user || 'Administrador';
+
+                    // Extrai caminho principal do servidor
+                    const lastConcludeEvent = Array.isArray(mission.editionHistory)
+                      ? [...mission.editionHistory].reverse().find((ev) => ev && (ev.type === 'CONCLUDED' || ev.type === 'COMPLETED' || ev.serverFilePath))
+                      : null;
+                    const firstEditorWithPath = assignedEditors
+                      .map((ed) => deliverySummary.deliveryMap[String(ed.id)]?.serverFilePath)
+                      .find(Boolean);
+                    const serverPath = mission.serverFilePath || firstEditorWithPath || lastConcludeEvent?.serverFilePath || null;
+
+                    return (
+                      <div key={mission.id} className="ac-pp-history-row">
+                        {/* 1. Missão & Pauta */}
+                        <div className="aphl-cell aphl-col-mission">
+                          <div className="aphl-mission-top">
+                            <span className="ac-rc-code">#{mCode}</span>
+                            <span className="ac-rc-status-pill status-approved">
+                              <span className="ac-status-dot" />
+                              Missão Finalizada
+                            </span>
+                            <span className={`ac-pp-status-badge ${isOverdue ? 'overdue' : 'ontime'}`} style={{ fontSize: '0.68rem', padding: '2px 7px' }}>
+                              {isOverdue ? '⚠️ Fora do Prazo' : '✅ No Prazo'}
+                            </span>
+                          </div>
+                          <strong className="aphl-mission-title">{mission.description}</strong>
+                          <div className="aphl-mission-meta">
+                            <span>
+                              <Calendar size={12} className="text-amber" /> {formatDateBR(mission.date)}
+                              {mission.departureTime ? ` (${mission.departureTime})` : ''}
+                            </span>
+                            <span>
+                              <MapPin size={12} className="text-amber" /> {mission.locationName || mission.address || 'Local não definido'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 2. Editores & Entregas (Dia e Hora) */}
+                        <div className="aphl-cell aphl-col-editors">
+                          {assignedEditors.length > 0 ? (
+                            <div className="aphl-editors-stack">
+                              {assignedEditors.map((ed) => {
+                                const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
+                                const isDone = edDeliv && edDeliv.status === 'delivered';
+                                const delivStr = formatDeliveryDateTimeBR(
+                                  edDeliv?.deliveredAt || mission.editionCompletedAt || lastConcludeEvent?.timestamp
+                                );
+                                return (
+                                  <div key={ed.id} className="aphl-editor-item">
+                                    <div className="aphl-editor-name-row">
+                                      <div className="ac-pp-avatar-circle" style={{ width: '20px', height: '20px', fontSize: '0.62rem' }}>
+                                        {ed.name.slice(0, 2).toUpperCase()}
+                                      </div>
+                                      <strong>{ed.name}</strong>
+                                      <span className={`aphl-ed-badge ${isDone ? 'done' : 'pending'}`}>
+                                        {isDone ? '✅ Entregou' : '⏳ Pendente'}
+                                      </span>
+                                    </div>
+                                    {delivStr && (
+                                      <div className="aphl-editor-time">
+                                        <Clock size={11} />
+                                        <span>Entregue em: <strong>{delivStr}</strong></span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <span className="text-muted" style={{ fontSize: '0.78rem' }}>
+                              {mission.editionCompletedBy || mission.editorNamesDisplay || 'Editor Responsável'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 3. Aprovação da Diretoria (Dia e Hora) */}
+                        <div className="aphl-cell aphl-col-approval">
+                          <div className="aphl-approval-badge-box">
+                            <div className="aphl-approval-status-line">
+                              <CheckCircle2 size={14} className="text-emerald" />
+                              <strong>Aprovada e Finalizada</strong>
+                            </div>
+                            <div className="aphl-approval-datetime">
+                              <Clock size={12} className="text-cyan" />
+                              <span>
+                                Dia e Hora: <strong>{approvedAtStr || formatDateBR(mission.date)}</strong>
+                              </span>
+                            </div>
+                            <div className="aphl-approval-by">
+                              <ShieldCheck size={12} className="text-amber" />
+                              <span>Por: <strong>{approvedByStr}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 4. Pasta no Servidor */}
+                        <div className="aphl-cell aphl-col-server">
+                          {serverPath ? (
+                            <div className="aphl-server-box">
+                              <code className="aphl-server-code" title={serverPath}>
+                                {serverPath}
+                              </code>
+                              <button
+                                type="button"
+                                className="ac-btn-copy-path"
+                                onClick={() => handleCopyServerPath(serverPath, `hist-${mission.id}`)}
+                                title="Copiar caminho da pasta no servidor"
+                              >
+                                {copiedPathId === `hist-${mission.id}` ? (
+                                  <>
+                                    <Check size={12} className="text-emerald" />
+                                    <span>Copiado!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={12} />
+                                    <span>Copiar</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-muted" style={{ fontSize: '0.76rem' }}>Não informado</span>
+                          )}
+                        </div>
+
+                        {/* 5. Ações (Auditoria & Reabrir) */}
+                        <div className="aphl-cell aphl-col-actions">
+                          <button
+                            type="button"
+                            className="ac-btn-history"
+                            onClick={() => setSelectedHistoryMission(mission)}
+                            title="Ver histórico e auditoria completa da missão"
+                          >
+                            <History size={13} />
+                            <span>Auditoria</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="ac-btn-reject aphl-btn-reopen"
+                            onClick={() => setReopenModal({
+                              isOpen: true,
+                              mission,
+                              reason: '',
+                              hasNewDeadline: false,
+                              newDeadlineDate: mission.deliveryDeadlineDate || '',
+                              newDeadlineTime: mission.deliveryDeadlineTime || '18:00',
+                            })}
+                            title="Reabrir esta missão finalizada e deixar em aberto novamente as entregas da pós-produção"
+                          >
+                            <RotateCcw size={13} />
+                            <span>Reabrir</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             ) : (
               <div className="ac-requests-grid ac-pp-grid">
                 {displayedEditions.map((mission) => {
                   const mCode = getMissionCode(mission, missions);
-                  const isPending = mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada';
+                  const isPending = mission.missionStatus !== 'Finalizada' && mission.missionStatus !== 'Finalizado' && mission.missionStatus !== 'Concluída';
                   const isOverdue = Boolean(mission.isOverdue || mission.editionDeliveryStatus === 'Atrasado');
 
                   const assignedEditors = resolveMissionEditors(mission, members);

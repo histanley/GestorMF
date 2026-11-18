@@ -202,13 +202,62 @@ if ($method === 'GET') {
             }
         }
 
-        // Regra universal para qualquer missão com múltiplos editores (somente se ainda não estiver finalizada/aprovada):
+        // Regra universal para qualquer missão com editores designados (único ou múltiplos):
         $assignedEditorIds = !empty($m['editor_ids']) ? json_decode($m['editor_ids'], true) : [];
         if (!is_array($assignedEditorIds))
             $assignedEditorIds = [];
+        if (empty($assignedEditorIds) && !empty($m['editor_id'])) {
+            $assignedEditorIds = [(string) $m['editor_id']];
+        }
 
-        // Auto-recuperação: se houver entregas reais (COMPLETED / PARTIAL_COMPLETED) registradas no edition_history que não estejam no editors_delivery
-        // (NUNCA sobrescreve se o editor já tiver entrada explícita em editors_delivery, p.ex. 'pending' após reabertura)
+        // Sanitização automática de falsos positivos gerados anteriormente por eventos ASSIGNED
+        // ("Editor responsável: ... Prazo estipulado: ...") que não correspondem a uma entrega real do editor.
+        $wasSanitized = false;
+        if (!empty($editorsDelivery) && is_array($editorsDelivery)) {
+            foreach ($editorsDelivery as $edKey => $edEntry) {
+                if (!is_array($edEntry)) continue;
+                $noteStr = trim((string)($edEntry['notes'] ?? ''));
+                $pathStr = trim((string)($edEntry['serverFilePath'] ?? ''));
+                $isFakeAssignedNote = (
+                    stripos($noteStr, 'Editor responsável:') !== false ||
+                    stripos($noteStr, 'Prazo estipulado:') !== false ||
+                    stripos($noteStr, 'Novo(s) editor(es) atribuído(s):') !== false
+                );
+                if ($isFakeAssignedNote && $pathStr === '') {
+                    // Verifica se existe um evento real de entrega (COMPLETED / PARTIAL_COMPLETED / CONCLUDED) deste editor no histórico
+                    $hasRealDeliveryInHist = false;
+                    $edNameLower = strtolower(trim((string)($edEntry['editorName'] ?? '')));
+                    if (is_array($edHistory)) {
+                        foreach ($edHistory as $hEv) {
+                            $hType = strtoupper(trim($hEv['type'] ?? ''));
+                            if (in_array($hType, ['COMPLETED', 'PARTIAL_COMPLETED', 'CONCLUDED'], true)) {
+                                $hUser = strtolower(trim($hEv['user'] ?? ''));
+                                $hTitle = strtolower(trim($hEv['title'] ?? ''));
+                                if ($edNameLower !== '' && (strpos($hUser, $edNameLower) !== false || strpos($hTitle, $edNameLower) !== false)) {
+                                    $hasRealDeliveryInHist = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (!$hasRealDeliveryInHist) {
+                        $editorsDelivery[$edKey] = [
+                            'editorId' => (string)($edEntry['editorId'] ?? $edKey),
+                            'editorName' => $edEntry['editorName'] ?? '',
+                            'status' => 'pending',
+                            'deliveredAt' => null,
+                            'serverFilePath' => null,
+                            'notes' => null,
+                            'isLate' => false
+                        ];
+                        $wasSanitized = true;
+                    }
+                }
+            }
+        }
+
+        // Auto-recuperação: se houver entregas reais (COMPLETED / PARTIAL_COMPLETED / CONCLUDED) registradas no edition_history que não estejam no editors_delivery
+        // (NUNCA sobrescreve se o editor já tiver entrada explícita em editors_delivery, p.ex. 'pending' após reabertura ou sanitização)
         if (is_array($edHistory) && !empty($edHistory) && !empty($assignedEditorIds)) {
             foreach ($edHistory as $hist) {
                 if (empty($hist) || !is_array($hist))
@@ -253,7 +302,8 @@ if ($method === 'GET') {
 
         if (!$isAlreadyFinished && !empty($editorsDelivery)) {
             $hasPendingEditor = false;
-            if (count($assignedEditorIds) > 1) {
+            $deliveredEditorsCount = 0;
+            if (count($assignedEditorIds) >= 1) {
                 foreach ($assignedEditorIds as $aId) {
                     $aIdStr = (string) $aId;
                     $deliv = $editorsDelivery[$aIdStr] ?? null;
@@ -267,25 +317,29 @@ if ($method === 'GET') {
                     }
                     if (empty($deliv) || ($deliv['status'] ?? '') !== 'delivered') {
                         $hasPendingEditor = true;
-                        break;
+                    } else {
+                        $deliveredEditorsCount++;
                     }
                 }
             } else {
                 foreach ($editorsDelivery as $edItem) {
                     if (empty($edItem['status']) || $edItem['status'] !== 'delivered') {
                         $hasPendingEditor = true;
-                        break;
+                    } else {
+                        $deliveredEditorsCount++;
                     }
                 }
             }
 
-            if ($hasPendingEditor && in_array($m['edition_status'], ['Edição Concluída', 'Entregue'])) {
-                $m['edition_status'] = 'Em Edição';
-                $db->prepare("UPDATE missions SET edition_status = 'Em Edição', editors_delivery = ? WHERE id = ?")->execute([
+            if ($hasPendingEditor && (in_array($m['edition_status'], ['Edição Concluída', 'Entregue']) || $wasSanitized)) {
+                $nextEdStatus = $deliveredEditorsCount > 0 ? 'Em Edição' : 'Pendente';
+                $m['edition_status'] = $nextEdStatus;
+                $db->prepare("UPDATE missions SET edition_status = ?, editors_delivery = ? WHERE id = ?")->execute([
+                    $nextEdStatus,
                     json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),
                     $m['id']
                 ]);
-            } elseif (!$hasPendingEditor && count($assignedEditorIds) > 1 && in_array($m['edition_status'], ['Em Edição', 'Pendente'])) {
+            } elseif (!$hasPendingEditor && $deliveredEditorsCount > 0 && in_array($m['edition_status'], ['Em Edição', 'Pendente'])) {
                 $m['edition_status'] = 'Edição Concluída';
                 $db->prepare("UPDATE missions SET edition_status = 'Edição Concluída', editors_delivery = ? WHERE id = ?")->execute([
                     json_encode($editorsDelivery, JSON_UNESCAPED_UNICODE),

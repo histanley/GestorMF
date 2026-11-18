@@ -140,8 +140,12 @@ assert(serviceBoardCode.includes('Entregue em:') && serviceBoardCode.includes('f
   'ServiceBoard.jsx deve exibir dia e hora de quando cada editor entregou o material');
 assert(adminCenterCode.includes('Reabrir Missão &amp; Pós-Produção') && adminCenterCode.includes('formatDeliveryDateTimeBR'),
   'AdminCenter.jsx deve permitir reabrir missões do Histórico Finalizado e exibir dia e hora da entrega de cada editor');
+assert(adminCenterCode.includes('ac-pp-history-list-wrap') && adminCenterCode.includes('Aprovação da Diretoria (Dia e Hora)'),
+  'AdminCenter.jsx deve exibir o Histórico Finalizado em lista detalhada com dia e hora da aprovação da diretoria');
 assert(missionsPhpCode.includes("in_array(\$hType, ['COMPLETED', 'PARTIAL_COMPLETED', 'CONCLUDED'], true)"),
   'missions.php só deve recuperar entregas do histórico a partir de eventos reais de conclusão (COMPLETED/PARTIAL_COMPLETED/CONCLUDED)');
+assert(missionsPhpCode.includes("stripos(\$noteStr, 'Editor responsável:') !== false"),
+  'missions.php deve higienizar automaticamente falsos positivos antigos gerados por eventos ASSIGNED no editors_delivery');
 
 console.log('✅ TESTES DA CENTRAL DO ADMINISTRADOR (APROVAÇÃO DE PÓS-PRODUÇÃO E REABERTURA) PASSARAM COM 100% DE SUCESSO!');
 

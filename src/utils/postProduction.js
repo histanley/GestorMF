@@ -266,12 +266,24 @@ export function getMissionEditorsDeliveryMap(mission, members = []) {
     }
 
     if (existing && existing.status) {
-      resultMap[eKey] = {
-        ...existing,
-        editorId: eKey,
-        editorName: editor.name,
-      };
-      return;
+      // Sanitiza falso positivo antigo gerado por evento ASSIGNED ("Editor responsável: ... Prazo estipulado: ...")
+      const noteText = String(existing.notes || '').trim();
+      const pathText = String(existing.serverFilePath || '').trim();
+      const isFakeAssignedNote =
+        !isFinished &&
+        pathText === '' &&
+        (noteText.includes('Editor responsável:') ||
+          noteText.includes('Prazo estipulado:') ||
+          noteText.includes('Novo(s) editor(es) atribuído(s):'));
+
+      if (!isFakeAssignedNote) {
+        resultMap[eKey] = {
+          ...existing,
+          editorId: eKey,
+          editorName: editor.name,
+        };
+        return;
+      }
     }
 
     // Fallback inteligente: verifica se há registro de entrega deste editor no editionHistory da missão (COMPLETED ou PARTIAL_COMPLETED após eventual REOPENED)
@@ -544,10 +556,10 @@ export function normalizeMissionMultiEditors(mission, members = []) {
     };
   }
 
-  // Regra universal para QUALQUER missão com múltiplos editores designados:
+  // Regra universal para QUALQUER missão com editor(es) designado(s):
   if (!isFinished) {
     const assigned = resolveMissionEditors(mission, members);
-    if (assigned.length > 1) {
+    if (assigned.length >= 1) {
       const summary = getMissionEditionDeliverySummary(mission, members);
       if (!summary.isFullyDelivered && (mission.editionStatus === 'Edição Concluída' || mission.editionStatus === 'Entregue')) {
         return {
@@ -555,8 +567,17 @@ export function normalizeMissionMultiEditors(mission, members = []) {
           editorIds: assigned.map((e) => e.id),
           editorNamesDisplay: assigned.map((e) => e.name).join(', '),
           editorsDelivery: summary.deliveryMap,
-          editionStatus: 'Em Edição',
+          editionStatus: summary.deliveredEditors.length > 0 ? 'Em Edição' : 'Pendente',
           missionStatus: 'Pendente',
+        };
+      }
+      if (summary.isFullyDelivered && mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue') {
+        return {
+          ...mission,
+          editorIds: assigned.map((e) => e.id),
+          editorNamesDisplay: assigned.map((e) => e.name).join(', '),
+          editorsDelivery: summary.deliveryMap,
+          editionStatus: 'Edição Concluída',
         };
       }
     }

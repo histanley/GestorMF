@@ -1825,8 +1825,8 @@ export default function ServiceBoard({
                         {/* Botões Operacionais de Conclusão / Aprovação / Recusa */}
                         {hasMissionPostProduction(mission) && (
                           <div className="postprod-actions-row">
-                            {/* 1. Tarefa de pós-produção pendente / em andamento */}
-                            {mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && (
+                            {/* 1. Tarefa de pós-produção pendente / em andamento (ainda não 100% entregue pelos editores) */}
+                            {!deliverySummary.isFullyDelivered && mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && (
                               <>
                                 {isUserAssignedToThis ? (
                                   isMyPartDone ? (
@@ -1887,7 +1887,7 @@ export default function ServiceBoard({
                             )}
 
                             {/* 2. Edição CONCLUÍDA por todos os editores: Apenas Administradores podem aceitar ou rejeitar */}
-                            {mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada' && (
+                            {(deliverySummary.isFullyDelivered || mission.editionStatus === 'Edição Concluída' || mission.editionStatus === 'Entregue') && mission.missionStatus !== 'Finalizada' && (
                               <div className="pp-approval-flow-row">
                                 {!canAdminManageEdition ? (
                                   <div
