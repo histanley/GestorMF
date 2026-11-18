@@ -10,7 +10,7 @@ $db = getDB();
 // Garante colunas de schema logo na inicialização
 ensureMissionColumnsExist($db);
 
-// Auto-garantia de colunas de pós-produção, histórico e versionamento no MySQL
+// Auto-garantia de colunas de pós-produção, histórico e versionamento via migração versionada controlada (DB-01)
 function ensureMissionColumnsExist($db)
 {
     static $ensured = false;
@@ -18,52 +18,52 @@ function ensureMissionColumnsExist($db)
         return;
     $ensured = true;
 
-    $cols = [
-        'code' => 'VARCHAR(50) NULL',
-        'editor_id' => 'VARCHAR(64) NULL',
-        'editor_name' => 'VARCHAR(150) NULL',
-        'editor_ids' => 'LONGTEXT NULL',
-        'editor_names_display' => 'VARCHAR(255) NULL',
-        'delivery_deadline_date' => 'VARCHAR(20) NULL',
-        'delivery_deadline_time' => 'VARCHAR(10) NULL',
-        'edition_completed_at' => 'VARCHAR(35) NULL',
-        'edition_completed_by' => 'VARCHAR(150) NULL',
-        'is_overdue' => 'TINYINT(1) DEFAULT 0',
-        'edition_delivery_status' => 'VARCHAR(30) NULL',
-        'reopen_reason' => 'TEXT NULL',
-        'edition_history' => 'LONGTEXT NULL',
-        'edition_status' => "VARCHAR(50) DEFAULT 'Pendente'",
-        'mission_status' => "VARCHAR(50) DEFAULT 'Agendada'",
-        'event_start_time' => 'VARCHAR(10) NULL',
-        'event_end_time' => 'VARCHAR(10) NULL',
-        'antecedence_minutes' => 'INT DEFAULT 30',
-        'suggested_departure_time' => 'VARCHAR(10) NULL',
-        'guests' => 'LONGTEXT NULL',
-        'server_file_path' => 'VARCHAR(500) NULL',
-        'is_recurring' => 'TINYINT(1) DEFAULT 0',
-        'recurrence_id' => 'VARCHAR(64) NULL',
-        'recurrence_rule' => 'VARCHAR(255) NULL',
-        'recurrence_days' => 'VARCHAR(100) NULL',
-        'is_multi_day' => 'TINYINT(1) DEFAULT 0',
-        'end_date' => 'VARCHAR(20) NULL',
-        'custom_rates' => 'LONGTEXT NULL',
-        'off_hours' => 'DECIMAL(5,1) DEFAULT 0.0',
-        'remuneration_type' => "VARCHAR(20) DEFAULT 'off_hours'",
-        'member_remuneration_types' => 'LONGTEXT NULL',
-        'member_roles' => 'LONGTEXT NULL',
-        'equipment_allocations' => 'LONGTEXT NULL',
-        'extra_hours_planned' => 'DECIMAL(6,2) DEFAULT 0.00',
-        'extra_hours_approved' => 'DECIMAL(6,2) DEFAULT 0.00',
-        'extra_hours_requests' => 'LONGTEXT NULL',
-        'editors_delivery' => 'LONGTEXT NULL',
-        'created_by' => 'VARCHAR(100) NULL',
-        'created_by_name' => 'VARCHAR(150) NULL',
-        'version' => 'INT NOT NULL DEFAULT 1'
-    ];
+    runVersionedMigration($db, 'schema_missions_cols_v3', function ($pdo) {
+        $cols = [
+            'code' => 'VARCHAR(50) NULL',
+            'editor_id' => 'VARCHAR(64) NULL',
+            'editor_name' => 'VARCHAR(150) NULL',
+            'editor_ids' => 'LONGTEXT NULL',
+            'editor_names_display' => 'VARCHAR(255) NULL',
+            'delivery_deadline_date' => 'VARCHAR(20) NULL',
+            'delivery_deadline_time' => 'VARCHAR(10) NULL',
+            'edition_completed_at' => 'VARCHAR(35) NULL',
+            'edition_completed_by' => 'VARCHAR(150) NULL',
+            'is_overdue' => 'TINYINT(1) DEFAULT 0',
+            'edition_delivery_status' => 'VARCHAR(30) NULL',
+            'reopen_reason' => 'TEXT NULL',
+            'edition_history' => 'LONGTEXT NULL',
+            'edition_status' => "VARCHAR(50) DEFAULT 'Pendente'",
+            'mission_status' => "VARCHAR(50) DEFAULT 'Agendada'",
+            'event_start_time' => 'VARCHAR(10) NULL',
+            'event_end_time' => 'VARCHAR(10) NULL',
+            'antecedence_minutes' => 'INT DEFAULT 30',
+            'suggested_departure_time' => 'VARCHAR(10) NULL',
+            'guests' => 'LONGTEXT NULL',
+            'server_file_path' => 'VARCHAR(500) NULL',
+            'is_recurring' => 'TINYINT(1) DEFAULT 0',
+            'recurrence_id' => 'VARCHAR(64) NULL',
+            'recurrence_rule' => 'VARCHAR(255) NULL',
+            'recurrence_days' => 'VARCHAR(100) NULL',
+            'is_multi_day' => 'TINYINT(1) DEFAULT 0',
+            'end_date' => 'VARCHAR(20) NULL',
+            'custom_rates' => 'LONGTEXT NULL',
+            'off_hours' => 'DECIMAL(5,1) DEFAULT 0.0',
+            'remuneration_type' => "VARCHAR(20) DEFAULT 'off_hours'",
+            'member_remuneration_types' => 'LONGTEXT NULL',
+            'member_roles' => 'LONGTEXT NULL',
+            'equipment_allocations' => 'LONGTEXT NULL',
+            'extra_hours_planned' => 'DECIMAL(6,2) DEFAULT 0.00',
+            'extra_hours_approved' => 'DECIMAL(6,2) DEFAULT 0.00',
+            'extra_hours_requests' => 'LONGTEXT NULL',
+            'editors_delivery' => 'LONGTEXT NULL',
+            'created_by' => 'VARCHAR(100) NULL',
+            'created_by_name' => 'VARCHAR(150) NULL',
+            'version' => 'INT NOT NULL DEFAULT 1'
+        ];
 
-    try {
         $existingCols = [];
-        $stmt = $db->query("SHOW COLUMNS FROM missions");
+        $stmt = $pdo->query("SHOW COLUMNS FROM missions");
         if ($stmt) {
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $existingCols[strtolower($row['Field'])] = true;
@@ -72,18 +72,16 @@ function ensureMissionColumnsExist($db)
         foreach ($cols as $colName => $colDef) {
             if (!isset($existingCols[strtolower($colName)])) {
                 try {
-                    $db->exec("ALTER TABLE missions ADD COLUMN {$colName} {$colDef}");
+                    $pdo->exec("ALTER TABLE missions ADD COLUMN {$colName} {$colDef}");
                 } catch (Exception $ex) {
                 }
             }
         }
         try {
-            $db->exec("UPDATE missions SET version = 1 WHERE version IS NULL OR version = 0");
+            $pdo->exec("UPDATE missions SET version = 1 WHERE version IS NULL OR version = 0");
         } catch (Exception $ex) {
         }
-    } catch (Exception $e) {
-        error_log('[GestorMF EnsureCols Error] ' . $e->getMessage());
-    }
+    });
 }
 
 // ------------------------------------------------------------------------------
@@ -201,12 +199,14 @@ if ($method === 'GET') {
 
         // Regra universal para qualquer missão com múltiplos editores (somente se ainda não estiver finalizada/aprovada):
         $assignedEditorIds = !empty($m['editor_ids']) ? json_decode($m['editor_ids'], true) : [];
-        if (!is_array($assignedEditorIds)) $assignedEditorIds = [];
+        if (!is_array($assignedEditorIds))
+            $assignedEditorIds = [];
 
         // Auto-recuperação: se houver entregas registradas no edition_history que não estejam no editors_delivery
         if (is_array($edHistory) && !empty($edHistory) && !empty($assignedEditorIds)) {
             foreach ($edHistory as $hist) {
-                if (empty($hist) || !is_array($hist)) continue;
+                if (empty($hist) || !is_array($hist))
+                    continue;
                 $hUser = strtolower(trim($hist['user'] ?? ''));
                 $hDesc = strtolower(trim($hist['description'] ?? ''));
                 $hTitle = strtolower(trim($hist['title'] ?? ''));
@@ -235,7 +235,8 @@ if ($method === 'GET') {
                                     ];
                                 }
                             }
-                        } catch (Exception $eH) {}
+                        } catch (Exception $eH) {
+                        }
                     }
                 }
             }
@@ -1023,7 +1024,8 @@ if ($method === 'POST' || $method === 'PUT') {
                         while ($cRow = $stCols->fetch()) {
                             $colsSM[strtolower($cRow['Field'])] = true;
                         }
-                    } catch (Exception $eCols) {}
+                    } catch (Exception $eCols) {
+                    }
 
                     $hasDismissedCol = isset($colsSM['dismissed_by']);
                     if ($hasDismissedCol) {

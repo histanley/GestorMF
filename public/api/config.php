@@ -65,12 +65,12 @@ $rawHost = strtolower($httpHost ?: $serverName);
 $hostOnly = explode(':', $rawHost)[0];
 $isProd = in_array($hostOnly, ['gestormf.shop', 'www.gestormf.shop'], true);
 
-$isNativeOrigin = !empty($origin) && (
-    $origin === 'capacitor://localhost' ||
-    $origin === 'http://localhost' ||
-    $origin === 'https://localhost' ||
-    strpos($origin, 'capacitor://') === 0
-);
+$isNativeOrigin = !empty($origin) && in_array($origin, [
+    'capacitor://localhost',
+    'ionic://localhost',
+    'http://localhost',
+    'https://localhost'
+], true);
 
 $allowedHosts = ($isProd && !$isNativeOrigin)
     ? ['gestormf.shop', 'www.gestormf.shop']
@@ -579,3 +579,129 @@ function bumpSyncVersion($reason = '') {
         error_log('[GestorMF Sync Error] ' . $e->getMessage());
     }
 }
+
+// ==============================================================================
+// IDENTIDADE ESTRITA, MASCARAMENTO LGPD & MIGRAÇÕES VERSIONADAS (SEG-01, SEG-02, SEG-08, DB-01)
+// ==============================================================================
+
+/**
+ * Resolve o registro de colaborador (members) associado à conta autenticada (users)
+ * usando EXCLUSIVAMENTE o vínculo estrito members.user_id = users.id.
+ * Jamais realiza associação por nome ou mutações durante leituras (SEG-01 & SEG-02).
+ */
+function resolveAuthenticatedMember($db, $user) {
+    if (empty($user) || empty($user['id'])) {
+        return null;
+    }
+    try {
+        $stmt = $db->prepare("SELECT * FROM members WHERE user_id = ? LIMIT 1");
+        $stmt->execute([$user['id']]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    } catch (Exception $e) {
+        error_log('[GestorMF ResolveMember Error] ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Mascara dados pessoais sensíveis (chaves PIX, CPF, CNPJ, telefone, e-mail)
+ * para registro seguro em trilhas de auditoria em conformidade com a LGPD (SEG-08).
+ */
+function maskSensitiveValue($value) {
+    $raw = trim((string)($value ?? ''));
+    if ($raw === '') {
+        return '[vazio]';
+    }
+    if (strpos($raw, '@') !== false) {
+        $parts = explode('@', $raw, 2);
+        $local = $parts[0];
+        $domain = $parts[1] ?? '';
+        $maskedLocal = strlen($local) > 2
+            ? substr($local, 0, 2) . str_repeat('*', max(3, strlen($local) - 2))
+            : '***';
+        return $maskedLocal . '@' . $domain;
+    }
+    $len = strlen($raw);
+    if ($len <= 4) {
+        return '****';
+    }
+    return substr($raw, 0, 2) . str_repeat('*', max(4, $len - 4)) . substr($raw, -2);
+}
+
+/**
+ * Executa uma migração estrutural versionada e idempotente controlada por system_migrations (DB-01).
+ * Compatível com deploy por ZIP (HostGator/cPanel) e CLI: verifica se a chave já foi executada
+ * antes de rodar qualquer DDL, evitando comandos CREATE/ALTER repetitivos no ciclo HTTP normal.
+ */
+function runVersionedMigration($db, $migrationKey, callable $migrationFn) {
+    static $completedCache = [];
+    if (isset($completedCache[$migrationKey])) {
+        return true;
+    }
+
+    try {
+        $stmtCheck = $db->prepare("SELECT 1 FROM system_migrations WHERE migration_key = ? LIMIT 1");
+        $stmtCheck->execute([$migrationKey]);
+        if ($stmtCheck->fetchColumn()) {
+            $completedCache[$migrationKey] = true;
+            return true;
+        }
+    } catch (Exception $e) {
+        // Se a tabela system_migrations ainda não existir, cria de forma controlada uma única vez
+        try {
+            $db->exec("
+                CREATE TABLE IF NOT EXISTS system_migrations (
+                    migration_key VARCHAR(191) PRIMARY KEY,
+                    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+            $stmtRetry = $db->prepare("SELECT 1 FROM system_migrations WHERE migration_key = ? LIMIT 1");
+            $stmtRetry->execute([$migrationKey]);
+            if ($stmtRetry->fetchColumn()) {
+                $completedCache[$migrationKey] = true;
+                return true;
+            }
+        } catch (Exception $eInner) {
+            error_log('[GestorMF Migration Table Error] ' . $eInner->getMessage());
+            return false;
+        }
+    }
+
+    // Lock consultivo no MySQL para impedir execução concorrente da mesma migração
+    $lockName = 'gestormf_mig_' . substr(md5($migrationKey), 0, 24);
+    $gotLock = false;
+    try {
+        $stmtLock = $db->prepare("SELECT GET_LOCK(?, 5)");
+        $stmtLock->execute([$lockName]);
+        $gotLock = ((int)$stmtLock->fetchColumn() === 1);
+
+        // Revalida após obter o lock
+        $stmtRecheck = $db->prepare("SELECT 1 FROM system_migrations WHERE migration_key = ? LIMIT 1");
+        $stmtRecheck->execute([$migrationKey]);
+        if ($stmtRecheck->fetchColumn()) {
+            $completedCache[$migrationKey] = true;
+            return true;
+        }
+
+        // Executa a migração idempotente
+        $migrationFn($db);
+
+        // Registra conclusão da migração
+        $stmtReg = $db->prepare("INSERT IGNORE INTO system_migrations (migration_key, executed_at) VALUES (?, NOW())");
+        $stmtReg->execute([$migrationKey]);
+        $completedCache[$migrationKey] = true;
+        return true;
+    } catch (Exception $eMig) {
+        error_log("[GestorMF Migration Error: {$migrationKey}] " . $eMig->getMessage());
+        return false;
+    } finally {
+        if ($gotLock) {
+            try {
+                $stmtUnlock = $db->prepare("SELECT RELEASE_LOCK(?)");
+                $stmtUnlock->execute([$lockName]);
+            } catch (Exception $eUn) {}
+        }
+    }
+}
+

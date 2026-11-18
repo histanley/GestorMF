@@ -7,10 +7,10 @@ require_once __DIR__ . '/config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $db = getDB();
 
-// Garante tabela de fechamentos de pagamentos mensais
+// Garante tabela de fechamentos de pagamentos mensais via migração versionada (DB-01)
 function ensurePayoutsTable($db) {
-    try {
-        $db->exec("
+    runVersionedMigration($db, 'schema_payout_closures_v2', function($pdo) {
+        $pdo->exec("
             CREATE TABLE IF NOT EXISTS payout_closures (
                 id VARCHAR(64) PRIMARY KEY,
                 month_key VARCHAR(7) NOT NULL,
@@ -25,21 +25,53 @@ function ensurePayoutsTable($db) {
                 UNIQUE KEY uq_month_member (month_key, member_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
-        // Colunas adicionadas sob demanda
-        try { $db->exec("ALTER TABLE payout_closures ADD COLUMN hours_cleared DECIMAL(6,1) DEFAULT 0.0"); } catch (Exception $e) {}
-        try { $db->exec("ALTER TABLE payout_closures ADD COLUMN cleared_at DATETIME NULL"); } catch (Exception $e) {}
-    } catch (Exception $e) {}
+        try { $pdo->exec("ALTER TABLE payout_closures ADD COLUMN hours_cleared DECIMAL(6,1) DEFAULT 0.0"); } catch (Exception $e) {}
+        try { $pdo->exec("ALTER TABLE payout_closures ADD COLUMN cleared_at DATETIME NULL"); } catch (Exception $e) {}
+    });
 }
 ensurePayoutsTable($db);
 
-// GET /api/payouts.php?month=YYYY-MM
+// GET /api/payouts.php?month=YYYY-MM (SEG-03: Isolamento financeiro por perfil)
 if ($method === 'GET') {
     $user = requireAuth();
     $monthKey = trim($_GET['month'] ?? date('Y-m'));
+    if (!preg_match('/^\d{4}-\d{2}$/', $monthKey)) {
+        jsonResponse(['success' => false, 'error' => 'Formato de mês inválido. Use YYYY-MM.'], 400);
+    }
 
-    $stmt = $db->prepare("SELECT * FROM payout_closures WHERE month_key = ?");
-    $stmt->execute([$monthKey]);
-    $rows = $stmt->fetchAll();
+    $role = strtoupper(trim($user['role'] ?? 'USER'));
+    $requestedMemberId = trim($_GET['memberId'] ?? $_GET['member_id'] ?? '');
+
+    if (in_array($role, ['ADMIN', 'MANAGER'], true)) {
+        if (!empty($requestedMemberId)) {
+            $stmt = $db->prepare("SELECT * FROM payout_closures WHERE month_key = ? AND member_id = ?");
+            $stmt->execute([$monthKey, $requestedMemberId]);
+        } else {
+            $stmt = $db->prepare("SELECT * FROM payout_closures WHERE month_key = ?");
+            $stmt->execute([$monthKey]);
+        }
+        $rows = $stmt->fetchAll();
+    } else {
+        // Colaborador comum: acessa EXCLUSIVAMENTE seu próprio registro vinculado por user_id
+        $myMember = resolveAuthenticatedMember($db, $user);
+        $myMemberId = $myMember ? $myMember['id'] : null;
+
+        if (!empty($requestedMemberId) && $requestedMemberId !== $myMemberId) {
+            jsonResponse(['success' => false, 'error' => 'Acesso negado: você só pode consultar seu próprio fechamento financeiro.'], 403);
+        }
+
+        if (!$myMemberId) {
+            jsonResponse([
+                'success'  => true,
+                'month'    => $monthKey,
+                'closures' => new stdClass()
+            ]);
+        }
+
+        $stmt = $db->prepare("SELECT * FROM payout_closures WHERE month_key = ? AND member_id = ?");
+        $stmt->execute([$monthKey, $myMemberId]);
+        $rows = $stmt->fetchAll();
+    }
 
     $closures = [];
     foreach ($rows as $r) {

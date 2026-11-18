@@ -40,8 +40,11 @@ const colabSpaceJsx = fs.readFileSync(path.join(__dirname, '..', 'src', 'compone
 assert(colabSpaceJsx.includes('handleStartEditPix') && colabSpaceJsx.includes('handleDeletePix') && colabSpaceJsx.includes('handleSavePix'),
   'Falha: CollaboratorSpace.jsx deve ter handlers para iniciar edição, salvar e excluir chave PIX');
 
-assert(colabSpaceJsx.includes('cs-hero-role-secondary') && colabSpaceJsx.includes('cs-role-tag-badge'),
-  'Falha: CollaboratorSpace.jsx deve exibir a Função Principal e Funções Adicionais no Hero');
+assert(
+  (colabSpaceJsx.includes('cs-upc-role-main') && colabSpaceJsx.includes('cs-upc-role-sec') && colabSpaceJsx.includes('cs-upc-role-tag')) ||
+  (colabSpaceJsx.includes('cs-hero-role-secondary') && colabSpaceJsx.includes('cs-role-tag-badge')),
+  'Falha: CollaboratorSpace.jsx deve exibir a Função Principal e Funções Adicionais no Hero'
+);
 
 assert(colabSpaceJsx.includes('Cadastrar PIX') || colabSpaceJsx.includes('Cadastrar Chave PIX'),
   'Falha: CollaboratorSpace.jsx deve permitir cadastrar chave PIX quando não cadastrada');

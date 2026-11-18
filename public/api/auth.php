@@ -59,24 +59,33 @@ if ($method === 'POST' && $action === 'login') {
     ]);
 }
 
+// Garante colunas de perfil e disponibilidade via migração versionada única (DB-01)
+runVersionedMigration($db, 'schema_auth_profile_v2', function($pdo) {
+    try {
+        $chk = $pdo->query("SHOW COLUMNS FROM users LIKE 'pix_key'")->fetch();
+        if (!$chk) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN pix_key VARCHAR(100) NULL AFTER phone");
+        }
+    } catch (Exception $e) {}
+    try {
+        $chkAv = $pdo->query("SHOW COLUMNS FROM members LIKE 'extra_hours_availability'")->fetch();
+        if (!$chkAv) {
+            $pdo->exec("ALTER TABLE members ADD COLUMN extra_hours_availability LONGTEXT NULL AFTER pix_key");
+        }
+    } catch (Exception $e) {}
+});
+
 // ------------------------------------------------------------------------------
-// OBTER PERFIL ATUAL (ME)
+// OBTER PERFIL ATUAL (ME) — Vínculo estrito por user_id (SEG-02)
 // ------------------------------------------------------------------------------
 if ($method === 'GET' && $action === 'me') {
     $auth = requireAuth();
-    // Auto-recuperação da coluna pix_key em users
-    try {
-        $chk = $db->query("SHOW COLUMNS FROM users LIKE 'pix_key'")->fetch();
-        if (!$chk) {
-            $db->exec("ALTER TABLE users ADD COLUMN pix_key VARCHAR(100) NULL AFTER phone");
-        }
-    } catch (Exception $e) {}
 
     $stmt = $db->prepare("
         SELECT u.id, u.name, u.email, u.role, u.title, u.department, u.phone, u.avatar, u.pix_key, u.created_at,
                m.pix_key AS member_pix_key
         FROM users u
-        LEFT JOIN members m ON (m.user_id = u.id OR LOWER(TRIM(m.name)) = LOWER(TRIM(u.name)))
+        LEFT JOIN members m ON m.user_id = u.id
         WHERE u.id = ?
         LIMIT 1
     ");
@@ -96,19 +105,11 @@ if ($method === 'GET' && $action === 'me') {
 }
 
 // ------------------------------------------------------------------------------
-// ATUALIZAR PERFIL (NOME, FONE, DEPTO, FOTO, PIX)
+// ATUALIZAR PERFIL (NOME, FONE, DEPTO, FOTO, PIX) — Vínculo estrito por user_id (SEG-02 & SEG-08)
 // ------------------------------------------------------------------------------
 if ($method === 'POST' && $action === 'update_profile') {
     $auth = requireAuth();
     $input = getJsonInput();
-
-    // Auto-recuperação da coluna pix_key em users
-    try {
-        $chk = $db->query("SHOW COLUMNS FROM users LIKE 'pix_key'")->fetch();
-        if (!$chk) {
-            $db->exec("ALTER TABLE users ADD COLUMN pix_key VARCHAR(100) NULL AFTER phone");
-        }
-    } catch (Exception $e) {}
 
     $name = trim($input['name'] ?? '');
     $phone = trim($input['phone'] ?? '');
@@ -131,13 +132,12 @@ if ($method === 'POST' && $action === 'update_profile') {
     $params[] = $auth['id'];
     $stmt->execute($params);
 
-    // Sincroniza foto, telefone e PIX na tabela members (reflete imediatamente na gestão de equipes e missões na Web)
+    // Sincroniza foto, telefone e PIX na tabela members estritamente por user_id (SEG-02)
     try {
         $updateFields = [
-            'phone = COALESCE(NULLIF(?, ""), phone)',
-            'user_id = COALESCE(user_id, ?)'
+            'phone = COALESCE(NULLIF(?, ""), phone)'
         ];
-        $memParams = [$phone, $auth['id']];
+        $memParams = [$phone];
 
         if (!empty($avatar)) {
             array_unshift($updateFields, 'photo_url = ?');
@@ -149,9 +149,8 @@ if ($method === 'POST' && $action === 'update_profile') {
         }
 
         $memParams[] = $auth['id'];
-        $memParams[] = $name;
 
-        $sqlMem = "UPDATE members SET " . implode(', ', $updateFields) . " WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))";
+        $sqlMem = "UPDATE members SET " . implode(', ', $updateFields) . " WHERE user_id = ?";
         $db->prepare($sqlMem)->execute($memParams);
 
         bumpSyncVersion("members");
@@ -159,18 +158,19 @@ if ($method === 'POST' && $action === 'update_profile') {
         error_log("[GestorMF Profile Sync Error] " . $e->getMessage());
     }
 
+    // SEG-08: Mascara a chave PIX no registro de auditoria
     logAudit('UPDATE_PROFILE', 'USERS', $auth['id'], [
         'name' => $name,
         'phone' => $phone,
         'department' => $department,
-        'pixKey' => $pixKey
+        'pixKeyMasked' => $hasPix ? maskSensitiveValue($pixKey) : null
     ], $auth['id'], $name);
 
     $stmtGet = $db->prepare("
         SELECT u.id, u.name, u.email, u.role, u.title, u.department, u.phone, u.avatar, u.pix_key,
                m.pix_key AS member_pix_key
         FROM users u
-        LEFT JOIN members m ON (m.user_id = u.id OR LOWER(TRIM(m.name)) = LOWER(TRIM(u.name)))
+        LEFT JOIN members m ON m.user_id = u.id
         WHERE u.id = ?
         LIMIT 1
     ");
@@ -188,52 +188,37 @@ if ($method === 'POST' && $action === 'update_profile') {
 }
 
 // ------------------------------------------------------------------------------
-// ATUALIZAR, CADASTRAR OU EXCLUIR CHAVE PIX (DIRETAMENTE PELO COLABORADOR OU ADMIN)
+// ATUALIZAR, CADASTRAR OU EXCLUIR CHAVE PIX (SEG-02 & SEG-08)
 // ------------------------------------------------------------------------------
 if ($method === 'POST' && $action === 'update_pix') {
     $auth = requireAuth();
     $input = getJsonInput();
     $pixKey = trim($input['pixKey'] ?? ($input['pix_key'] ?? ''));
 
-    // Auto-recuperação da coluna pix_key em users
-    try {
-        $chk = $db->query("SHOW COLUMNS FROM users LIKE 'pix_key'")->fetch();
-        if (!$chk) {
-            $db->exec("ALTER TABLE users ADD COLUMN pix_key VARCHAR(100) NULL AFTER phone");
-        }
-    } catch (Exception $e) {}
-
     $val = $pixKey !== '' ? $pixKey : null;
 
     $db->prepare("UPDATE users SET pix_key = ? WHERE id = ?")->execute([$val, $auth['id']]);
     $db->prepare("
         UPDATE members
-        SET pix_key = ?, user_id = COALESCE(user_id, ?)
-        WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))
-    ")->execute([$val, $auth['id'], $auth['id'], $auth['name']]);
+        SET pix_key = ?
+        WHERE user_id = ?
+    ")->execute([$val, $auth['id']]);
 
     bumpSyncVersion("members");
-    logAudit('UPDATE_PIX', 'MEMBERS', $auth['id'], ($pixKey ? "Chave PIX atualizada para '{$pixKey}'" : "Chave PIX removida") . " por {$auth['name']}.", $auth['id'], $auth['name']);
+    $maskedPix = $pixKey !== '' ? maskSensitiveValue($pixKey) : '[removida]';
+    logAudit('UPDATE_PIX', 'MEMBERS', $auth['id'], ($pixKey ? "Chave PIX atualizada ({$maskedPix})" : "Chave PIX removida") . " por {$auth['name']}.", $auth['id'], $auth['name']);
 
     jsonResponse(['success' => true, 'pixKey' => $pixKey]);
 }
 
 // ------------------------------------------------------------------------------
-// ATUALIZAR DISPONIBILIDADE PARA HORAS EXTRAS (COLABORADOR OU ADMIN)
+// ATUALIZAR DISPONIBILIDADE PARA HORAS EXTRAS (SEG-02)
 // ------------------------------------------------------------------------------
 if ($method === 'POST' && $action === 'update_availability') {
     $auth = requireAuth();
     $input = getJsonInput();
     $availability = $input['availability'] ?? null;
     $targetMemberId = trim($input['memberId'] ?? ($input['id'] ?? ''));
-
-    // Garante que a coluna extra_hours_availability exista na tabela members
-    try {
-        $chk = $db->query("SHOW COLUMNS FROM members LIKE 'extra_hours_availability'")->fetch();
-        if (!$chk) {
-            $db->exec("ALTER TABLE members ADD COLUMN extra_hours_availability LONGTEXT NULL AFTER pix_key");
-        }
-    } catch (Exception $e) {}
 
     $availJson = !empty($availability) ? (is_string($availability) ? $availability : json_encode($availability, JSON_UNESCAPED_UNICODE)) : null;
 
@@ -242,9 +227,9 @@ if ($method === 'POST' && $action === 'update_availability') {
     } else {
         $db->prepare("
             UPDATE members
-            SET extra_hours_availability = ?, user_id = COALESCE(user_id, ?)
-            WHERE user_id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?))
-        ")->execute([$availJson, $auth['id'], $auth['id'], $auth['name']]);
+            SET extra_hours_availability = ?
+            WHERE user_id = ?
+        ")->execute([$availJson, $auth['id']]);
     }
 
     bumpSyncVersion("members");

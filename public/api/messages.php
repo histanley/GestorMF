@@ -9,13 +9,13 @@ $db = getDB();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $action = $_GET['action'] ?? 'list';
 
-// Garante a existência da tabela de mensagens com suporte dinâmico a dismissed_by e recipient_user_id
+// Garante a existência da tabela de mensagens via migração versionada controlada (DB-01)
 function getSystemMessagesColumns($db) {
     static $cols = null;
     if ($cols !== null) return $cols;
-    $cols = [];
-    try {
-        $db->exec("
+
+    runVersionedMigration($db, 'schema_system_messages_v2', function($pdo) {
+        $pdo->exec("
             CREATE TABLE IF NOT EXISTS system_messages (
                 id VARCHAR(64) PRIMARY KEY,
                 sender_id VARCHAR(64) NOT NULL,
@@ -38,76 +38,38 @@ function getSystemMessagesColumns($db) {
                 INDEX idx_msg_created (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
-    } catch (Exception $e) {}
-
-    try {
-        $stmt = $db->query("SHOW COLUMNS FROM system_messages");
-        $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($all as $c) {
-            $cols[strtolower($c['Field'])] = true;
-        }
-    } catch (Exception $e) {
-        $cols = ['id' => true, 'sender_id' => true, 'recipient_id' => true, 'title' => true, 'message' => true];
-    }
-
-    if (!isset($cols['recipient_user_id'])) {
         try {
-            $db->exec("ALTER TABLE system_messages ADD COLUMN recipient_user_id VARCHAR(64) NULL AFTER recipient_id");
-            $cols['recipient_user_id'] = true;
+            $pdo->exec("ALTER TABLE system_messages ADD COLUMN recipient_user_id VARCHAR(64) NULL AFTER recipient_id");
         } catch (Exception $e) {}
-    }
-    if (!isset($cols['dismissed_by'])) {
         try {
-            $db->exec("ALTER TABLE system_messages ADD COLUMN dismissed_by JSON NULL AFTER read_by");
-            $cols['dismissed_by'] = true;
+            $pdo->exec("ALTER TABLE system_messages ADD COLUMN dismissed_by JSON NULL AFTER read_by");
         } catch (Exception $e) {}
-    }
+    });
 
+    $cols = [
+        'id' => true,
+        'sender_id' => true,
+        'recipient_id' => true,
+        'recipient_user_id' => true,
+        'dismissed_by' => true,
+        'title' => true,
+        'message' => true
+    ];
     return $cols;
 }
 
 getSystemMessagesColumns($db);
 
 // ------------------------------------------------------------------------------
-// LISTAR MENSAGENS DO USUÁRIO (GET)
+// LISTAR MENSAGENS DO USUÁRIO (GET - Somente Leitura e Vínculo Estrito por ID)
 // ------------------------------------------------------------------------------
 if ($method === 'GET' && $action === 'list') {
     $userId = $user['id'];
     $role = strtoupper(trim($user['role'] ?? 'USER'));
-    $userName = strtolower(trim($user['name'] ?? ''));
-    $userEmail = strtolower(trim($user['email'] ?? ''));
-    $emailPrefix = explode('@', $userEmail)[0] ?? '';
 
-    // Descobre o ID de membro vinculado a este usuário por user_id OU por correspondência flexível de nome
-    $memberId = null;
-    $memberName = '';
-    $stmtMem = $db->prepare("SELECT id, name FROM members WHERE user_id = ? OR LOWER(TRIM(name)) = ? OR LOWER(TRIM(name)) = ? LIMIT 1");
-    $stmtMem->execute([$userId, $userName, $emailPrefix]);
-    $mRow = $stmtMem->fetch();
-
-    if (!$mRow) {
-        $firstWord = explode(' ', $userName)[0] ?? '';
-        $isHgamaCheck = (strpos($userName, 'histanley') !== false || strpos($userName, 'hgama') !== false || strpos($emailPrefix, 'hgama') !== false);
-        if ($isHgamaCheck) {
-            $stmtFlex = $db->prepare("SELECT id, name FROM members WHERE LOWER(TRIM(name)) = 'hgama' OR LOWER(TRIM(name)) LIKE '%histanley%' OR LOWER(TRIM(name)) LIKE '%gama%' LIMIT 1");
-            $stmtFlex->execute();
-            $mRow = $stmtFlex->fetch();
-        } elseif (strlen($firstWord) >= 3) {
-            $stmtFlex = $db->prepare("SELECT id, name FROM members WHERE LOWER(TRIM(name)) LIKE ? LIMIT 1");
-            $stmtFlex->execute([$firstWord . '%']);
-            $mRow = $stmtFlex->fetch();
-        }
-    }
-
-    if ($mRow) {
-        $memberId = $mRow['id'];
-        $memberName = strtolower(trim($mRow['name']));
-        try {
-            $db->prepare("UPDATE members SET user_id = ? WHERE id = ? AND (user_id IS NULL OR user_id = '')")->execute([$userId, $memberId]);
-        } catch (Exception $e) {}
-    }
-
-    $isHgama = (strpos($userName, 'histanley') !== false || strpos($userName, 'hgama') !== false || strpos($emailPrefix, 'hgama') !== false || $memberName === 'hgama');
+    // SEG-01 & DB-05: Reconhecimento estrito exclusivamente por members.user_id = users.id (somente leitura)
+    $mRow = resolveAuthenticatedMember($db, $user);
+    $memberId = $mRow ? $mRow['id'] : null;
 
     $cols = getSystemMessagesColumns($db);
     $hasRecUserCol = isset($cols['recipient_user_id']);
@@ -120,10 +82,6 @@ if ($method === 'GET' && $action === 'list') {
                 OR recipient_id = :user_id_1
                 " . ($hasRecUserCol ? "OR recipient_user_id = :user_id_2" : "") . "
                 " . ($memberId ? "OR recipient_id = :member_id_1 " . ($hasRecUserCol ? "OR recipient_user_id = :member_id_2" : "") : "") . "
-                " . (!empty($userName) ? "OR LOWER(TRIM(recipient_name)) = :user_name_1 OR LOWER(TRIM(recipient_id)) = :user_name_2" : "") . "
-                " . (!empty($memberName) ? "OR LOWER(TRIM(recipient_name)) = :member_name_1 OR LOWER(TRIM(recipient_id)) = :member_name_2" : "") . "
-                " . (!empty($emailPrefix) ? "OR LOWER(TRIM(recipient_name)) = :email_prefix_1 OR LOWER(TRIM(recipient_id)) = :email_prefix_2" : "") . "
-                " . ($isHgama ? "OR LOWER(TRIM(recipient_name)) = 'hgama' OR LOWER(TRIM(recipient_name)) LIKE '%histanley%' OR LOWER(TRIM(recipient_id)) = 'hgama'" : "") . "
                 " . (in_array($role, ['ADMIN', 'MANAGER']) ? "OR sender_id = :sender_id" : "") . "
             )
             ORDER BY created_at DESC
@@ -140,18 +98,6 @@ if ($method === 'GET' && $action === 'list') {
                 $params[':member_id_2'] = $memberId;
             }
         }
-        if (!empty($userName)) {
-            $params[':user_name_1'] = $userName;
-            $params[':user_name_2'] = $userName;
-        }
-        if (!empty($memberName)) {
-            $params[':member_name_1'] = $memberName;
-            $params[':member_name_2'] = $memberName;
-        }
-        if (!empty($emailPrefix)) {
-            $params[':email_prefix_1'] = $emailPrefix;
-            $params[':email_prefix_2'] = $emailPrefix;
-        }
         if (in_array($role, ['ADMIN', 'MANAGER'])) {
             $params[':sender_id'] = $userId;
         }
@@ -162,19 +108,17 @@ if ($method === 'GET' && $action === 'list') {
 
         $formatted = [];
         foreach ($rows as $row) {
-            // Verifica se o usuário atual já dispensou/apagou esta mensagem de sua tela
+            // Verifica se o usuário atual já dispensou/apagou esta mensagem de sua tela (por ID autenticado)
             $dismissedList = !empty($row['dismissed_by']) ? json_decode($row['dismissed_by'], true) : [];
             if (!is_array($dismissedList)) $dismissedList = [];
-            $isDismissed = in_array($userId, $dismissedList) ||
-                           ($memberId && in_array($memberId, $dismissedList)) ||
-                           (!empty($userName) && in_array($userName, $dismissedList)) ||
-                           ($isHgama && in_array('hgama', $dismissedList));
+            $isDismissed = in_array($userId, $dismissedList, true) ||
+                           ($memberId && in_array($memberId, $dismissedList, true));
             if ($isDismissed) {
-                continue; // Usuário já apagou da sua central -> NUNCA mais exibe para ele!
+                continue;
             }
 
             $readList = !empty($row['read_by']) ? json_decode($row['read_by'], true) : [];
-            $isRead = is_array($readList) && in_array($userId, $readList);
+            $isRead = is_array($readList) && (in_array($userId, $readList, true) || ($memberId && in_array($memberId, $readList, true)));
 
             $formatted[] = [
                 'id'            => $row['id'],
@@ -235,10 +179,10 @@ if ($method === 'POST' && $action === 'send') {
         $priority = 'NORMAL';
     }
 
-    // Se recipientUserId ainda não veio preenchido, tenta descobrir pela tabela members
+    // Se recipientUserId ainda não veio preenchido, resolve estritamente por ID na tabela members
     if ($recipientType === 'INDIVIDUAL' && empty($recipientUserId) && !empty($recipientId)) {
-        $stmtFindUser = $db->prepare("SELECT user_id, name FROM members WHERE id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1");
-        $stmtFindUser->execute([$recipientId, $recipientName ?: $recipientId]);
+        $stmtFindUser = $db->prepare("SELECT user_id, name FROM members WHERE id = ? OR user_id = ? LIMIT 1");
+        $stmtFindUser->execute([$recipientId, $recipientId]);
         $foundM = $stmtFindUser->fetch();
         if ($foundM) {
             $recipientUserId = $foundM['user_id'];
@@ -406,15 +350,16 @@ if (($method === 'POST' || $method === 'DELETE') && $action === 'delete') {
             bumpSyncVersion("delete_msg_{$msgId}");
             jsonResponse(['success' => true, 'message' => 'Mensagem excluída definitivamente do sistema.']);
         } else {
-            // O usuário atual (destinatário) está apagando a notificação da SUA central
+            // O usuário atual (destinatário) está apagando a notificação da SUA central (estritamente por ID)
             $dismissed = !empty($msg['dismissed_by']) ? json_decode($msg['dismissed_by'], true) : [];
             if (!is_array($dismissed)) $dismissed = [];
 
-            if (!in_array($user['id'], $dismissed)) $dismissed[] = $user['id'];
-            $uNameClean = strtolower(trim($user['name'] ?? ''));
-            if (!empty($uNameClean) && !in_array($uNameClean, $dismissed)) $dismissed[] = $uNameClean;
-            if (strpos($uNameClean, 'histanley') !== false || strpos($uNameClean, 'hgama') !== false) {
-                if (!in_array('hgama', $dismissed)) $dismissed[] = 'hgama';
+            if (!in_array($user['id'], $dismissed, true)) {
+                $dismissed[] = $user['id'];
+            }
+            $mRow = resolveAuthenticatedMember($db, $user);
+            if ($mRow && !empty($mRow['id']) && !in_array($mRow['id'], $dismissed, true)) {
+                $dismissed[] = $mRow['id'];
             }
 
             $stmtUp = $db->prepare("UPDATE system_messages SET dismissed_by = ? WHERE id = ?");
@@ -429,18 +374,25 @@ if (($method === 'POST' || $method === 'DELETE') && $action === 'delete') {
 }
 
 // ------------------------------------------------------------------------------
-// DISPENSAR TODAS AS MENSAGENS ATUAIS (POST)
+// DISPENSAR TODAS AS MENSAGENS ATUAIS DO USUÁRIO (POST)
 // ------------------------------------------------------------------------------
 if ($method === 'POST' && $action === 'dismiss_all') {
     $userId = $user['id'];
+    $mRow = resolveAuthenticatedMember($db, $user);
+    $memberId = $mRow ? $mRow['id'] : null;
+
     try {
-        $stmtAll = $db->query("SELECT id, dismissed_by FROM system_messages");
+        $stmtAll = $db->prepare("
+            SELECT id, dismissed_by FROM system_messages
+            WHERE recipient_type = 'ALL' OR recipient_id = ? OR recipient_user_id = ? OR (? IS NOT NULL AND (recipient_id = ? OR recipient_user_id = ?))
+        ");
+        $stmtAll->execute([$userId, $userId, $memberId, $memberId, $memberId]);
         $allMsgs = $stmtAll->fetchAll();
 
         foreach ($allMsgs as $m) {
             $dismissed = !empty($m['dismissed_by']) ? json_decode($m['dismissed_by'], true) : [];
             if (!is_array($dismissed)) $dismissed = [];
-            if (!in_array($userId, $dismissed)) {
+            if (!in_array($userId, $dismissed, true)) {
                 $dismissed[] = $userId;
                 $stmtUp = $db->prepare("UPDATE system_messages SET dismissed_by = ? WHERE id = ?");
                 $stmtUp->execute([json_encode($dismissed), $m['id']]);

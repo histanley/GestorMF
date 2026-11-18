@@ -469,8 +469,8 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
         selectedCategory === 'all'
           ? true
           : selectedCategory === 'maintenance'
-          ? (item.maintenanceQty || 0) > 0
-          : item.category === selectedCategory;
+            ? (item.maintenanceQty || 0) > 0
+            : item.category === selectedCategory;
       const q = searchTerm.toLowerCase().trim();
       const matchSearch =
         !q ||
@@ -816,11 +816,22 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
         method: 'POST',
         body: JSON.stringify({ rentalId: rental.id, markPaid: rental.paymentStatus === 'Pago' }),
       });
-      if (res && res.success) {
-        fetchRentalsData();
+      if (!res || !res.success) {
+        alertDialog({
+          title: 'Não Foi Possível Confirmar Retirada',
+          message: res?.error || 'Não há estoque físico suficiente para ativar esta reserva no momento.',
+          variant: 'danger',
+        });
+        return;
       }
+      await fetchRentalsData();
     } catch (e) {
-      console.warn('Ativando reserva localmente:', e);
+      alertDialog({
+        title: 'Não Foi Possível Confirmar Retirada',
+        message: e?.message || 'Falha ao ativar reserva no servidor.',
+        variant: 'danger',
+      });
+      return;
     }
 
     const updated = { ...rental, status: 'active' };

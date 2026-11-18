@@ -227,12 +227,16 @@ if ($method === 'POST' && $action === 'restore') {
             }
         }
 
-        // 3. Restaura Colaboradores (Reconstrução integral com user_id único)
+        // 3. Restaura Colaboradores (Reconstrução integral com user_id único e campos financeiros/funções)
         if (isset($tables['members']) && is_array($tables['members'])) {
             $db->exec("DELETE FROM members");
             $stmtMem = $db->prepare("
-                INSERT INTO members (id, user_id, name, role, company, phone, photo_url, can_drive, cnh_category, active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO members (
+                    id, user_id, name, role, secondary_roles, company, phone, photo_url,
+                    can_drive, cnh_category, active, rate_model, hourly_rate, daily_rate,
+                    pix_key, extra_hours_availability
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             foreach ($tables['members'] as $m) {
                 $stmtMem->execute([
@@ -240,44 +244,60 @@ if ($method === 'POST' && $action === 'restore') {
                     $m['user_id'] ?? null,
                     $m['name'],
                     $m['role'],
+                    is_array($m['secondary_roles'] ?? null) ? json_encode($m['secondary_roles'], JSON_UNESCAPED_UNICODE) : ($m['secondary_roles'] ?? null),
                     $m['company'] ?? 'MegaFilmes',
                     $m['phone'] ?? '',
                     $m['photo_url'] ?? null,
                     isset($m['can_drive']) ? (int)$m['can_drive'] : 0,
                     $m['cnh_category'] ?? 'B',
-                    isset($m['active']) ? (int)$m['active'] : 1
+                    isset($m['active']) ? (int)$m['active'] : 1,
+                    $m['rate_model'] ?? 'both',
+                    isset($m['hourly_rate']) ? (float)$m['hourly_rate'] : 50.0,
+                    isset($m['daily_rate']) ? (float)$m['daily_rate'] : 200.0,
+                    $m['pix_key'] ?? null,
+                    $m['extra_hours_availability'] ?? 'unknown'
                 ]);
             }
         }
 
-        // 4. Restaura Missões (Todas as 44 colunas incluindo Pós-Produção e Versão)
+        // 4. Restaura Missões (Todas as colunas incluindo Pós-Produção, Escala, Financeiro e Versão)
         if (isset($tables['missions']) && is_array($tables['missions'])) {
             $db->exec("DELETE FROM missions");
             $stmtMis = $db->prepare("
                 INSERT INTO missions (
                     id, code, description, location_name, address, lat, lon, date,
                     departure_time, arrival_time_estimated, return_time_estimated,
+                    event_start_time, event_end_time, antecedence_minutes, suggested_departure_time,
                     vehicle_id, vehicle_name_display, vehicle_allocations,
-                    driver_id, driver_name, team_ids, team_names_display,
+                    driver_id, driver_name, team_ids, team_names_display, guests,
                     edition_status, mission_status, is_round_trip,
                     distance_km, total_distance_km, driving_duration_minutes, round_trip_duration_minutes,
                     estimated_fuel_liters, estimated_fuel_cost,
-                    route_coordinates, return_coordinates, notes, created_by,
+                    route_coordinates, return_coordinates, notes, created_by, created_by_name,
                     editor_id, editor_name, editor_ids, editor_names_display,
                     delivery_deadline_date, delivery_deadline_time, edition_completed_at, edition_completed_by,
-                    is_overdue, edition_delivery_status, reopen_reason, edition_history, version
+                    is_overdue, edition_delivery_status, reopen_reason, edition_history, editors_delivery,
+                    server_file_path, is_recurring, recurrence_id, recurrence_rule, recurrence_days,
+                    is_multi_day, end_date, custom_rates, off_hours, remuneration_type,
+                    member_remuneration_types, member_roles, equipment_allocations,
+                    extra_hours_planned, extra_hours_approved, extra_hours_requests, version
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?,
-                    ?, ?, ?,
                     ?, ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?, ?, ?, ?,
                     ?, ?, ?,
                     ?, ?, ?, ?,
                     ?, ?,
+                    ?, ?, ?, ?, ?,
                     ?, ?, ?, ?,
                     ?, ?, ?, ?,
-                    ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?,
+                    ?, ?, ?, ?
                 )
             ");
             foreach ($tables['missions'] as $mis) {
@@ -293,6 +313,10 @@ if ($method === 'POST' && $action === 'restore') {
                     $mis['departure_time'] ?? null,
                     $mis['arrival_time_estimated'] ?? null,
                     $mis['return_time_estimated'] ?? null,
+                    $mis['event_start_time'] ?? null,
+                    $mis['event_end_time'] ?? null,
+                    isset($mis['antecedence_minutes']) ? (int)$mis['antecedence_minutes'] : 15,
+                    $mis['suggested_departure_time'] ?? null,
                     $mis['vehicle_id'] ?? null,
                     $mis['vehicle_name_display'] ?? null,
                     is_array($mis['vehicle_allocations'] ?? null) ? json_encode($mis['vehicle_allocations'], JSON_UNESCAPED_UNICODE) : ($mis['vehicle_allocations'] ?? null),
@@ -300,6 +324,7 @@ if ($method === 'POST' && $action === 'restore') {
                     $mis['driver_name'] ?? null,
                     is_array($mis['team_ids'] ?? null) ? json_encode($mis['team_ids'], JSON_UNESCAPED_UNICODE) : ($mis['team_ids'] ?? null),
                     $mis['team_names_display'] ?? null,
+                    is_array($mis['guests'] ?? null) ? json_encode($mis['guests'], JSON_UNESCAPED_UNICODE) : ($mis['guests'] ?? null),
                     $mis['edition_status'] ?? 'Pendente',
                     $mis['mission_status'] ?? 'Agendada',
                     isset($mis['is_round_trip']) ? (int)$mis['is_round_trip'] : 1,
@@ -313,6 +338,7 @@ if ($method === 'POST' && $action === 'restore') {
                     is_array($mis['return_coordinates'] ?? null) ? json_encode($mis['return_coordinates']) : ($mis['return_coordinates'] ?? null),
                     $mis['notes'] ?? null,
                     $mis['created_by'] ?? $user['id'],
+                    $mis['created_by_name'] ?? null,
                     $mis['editor_id'] ?? null,
                     $mis['editor_name'] ?? null,
                     is_array($mis['editor_ids'] ?? null) ? json_encode($mis['editor_ids'], JSON_UNESCAPED_UNICODE) : ($mis['editor_ids'] ?? null),
@@ -325,6 +351,23 @@ if ($method === 'POST' && $action === 'restore') {
                     $mis['edition_delivery_status'] ?? null,
                     $mis['reopen_reason'] ?? null,
                     is_array($mis['edition_history'] ?? null) ? json_encode($mis['edition_history'], JSON_UNESCAPED_UNICODE) : ($mis['edition_history'] ?? null),
+                    is_array($mis['editors_delivery'] ?? null) ? json_encode($mis['editors_delivery'], JSON_UNESCAPED_UNICODE) : ($mis['editors_delivery'] ?? null),
+                    $mis['server_file_path'] ?? null,
+                    isset($mis['is_recurring']) ? (int)$mis['is_recurring'] : 0,
+                    $mis['recurrence_id'] ?? null,
+                    $mis['recurrence_rule'] ?? null,
+                    is_array($mis['recurrence_days'] ?? null) ? json_encode($mis['recurrence_days'], JSON_UNESCAPED_UNICODE) : ($mis['recurrence_days'] ?? null),
+                    isset($mis['is_multi_day']) ? (int)$mis['is_multi_day'] : 0,
+                    $mis['end_date'] ?? null,
+                    is_array($mis['custom_rates'] ?? null) ? json_encode($mis['custom_rates'], JSON_UNESCAPED_UNICODE) : ($mis['custom_rates'] ?? null),
+                    is_array($mis['off_hours'] ?? null) ? json_encode($mis['off_hours'], JSON_UNESCAPED_UNICODE) : ($mis['off_hours'] ?? null),
+                    $mis['remuneration_type'] ?? 'extra_hours',
+                    is_array($mis['member_remuneration_types'] ?? null) ? json_encode($mis['member_remuneration_types'], JSON_UNESCAPED_UNICODE) : ($mis['member_remuneration_types'] ?? null),
+                    is_array($mis['member_roles'] ?? null) ? json_encode($mis['member_roles'], JSON_UNESCAPED_UNICODE) : ($mis['member_roles'] ?? null),
+                    is_array($mis['equipment_allocations'] ?? null) ? json_encode($mis['equipment_allocations'], JSON_UNESCAPED_UNICODE) : ($mis['equipment_allocations'] ?? null),
+                    isset($mis['extra_hours_planned']) ? (int)$mis['extra_hours_planned'] : 0,
+                    isset($mis['extra_hours_approved']) ? (int)$mis['extra_hours_approved'] : 0,
+                    is_array($mis['extra_hours_requests'] ?? null) ? json_encode($mis['extra_hours_requests'], JSON_UNESCAPED_UNICODE) : ($mis['extra_hours_requests'] ?? null),
                     isset($mis['version']) ? (int)$mis['version'] : 1
                 ]);
             }
@@ -415,6 +458,204 @@ if ($method === 'POST' && $action === 'restore') {
             }
         }
 
+        // 8. Restaura Acervo de Equipamentos (BKP-01: equipment)
+        if (isset($tables['equipment']) && is_array($tables['equipment'])) {
+            $db->exec("DELETE FROM equipment");
+            $stmtEq = $db->prepare("
+                INSERT INTO equipment (id, name, category, daily_rate, rate_unit, total_qty, available_qty, maintenance_qty, maintenance_notes, serial_number, photo_url, photo_backup, description, status, asset_value)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            foreach ($tables['equipment'] as $eqRow) {
+                if (empty($eqRow['id']) || empty($eqRow['name'])) continue;
+                $stmtEq->execute([
+                    $eqRow['id'],
+                    $eqRow['name'],
+                    $eqRow['category'] ?? 'accessories',
+                    (float)($eqRow['daily_rate'] ?? 0),
+                    $eqRow['rate_unit'] ?? 'diária',
+                    (int)($eqRow['total_qty'] ?? 1),
+                    (int)($eqRow['available_qty'] ?? 1),
+                    (int)($eqRow['maintenance_qty'] ?? 0),
+                    $eqRow['maintenance_notes'] ?? null,
+                    $eqRow['serial_number'] ?? '',
+                    $eqRow['photo_url'] ?? null,
+                    $eqRow['photo_backup'] ?? null,
+                    $eqRow['description'] ?? null,
+                    $eqRow['status'] ?? 'available',
+                    (float)($eqRow['asset_value'] ?? 0)
+                ]);
+            }
+        }
+
+        // 9. Restaura Contratos de Locações, Reservas, Vistorias, Comprovantes e Prejuízos (BKP-01: rentals)
+        if (isset($tables['rentals']) && is_array($tables['rentals'])) {
+            $db->exec("DELETE FROM rentals");
+            $stmtRent = $db->prepare("
+                INSERT INTO rentals (
+                    id, code, client_name, client_document, client_phone, client_email, client_address,
+                    start_date, start_time, end_date, end_time, total_days,
+                    subtotal, discount, total_amount, payment_method, payment_status, status,
+                    notes, items_json, pickup_photos_json, return_photos_json, pickup_notes, inspection_notes,
+                    has_damage, damage_cost, damage_type, damage_notes,
+                    paid_amount, remaining_amount, remaining_due_terms, remaining_due_date, security_deposit,
+                    auth_signature, payment_receipt_url, payment_receipt_backup, created_by, created_at, returned_at, return_notes
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?
+                )
+            ");
+            foreach ($tables['rentals'] as $rRow) {
+                if (empty($rRow['id']) || empty($rRow['code'])) continue;
+                $stmtRent->execute([
+                    $rRow['id'],
+                    $rRow['code'],
+                    $rRow['client_name'] ?? 'Cliente',
+                    $rRow['client_document'] ?? '',
+                    $rRow['client_phone'] ?? '',
+                    $rRow['client_email'] ?? '',
+                    $rRow['client_address'] ?? '',
+                    $rRow['start_date'] ?? date('Y-m-d'),
+                    $rRow['start_time'] ?? '08:00',
+                    $rRow['end_date'] ?? date('Y-m-d'),
+                    $rRow['end_time'] ?? '18:00',
+                    (int)($rRow['total_days'] ?? 1),
+                    (float)($rRow['subtotal'] ?? 0),
+                    (float)($rRow['discount'] ?? 0),
+                    (float)($rRow['total_amount'] ?? 0),
+                    $rRow['payment_method'] ?? 'PIX',
+                    $rRow['payment_status'] ?? 'Pendente',
+                    $rRow['status'] ?? 'active',
+                    $rRow['notes'] ?? null,
+                    is_array($rRow['items_json'] ?? null) ? json_encode($rRow['items_json'], JSON_UNESCAPED_UNICODE) : ($rRow['items_json'] ?? '[]'),
+                    is_array($rRow['pickup_photos_json'] ?? null) ? json_encode($rRow['pickup_photos_json'], JSON_UNESCAPED_UNICODE) : ($rRow['pickup_photos_json'] ?? null),
+                    is_array($rRow['return_photos_json'] ?? null) ? json_encode($rRow['return_photos_json'], JSON_UNESCAPED_UNICODE) : ($rRow['return_photos_json'] ?? null),
+                    $rRow['pickup_notes'] ?? null,
+                    $rRow['inspection_notes'] ?? null,
+                    (int)($rRow['has_damage'] ?? 0),
+                    (float)($rRow['damage_cost'] ?? 0),
+                    $rRow['damage_type'] ?? '',
+                    $rRow['damage_notes'] ?? null,
+                    (float)($rRow['paid_amount'] ?? 0),
+                    (float)($rRow['remaining_amount'] ?? 0),
+                    $rRow['remaining_due_terms'] ?? '',
+                    $rRow['remaining_due_date'] ?? null,
+                    (float)($rRow['security_deposit'] ?? 0),
+                    $rRow['auth_signature'] ?? null,
+                    $rRow['payment_receipt_url'] ?? null,
+                    $rRow['payment_receipt_backup'] ?? null,
+                    $rRow['created_by'] ?? 'Sistema',
+                    $rRow['created_at'] ?? date('Y-m-d H:i:s'),
+                    $rRow['returned_at'] ?? null,
+                    $rRow['return_notes'] ?? null
+                ]);
+            }
+        }
+
+        // 10. Restaura Fechamentos Financeiros Mensais (BKP-01: payout_closures)
+        if (isset($tables['payout_closures']) && is_array($tables['payout_closures'])) {
+            $db->exec("DELETE FROM payout_closures");
+            $stmtPay = $db->prepare("
+                INSERT INTO payout_closures (id, month_key, member_id, status, paid_at, paid_amount, hours_cleared, cleared_at, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            foreach ($tables['payout_closures'] as $pRow) {
+                if (empty($pRow['id']) || empty($pRow['month_key']) || empty($pRow['member_id'])) continue;
+                $stmtPay->execute([
+                    $pRow['id'],
+                    $pRow['month_key'],
+                    $pRow['member_id'],
+                    $pRow['status'] ?? 'Pendente',
+                    $pRow['paid_at'] ?? null,
+                    (float)($pRow['paid_amount'] ?? 0),
+                    (float)($pRow['hours_cleared'] ?? 0),
+                    $pRow['cleared_at'] ?? null,
+                    $pRow['notes'] ?? null
+                ]);
+            }
+        }
+
+        // 11. Restaura Mensagens Internas e Comunicados Operacionais (BKP-01: system_messages)
+        if (isset($tables['system_messages']) && is_array($tables['system_messages'])) {
+            $db->exec("DELETE FROM system_messages");
+            $stmtMsg = $db->prepare("
+                INSERT INTO system_messages (id, sender_id, sender_name, sender_role, recipient_type, recipient_id, recipient_user_id, recipient_name, title, message, priority, read_by, dismissed_by, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            foreach ($tables['system_messages'] as $mRow) {
+                if (empty($mRow['id']) || empty($mRow['title'])) continue;
+                $stmtMsg->execute([
+                    $mRow['id'],
+                    $mRow['sender_id'] ?? 'system',
+                    $mRow['sender_name'] ?? 'Sistema',
+                    $mRow['sender_role'] ?? 'ADMIN',
+                    $mRow['recipient_type'] ?? 'ALL',
+                    $mRow['recipient_id'] ?? null,
+                    $mRow['recipient_user_id'] ?? null,
+                    $mRow['recipient_name'] ?? null,
+                    $mRow['title'],
+                    $mRow['message'] ?? '',
+                    $mRow['priority'] ?? 'NORMAL',
+                    is_array($mRow['read_by'] ?? null) ? json_encode($mRow['read_by']) : ($mRow['read_by'] ?? '[]'),
+                    is_array($mRow['dismissed_by'] ?? null) ? json_encode($mRow['dismissed_by']) : ($mRow['dismissed_by'] ?? '[]'),
+                    $mRow['created_at'] ?? date('Y-m-d H:i:s')
+                ]);
+            }
+        }
+
+        // 12. Restaura Inscrições Web Push (BKP-01: push_subscriptions)
+        if (isset($tables['push_subscriptions']) && is_array($tables['push_subscriptions'])) {
+            $db->exec("DELETE FROM push_subscriptions");
+            $stmtPush = $db->prepare("
+                INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, user_agent, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            foreach ($tables['push_subscriptions'] as $psRow) {
+                if (empty($psRow['user_id']) || empty($psRow['endpoint'])) continue;
+                $stmtPush->execute([
+                    $psRow['id'] ?? null,
+                    $psRow['user_id'],
+                    $psRow['endpoint'],
+                    $psRow['p256dh'] ?? null,
+                    $psRow['auth'] ?? null,
+                    $psRow['user_agent'] ?? null,
+                    $psRow['created_at'] ?? date('Y-m-d H:i:s'),
+                    $psRow['updated_at'] ?? date('Y-m-d H:i:s')
+                ]);
+            }
+        }
+
+        // 13. Restaura Anexos Físicos (fotos de vistoria, comprovantes e fotos customizadas do acervo) (BKP-01 & Item 6.3)
+        if (isset($tables['uploaded_files']) && is_array($tables['uploaded_files'])) {
+            $docRoot = !empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') : dirname(__DIR__);
+            foreach ($tables['uploaded_files'] as $fItem) {
+                $relPath = $fItem['relative_path'] ?? '';
+                $b64Content = $fItem['content_base64'] ?? '';
+                if (empty($relPath) || empty($b64Content)) continue;
+                // Permite restaurar exclusivamente dentro de /images/rentals/ e /images/uploads/equipment/
+                if (strpos($relPath, '/images/rentals/') !== 0 && strpos($relPath, '/images/uploads/equipment/') !== 0) {
+                    continue;
+                }
+                $cleanFilename = basename($relPath);
+                if (empty($cleanFilename) || strpos($cleanFilename, '..') !== false) continue;
+                $subDir = strpos($relPath, '/images/rentals/') === 0 ? '/images/rentals' : '/images/uploads/equipment';
+                $targetDir = $docRoot . $subDir;
+                if (!is_dir($targetDir)) {
+                    @mkdir($targetDir, 0755, true);
+                }
+                $rawBin = base64_decode($b64Content, true);
+                if ($rawBin !== false && strlen($rawBin) > 0 && stripos($rawBin, '<?php') === false) {
+                    $destFile = $targetDir . '/' . $cleanFilename;
+                    @file_put_contents($destFile, $rawBin);
+                    @chmod($destFile, 0644);
+                }
+            }
+        }
+
         $db->commit();
 
         logAudit('BACKUP_RESTORE', 'BACKUP', 'all', "Procedimento de restauração integral e criptografada (AES-256-GCM) executado com sucesso por {$user['name']}.", $user['id'], $user['name']);
@@ -422,7 +663,7 @@ if ($method === 'POST' && $action === 'restore') {
 
         jsonResponse([
             'success' => true,
-            'message' => 'Backup integral restaurado com sucesso! Configurações, viaturas, membros, missões, contas de acesso, auditoria e telemetria foram reconstruídos com fidelidade exata ao estado original.'
+            'message' => 'Backup integral restaurado com sucesso! Configurações, viaturas, colaboradores, missões, equipamentos, locações, fechamentos financeiros, mensagens, contas de acesso, auditoria, telemetria e anexos foram reconstruídos com fidelidade exata ao estado original.'
         ]);
 
     } catch (Exception $e) {
@@ -435,19 +676,70 @@ if ($method === 'POST' && $action === 'restore') {
     }
 }
 
-// Função auxiliar de geração de snapshot integral criptografado com AES-256-GCM e HMAC-SHA256 (Itens 01 e 02)
+// Coleta segura de tabela opcional no banco (caso ainda não tenha sido populada)
+function safeFetchAllTable($db, $sql) {
+    try {
+        $stmt = $db->query($sql);
+        return $stmt ? ($stmt->fetchAll() ?: []) : [];
+    } catch (Exception $e) {
+        return [];
+    }
+}
+
+// Coleta manifesto e binários dos anexos enviados pelos usuários (fotos de vistoria, comprovantes e fotos customizadas)
+function collectUploadedFilesForBackup() {
+    $docRoot = !empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') : dirname(__DIR__);
+    $dirs = [
+        '/images/rentals'           => $docRoot . '/images/rentals',
+        '/images/uploads/equipment' => $docRoot . '/images/uploads/equipment'
+    ];
+    $filesManifest = [];
+    foreach ($dirs as $relPrefix => $absDir) {
+        if (!is_dir($absDir)) continue;
+        $entries = @scandir($absDir);
+        if (!is_array($entries)) continue;
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') continue;
+            $fullPath = $absDir . '/' . $entry;
+            if (!is_file($fullPath)) continue;
+            $size = @filesize($fullPath);
+            // Limita arquivos individuais a 10MB no manifesto JSON para preservar memória
+            if ($size > 0 && $size <= 10485760) {
+                $content = @file_get_contents($fullPath);
+                if ($content !== false) {
+                    $filesManifest[] = [
+                        'relative_path'  => $relPrefix . '/' . $entry,
+                        'size'           => $size,
+                        'sha256'         => hash('sha256', $content),
+                        'content_base64' => base64_encode($content)
+                    ];
+                }
+            }
+        }
+    }
+    return $filesManifest;
+}
+
+// Função auxiliar de geração de snapshot integral criptografado com AES-256-GCM e HMAC-SHA256 (BKP-01 & Item 6.3)
 function generateFullBackupData($db) {
     $sec = loadAppSecrets();
     list($encKey, $sigKey) = getBackupKeys($sec);
 
     $tables = [
-        'settings'      => $db->query("SELECT * FROM settings WHERE id = 1")->fetch() ?: [],
-        'vehicles'      => $db->query("SELECT * FROM vehicles")->fetchAll() ?: [],
-        'members'       => $db->query("SELECT * FROM members")->fetchAll() ?: [],
-        'missions'      => $db->query("SELECT * FROM missions")->fetchAll() ?: [],
-        'users'         => $db->query("SELECT id, name, email, password_hash, role, title, department, phone, avatar, created_at FROM users")->fetchAll() ?: [],
-        'audit_logs'    => $db->query("SELECT id, user_id, user_name, action, module, entity_id, details, ip_address, created_at FROM audit_logs ORDER BY id DESC LIMIT 5000")->fetchAll() ?: [],
-        'gps_locations' => $db->query("SELECT id, member_id, member_name, mission_id, lat, lon, speed, heading, accuracy, battery_percent, captured_at, is_active, updated_at FROM gps_locations")->fetchAll() ?: [],
+        'settings'           => $db->query("SELECT * FROM settings WHERE id = 1")->fetch() ?: [],
+        'vehicles'           => safeFetchAllTable($db, "SELECT * FROM vehicles"),
+        'members'            => safeFetchAllTable($db, "SELECT * FROM members"),
+        'missions'           => safeFetchAllTable($db, "SELECT * FROM missions"),
+        'users'         => $db->query("SELECT id, name, email, password_hash, role, title, department, phone, avatar, pix_key, created_at FROM users")->fetchAll(),
+        'equipment'          => safeFetchAllTable($db, "SELECT * FROM equipment"),
+        'rentals'            => safeFetchAllTable($db, "SELECT * FROM rentals"),
+        'payout_closures'    => safeFetchAllTable($db, "SELECT * FROM payout_closures"),
+        'system_messages'    => safeFetchAllTable($db, "SELECT * FROM system_messages"),
+        'push_subscriptions' => safeFetchAllTable($db, "SELECT * FROM push_subscriptions"),
+        'audit_logs'         => safeFetchAllTable($db, "SELECT id, user_id, user_name, action, module, entity_id, details, ip_address, created_at FROM audit_logs ORDER BY id DESC LIMIT 5000"),
+        'gps_locations'      => safeFetchAllTable($db, "SELECT id, member_id, member_name, mission_id, lat, lon, speed, heading, accuracy, battery_percent, captured_at, is_active, updated_at FROM gps_locations"),
+        'system_migrations'  => safeFetchAllTable($db, "SELECT * FROM system_migrations"),
+        'uploaded_files'     => collectUploadedFilesForBackup()
     ];
 
     $plainJson = json_encode($tables, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);

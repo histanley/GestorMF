@@ -42,11 +42,10 @@ if ($method === 'GET') {
         'lon' => -60.730887232802566,
     ];
 
-    // Se as coordenadas estiverem no valor legado provisório (2.825358), atualiza para a sede correta
+    // DB-05: Normaliza coordenadas legadas apenas na resposta (GET estritamente somente leitura)
     if (isset($baseLocation['lat']) && abs($baseLocation['lat'] - 2.825358) < 0.0002) {
         $baseLocation['lat'] = 2.8293822995808733;
         $baseLocation['lon'] = -60.730887232802566;
-        $db->prepare("UPDATE settings SET base_location = ? WHERE id = 1")->execute([json_encode($baseLocation, JSON_UNESCAPED_UNICODE)]);
     }
 
     $roles = !empty($s['roles']) ? json_decode($s['roles'], true) : [];
@@ -72,13 +71,15 @@ if ($method === 'POST' || $method === 'PUT') {
     $user = requireAuth(['ADMIN', 'MANAGER']);
     $data = getJsonInput();
 
-    // Auto-recuperação: garante que a coluna 'roles' exista na tabela settings
-    try {
-        $chkRoles = $db->query("SHOW COLUMNS FROM settings LIKE 'roles'")->fetch();
-        if (!$chkRoles) {
-            $db->exec("ALTER TABLE settings ADD COLUMN roles LONGTEXT NULL AFTER base_location");
-        }
-    } catch (Exception $e) {}
+    // DB-01: Garante coluna 'roles' via migração versionada única
+    runVersionedMigration($db, 'schema_settings_roles_v2', function($pdo) {
+        try {
+            $chkRoles = $pdo->query("SHOW COLUMNS FROM settings LIKE 'roles'")->fetch();
+            if (!$chkRoles) {
+                $pdo->exec("ALTER TABLE settings ADD COLUMN roles LONGTEXT NULL AFTER base_location");
+            }
+        } catch (Exception $e) {}
+    });
 
     $settingsData = $data['settings'] ?? $data;
     $rolesData = $data['roles'] ?? null;

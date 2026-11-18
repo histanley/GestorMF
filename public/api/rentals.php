@@ -7,113 +7,106 @@ require_once __DIR__ . '/config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $db = getDB();
 
-// 1. Garantir tabelas de Aluguel e Equipamentos
+// 1. Garantir tabelas de Aluguel e Equipamentos via migração versionada controlada (DB-01 & DB-02)
 function ensureRentalsTables($db)
 {
-    $db->exec("
-        CREATE TABLE IF NOT EXISTS equipment (
-            id VARCHAR(64) PRIMARY KEY,
-            name VARCHAR(191) NOT NULL,
-            category VARCHAR(64) NOT NULL,
-            daily_rate DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-            rate_unit VARCHAR(32) NOT NULL DEFAULT 'diária',
-            total_qty INT NOT NULL DEFAULT 1,
-            available_qty INT NOT NULL DEFAULT 1,
-            serial_number VARCHAR(191) NULL DEFAULT '',
-            photo_url LONGTEXT NULL,
-            description TEXT NULL,
-            status VARCHAR(32) NOT NULL DEFAULT 'available',
-            asset_value DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_equip_cat (category),
-            INDEX idx_equip_status (status)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    ");
+    runVersionedMigration($db, 'schema_rentals_v6', function ($db) {
+        $db->exec("
+            CREATE TABLE IF NOT EXISTS equipment (
+                id VARCHAR(64) PRIMARY KEY,
+                name VARCHAR(191) NOT NULL,
+                category VARCHAR(64) NOT NULL,
+                daily_rate DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+                rate_unit VARCHAR(32) NOT NULL DEFAULT 'diária',
+                total_qty INT NOT NULL DEFAULT 1,
+                available_qty INT NOT NULL DEFAULT 1,
+                serial_number VARCHAR(191) NULL DEFAULT '',
+                photo_url LONGTEXT NULL,
+                description TEXT NULL,
+                status VARCHAR(32) NOT NULL DEFAULT 'available',
+                asset_value DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_equip_cat (category),
+                INDEX idx_equip_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
 
-    try {
-        $db->exec("ALTER TABLE equipment ADD COLUMN photo_url LONGTEXT NULL");
-    } catch (Exception $e) {
-    }
-    try {
-        $db->exec("ALTER TABLE equipment MODIFY photo_url LONGTEXT NULL");
-    } catch (Exception $e) {
-    }
-    try {
-        $db->exec("ALTER TABLE equipment ADD COLUMN asset_value DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
-    } catch (Exception $e) {
-    }
-    try {
-        $db->exec("ALTER TABLE equipment ADD COLUMN maintenance_qty INT NOT NULL DEFAULT 0");
-    } catch (Exception $e) {
-    }
-    try {
-        $db->exec("ALTER TABLE equipment ADD COLUMN maintenance_notes TEXT NULL");
-    } catch (Exception $e) {
-    }
+        try {
+            $db->exec("ALTER TABLE equipment ADD COLUMN photo_url LONGTEXT NULL");
+        } catch (Exception $e) {
+        }
+        try {
+            $db->exec("ALTER TABLE equipment MODIFY photo_url LONGTEXT NULL");
+        } catch (Exception $e) {
+        }
+        try {
+            $db->exec("ALTER TABLE equipment ADD COLUMN asset_value DECIMAL(10, 2) NOT NULL DEFAULT 0.00");
+        } catch (Exception $e) {
+        }
+        try {
+            $db->exec("ALTER TABLE equipment ADD COLUMN maintenance_qty INT NOT NULL DEFAULT 0");
+        } catch (Exception $e) {
+        }
+        try {
+            $db->exec("ALTER TABLE equipment ADD COLUMN maintenance_notes TEXT NULL");
+        } catch (Exception $e) {
+        }
 
-    $db->exec("
-        CREATE TABLE IF NOT EXISTS rentals (
-            id VARCHAR(64) PRIMARY KEY,
-            code VARCHAR(32) NOT NULL UNIQUE,
-            client_name VARCHAR(191) NOT NULL,
-            client_document VARCHAR(64) NULL DEFAULT '',
-            client_phone VARCHAR(64) NULL DEFAULT '',
-            client_email VARCHAR(191) NULL DEFAULT '',
-            client_address TEXT NULL,
-            start_date DATE NOT NULL,
-            start_time VARCHAR(10) DEFAULT '08:00',
-            end_date DATE NOT NULL,
-            end_time VARCHAR(10) DEFAULT '18:00',
-            total_days INT NOT NULL DEFAULT 1,
-            subtotal DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-            discount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-            total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-            payment_method VARCHAR(64) DEFAULT 'PIX',
-            payment_status VARCHAR(32) DEFAULT 'Pendente',
-            status VARCHAR(32) DEFAULT 'active',
-            notes TEXT NULL,
-            items_json LONGTEXT NOT NULL,
-            pickup_photos_json LONGTEXT NULL,
-            return_photos_json LONGTEXT NULL,
-            pickup_notes TEXT NULL,
-            inspection_notes TEXT NULL,
-            has_damage TINYINT(1) NOT NULL DEFAULT 0,
-            paid_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-            remaining_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-            remaining_due_terms VARCHAR(191) NULL DEFAULT '',
-            remaining_due_date DATE NULL,
-            security_deposit DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-            auth_signature VARCHAR(64) NULL,
-            payment_receipt_url LONGTEXT NULL,
-            created_by VARCHAR(150) NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            returned_at TIMESTAMP NULL,
-            return_notes TEXT NULL,
-            INDEX idx_rent_status (status),
-            INDEX idx_rent_client (client_name),
-            INDEX idx_rent_dates (start_date, end_date)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    ");
+        $db->exec("
+            CREATE TABLE IF NOT EXISTS rentals (
+                id VARCHAR(64) PRIMARY KEY,
+                code VARCHAR(32) NOT NULL UNIQUE,
+                client_name VARCHAR(191) NOT NULL,
+                client_document VARCHAR(64) NULL DEFAULT '',
+                client_phone VARCHAR(64) NULL DEFAULT '',
+                client_email VARCHAR(191) NULL DEFAULT '',
+                client_address TEXT NULL,
+                start_date DATE NOT NULL,
+                start_time VARCHAR(10) DEFAULT '08:00',
+                end_date DATE NOT NULL,
+                end_time VARCHAR(10) DEFAULT '18:00',
+                total_days INT NOT NULL DEFAULT 1,
+                subtotal DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+                discount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+                total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+                payment_method VARCHAR(64) DEFAULT 'PIX',
+                payment_status VARCHAR(32) DEFAULT 'Pendente',
+                status VARCHAR(32) DEFAULT 'active',
+                notes TEXT NULL,
+                items_json LONGTEXT NOT NULL,
+                pickup_photos_json LONGTEXT NULL,
+                return_photos_json LONGTEXT NULL,
+                pickup_notes TEXT NULL,
+                inspection_notes TEXT NULL,
+                has_damage TINYINT(1) NOT NULL DEFAULT 0,
+                paid_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+                remaining_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+                remaining_due_terms VARCHAR(191) NULL DEFAULT '',
+                remaining_due_date DATE NULL,
+                security_deposit DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+                auth_signature VARCHAR(64) NULL,
+                payment_receipt_url LONGTEXT NULL,
+                created_by VARCHAR(150) NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                returned_at TIMESTAMP NULL,
+                return_notes TEXT NULL,
+                INDEX idx_rent_status (status),
+                INDEX idx_rent_client (client_name),
+                INDEX idx_rent_dates (start_date, end_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
 
-    try {
-        $db->exec("ALTER TABLE equipment ADD COLUMN photo_backup LONGTEXT NULL");
-    } catch (Exception $e) {
-    }
+        try {
+            $db->exec("ALTER TABLE equipment ADD COLUMN photo_backup LONGTEXT NULL");
+        } catch (Exception $e) {
+        }
 
-    // Auto-Migração: Garantir que agendamentos futuros fiquem como 'reserved' (inclusive Mikaele 27/12)
-    // e restaurar estoque de hoje se foi abatido indevidamente antes da data
-    try {
-        $db->exec("UPDATE rentals SET status = 'reserved', code = 'RES-202611-001' WHERE (code = 'LOC-202611-001' OR code = 'RES-202611-001') AND start_date > '2026-11-16'");
-        $db->exec("UPDATE equipment SET available_qty = total_qty WHERE id IN ('eq-006', 'eq-018') AND available_qty < total_qty");
-    } catch (Exception $e) {
-    }
-
-    try {
-        $db->exec("ALTER TABLE rentals ADD COLUMN pickup_photos_json LONGTEXT NULL");
-    } catch (Exception $e) {
-    }
+        try {
+            $db->exec("ALTER TABLE rentals ADD COLUMN pickup_photos_json LONGTEXT NULL");
+        } catch (Exception $e) {
+        }
     try {
         $db->exec("ALTER TABLE rentals ADD COLUMN return_photos_json LONGTEXT NULL");
     } catch (Exception $e) {
@@ -379,6 +372,7 @@ function ensureRentalsTables($db)
         }
     } catch (Exception $e) {
     }
+    });
 }
 
 // Retorna valor patrimonial sugerido de mercado/reposição baseado em benchmark
@@ -553,7 +547,7 @@ function getBenchmarkAssetValue($name, $category, $dailyRate = 0)
 ensureRentalsTables($db);
 
 /**
- * Garante que a pasta de armazenamento público de fotos de vistoria exista.
+ * SEG-04: Garante que a pasta de armazenamento de fotos de vistoria exista com permissões seguras (0755).
  */
 function ensureRentalStorage()
 {
@@ -561,16 +555,43 @@ function ensureRentalStorage()
     $targetDir = $docRoot . '/images/rentals';
 
     if (!is_dir($targetDir)) {
-        @mkdir($targetDir, 0777, true);
+        @mkdir($targetDir, 0755, true);
     }
-    @chmod($targetDir, 0777);
+    @chmod($targetDir, 0755);
 
     return $targetDir;
 }
 
 /**
- * Calcula a assinatura sistêmica determinística idêntica ao JavaScript:
- * Simula int32 signed com Math.abs(hash) para garantir paridade absoluta.
+ * SEG-06: Valida rigorosamente o conteúdo binário de imagens enviadas (MIME real, assinatura, dimensões e tamanho).
+ */
+function validateUploadedImageBinary($binaryData, $maxBytes = 10485760)
+{
+    if (!is_string($binaryData) || strlen($binaryData) < 32) {
+        return ['valid' => false, 'error' => 'Arquivo de imagem vazio ou truncado.'];
+    }
+    if (strlen($binaryData) > $maxBytes) {
+        return ['valid' => false, 'error' => 'A imagem excede o tamanho máximo permitido de 10 MB.'];
+    }
+    if (stripos($binaryData, '<?php') !== false || stripos($binaryData, '<script') !== false) {
+        return ['valid' => false, 'error' => 'Conteúdo de arquivo rejeitado por conter código executável.'];
+    }
+    $imgInfo = @getimagesizefromstring($binaryData);
+    if (!$imgInfo || empty($imgInfo[0]) || empty($imgInfo[1])) {
+        return ['valid' => false, 'error' => 'O conteúdo enviado não é uma imagem válida.'];
+    }
+    $allowedTypes = [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP, IMAGETYPE_GIF];
+    if (!in_array($imgInfo[2] ?? 0, $allowedTypes, true)) {
+        return ['valid' => false, 'error' => 'Formato de imagem não suportado. Use JPEG, PNG ou WEBP.'];
+    }
+    if ($imgInfo[0] > 8000 || $imgInfo[1] > 8000) {
+        return ['valid' => false, 'error' => 'Dimensões da imagem excedem o limite máximo de segurança (8000x8000).'];
+    }
+    return ['valid' => true, 'mime' => $imgInfo['mime'] ?? 'image/jpeg', 'width' => $imgInfo[0], 'height' => $imgInfo[1]];
+}
+
+/**
+ * Calcula a assinatura sistêmica determinística legada (para compatibilidade retroativa de PDFs já emitidos)
  */
 function calculateSystemicHash($str)
 {
@@ -585,51 +606,77 @@ function calculateSystemicHash($str)
 }
 
 /**
- * Processa e armazena comprovante de pagamento (imagem ou PDF)
+ * SEG-07 & Item 6.2: Assinatura criptográfica HMAC-SHA256 baseada no segredo do servidor (app_secret)
+ */
+function calculateContractHmacSignature($code, $rawAmount, $startDate, $authorizer)
+{
+    $sec = loadAppSecrets();
+    $secret = $sec['app_secret'] ?? '';
+    $amtStr = ($rawAmount == (int)$rawAmount) ? (string)((int)$rawAmount) : number_format((float)$rawAmount, 2, '.', '');
+    $payload = strtoupper(trim($code)) . '|' . $amtStr . '|' . trim($startDate) . '|' . trim($authorizer);
+    if (!empty($secret)) {
+        return 'AUTH-MF-' . strtoupper(substr(hash_hmac('sha256', $payload, $secret), 0, 12));
+    }
+    return calculateSystemicHash($code . '-' . $amtStr . '-' . $startDate . '-' . $authorizer);
+}
+
+/**
+ * SEG-06: Processa, valida e armazena comprovante de pagamento (imagem ou PDF)
  */
 function processPaymentReceipt($receiptData, $rentalCode)
 {
-    if (empty($receiptData)) return null;
+    if (empty($receiptData)) return ['url' => null, 'backup' => null];
     $trimmed = trim($receiptData);
     if (strpos($trimmed, 'http://') === 0 || strpos($trimmed, 'https://') === 0 || strpos($trimmed, '/images/') === 0) {
-        return $trimmed;
+        return ['url' => $trimmed, 'backup' => null];
     }
     if (strpos($trimmed, 'data:') === 0) {
         $parts = explode(',', $trimmed, 2);
         if (count($parts) === 2) {
             $isPdf = strpos($parts[0], 'application/pdf') !== false;
             $ext = $isPdf ? 'pdf' : 'jpg';
-            $binary = base64_decode($parts[1]);
+            $binary = base64_decode($parts[1], true);
             if ($binary !== false && strlen($binary) > 0) {
+                if ($isPdf) {
+                    if (strlen($binary) > 15728640 || substr($binary, 0, 5) !== '%PDF-' || stripos($binary, '<?php') !== false) {
+                        throw new Exception('Arquivo PDF inválido, corrompido ou acima do limite de 15 MB.');
+                    }
+                } else {
+                    $imgVal = validateUploadedImageBinary($binary, 10485760);
+                    if (!$imgVal['valid']) {
+                        throw new Exception($imgVal['error']);
+                    }
+                }
                 $targetDir = ensureRentalStorage();
                 $cleanCode = preg_replace('/[^a-zA-Z0-9_-]/', '', $rentalCode);
                 $filename = $cleanCode . '_comprovante_' . time() . '.' . $ext;
                 $dest = $targetDir . '/' . $filename;
                 if (@file_put_contents($dest, $binary)) {
                     @chmod($dest, 0644);
-                    return '/images/rentals/' . $filename . '?t=' . time();
+                    return ['url' => '/images/rentals/' . $filename . '?t=' . time(), 'backup' => $trimmed];
                 }
+                return ['url' => $trimmed, 'backup' => $trimmed];
             }
         }
     }
-    return $trimmed;
+    return ['url' => $trimmed, 'backup' => null];
 }
 
 /**
- * Garante a pasta de fotos customizadas de equipamentos cadastrados
+ * SEG-04: Garante a pasta de fotos customizadas de equipamentos cadastrados com permissões seguras (0755).
  */
 function ensureEquipmentUploadStorage()
 {
     $docRoot = !empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') : dirname(__DIR__);
     $targetDir = $docRoot . '/images/uploads/equipment';
     if (!is_dir($targetDir)) {
-        @mkdir($targetDir, 0777, true);
+        @mkdir($targetDir, 0755, true);
     }
-    @chmod($targetDir, 0777);
+    @chmod($targetDir, 0755);
     return $targetDir;
 }
 
-// Processa fotos de vistoria (salva em disco em images/rentals E preserva base64 de backup perpétuo)
+// SEG-06: Processa e valida fotos de vistoria (salva em disco em images/rentals E preserva base64 de backup perpétuo)
 function processRentalPhotos($photos, $rentalCode, $type)
 {
     if (!is_array($photos))
@@ -642,19 +689,24 @@ function processRentalPhotos($photos, $rentalCode, $type)
         $backup = $p['backup'] ?? '';
 
         if (!empty($url) && strpos($url, 'data:image/') === 0) {
-            $backup = $url; // Guarda o base64 para auto-recuperação perpétua
+            $backup = $url;
             $parts = explode(',', $url, 2);
             if (count($parts) === 2) {
-                $imageData = base64_decode($parts[1]);
+                $imageData = base64_decode($parts[1], true);
                 if ($imageData !== false && strlen($imageData) > 0) {
-                    $cleanCode = preg_replace('/[^a-zA-Z0-9_-]/', '', $rentalCode);
-                    $cleanId = !empty($p['id']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $p['id']) : ('p' . ($idx + 1));
-                    $filename = $cleanCode . '_' . $type . '_' . $cleanId . '_' . time() . '.jpg';
-                    $destPath = $targetDir . '/' . $filename;
+                    $imgVal = validateUploadedImageBinary($imageData, 10485760);
+                    if ($imgVal['valid']) {
+                        $cleanCode = preg_replace('/[^a-zA-Z0-9_-]/', '', $rentalCode);
+                        $cleanId = !empty($p['id']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $p['id']) : ('p' . ($idx + 1));
+                        $filename = $cleanCode . '_' . $type . '_' . $cleanId . '_' . time() . '.jpg';
+                        $destPath = $targetDir . '/' . $filename;
 
-                    if (@file_put_contents($destPath, $imageData)) {
-                        @chmod($destPath, 0644);
-                        $url = '/images/rentals/' . $filename . '?t=' . time();
+                        if (@file_put_contents($destPath, $imageData)) {
+                            @chmod($destPath, 0644);
+                            $url = '/images/rentals/' . $filename . '?t=' . time();
+                        }
+                    } else {
+                        continue; // Ignora foto inválida ou malformada
                     }
                 }
             }
@@ -666,8 +718,8 @@ function processRentalPhotos($photos, $rentalCode, $type)
                 if (!file_exists($destPath)) {
                     $parts = explode(',', $backup, 2);
                     if (count($parts) === 2) {
-                        $bin = base64_decode($parts[1]);
-                        if ($bin !== false && strlen($bin) > 0) {
+                        $bin = base64_decode($parts[1], true);
+                        if ($bin !== false && strlen($bin) > 0 && validateUploadedImageBinary($bin)['valid']) {
                             @file_put_contents($destPath, $bin);
                             @chmod($destPath, 0644);
                         }
@@ -693,16 +745,20 @@ function processRentalPhotos($photos, $rentalCode, $type)
 $action = $_GET['action'] ?? '';
 
 // ==============================================================================
-// VISUALIZAÇÃO DIRETA DE FOTOS DE VISTORIA (GET action=view_photo | get_photo)
-// ==============================================================================
-// VISUALIZAÇÃO DIRETA & STREAMING COM AUTO-RECUPERAÇÃO DE IMAGENS DO ACERVO E LOCAÇÕES
-// Garante que mesmo após atualização do deploy zip as fotos NUNCA sejam perdidas
+// VISUALIZAÇÃO PROTEGIDA DE FOTOS DE VISTORIA E ANEXOS (GET action=view_photo | get_photo)
+// SEG-05: Exige sessão autenticada para acessar fotos de vistoria e comprovantes privados
 // ==============================================================================
 if ($method === 'GET' && ($action === 'view_photo' || $action === 'get_photo')) {
     $file = basename($_GET['file'] ?? $_GET['name'] ?? '');
     if (empty($file)) {
         http_response_code(400);
         exit('Arquivo não especificado.');
+    }
+
+    // Se for foto privada de vistoria/comprovante de contrato (não sendo foto pública de catálogo eq-*), exige sessão autenticada
+    $isPublicCatalogImage = (preg_match('/^(eq-\d+|custom_eq-[a-zA-Z0-9_-]+)\.(jpg|jpeg|png|webp)$/i', $file) === 1);
+    if (!$isPublicCatalogImage) {
+        requireAuth();
     }
 
     $targetDir = ensureRentalStorage();
@@ -889,11 +945,22 @@ if ($method === 'GET' && $action === 'equipment_photo') {
 }
 
 // ==============================================================================
-// VERIFICAÇÃO PÚBLICA DE AUTENTICIDADE DE DOCUMENTOS (SEM EXIGÊNCIA DE LOGIN)
-// Qualquer pessoa pode apontar a câmera para o QR Code do documento e validar
+// VERIFICAÇÃO PÚBLICA DE AUTENTICIDADE DE DOCUMENTOS (SEG-07 & Item 6.2)
+// Rate-limited, auditado e com exposição mínima de dados conforme LGPD
 // ==============================================================================
 if ($method === 'GET' && $action === 'verify') {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+    $rl = checkRateLimit($db, 'verify_doc_' . md5($ip), $ip, 25, 10);
+    if (!$rl['allowed']) {
+        jsonResponse([
+            'success' => false,
+            'valid' => false,
+            'message' => $rl['error']
+        ], 429);
+    }
+
     $code = trim($_GET['code'] ?? '');
+    $sigParam = trim($_GET['sig'] ?? $_GET['signature'] ?? '');
     if (empty($code)) {
         jsonResponse([
             'success' => false,
@@ -907,6 +974,8 @@ if ($method === 'GET' && $action === 'verify') {
     $rental = $stmt->fetch();
 
     if (!$rental) {
+        recordRateLimitAttempt($db, 'verify_doc_' . md5($ip), $ip);
+        logAudit('VERIFY_DOCUMENT_INVALID', 'RENTALS', $code, "Consulta pública de documento não encontrado ({$code}).", 'public', 'Verificador Público');
         jsonResponse([
             'success' => true,
             'valid' => false,
@@ -914,12 +983,32 @@ if ($method === 'GET' && $action === 'verify') {
         ], 200);
     }
 
+    $authorizer = !empty($rental['created_by']) ? $rental['created_by'] : 'Gestão MegaFilmes';
+    $rawAmount = (float) $rental['total_amount'];
+    $amtStr = ($rawAmount == (int) $rawAmount) ? (string) ((int) $rawAmount) : number_format($rawAmount, 2, '.', '');
+    $legacySignature = calculateSystemicHash($rental['code'] . '-' . $amtStr . '-' . $rental['start_date'] . '-' . $authorizer);
+    $hmacSignature = calculateContractHmacSignature($rental['code'], $rawAmount, $rental['start_date'], $authorizer);
+    $storedSignature = !empty($rental['auth_signature']) ? $rental['auth_signature'] : $legacySignature;
+
+    // Se uma assinatura explícita foi passada na query string, valida criptograficamente
+    if (!empty($sigParam)) {
+        $sigUpper = strtoupper($sigParam);
+        if (!hash_equals(strtoupper($storedSignature), $sigUpper) && !hash_equals(strtoupper($hmacSignature), $sigUpper) && !hash_equals(strtoupper($legacySignature), $sigUpper)) {
+            recordRateLimitAttempt($db, 'verify_doc_' . md5($ip), $ip);
+            logAudit('VERIFY_DOCUMENT_SIG_MISMATCH', 'RENTALS', $rental['code'], "Assinatura divergente informada na verificação pública do contrato {$rental['code']}.", 'public', 'Verificador Público');
+            jsonResponse([
+                'success' => true,
+                'valid' => false,
+                'message' => 'Assinatura de autenticidade divergente para o documento informado.'
+            ], 200);
+        }
+    }
+
     $items = !empty($rental['items_json']) ? json_decode($rental['items_json'], true) : [];
     $safeItems = array_map(function ($it) {
         return [
             'name' => $it['name'] ?? 'Equipamento',
             'quantity' => (int) ($it['quantity'] ?? 1),
-            'dailyRate' => (float) ($it['dailyRate'] ?? 0),
             'serialNumber' => $it['serialNumber'] ?? ''
         ];
     }, is_array($items) ? $items : []);
@@ -941,18 +1030,10 @@ if ($method === 'GET' && $action === 'verify') {
         $maskedPhone = '(' . substr($phoneDigits, 0, 2) . ') *****-' . substr($phoneDigits, -4);
     }
 
-    $authorizer = !empty($rental['created_by']) ? $rental['created_by'] : 'Gestão MegaFilmes';
     $isReserved = ($rental['status'] === 'reserved');
+    $authSignature = $storedSignature;
 
-    // Assinatura Sistêmica oficial ou calculada determinística idêntica
-    if (!empty($rental['auth_signature'])) {
-        $authSignature = $rental['auth_signature'];
-    } else {
-        $rawAmount = (float) $rental['total_amount'];
-        $amtStr = ($rawAmount == (int) $rawAmount) ? (string) ((int) $rawAmount) : number_format($rawAmount, 2, '.', '');
-        $strForHash = $rental['code'] . '-' . $amtStr . '-' . $rental['start_date'] . '-' . $authorizer;
-        $authSignature = calculateSystemicHash($strForHash);
-    }
+    logAudit('VERIFY_DOCUMENT_SUCCESS', 'RENTALS', $rental['code'], "Autenticidade do documento {$rental['code']} verificada publicamente.", 'public', 'Verificador Público');
 
     jsonResponse([
         'success' => true,
@@ -969,11 +1050,10 @@ if ($method === 'GET' && $action === 'verify') {
             'endDate' => $rental['end_date'],
             'endTime' => $rental['end_time'] ?? '18:00',
             'totalDays' => (int) $rental['total_days'],
-            'totalAmount' => (float) $rental['total_amount'],
             'paymentStatus' => $rental['payment_status'] ?? 'Pendente',
-            'paymentMethod' => $rental['payment_method'] ?? 'PIX',
             'authorizedBy' => $authorizer,
             'authSignature' => $authSignature,
+            'hmacFingerprint' => $hmacSignature,
             'issuedAt' => $rental['created_at'],
             'items' => $safeItems,
             'legalFramework' => 'Lei Federal nº 10.406/2002 (Código Civil) e Lei Federal nº 14.063/2020',
@@ -991,16 +1071,10 @@ if ($method === 'GET' && $action === 'verify') {
 $user = requireAuth(['ADMIN', 'MANAGER']);
 
 // ==============================================================================
-// 1. LISTAR CATÁLOGO & LOCAÇÕES (GET)
+// 1. LISTAR CATÁLOGO & LOCAÇÕES (GET — DB-05: Somente leitura, sem mutar registros)
 // ==============================================================================
 if ($method === 'GET') {
-    // Atualiza automaticamente status de locações vencidas para 'overdue' se aplicável
     $today = date('Y-m-d');
-    $db->prepare("
-        UPDATE rentals 
-        SET status = 'overdue' 
-        WHERE status = 'active' AND end_date < ?
-    ")->execute([$today]);
 
     // Busca equipamentos
     $stmtEq = $db->query("SELECT * FROM equipment ORDER BY category ASC, name ASC");
@@ -1108,7 +1182,7 @@ if ($method === 'GET') {
     $stmtRent = $db->query("SELECT * FROM rentals ORDER BY created_at DESC");
     $rawRent = $stmtRent->fetchAll();
 
-    $rentals = array_map(function ($r) use ($targetDir) {
+    $rentals = array_map(function ($r) use ($targetDir, $today) {
         $items = !empty($r['items_json']) ? json_decode($r['items_json'], true) : [];
         $pickupPhotos = !empty($r['pickup_photos_json']) ? json_decode($r['pickup_photos_json'], true) : [];
         $returnPhotos = !empty($r['return_photos_json']) ? json_decode($r['return_photos_json'], true) : [];
@@ -1149,6 +1223,12 @@ if ($method === 'GET') {
             }
         }
 
+        // DB-05: Calcula status overdue dinamicamente na leitura sem mutar registros no GET
+        $effectiveStatus = $r['status'] ?? 'active';
+        if ($effectiveStatus === 'active' && !empty($r['end_date']) && $r['end_date'] < $today) {
+            $effectiveStatus = 'overdue';
+        }
+
         return [
             'id' => $r['id'],
             'code' => $r['code'],
@@ -1167,7 +1247,7 @@ if ($method === 'GET') {
             'totalAmount' => (float) $r['total_amount'],
             'paymentMethod' => $r['payment_method'] ?? 'PIX',
             'paymentStatus' => $r['payment_status'] ?? 'Pendente',
-            'status' => $r['status'] ?? 'active',
+            'status' => $effectiveStatus,
             'notes' => $r['notes'] ?? '',
             'items' => is_array($items) ? $items : [],
             'pickupPhotos' => is_array($pickupPhotos) ? $pickupPhotos : [],
@@ -1290,8 +1370,12 @@ if ($method === 'POST' && $action === 'save_equipment') {
         $photoBackup = $photoUrl; // Salva o base64 para backup perpétuo
         $parts = explode(',', $photoUrl, 2);
         if (count($parts) === 2) {
-            $imageData = base64_decode($parts[1]);
+            $imageData = base64_decode($parts[1], true);
             if ($imageData !== false && strlen($imageData) > 0) {
+                $imgVal = validateUploadedImageBinary($imageData, 10485760);
+                if (!$imgVal['valid']) {
+                    jsonResponse(['success' => false, 'error' => $imgVal['error']], 400);
+                }
                 $targetDir = ensureEquipmentUploadStorage();
                 $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '', $id);
                 $uniqueFilename = 'custom_' . $cleanId . '_' . time() . '.jpg';
@@ -1399,8 +1483,12 @@ if ($method === 'POST' && $action === 'update_equipment_photo') {
 
         $parts = explode(',', $rawPhoto, 2);
         if (count($parts) === 2) {
-            $imageData = base64_decode($parts[1]);
+            $imageData = base64_decode($parts[1], true);
             if ($imageData !== false && strlen($imageData) > 0) {
+                $imgVal = validateUploadedImageBinary($imageData, 10485760);
+                if (!$imgVal['valid']) {
+                    jsonResponse(['success' => false, 'error' => $imgVal['error']], 400);
+                }
                 $targetDir = ensureEquipmentUploadStorage();
                 $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '', $id);
                 $uniqueFilename = 'custom_' . $cleanId . '_' . time() . '.jpg';
@@ -1829,9 +1917,15 @@ if ($method === 'POST' && $action === 'upload_inspection_photo') {
         jsonResponse(['success' => false, 'error' => 'Dados de imagem corrompidos.'], 400);
     }
 
-    $binaryData = base64_decode($parts[1]);
+    $binaryData = base64_decode($parts[1], true);
     if ($binaryData === false || strlen($binaryData) === 0) {
         jsonResponse(['success' => false, 'error' => 'Falha ao decodificar imagem.'], 400);
+    }
+
+    // SEG-06: Validação rigorosa do conteúdo real da imagem
+    $imgVal = validateUploadedImageBinary($binaryData, 10485760);
+    if (!$imgVal['valid']) {
+        jsonResponse(['success' => false, 'error' => $imgVal['error']], 400);
     }
 
     $targetDir = ensureRentalStorage();
@@ -2086,7 +2180,7 @@ if ($method === 'POST' && $action === 'update_rental_financial') {
 }
 
 // ==============================================================================
-// 6. ATIVAR RESERVA / CONFIRMAR PAGAMENTO (POST action=activate_reservation)
+// 6. ATIVAR RESERVA / CONFIRMAR PAGAMENTO (POST action=activate_reservation) — Atômico com FOR UPDATE (DB-03)
 // ==============================================================================
 if ($method === 'POST' && $action === 'activate_reservation') {
     $rentalId = trim($data['rentalId'] ?? $data['id'] ?? '');
@@ -2097,46 +2191,68 @@ if ($method === 'POST' && $action === 'activate_reservation') {
         jsonResponse(['success' => false, 'error' => 'ID da reserva não informado.'], 400);
     }
 
-    $stmt = $db->prepare("SELECT * FROM rentals WHERE id = ?");
-    $stmt->execute([$rentalId]);
-    $rental = $stmt->fetch();
+    $db->beginTransaction();
+    try {
+        $stmt = $db->prepare("SELECT * FROM rentals WHERE id = ? FOR UPDATE");
+        $stmt->execute([$rentalId]);
+        $rental = $stmt->fetch();
 
-    if (!$rental) {
-        jsonResponse(['success' => false, 'error' => 'Reserva/Locação não encontrada.'], 404);
-    }
+        if (!$rental) {
+            $db->rollBack();
+            jsonResponse(['success' => false, 'error' => 'Reserva/Locação não encontrada.'], 404);
+        }
 
-    $receiptUrl = $rental['payment_receipt_url'];
-    $receiptBackup = $rental['payment_receipt_backup'] ?? null;
-    if (!empty($receiptInput)) {
-        $receiptInfo = processPaymentReceipt($receiptInput, $rental['code']);
-        $receiptUrl = $receiptInfo['url'] ?? $receiptUrl;
-        $receiptBackup = $receiptInfo['backup'] ?? $receiptBackup;
-    }
+        if ($rental['status'] !== 'reserved') {
+            $db->rollBack();
+            jsonResponse([
+                'success' => false,
+                'error' => "Esta reserva já se encontra com status '{$rental['status']}' e não pode ser ativada em duplicidade."
+            ], 409);
+        }
 
-    $newPayStatus = $markPaid ? 'Pago' : $rental['payment_status'];
-    $stmtUp = $db->prepare("UPDATE rentals SET status = 'active', payment_status = ?, payment_receipt_url = ?, payment_receipt_backup = COALESCE(?, payment_receipt_backup) WHERE id = ?");
-    $stmtUp->execute([$newPayStatus, $receiptUrl, $receiptBackup, $rentalId]);
-
-    // Ao ativar e entregar fisicamente os equipamentos no balcão, baixa o estoque disponível
-    if ($rental['status'] === 'reserved') {
+        // Valida e bloqueia estoque de TODOS os itens antes de confirmar a retirada física (DB-03)
         $items = !empty($rental['items_json']) ? json_decode($rental['items_json'], true) : [];
         if (is_array($items)) {
             foreach ($items as $it) {
                 $eqId = $it['equipmentId'] ?? $it['id'] ?? '';
                 $qty = max(1, (int) ($it['quantity'] ?? 1));
                 if (!empty($eqId)) {
-                    $stmtEq = $db->prepare("SELECT total_qty, available_qty FROM equipment WHERE id = ?");
+                    $stmtEq = $db->prepare("SELECT id, name, total_qty, available_qty FROM equipment WHERE id = ? FOR UPDATE");
                     $stmtEq->execute([$eqId]);
                     $eq = $stmtEq->fetch();
-                    if ($eq) {
-                        $newAvail = max(0, (int) $eq['available_qty'] - $qty);
-                        $newStatus = $newAvail == 0 ? 'rented' : 'available';
-                        $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
-                            ->execute([$newAvail, $newStatus, $eqId]);
+                    if (!$eq) {
+                        throw new Exception("Equipamento não encontrado no acervo: " . ($it['name'] ?? $eqId));
                     }
+                    $avail = (int) $eq['available_qty'];
+                    if ($avail < $qty) {
+                        throw new Exception("Estoque insuficiente para ativar a reserva de '{$eq['name']}': disponível no momento {$avail} un., necessário {$qty} un.");
+                    }
+                    $newAvail = $avail - $qty;
+                    $newStatus = $newAvail === 0 ? 'rented' : 'available';
+                    $db->prepare("UPDATE equipment SET available_qty = ?, status = ? WHERE id = ?")
+                        ->execute([$newAvail, $newStatus, $eqId]);
                 }
             }
         }
+
+        $receiptUrl = $rental['payment_receipt_url'];
+        $receiptBackup = $rental['payment_receipt_backup'] ?? null;
+        if (!empty($receiptInput)) {
+            $receiptInfo = processPaymentReceipt($receiptInput, $rental['code']);
+            $receiptUrl = $receiptInfo['url'] ?? $receiptUrl;
+            $receiptBackup = $receiptInfo['backup'] ?? $receiptBackup;
+        }
+
+        $newPayStatus = $markPaid ? 'Pago' : $rental['payment_status'];
+        $stmtUp = $db->prepare("UPDATE rentals SET status = 'active', payment_status = ?, payment_receipt_url = ?, payment_receipt_backup = COALESCE(?, payment_receipt_backup) WHERE id = ?");
+        $stmtUp->execute([$newPayStatus, $receiptUrl, $receiptBackup, $rentalId]);
+
+        $db->commit();
+    } catch (Exception $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        jsonResponse(['success' => false, 'error' => $e->getMessage()], 409);
     }
 
     logAudit('ACTIVATE_RESERVATION', 'RENTALS', $rentalId, "Reserva {$rental['code']} confirmada e ativada como locação por {$user['name']}.", $user['id'], $user['name']);
@@ -2168,7 +2284,11 @@ if ($method === 'POST' && ($action === 'attach_receipt' || $action === 'upload_r
         jsonResponse(['success' => false, 'error' => 'Locação não encontrada.'], 404);
     }
 
-    $receiptInfo = processPaymentReceipt($receiptInput, $rental['code']);
+    try {
+        $receiptInfo = processPaymentReceipt($receiptInput, $rental['code']);
+    } catch (Exception $e) {
+        jsonResponse(['success' => false, 'error' => $e->getMessage()], 400);
+    }
     $receiptUrl = $receiptInfo['url'] ?? $rental['payment_receipt_url'];
     $receiptBackup = $receiptInfo['backup'] ?? ($rental['payment_receipt_backup'] ?? null);
     $stmtUp = $db->prepare("UPDATE rentals SET payment_receipt_url = ?, payment_receipt_backup = COALESCE(?, payment_receipt_backup), payment_status = 'Pago' WHERE id = ?");

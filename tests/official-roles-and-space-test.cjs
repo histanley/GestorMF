@@ -11,7 +11,7 @@ const {
   computeMemberRoleCounts,
 } = require('../src/utils/companyRoles.js');
 
-assert.strictEqual(OFFICIAL_COMPANY_ROLES.length, 11, 'Devem existir exatamente 11 funções oficiais');
+assert.strictEqual(OFFICIAL_COMPANY_ROLES.length, 12, 'Devem existir exatamente 12 funções oficiais');
 
 const expectedRoles = [
   'Diretor(a) de Cena',
@@ -25,12 +25,13 @@ const expectedRoles = [
   'Operador de Áudio',
   'Social Mídia',
   'Transmissão (Streamer)',
+  'Operador de Totem',
 ];
 
 expectedRoles.forEach((r) => {
-  assert(OFFICIAL_COMPANY_ROLES.includes(r), `A função ${r} deve estar entre as 11 oficiais`);
+  assert(OFFICIAL_COMPANY_ROLES.includes(r), `A função ${r} deve estar entre as 12 oficiais`);
 });
-console.log('[PASS] 01. 11 Funções Oficiais da Empresa validadas com sucesso.');
+console.log('[PASS] 01. 12 Funções Oficiais da Empresa validadas com sucesso.');
 
 // 2. Normalização
 assert.strictEqual(normalizeToOfficialRole('Cinegrafista / Câmera'), 'Cinegrafista');

@@ -20,17 +20,29 @@ if ($method === 'POST' && $action === 'subscribe') {
     $authKey = trim($keys['auth'] ?? $data['auth'] ?? '');
     $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown', 0, 255);
 
-    if (empty($endpoint)) {
-        jsonResponse(['success' => false, 'error' => 'Endpoint de subscrição Push obrigatório.'], 400);
+    if (empty($endpoint) || !filter_var($endpoint, FILTER_VALIDATE_URL) || stripos($endpoint, 'https://') !== 0) {
+        jsonResponse(['success' => false, 'error' => 'Endpoint HTTPS de subscrição Push válido é obrigatório.'], 400);
+    }
+    if (empty($p256dh) || empty($authKey)) {
+        jsonResponse(['success' => false, 'error' => 'Chaves criptográficas da assinatura Push (p256dh e auth) são obrigatórias.'], 400);
     }
 
     try {
-        // Upsert por endpoint
-        $stmtCheck = $db->prepare("SELECT id FROM push_subscriptions WHERE endpoint = ?");
+        // SEG-09: Verifica posse do endpoint e protege contra reassociação arbitrária entre contas
+        $stmtCheck = $db->prepare("SELECT id, user_id, p256dh, auth FROM push_subscriptions WHERE endpoint = ? LIMIT 1");
         $stmtCheck->execute([$endpoint]);
         $existing = $stmtCheck->fetch();
 
         if ($existing) {
+            if ($existing['user_id'] !== $user['id']) {
+                // Exige prova criptográfica de posse do Subscription (mesmo par p256dh/auth emitido pelo navegador)
+                if (!hash_equals((string)$existing['p256dh'], $p256dh) || !hash_equals((string)$existing['auth'], $authKey)) {
+                    logAudit('PUSH_REBIND_BLOCKED', 'NOTIFICATIONS', $user['id'], "Tentativa bloqueada de reassociação de endpoint Push pertencente a outra conta sem prova de chaves.", $user['id'], $user['name']);
+                    jsonResponse(['success' => false, 'error' => 'Assinatura Push vinculada a outra sessão com chaves divergentes. Gere uma nova inscrição no navegador.'], 403);
+                }
+                logAudit('PUSH_DEVICE_REASSIGNED', 'NOTIFICATIONS', $user['id'], "Inscrição Push transferida de {$existing['user_id']} para {$user['id']} mediante comprovação de chaves do dispositivo.", $user['id'], $user['name']);
+            }
+
             $stmtUp = $db->prepare("
                 UPDATE push_subscriptions
                 SET user_id = ?, p256dh = ?, auth = ?, user_agent = ?, updated_at = NOW()
