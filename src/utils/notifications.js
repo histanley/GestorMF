@@ -292,20 +292,11 @@ export function checkAndNotifyPendingPostProductions(missions = [], currentUser 
 export const RENTAL_NOTIFY_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
 /**
- * Monitora e notifica o Administrador/Gestor sobre locações com devolução vencendo hoje,
- * devolução atrasada ou saldo pendente de quitação.
+ * Monitora e notifica toda a equipe (Administradores, Gestores e Colaboradores)
+ * sobre locações com devolução vencendo hoje, devolução atrasada ou lembretes.
  */
 export function checkAndNotifyPendingRentals(rentals = [], currentUser = null) {
   if (!currentUser || typeof window === 'undefined') return [];
-
-  const roleStr = String(currentUser.role || '').toLowerCase().trim();
-  const isAdminOrManager =
-    roleStr === 'admin' ||
-    roleStr === 'administrador' ||
-    roleStr === 'gestor' ||
-    roleStr === 'gerente';
-
-  if (!isAdminOrManager) return [];
   if (!Array.isArray(rentals) || rentals.length === 0) return [];
 
   const now = Date.now();

@@ -1067,8 +1067,13 @@ if ($method === 'GET' && $action === 'verify') {
     ]);
 }
 
-// Auth: apenas ADMIN e MANAGER têm acesso ao módulo de aluguel
-$user = requireAuth(['ADMIN', 'MANAGER']);
+// Auth: Qualquer usuário autenticado pode consultar (GET) o catálogo e locações para monitoramento/notificações
+// Operações de escrita/mutação (POST, PUT, DELETE) continuam restritas a ADMIN e MANAGER
+if ($method === 'GET') {
+    $user = requireAuth();
+} else {
+    $user = requireAuth(['ADMIN', 'MANAGER']);
+}
 
 // ==============================================================================
 // 1. LISTAR CATÁLOGO & LOCAÇÕES (GET — DB-05: Somente leitura, sem mutar registros)

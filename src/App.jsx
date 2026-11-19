@@ -220,7 +220,7 @@ export default function App() {
     if (!isAdminUser && activeTab === 'admin') {
       setActiveTab('me');
     }
-    if (!canManageFleetAndTeams && (activeTab === 'vehicles' || activeTab === 'teams' || activeTab === 'rentals')) {
+    if (!canManageFleetAndTeams && (activeTab === 'vehicles' || activeTab === 'teams')) {
       setActiveTab('map');
     }
   }, [isAdminUser, canManageFleetAndTeams, activeTab]);
@@ -529,9 +529,9 @@ export default function App() {
   }, [missions, currentUser]);
 
   // Monitora continuamente locações/aluguéis que vencem hoje, amanhã ou estão em atraso
-  // Alerta o Administrador/Gestor com push notification, som e registra na central de notificações
+  // Alerta toda a equipe com push notification, som e registra na central de notificações
   useEffect(() => {
-    if (!currentUser || !canManageFleetAndTeams) return;
+    if (!currentUser) return;
 
     let isMounted = true;
     const checkRentals = async () => {
@@ -563,7 +563,7 @@ export default function App() {
       isMounted = false;
       clearInterval(rentalInterval);
     };
-  }, [currentUser, canManageFleetAndTeams]);
+  }, [currentUser]);
 
   // Verifica com precisão se o usuário faz parte da missão (motorista, equipe ou editor)
   const isUserInMission = useCallback((mis, user) => {
@@ -2657,19 +2657,20 @@ export default function App() {
                 <span className="tab-badge">{members.length}</span>
               </button>
 
-              {/* Módulo de Aluguel no Menu Principal: Acesso Direto para Gestores e Administradores */}
-              <button
-                className={`tab-btn tab-btn-rentals ${activeTab === 'rentals' ? 'active' : ''}`}
-                onClick={() => setActiveTab('rentals')}
-                title="Aluguel & Equipamentos: Gestão de Estoque e Locações Externas"
-              >
-                <span className="tab-icon-box">
-                  <Camera size={15} />
-                </span>
-                <span className="tab-label">Aluguéis</span>
-              </button>
             </>
           )}
+
+          {/* Módulo de Aluguel no Menu Principal: Acesso para Toda a Equipe */}
+          <button
+            className={`tab-btn tab-btn-rentals ${activeTab === 'rentals' ? 'active' : ''}`}
+            onClick={() => setActiveTab('rentals')}
+            title="Aluguel & Equipamentos: Gestão de Estoque e Locações Externas"
+          >
+            <span className="tab-icon-box">
+              <Camera size={15} />
+            </span>
+            <span className="tab-label">Aluguéis</span>
+          </button>
 
           {/* Se for ADMINISTRADOR: Exibe a Central ADM e NÃO exibe Meu Espaço */}
           {isAdminUser ? (
@@ -2893,16 +2894,16 @@ export default function App() {
                     <span>Equipes &amp; Administradores</span>
                     <span className="md-nav-badge">{members.length}</span>
                   </button>
-
-                  <button
-                    className={`md-nav-item ${activeTab === 'rentals' ? 'active' : ''}`}
-                    onClick={() => { setActiveTab('rentals'); setIsMobileDrawerOpen(false); }}
-                  >
-                    <Camera size={18} />
-                    <span>Aluguel de Equipamentos</span>
-                  </button>
                 </>
               )}
+
+              <button
+                className={`md-nav-item ${activeTab === 'rentals' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('rentals'); setIsMobileDrawerOpen(false); }}
+              >
+                <Camera size={18} />
+                <span>Aluguel de Equipamentos</span>
+              </button>
 
               {isAdminUser ? (
                 <button
@@ -3497,8 +3498,8 @@ export default function App() {
           />
         )}
 
-        {/* ABA 7: ALUGUEL DE EQUIPAMENTOS (Acesso Direto no Menu para Gestor) */}
-        {activeTab === 'rentals' && canManageFleetAndTeams && (
+        {/* ABA 7: ALUGUEL DE EQUIPAMENTOS (Acesso para Gestores, Administradores e Colaboradores) */}
+        {activeTab === 'rentals' && (
           <EquipmentRentalManager currentUser={currentUser} />
         )}
       </main>
