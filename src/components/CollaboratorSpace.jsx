@@ -40,8 +40,6 @@ import {
   Printer,
   Receipt,
   Wallet,
-  FileText,
-  Download,
 } from 'lucide-react';
 import ConcludePostProductionModal from './ConcludePostProductionModal';
 import {
@@ -294,7 +292,6 @@ export default function CollaboratorSpace({
   const [myAdvances, setMyAdvances] = useState([]);
   const [isLoadingAdvances, setIsLoadingAdvances] = useState(false);
   const [showAdvancesHistoryModal, setShowAdvancesHistoryModal] = useState(false);
-  const [viewingReceipt, setViewingReceipt] = useState(null);
 
   useEffect(() => {
     if (!myMember?.id) return;
@@ -2616,7 +2613,6 @@ export default function CollaboratorSpace({
                         <th>Valor</th>
                         <th>Forma</th>
                         <th>Motivo / Descrição</th>
-                        <th>Comprovante</th>
                         <th>Autorizado Por</th>
                       </tr>
                     </thead>
@@ -2626,23 +2622,8 @@ export default function CollaboratorSpace({
                           <td>{formatDateBR(adv.date)}</td>
                           <td className="text-rose" style={{ fontWeight: 800 }}>-{formatBRL(adv.amount)}</td>
                           <td><span className="adv-badge-method">{adv.paymentMethod || 'PIX'}</span></td>
-                          <td>{adv.reason || adv.description || 'Adiantamento salarial'}</td>
-                          <td>
-                            {adv.receiptUrl ? (
-                              <button
-                                type="button"
-                                className="adv-btn-view-receipt"
-                                onClick={() => setViewingReceipt(adv)}
-                                title="Ver Comprovante Oficial de Pagamento"
-                              >
-                                <FileText size={13} className="text-cyan" />
-                                <span>Ver Comprovante</span>
-                              </button>
-                            ) : (
-                              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Sem anexo</span>
-                            )}
-                          </td>
-                          <td>{adv.authorizedBy || adv.registeredBy || 'Gestão'}</td>
+                          <td>{adv.reason || 'Adiantamento salarial'}</td>
+                          <td>{adv.authorizedBy || 'Gestão'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2667,146 +2648,6 @@ export default function CollaboratorSpace({
               >
                 Entendido
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Lightbox / Visualizador de Comprovante para o Colaborador */}
-      {viewingReceipt && (
-        <div
-          className="receipt-lightbox-overlay"
-          onClick={() => setViewingReceipt(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(5, 8, 16, 0.92)',
-            backdropFilter: 'blur(10px)',
-            zIndex: 11000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 20,
-          }}
-        >
-          <div
-            className="receipt-lightbox-card"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: 720,
-              maxHeight: '92vh',
-              background: '#0d1527',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              borderRadius: 14,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(56, 189, 248, 0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '14px 18px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              background: 'rgba(255, 255, 255, 0.02)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#38bdf8'
-                }}>
-                  <Receipt size={18} />
-                </div>
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    Comprovante de Transferência
-                  </h4>
-                  <small style={{ color: '#94a3b8', fontSize: '0.78rem' }}>
-                    Vale de <strong>{formatBRL(viewingReceipt.amount)}</strong> • Data: {formatDateBR(viewingReceipt.date)}
-                  </small>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="advances-close-btn"
-                onClick={() => setViewingReceipt(null)}
-                title="Fechar"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#080d1a',
-              minHeight: 340,
-            }}>
-              {viewingReceipt.receiptUrl.startsWith('data:application/pdf') || viewingReceipt.receiptUrl.toLowerCase().endsWith('.pdf') ? (
-                <iframe
-                  src={viewingReceipt.receiptUrl}
-                  title="Comprovante em PDF"
-                  style={{ width: '100%', height: 460, border: 'none', borderRadius: 8 }}
-                />
-              ) : (
-                <img
-                  src={viewingReceipt.receiptUrl}
-                  alt="Comprovante de pagamento"
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '68vh',
-                    objectFit: 'contain',
-                    borderRadius: 8,
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
-                  }}
-                />
-              )}
-            </div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '12px 18px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-              background: 'rgba(255, 255, 255, 0.02)',
-            }}>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                Autorizado por: <strong>{viewingReceipt.authorizedBy || viewingReceipt.registeredBy || 'Gestão'}</strong>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <a
-                  href={viewingReceipt.receiptUrl}
-                  download={`comprovante_vale_${viewingReceipt.date}.jpg`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="advances-btn-attach-receipt"
-                  style={{ textDecoration: 'none' }}
-                >
-                  <Download size={14} />
-                  <span>Baixar / Abrir</span>
-                </a>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => setViewingReceipt(null)}
-                >
-                  Fechar
-                </button>
-              </div>
             </div>
           </div>
         </div>

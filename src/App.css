@@ -26711,104 +26711,265 @@ body.light-theme .btn-payout-print {
 /* 2. Grade de Indicadores Executivos */
 .payouts-summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+@media (max-width: 1200px) {
+  .payouts-summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+  }
 }
 
 .payout-summary-card {
-  background: rgba(15, 23, 42, 0.75);
+  position: relative;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.82) 0%, rgba(24, 33, 56, 0.65) 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  padding: 16px 18px;
+  padding: 16px 16px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  transition: transform 0.2s ease, border-color 0.2s ease;
-  backdrop-filter: blur(8px);
+  gap: 13px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  min-width: 0;
 }
 
-body.light-theme .payout-summary-card {
+.payout-summary-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: transparent;
+  transition: background 0.25s ease;
+}
+
+body.light-theme .payout-summary-card,
+[data-theme="light"] .payout-summary-card {
   background: #ffffff;
   border-color: #e2e8f0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
 .payout-summary-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(16, 185, 129, 0.35);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.5);
 }
 
+/* Card 1: Líquido Folha (Emerald) */
 .payout-summary-card.card-total-value {
-  border-color: rgba(16, 185, 129, 0.3);
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-color: rgba(16, 185, 129, 0.32);
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%);
 }
 
-body.light-theme .payout-summary-card.card-total-value {
-  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
+.payout-summary-card.card-total-value::before {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+}
+
+.payout-summary-card.card-total-value:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 10px 24px -4px rgba(16, 185, 129, 0.2);
+}
+
+.payout-summary-card.card-total-value .psc-icon-wrap {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+body.light-theme .payout-summary-card.card-total-value,
+[data-theme="light"] .payout-summary-card.card-total-value {
+  background: linear-gradient(145deg, #ecfdf5 0%, #ffffff 100%);
   border-color: #a7f3d0;
 }
 
+/* Card 2: Vales e Adiantamentos (Rose) */
+.payout-summary-card.card-advances {
+  border-color: rgba(244, 63, 94, 0.28);
+  background: linear-gradient(145deg, rgba(244, 63, 94, 0.08) 0%, rgba(15, 23, 42, 0.85) 100%);
+}
+
+.payout-summary-card.card-advances::before {
+  background: linear-gradient(90deg, #f43f5e 0%, #fb7185 100%);
+}
+
+.payout-summary-card.card-advances:hover {
+  border-color: rgba(244, 63, 94, 0.5);
+  box-shadow: 0 10px 24px -4px rgba(244, 63, 94, 0.2);
+}
+
+.payout-summary-card.card-advances .psc-icon-wrap {
+  background: rgba(244, 63, 94, 0.16);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+body.light-theme .payout-summary-card.card-advances,
+[data-theme="light"] .payout-summary-card.card-advances {
+  background: linear-gradient(145deg, #fff1f2 0%, #ffffff 100%);
+  border-color: #fecdd3;
+}
+
+/* Card 3: Horas Extras (Cyan) */
+.payout-summary-card.card-hours {
+  border-color: rgba(6, 182, 212, 0.25);
+  background: linear-gradient(145deg, rgba(6, 182, 212, 0.06) 0%, rgba(15, 23, 42, 0.85) 100%);
+}
+
+.payout-summary-card.card-hours::before {
+  background: linear-gradient(90deg, #06b6d4 0%, #38bdf8 100%);
+}
+
+.payout-summary-card.card-hours:hover {
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 10px 24px -4px rgba(6, 182, 212, 0.18);
+}
+
+.payout-summary-card.card-hours .psc-icon-wrap {
+  background: rgba(6, 182, 212, 0.16);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+body.light-theme .payout-summary-card.card-hours,
+[data-theme="light"] .payout-summary-card.card-hours {
+  background: linear-gradient(145deg, #ecfeff 0%, #ffffff 100%);
+  border-color: #a5f3fc;
+}
+
+/* Card 4: Diárias (Amber) */
+.payout-summary-card.card-travel {
+  border-color: rgba(245, 158, 11, 0.25);
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.06) 0%, rgba(15, 23, 42, 0.85) 100%);
+}
+
+.payout-summary-card.card-travel::before {
+  background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.payout-summary-card.card-travel:hover {
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 10px 24px -4px rgba(245, 158, 11, 0.18);
+}
+
+.payout-summary-card.card-travel .psc-icon-wrap {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+body.light-theme .payout-summary-card.card-travel,
+[data-theme="light"] .payout-summary-card.card-travel {
+  background: linear-gradient(145deg, #fffbeb 0%, #ffffff 100%);
+  border-color: #fde68a;
+}
+
+/* Card 5: Status de Pagamento (Purple) */
+.payout-summary-card.card-status {
+  border-color: rgba(168, 85, 247, 0.25);
+  background: linear-gradient(145deg, rgba(168, 85, 247, 0.06) 0%, rgba(15, 23, 42, 0.85) 100%);
+}
+
+.payout-summary-card.card-status::before {
+  background: linear-gradient(90deg, #a855f7 0%, #c084fc 100%);
+}
+
+.payout-summary-card.card-status:hover {
+  border-color: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 10px 24px -4px rgba(168, 85, 247, 0.18);
+}
+
+.payout-summary-card.card-status .psc-icon-wrap {
+  background: rgba(168, 85, 247, 0.16);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+body.light-theme .payout-summary-card.card-status,
+[data-theme="light"] .payout-summary-card.card-status {
+  background: linear-gradient(145deg, #faf5ff 0%, #ffffff 100%);
+  border-color: #e9d5ff;
+}
+
 .psc-icon-wrap {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
-.payout-summary-card.card-total-value .psc-icon-wrap {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
-}
-
-.payout-summary-card.card-hours .psc-icon-wrap {
-  background: rgba(6, 182, 212, 0.2);
-  color: #22d3ee;
-}
-
-.payout-summary-card.card-travel .psc-icon-wrap {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-}
-
-.payout-summary-card.card-status .psc-icon-wrap {
-  background: rgba(168, 85, 247, 0.2);
-  color: #c084fc;
+.payout-summary-card:hover .psc-icon-wrap {
+  transform: scale(1.06);
 }
 
 .psc-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
 }
 
 .psc-label {
-  font-size: 0.74rem;
+  font-size: 0.71rem;
   color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
+  letter-spacing: 0.6px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-body.light-theme .psc-label {
+body.light-theme .psc-label,
+[data-theme="light"] .psc-label {
   color: #64748b;
 }
 
 .psc-value {
-  font-size: 1.25rem;
+  font-size: 1.32rem;
   font-weight: 800;
   color: #ffffff;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-body.light-theme .psc-value {
+.psc-val-divider {
+  margin: 0 4px;
+  color: #64748b;
+  font-weight: 400;
+}
+
+body.light-theme .psc-value,
+[data-theme="light"] .psc-value {
   color: #0f172a;
 }
 
 .psc-sub {
-  font-size: 0.72rem;
+  font-size: 0.70rem;
   color: #64748b;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.light-theme .psc-sub,
+[data-theme="light"] .psc-sub {
+  color: #94a3b8;
 }
 
 /* 3. Filtros e Busca */
