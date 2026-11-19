@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ShieldCheck,
   Clock,
@@ -31,6 +31,7 @@ import {
   ExternalLink,
   Camera,
   MessageSquare,
+  Compass,
 } from 'lucide-react';
 import TeamPayoutsDashboard from './TeamPayoutsDashboard';
 import TeamPerformanceRanking from './TeamPerformanceRanking';
@@ -40,6 +41,7 @@ import RejectPostProductionModal from './RejectPostProductionModal';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { getMissionCode } from '../utils/geo';
 import { clearPostProductionNotification } from '../utils/notifications';
+import { apiRequest } from '../utils/api';
 import {
   resolveMissionEditors,
   getMissionEditionDeliverySummary,
@@ -59,6 +61,8 @@ export default function AdminCenter({
   members = [],
   missions = [],
   vehicles = [],
+  reserveAlertVehicles = [],
+  rentals: initialRentals = [],
   baseLocation = null,
   closures = {},
   onUpdateMember = null,
@@ -66,7 +70,28 @@ export default function AdminCenter({
   onSaveMission = null,
   onEditMission = null,
   reloadServerMissions = null,
+  onNavigateTab = null,
 }) {
+  // Sincronização e consulta de aluguéis para métricas de devolução e atrasos
+  const [rentalsList, setRentalsList] = useState(initialRentals);
+
+  useEffect(() => {
+    if (Array.isArray(initialRentals) && initialRentals.length > 0) {
+      setRentalsList(initialRentals);
+    } else {
+      let isMounted = true;
+      apiRequest('/rentals.php')
+        .then((res) => {
+          if (isMounted && res && res.success && Array.isArray(res.rentals)) {
+            setRentalsList(res.rentals);
+          }
+        })
+        .catch(() => {});
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [initialRentals]);
   // 1. Extrai todas as solicitações de horas extras de todas as missões
   const allExtraHoursRequests = useMemo(() => {
     const list = [];
@@ -385,14 +410,159 @@ export default function AdminCenter({
     setTimeout(() => setCopiedPathId(null), 2000);
   };
 
-  // Estatísticas de Topo
-  const totalApprovedHoursMonth = useMemo(() => {
-    const now = new Date();
-    const curMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    return allExtraHoursRequests
-      .filter((r) => r.status === 'APPROVED' && (r.missionDate || '').startsWith(curMonth))
-      .reduce((acc, r) => acc + (Number(r.hoursRequested) || 0), 0);
-  }, [allExtraHoursRequests]);
+  // Estatísticas de Gestão Operacional & Decisão (Atenção para Administradores)
+  const totalPendingApprovals = pendingEditions.length + pendingRequests.length;
+
+  const editionDeadlinesStats = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    let overdue = 0;
+    let dueToday = 0;
+    let inProgress = 0;
+
+    missions.forEach((m) => {
+      const isFinished = m.missionStatus === 'Finalizada' || m.missionStatus === 'Finalizado' || m.missionStatus === 'Concluída';
+      if (isFinished) return;
+
+      const summary = getMissionEditionDeliverySummary(m, members);
+      if (!summary.hasPostProduction) return;
+
+      if (!summary.isFullyDelivered && m.editionStatus !== 'Edição Concluída' && m.editionStatus !== 'Entregue') {
+        inProgress++;
+        if (m.deliveryDeadlineDate) {
+          if (m.deliveryDeadlineDate < todayStr) {
+            overdue++;
+          } else if (m.deliveryDeadlineDate === todayStr) {
+            dueToday++;
+          }
+        }
+      }
+    });
+
+    return { overdue, dueToday, inProgress, totalAlerts: overdue + dueToday };
+  }, [missions, members]);
+
+  const rentalStats = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    let overdue = 0;
+    let dueToday = 0;
+    let active = 0;
+
+    (rentalsList || []).forEach((r) => {
+      if (!r || r.status === 'returned' || r.status === 'cancelled') return;
+      active++;
+      if (r.status === 'overdue' || (r.endDate && r.endDate < todayStr)) {
+        overdue++;
+      } else if (r.endDate === todayStr) {
+        dueToday++;
+      }
+    });
+
+    return { overdue, dueToday, active, totalAlerts: overdue + dueToday };
+  }, [rentalsList]);
+
+  const computedReserveVehicles = useMemo(() => {
+    if (Array.isArray(reserveAlertVehicles) && reserveAlertVehicles.length > 0) {
+      return reserveAlertVehicles;
+    }
+    return (vehicles || []).filter((v) => {
+      const fl = String(v.fuelLevel || v.fuel_level || '').toLowerCase();
+      return fl === 'reserva' || fl === 'crítico' || fl === 'critico' || (Number(v.fuelPercent) > 0 && Number(v.fuelPercent) <= 15);
+    });
+  }, [reserveAlertVehicles, vehicles]);
+
+  const payoutsStats = useMemo(() => {
+    let pendingCount = 0;
+    let paidCount = 0;
+    (members || []).forEach((mem) => {
+      const status = closures[mem.id]?.status || 'Pendente';
+      if (status === 'Pago') {
+        paidCount++;
+      } else {
+        pendingCount++;
+      }
+    });
+    return { pendingCount, paidCount };
+  }, [members, closures]);
+
+  const activeFieldMissions = useMemo(() => {
+    return (missions || []).filter((m) => {
+      const s = m.missionStatus;
+      return s === 'Em Deslocamento' || s === 'Em Execução' || s === 'Em Rota';
+    });
+  }, [missions]);
+
+  // Ações de Fácil Acesso ao Clicar nos Cards de Topo
+  const handleGoToApprovals = () => {
+    if (pendingEditions.length > 0) {
+      setAdminTab('approvals_pp');
+      setPpSubView('pending');
+    } else {
+      setAdminTab('approvals_hours');
+      setApprovalsSubView('pending');
+    }
+  };
+
+  const handleGoToDeadlines = () => {
+    setAdminTab('approvals_pp');
+    setPpSubView('pending');
+  };
+
+  const handleGoToRentals = () => {
+    setAdminTab('rentals');
+  };
+
+  const handleGoToFleet = async () => {
+    if (onNavigateTab) {
+      onNavigateTab('vehicles');
+      return;
+    }
+    if (computedReserveVehicles.length > 0) {
+      const names = computedReserveVehicles
+        .map((item) => {
+          const v = item.vehicle || item;
+          return `• ${v.name || 'Viatura'} (${v.plate || 'S/ placa'})`;
+        })
+        .join('\n');
+      await alertDialog({
+        title: '⚠️ Viaturas em Reserva de Combustível',
+        message: `As seguintes viaturas atingiram o nível de reserva ou crítico:\n\n${names}\n\nAcesse o menu "Viaturas & Combustível" para autorizar o abastecimento.`,
+        variant: 'warning',
+      });
+    } else {
+      await alertDialog({
+        title: '⛽ Frota Operacional',
+        message: `Todas as ${vehicles.length} viaturas cadastradas estão com nível de combustível adequado.`,
+        variant: 'info',
+      });
+    }
+  };
+
+  const handleGoToPayouts = () => {
+    setAdminTab('payouts');
+  };
+
+  const handleGoToField = async () => {
+    if (onNavigateTab) {
+      onNavigateTab('map');
+      return;
+    }
+    if (activeFieldMissions.length > 0) {
+      const list = activeFieldMissions
+        .map((m) => `• ${m.code || 'MISSÃO'}: ${m.description} (${m.missionStatus})`)
+        .join('\n');
+      await alertDialog({
+        title: '📍 Missões em Campo Agora',
+        message: `Equipes em atividade na rua:\n\n${list}`,
+        variant: 'info',
+      });
+    } else {
+      await alertDialog({
+        title: '📍 Operação de Campo',
+        message: 'Nenhuma equipe está em deslocamento ou execução no momento.',
+        variant: 'info',
+      });
+    }
+  };
 
   // Lista filtrada para Horas Extras
   const displayedRequests = useMemo(() => {
@@ -440,43 +610,172 @@ export default function AdminCenter({
           </p>
         </div>
 
-        {/* Mini KPI Cards de Topo */}
+        {/* Mini KPI Cards de Topo: Informações Críticas com Acesso Fácil */}
         <div className="ach-kpi-strip">
-          <div className={`ach-kpi-card ${pendingEditions.length > 0 || pendingRequests.length > 0 ? 'kpi-warn-pulse' : ''}`}>
+          {/* CARD 1: APROVAÇÕES PENDENTES */}
+          <div
+            className={`ach-kpi-card ${totalPendingApprovals > 0 ? 'kpi-warn-pulse' : ''} ${adminTab === 'approvals_pp' || adminTab === 'approvals_hours' ? 'is-active-tab' : ''}`}
+            onClick={handleGoToApprovals}
+            title="Clique para ir direto às aprovações da diretoria"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handleGoToApprovals()}
+          >
+            {totalPendingApprovals > 0 && <span className="ach-kpi-tag tag-warning">Decisão</span>}
             <div className="ach-kpi-icon text-amber">
               <Clock size={18} />
             </div>
             <div className="ach-kpi-data">
-              <span className="ach-kpi-num">{pendingEditions.length + pendingRequests.length}</span>
+              <span className="ach-kpi-num">{totalPendingApprovals}</span>
               <span className="ach-kpi-lbl">Aprovações Pendentes</span>
-              <small style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>
-                {pendingEditions.length} Pós-Produção • {pendingRequests.length} Horas
+              <small className="ach-kpi-sub">
+                {pendingEditions.length} Pós-Prod • {pendingRequests.length} Horas
               </small>
             </div>
           </div>
 
-          <div className="ach-kpi-card">
+          {/* CARD 2: PRAZOS DE EDIÇÃO */}
+          <div
+            className={`ach-kpi-card ${editionDeadlinesStats.overdue > 0 ? 'kpi-danger-pulse' : (editionDeadlinesStats.dueToday > 0 ? 'kpi-warn-pulse' : 'kpi-success-subtle')} ${adminTab === 'approvals_pp' ? 'is-active-tab' : ''}`}
+            onClick={handleGoToDeadlines}
+            title="Clique para verificar os prazos de entrega dos editores"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handleGoToDeadlines()}
+          >
+            {editionDeadlinesStats.overdue > 0 ? (
+              <span className="ach-kpi-tag tag-danger">Atraso</span>
+            ) : editionDeadlinesStats.dueToday > 0 ? (
+              <span className="ach-kpi-tag tag-warning">Vence Hoje</span>
+            ) : (
+              <span className="ach-kpi-tag tag-success">No Prazo</span>
+            )}
+            <div className={`ach-kpi-icon ${editionDeadlinesStats.overdue > 0 ? 'text-rose' : (editionDeadlinesStats.dueToday > 0 ? 'text-amber' : 'text-emerald')}`}>
+              {editionDeadlinesStats.overdue > 0 ? <AlertTriangle size={18} /> : <Film size={18} />}
+            </div>
+            <div className="ach-kpi-data">
+              <span className="ach-kpi-num">
+                {editionDeadlinesStats.overdue > 0 ? `${editionDeadlinesStats.overdue} Atrasadas` : (editionDeadlinesStats.dueToday > 0 ? `${editionDeadlinesStats.dueToday} Hoje` : 'Prazos OK')}
+              </span>
+              <span className="ach-kpi-lbl">Prazos de Edição</span>
+              <small className="ach-kpi-sub">
+                {editionDeadlinesStats.overdue > 0
+                  ? `${editionDeadlinesStats.overdue} expirada(s) • ${editionDeadlinesStats.dueToday} hoje`
+                  : (editionDeadlinesStats.dueToday > 0
+                    ? `${editionDeadlinesStats.dueToday} entrega(s) previstas hoje`
+                    : `${editionDeadlinesStats.inProgress} em produção • Em dia`)}
+              </small>
+            </div>
+          </div>
+
+          {/* CARD 3: ALUGUÉIS & DEVOLUÇÕES */}
+          <div
+            className={`ach-kpi-card ${rentalStats.overdue > 0 ? 'kpi-danger-pulse' : (rentalStats.dueToday > 0 ? 'kpi-warn-pulse' : '')} ${adminTab === 'rentals' ? 'is-active-tab' : ''}`}
+            onClick={handleGoToRentals}
+            title="Clique para acessar o módulo de Aluguel & Equipamentos"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handleGoToRentals()}
+          >
+            {rentalStats.overdue > 0 ? (
+              <span className="ach-kpi-tag tag-danger">Atraso</span>
+            ) : rentalStats.dueToday > 0 ? (
+              <span className="ach-kpi-tag tag-warning">Hoje</span>
+            ) : rentalStats.active > 0 ? (
+              <span className="ach-kpi-tag tag-info">{rentalStats.active} Ativos</span>
+            ) : null}
+            <div className={`ach-kpi-icon ${rentalStats.overdue > 0 ? 'text-rose' : (rentalStats.dueToday > 0 ? 'text-amber' : 'text-cyan')}`}>
+              <Camera size={18} />
+            </div>
+            <div className="ach-kpi-data">
+              <span className="ach-kpi-num">
+                {rentalStats.totalAlerts > 0 ? `${rentalStats.totalAlerts} Alertas` : `${rentalStats.active} Aluguéis`}
+              </span>
+              <span className="ach-kpi-lbl">Aluguel &amp; Devoluções</span>
+              <small className="ach-kpi-sub">
+                {rentalStats.totalAlerts > 0
+                  ? `${rentalStats.overdue} em atraso • ${rentalStats.dueToday} hoje`
+                  : (rentalStats.active > 0 ? `${rentalStats.active} locação(ões) ativas` : 'Nenhum aluguel pendente')}
+              </small>
+            </div>
+          </div>
+
+          {/* CARD 4: FROTA & COMBUSTÍVEL CRÍTICO */}
+          <div
+            className={`ach-kpi-card ${computedReserveVehicles.length > 0 ? 'kpi-danger-pulse' : 'kpi-success-subtle'}`}
+            onClick={handleGoToFleet}
+            title="Clique para gerenciar viaturas e autorizar abastecimentos"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handleGoToFleet()}
+          >
+            {computedReserveVehicles.length > 0 ? (
+              <span className="ach-kpi-tag tag-danger">Reserva</span>
+            ) : (
+              <span className="ach-kpi-tag tag-success">OK</span>
+            )}
+            <div className={`ach-kpi-icon ${computedReserveVehicles.length > 0 ? 'text-rose' : 'text-emerald'}`}>
+              <Car size={18} />
+            </div>
+            <div className="ach-kpi-data">
+              <span className="ach-kpi-num">
+                {computedReserveVehicles.length > 0 ? `${computedReserveVehicles.length} na Reserva` : `${vehicles.length} Viaturas`}
+              </span>
+              <span className="ach-kpi-lbl">Frota &amp; Combustível</span>
+              <small className="ach-kpi-sub">
+                {computedReserveVehicles.length > 0
+                  ? 'Atenção ao abastecimento'
+                  : 'Nível operacional regular'}
+              </small>
+            </div>
+          </div>
+
+          {/* CARD 5: FECHAMENTO & SALDO DA FOLHA */}
+          <div
+            className={`ach-kpi-card ${payoutsStats.pendingCount > 0 ? 'kpi-warn-pulse' : 'kpi-success-subtle'} ${adminTab === 'payouts' ? 'is-active-tab' : ''}`}
+            onClick={handleGoToPayouts}
+            title="Clique para ir ao Fechamento Financeiro e Folha de Pagamento"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handleGoToPayouts()}
+          >
+            {payoutsStats.pendingCount > 0 ? (
+              <span className="ach-kpi-tag tag-warning">A Quitar</span>
+            ) : (
+              <span className="ach-kpi-tag tag-success">100% Pago</span>
+            )}
             <div className="ach-kpi-icon text-emerald">
-              <CheckCircle2 size={18} />
+              <DollarSign size={18} />
             </div>
             <div className="ach-kpi-data">
-              <span className="ach-kpi-num">+{totalApprovedHoursMonth}h</span>
-              <span className="ach-kpi-lbl">Horas Aprovadas</span>
-              <small style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>
-                Mês Vigente
+              <span className="ach-kpi-num">
+                {payoutsStats.pendingCount > 0 ? `${payoutsStats.pendingCount} Pendentes` : 'Folha Paga'}
+              </span>
+              <span className="ach-kpi-lbl">Fechamento do Mês</span>
+              <small className="ach-kpi-sub">
+                {payoutsStats.paidCount} Pagos • Quitação dia 05
               </small>
             </div>
           </div>
 
-          <div className="ach-kpi-card">
+          {/* CARD 6: MISSÕES EM CAMPO AGORA */}
+          <div
+            className="ach-kpi-card"
+            onClick={handleGoToField}
+            title="Clique para acompanhar equipes e missões em campo"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handleGoToField()}
+          >
+            {activeFieldMissions.length > 0 && <span className="ach-kpi-tag tag-info">Em Campo</span>}
             <div className="ach-kpi-icon text-gold">
-              <Briefcase size={18} />
+              <Compass size={18} />
             </div>
             <div className="ach-kpi-data">
-              <span className="ach-kpi-num">{members.length}</span>
-              <span className="ach-kpi-lbl">Colaboradores</span>
-              <small style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>
-                Equipe Ativa
+              <span className="ach-kpi-num">{activeFieldMissions.length} Ativas</span>
+              <span className="ach-kpi-lbl">Missões em Campo</span>
+              <small className="ach-kpi-sub">
+                {activeFieldMissions.length > 0 ? `${activeFieldMissions.length} equipe(s) na rua agora` : 'Nenhuma equipe na rua agora'}
               </small>
             </div>
           </div>

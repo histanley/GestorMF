@@ -371,6 +371,7 @@ export default function App() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedMissionId, setSelectedMissionId] = useState(INITIAL_MISSIONS[0]?.id || null);
   const [mapMissionFilter, setMapMissionFilter] = useState('ativas'); // 'ativas' (Agendada + Em Preparo + Em Execução) | 'agendadas' | 'andamento' | 'finalizadas'
+  const [rentals, setRentals] = useState([]);
 
   const detailMission = useMemo(() => {
     if (!detailMissionId) return null;
@@ -539,6 +540,7 @@ export default function App() {
         const res = await apiRequest('/rentals.php');
         if (!isMounted) return;
         if (res && res.success && Array.isArray(res.rentals)) {
+          setRentals(res.rentals);
           const rentalAlerts = checkAndNotifyPendingRentals(res.rentals, currentUser);
           if (rentalAlerts.length > 0) {
             setNotifications((prev) => {
@@ -3475,12 +3477,15 @@ export default function App() {
             members={members}
             missions={missions}
             vehicles={vehicles}
+            reserveAlertVehicles={reserveAlertVehicles}
+            rentals={rentals}
             baseLocation={settings?.baseLocation}
             onUpdateMember={handleUpdateMember}
             onRespondExtraHours={handleRespondExtraHours}
             onSaveMission={handleSaveMission}
             onEditMission={handleEditMission}
             reloadServerMissions={reloadServerMissions}
+            onNavigateTab={(tab) => setActiveTab(tab)}
           />
         )}
 

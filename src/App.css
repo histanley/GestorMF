@@ -32183,9 +32183,10 @@ body.light-theme .ach-desc {
 
 .ach-kpi-strip {
   display: flex;
-  align-items: center;
-  gap: 0.85rem;
+  align-items: stretch;
+  gap: 0.75rem;
   flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .ach-kpi-card {
@@ -32195,16 +32196,50 @@ body.light-theme .ach-desc {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 10px 16px;
-  min-width: 150px;
-  transition: all 0.2s ease;
+  padding: 10px 14px;
+  min-width: 155px;
+  flex: 1 1 155px;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  text-align: left;
+}
+
+.ach-kpi-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
+}
+
+.ach-kpi-card:active {
+  transform: translateY(0);
+}
+
+.ach-kpi-card.is-active-tab {
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.08) !important;
 }
 
 [data-theme="light"] .ach-kpi-card,
 body.light-theme .ach-kpi-card {
   background: #ffffff !important;
-  border-color: rgba(15, 23, 42, 0.08) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  border: 1.5px solid #cbd5e1 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+}
+
+[data-theme="light"] .ach-kpi-card:hover,
+body.light-theme .ach-kpi-card:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.09) !important;
+}
+
+[data-theme="light"] .ach-kpi-card.is-active-tab,
+body.light-theme .ach-kpi-card.is-active-tab {
+  border-color: #f59e0b !important;
+  background: #fffbeb !important;
 }
 
 .ach-kpi-card.kpi-warn-pulse {
@@ -32213,8 +32248,18 @@ body.light-theme .ach-kpi-card {
   animation: kpiPulse 2s infinite ease-in-out;
 }
 
-@keyframes kpiPulse {
+.ach-kpi-card.kpi-danger-pulse {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  animation: kpiDangerPulse 2s infinite ease-in-out;
+}
 
+.ach-kpi-card.kpi-success-subtle {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+@keyframes kpiPulse {
   0%,
   100% {
     box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
@@ -32225,6 +32270,82 @@ body.light-theme .ach-kpi-card {
   }
 }
 
+@keyframes kpiDangerPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+}
+
+.ach-kpi-tag {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.ach-kpi-tag.tag-danger {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+}
+
+.ach-kpi-tag.tag-warning {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.ach-kpi-tag.tag-success {
+  background: rgba(16, 185, 129, 0.18);
+  color: #a7f3d0;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.ach-kpi-tag.tag-info {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+[data-theme="light"] .ach-kpi-tag.tag-danger,
+body.light-theme .ach-kpi-tag.tag-danger {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+  border-color: #fca5a5 !important;
+}
+
+[data-theme="light"] .ach-kpi-tag.tag-warning,
+body.light-theme .ach-kpi-tag.tag-warning {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+
+[data-theme="light"] .ach-kpi-tag.tag-success,
+body.light-theme .ach-kpi-tag.tag-success {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  border-color: #86efac !important;
+}
+
+[data-theme="light"] .ach-kpi-tag.tag-info,
+body.light-theme .ach-kpi-tag.tag-info {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
 .ach-kpi-icon {
   width: 38px;
   height: 38px;
@@ -32233,6 +32354,7 @@ body.light-theme .ach-kpi-card {
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 }
 
 [data-theme="light"] .ach-kpi-icon,
@@ -32243,13 +32365,15 @@ body.light-theme .ach-kpi-icon {
 .ach-kpi-data {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .ach-kpi-num {
-  font-size: 1.25rem;
+  font-size: 1.18rem;
   font-weight: 800;
   color: #f8fafc;
-  line-height: 1.1;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 [data-theme="light"] .ach-kpi-num,
@@ -32260,10 +32384,26 @@ body.light-theme .ach-kpi-num {
 .ach-kpi-lbl {
   font-size: 0.68rem;
   color: #94a3b8;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   margin-top: 2px;
+  white-space: nowrap;
+}
+
+.ach-kpi-sub {
+  font-size: 0.62rem;
+  color: #64748b;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+[data-theme="light"] .ach-kpi-sub,
+body.light-theme .ach-kpi-sub {
+  color: #64748b !important;
 }
 
 /* Barra de Abas da Central do Admin */

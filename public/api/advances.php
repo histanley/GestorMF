@@ -8,8 +8,9 @@ $method = $_SERVER['REQUEST_METHOD'];
 $db = getDB();
 
 // Garante tabela de vales e adiantamentos salariais via migração versionada (DB-01)
-function ensureSalaryAdvancesTable($db) {
-    runVersionedMigration($db, 'schema_salary_advances_v1', function($pdo) {
+function ensureSalaryAdvancesTable($db)
+{
+    runVersionedMigration($db, 'schema_salary_advances_v1', function ($pdo) {
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS salary_advances (
                 id VARCHAR(64) PRIMARY KEY,
@@ -35,7 +36,8 @@ function ensureSalaryAdvancesTable($db) {
 ensureSalaryAdvancesTable($db);
 
 // Garante diretório seguro para armazenamento físico de comprovantes de pagamento (PIX / Transferência)
-function ensureAdvancesStorage() {
+function ensureAdvancesStorage()
+{
     $dir = dirname(__DIR__) . '/images/advances';
     if (!is_dir($dir)) {
         @mkdir($dir, 0755, true);
@@ -44,8 +46,10 @@ function ensureAdvancesStorage() {
 }
 
 // Processa o comprovante enviado (base64 data URL ou URL pública) e grava no storage físico
-function processReceiptFile($receiptInput, $advanceId) {
-    if (empty($receiptInput)) return null;
+function processReceiptFile($receiptInput, $advanceId)
+{
+    if (empty($receiptInput))
+        return null;
     $trimmed = trim($receiptInput);
     if (strpos($trimmed, 'http://') === 0 || strpos($trimmed, 'https://') === 0 || strpos($trimmed, '/images/') === 0) {
         return $trimmed;
@@ -55,8 +59,10 @@ function processReceiptFile($receiptInput, $advanceId) {
         if (count($parts) === 2) {
             $isPdf = strpos($parts[0], 'application/pdf') !== false;
             $ext = $isPdf ? 'pdf' : 'jpg';
-            if (strpos($parts[0], 'image/png') !== false) $ext = 'png';
-            if (strpos($parts[0], 'image/webp') !== false) $ext = 'webp';
+            if (strpos($parts[0], 'image/png') !== false)
+                $ext = 'png';
+            if (strpos($parts[0], 'image/webp') !== false)
+                $ext = 'webp';
             $binary = base64_decode($parts[1], true);
             if ($binary !== false && strlen($binary) > 0) {
                 if (strlen($binary) > 15728640) {
@@ -132,8 +138,8 @@ if ($method === 'GET') {
 
         if (!$myMemberId) {
             jsonResponse([
-                'success'  => true,
-                'month'    => $monthKey ?: date('Y-m'),
+                'success' => true,
+                'month' => $monthKey ?: date('Y-m'),
                 'advances' => []
             ]);
         }
@@ -159,25 +165,25 @@ if ($method === 'GET') {
     $advances = [];
     foreach ($rows as $r) {
         $advances[] = [
-            'id'             => $r['id'],
-            'memberId'       => $r['member_id'],
-            'monthKey'       => $r['month_key'],
-            'date'           => $r['date'],
-            'amount'         => (float)($r['amount'] ?? 0),
-            'description'    => $r['description'] ?? '',
-            'paymentMethod'  => $r['payment_method'] ?? 'PIX',
-            'registeredBy'   => $r['registered_by'] ?? '',
+            'id' => $r['id'],
+            'memberId' => $r['member_id'],
+            'monthKey' => $r['month_key'],
+            'date' => $r['date'],
+            'amount' => (float) ($r['amount'] ?? 0),
+            'description' => $r['description'] ?? '',
+            'paymentMethod' => $r['payment_method'] ?? 'PIX',
+            'registeredBy' => $r['registered_by'] ?? '',
             'registeredById' => $r['registered_by_id'] ?? '',
-            'receiptUrl'     => $r['receipt_url'] ?? '',
-            'status'         => $r['status'] ?? 'Concedido',
-            'createdAt'      => $r['created_at'],
-            'updatedAt'      => $r['updated_at']
+            'receiptUrl' => $r['receipt_url'] ?? '',
+            'status' => $r['status'] ?? 'Concedido',
+            'createdAt' => $r['created_at'],
+            'updatedAt' => $r['updated_at']
         ];
     }
 
     jsonResponse([
-        'success'  => true,
-        'month'    => $monthKey,
+        'success' => true,
+        'month' => $monthKey,
         'advances' => $advances
     ]);
 }
@@ -213,7 +219,7 @@ if ($method === 'POST') {
     }
 
     $memberId = trim($data['memberId'] ?? $data['member_id'] ?? '');
-    $amount = isset($data['amount']) ? (float)$data['amount'] : 0.00;
+    $amount = isset($data['amount']) ? (float) $data['amount'] : 0.00;
     $date = trim($data['date'] ?? date('Y-m-d'));
     $monthKey = trim($data['monthKey'] ?? $data['month_key'] ?? substr($date, 0, 7));
     $description = trim($data['description'] ?? $data['reason'] ?? 'Adiantamento de Salário');
@@ -262,17 +268,17 @@ if ($method === 'POST') {
     ");
 
     $stmt->execute([
-        ':id'             => $advanceId,
-        ':member_id'      => $memberId,
-        ':month_key'      => $monthKey,
-        ':date'           => $date,
-        ':amount'         => $amount,
-        ':description'    => $description,
+        ':id' => $advanceId,
+        ':member_id' => $memberId,
+        ':month_key' => $monthKey,
+        ':date' => $date,
+        ':amount' => $amount,
+        ':description' => $description,
         ':payment_method' => $paymentMethod,
-        ':registered_by'  => $registeredBy,
-        ':registered_by_id'=> $registeredById,
-        ':receipt_url'    => $receiptUrl,
-        ':status'         => $status
+        ':registered_by' => $registeredBy,
+        ':registered_by_id' => $registeredById,
+        ':receipt_url' => $receiptUrl,
+        ':status' => $status
     ]);
 
     logAudit(
@@ -287,17 +293,17 @@ if ($method === 'POST') {
     jsonResponse([
         'success' => true,
         'advance' => [
-            'id'             => $advanceId,
-            'memberId'       => $memberId,
-            'monthKey'       => $monthKey,
-            'date'           => $date,
-            'amount'         => $amount,
-            'description'    => $description,
-            'paymentMethod'  => $paymentMethod,
-            'registeredBy'   => $registeredBy,
+            'id' => $advanceId,
+            'memberId' => $memberId,
+            'monthKey' => $monthKey,
+            'date' => $date,
+            'amount' => $amount,
+            'description' => $description,
+            'paymentMethod' => $paymentMethod,
+            'registeredBy' => $registeredBy,
             'registeredById' => $registeredById,
-            'receiptUrl'     => $receiptUrl,
-            'status'         => $status
+            'receiptUrl' => $receiptUrl,
+            'status' => $status
         ]
     ]);
 }
@@ -328,7 +334,7 @@ if ($method === 'DELETE') {
         'SALARY_ADVANCE_DELETE',
         'FINANCE',
         $advanceId,
-        "Vale/Adiantamento {$advanceId} de R$ " . number_format((float)$adv['amount'], 2, ',', '.') . " do colaborador {$adv['member_id']} foi excluído/estornado por {$user['name']}.",
+        "Vale/Adiantamento {$advanceId} de R$ " . number_format((float) $adv['amount'], 2, ',', '.') . " do colaborador {$adv['member_id']} foi excluído/estornado por {$user['name']}.",
         $user['id'],
         $user['name']
     );
