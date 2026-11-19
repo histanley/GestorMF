@@ -28707,6 +28707,66 @@ body.light-theme .mori-input {
   background: linear-gradient(90deg, transparent 0%, rgba(168, 85, 247, 0.7) 25%, rgba(251, 191, 36, 0.75) 50%, rgba(56, 189, 248, 0.7) 75%, transparent 100%);
 }
 
+/* Temas de Neve */
+.dynamic-body-greeting.premium-smart-header.theme-night-snow,
+.dynamic-body-greeting.premium-smart-header.theme-day-snow {
+  border-color: rgba(186, 230, 253, 0.3);
+}
+
+.dynamic-body-greeting.premium-smart-header.theme-night-snow::before,
+.dynamic-body-greeting.premium-smart-header.theme-day-snow::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(186, 230, 253, 0.75) 25%, rgba(224, 242, 254, 0.9) 50%, rgba(125, 211, 252, 0.75) 75%, transparent 100%);
+}
+
+.dynamic-body-greeting.premium-smart-header.theme-night-snow .sh-hero-icon-wrap,
+.dynamic-body-greeting.premium-smart-header.theme-day-snow .sh-hero-icon-wrap {
+  filter: drop-shadow(0 4px 16px rgba(186, 230, 253, 0.65));
+}
+
+/* 2. Centro: Missões Ativas Centralizadas */
+.sh-hero-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 0 14px;
+}
+
+.sh-hero-badge-active-centered {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  color: #34d399;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.12);
+  outline: none;
+  white-space: nowrap;
+}
+
+.sh-hero-badge-active-centered:hover {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: rgba(16, 185, 129, 0.55);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
+}
+
+.sh-hero-badge-active-centered .sh-active-missions-count {
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.sh-hero-badge-active-centered .sh-active-missions-label {
+  color: #a7f3d0;
+  font-weight: 600;
+}
+
 .sh-hero-icon {
   display: inline-block;
   line-height: 1;
@@ -29398,7 +29458,25 @@ body.light-theme .sh-hero-date {
 body.light-theme .sh-hero-badge-active {
   background: #e0f2fe !important;
   border-color: #bae6fd !important;
-  color: #0369a1 !important;
+  color: #0284c7 !important;
+}
+
+[data-theme="light"] .sh-hero-badge-active-centered,
+body.light-theme .sh-hero-badge-active-centered {
+  background: rgba(16, 185, 129, 0.14) !important;
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  color: #065f46 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1) !important;
+}
+
+[data-theme="light"] .sh-hero-badge-active-centered .sh-active-missions-count,
+body.light-theme .sh-hero-badge-active-centered .sh-active-missions-count {
+  color: #047857 !important;
+}
+
+[data-theme="light"] .sh-hero-badge-active-centered .sh-active-missions-label,
+body.light-theme .sh-hero-badge-active-centered .sh-active-missions-label {
+  color: #065f46 !important;
 }
 
 [data-theme="light"] .sh-last-login-tag,

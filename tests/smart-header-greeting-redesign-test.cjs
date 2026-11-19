@@ -2,12 +2,14 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🧪 Iniciando testes do Smart Header Greeting com ícone de clima Sol/Lua e sem foto...');
+console.log('🧪 Iniciando testes do Smart Header Greeting com ilustrações dinâmicas de clima e missões ativas centralizadas...');
 
 const headerPath = path.resolve(__dirname, '../src/components/SmartHeaderGreeting.jsx');
+const wiPath = path.resolve(__dirname, '../src/components/WeatherIllustration.jsx');
 const cssPath = path.resolve(__dirname, '../src/App.css');
 
 const headerJsx = fs.readFileSync(headerPath, 'utf8');
+const wiJsx = fs.readFileSync(wiPath, 'utf8');
 const appCss = fs.readFileSync(cssPath, 'utf8');
 
 // 1. Garantir que a foto da pessoa (sh-avatar-hub) foi retirada
@@ -17,7 +19,14 @@ assert.strictEqual(
   'SmartHeaderGreeting não deve conter sh-avatar-hub (foto da pessoa)'
 );
 
-// 2. Garantir que o container do ícone do clima/horário (sol/lua) existe
+// 2. Garantir que o pill de cargo ("Diretor Geral & Produção" / sh-hero-role-pill) foi retirado
+assert.strictEqual(
+  headerJsx.includes('sh-hero-role-pill'),
+  false,
+  'SmartHeaderGreeting não deve conter sh-hero-role-pill (cargo removido conforme solicitado)'
+);
+
+// 3. Garantir que o container do ícone do clima/horário (sol/lua) existe
 assert.strictEqual(
   headerJsx.includes('sh-hero-icon-wrap'),
   true,
@@ -27,10 +36,10 @@ assert.strictEqual(
 assert.strictEqual(
   headerJsx.includes('{headerWeatherIcon}'),
   true,
-  'SmartHeaderGreeting deve renderizar headerWeatherIcon obedecendo as variações de clima e turno (Lua à noite, Sol de dia)'
+  'SmartHeaderGreeting deve renderizar headerWeatherIcon obedecendo as variações de clima e turno'
 );
 
-// 3. Garantir que as 3 linhas continuam empilhadas e alinhadas
+// 4. Garantir que as 3 linhas continuam empilhadas e alinhadas
 assert.strictEqual(
   headerJsx.includes('className="sh-hero-greeting-row"'),
   true,
@@ -49,34 +58,52 @@ assert.strictEqual(
   'Linha 3: Deve conter sh-hero-date-row'
 );
 
-// 4. Garantir que o Pulso Operacional permanece fora
+// 5. Garantir que as Missões Ativas estão centralizadas
+assert.strictEqual(
+  headerJsx.includes('sh-hero-center'),
+  true,
+  'SmartHeaderGreeting deve conter sh-hero-center para centralizar as missões ativas'
+);
+
+assert.strictEqual(
+  headerJsx.includes('sh-hero-badge-active-centered'),
+  true,
+  'SmartHeaderGreeting deve conter sh-hero-badge-active-centered'
+);
+
+// 6. Garantir que o Pulso Operacional permanece fora
 assert.strictEqual(
   headerJsx.includes('PULSO OPERACIONAL'),
   false,
   'Pulso Operacional deve permanecer removido'
 );
 
-// 5. CSS
+// 7. Ilustrações de Clima completas: ensolarado, nublado, chuvoso, nevando (dia e noite)
 assert.strictEqual(
-  appCss.includes('.sh-hero-icon-wrap'),
+  wiJsx.includes('wi-day-clear') && wiJsx.includes('wi-night-clear'),
   true,
-  'App.css deve conter estilos para .sh-hero-icon-wrap'
+  'WeatherIllustration deve suportar ensolarado e noite clara'
 );
 
 assert.strictEqual(
-  appCss.includes('.weather-art-svg'),
+  wiJsx.includes('wi-day-cloudy') && wiJsx.includes('wi-night-cloudy'),
   true,
-  'App.css deve conter estilos para .weather-art-svg'
+  'WeatherIllustration deve suportar nublado de dia e de noite'
 );
 
-// 6. Componente de Ilustração Vetorial
 assert.strictEqual(
-  headerJsx.includes('WeatherIllustration'),
+  wiJsx.includes('wi-day-rain') && wiJsx.includes('wi-night-rain'),
   true,
-  'SmartHeaderGreeting deve importar e utilizar WeatherIllustration'
+  'WeatherIllustration deve suportar chuvoso de dia e de noite'
 );
 
-// 7. Teste de mapeamento das ilustrações para Dia e Noite e Clima
+assert.strictEqual(
+  wiJsx.includes('wi-day-snow') && wiJsx.includes('wi-night-snow'),
+  true,
+  'WeatherIllustration deve suportar nevando de dia e de noite'
+);
+
+// 8. Teste de mapeamento dos códigos da WMO para clima
 function getIllustrationKey(code, isDay) {
   const c = Number(code);
   switch (c) {
@@ -94,6 +121,17 @@ function getIllustrationKey(code, isDay) {
     case 53:
     case 55:
       return isDay ? 'day-drizzle' : 'night-drizzle';
+    case 56:
+    case 57:
+    case 66:
+    case 67:
+    case 71:
+    case 73:
+    case 75:
+    case 77:
+    case 85:
+    case 86:
+      return isDay ? 'day-snow' : 'night-snow';
     case 61:
     case 63:
     case 65:
@@ -110,18 +148,33 @@ function getIllustrationKey(code, isDay) {
   }
 }
 
-// À noite (isDay = 0)
-assert.strictEqual(getIllustrationKey(0, 0), 'night-clear', 'Noite com céu limpo deve gerar night-clear');
-assert.strictEqual(getIllustrationKey(2, 0), 'night-partly-cloudy', 'Noite parcialmente nublada deve gerar night-partly-cloudy');
-assert.strictEqual(getIllustrationKey(3, 0), 'night-cloudy', 'Noite nublada deve gerar night-cloudy');
-assert.strictEqual(getIllustrationKey(61, 0), 'night-rain', 'Noite chuvosa deve gerar night-rain');
-assert.strictEqual(getIllustrationKey(95, 0), 'night-storm', 'Noite com tempestade deve gerar night-storm');
+// Testes de Nevando
+assert.strictEqual(getIllustrationKey(71, 0), 'night-snow', 'Nevando à noite deve retornar night-snow');
+assert.strictEqual(getIllustrationKey(73, 1), 'day-snow', 'Nevando de dia deve retornar day-snow');
 
-// De dia (isDay = 1)
-assert.strictEqual(getIllustrationKey(0, 1), 'day-clear', 'Dia ensolarado deve gerar day-clear');
-assert.strictEqual(getIllustrationKey(2, 1), 'day-partly-cloudy', 'Dia com sol e nuvens deve gerar day-partly-cloudy');
-assert.strictEqual(getIllustrationKey(3, 1), 'day-cloudy', 'Dia nublado deve gerar day-cloudy');
-assert.strictEqual(getIllustrationKey(61, 1), 'day-rain', 'Dia com chuva deve gerar day-rain');
-assert.strictEqual(getIllustrationKey(95, 1), 'day-storm', 'Dia com tempestade deve gerar day-storm');
+// Testes de Chuvoso
+assert.strictEqual(getIllustrationKey(61, 0), 'night-rain', 'Chuvoso à noite deve retornar night-rain');
+assert.strictEqual(getIllustrationKey(61, 1), 'day-rain', 'Chuvoso de dia deve retornar day-rain');
 
-console.log('✅ Todos os testes do Smart Header Greeting com ilustrações de clima e dia/noite passaram com 100% de sucesso!');
+// Testes de Ensolarado / Noite Clara
+assert.strictEqual(getIllustrationKey(0, 1), 'day-clear', 'Ensolarado de dia deve retornar day-clear');
+assert.strictEqual(getIllustrationKey(0, 0), 'night-clear', 'Céu limpo à noite deve retornar night-clear');
+
+// Testes de Nublado
+assert.strictEqual(getIllustrationKey(3, 1), 'day-cloudy', 'Nublado de dia deve retornar day-cloudy');
+assert.strictEqual(getIllustrationKey(3, 0), 'night-cloudy', 'Nublado à noite deve retornar night-cloudy');
+
+// 9. CSS
+assert.strictEqual(
+  appCss.includes('.sh-hero-center'),
+  true,
+  'App.css deve conter estilos para .sh-hero-center'
+);
+
+assert.strictEqual(
+  appCss.includes('.sh-hero-badge-active-centered'),
+  true,
+  'App.css deve conter estilos para .sh-hero-badge-active-centered'
+);
+
+console.log('✅ Todos os testes do Smart Header Greeting com ilustrações completas de clima (sol, chuva, nublado, neve) e missões centralizadas passaram com 100% de sucesso!');

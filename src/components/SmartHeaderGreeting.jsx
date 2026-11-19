@@ -84,6 +84,22 @@ function getWeatherDetails(code, isDay = 1) {
         illustrationKey: isDay ? 'day-rain' : 'night-rain',
         condition: 'rain',
       };
+    case 56:
+    case 57:
+    case 66:
+    case 67:
+    case 71:
+    case 73:
+    case 75:
+    case 77:
+    case 85:
+    case 86:
+      return {
+        label: isDay ? 'Nevando' : 'Neve Noturna',
+        icon: '❄️',
+        illustrationKey: isDay ? 'day-snow' : 'night-snow',
+        condition: 'snow',
+      };
     case 80:
     case 81:
     case 82:
@@ -411,14 +427,11 @@ export default function SmartHeaderGreeting({
         </div>
 
         <div className="sh-hero-info">
-          {/* Linha 1: Saudação e Cargo/Função */}
+          {/* Linha 1: Saudação */}
           <div className="sh-hero-greeting-row">
             <h1 className="sh-hero-title">
               {greeting.text}, <span className="sh-hero-name">{greeting.firstName}</span>!
             </h1>
-            <span className="sh-hero-role-pill">
-              {currentUser?.title || (isAdminUser ? 'ADMINISTRADOR GERAL & TI' : 'COLABORADOR')}
-            </span>
           </div>
 
           {/* Linha 2: Último Login */}
@@ -429,28 +442,33 @@ export default function SmartHeaderGreeting({
             </span>
           </div>
 
-          {/* Linha 3: Data Oficial e Missões Ativas */}
+          {/* Linha 3: Data Oficial */}
           <div className="sh-hero-date-row">
             <span className="sh-date-line-item" title="Data oficial">
               <Calendar size={12} className="sh-date-icon text-cyan" />
               <span className="sh-date-val">{greeting.dateFormatted}</span>
             </span>
-
-            <span className="sh-meta-separator">•</span>
-
-            <span
-              className="sh-hero-badge-active is-clickable"
-              onClick={() => onNavigateTab && onNavigateTab('table')}
-              title="Clique para ver a grade de missões ativas na Tabela de Serviço"
-            >
-              <span className="sh-pulse-dot green" />
-              <span>{countAtivas} {countAtivas === 1 ? 'missão ativa' : 'missões ativas'}</span>
-            </span>
           </div>
         </div>
       </div>
 
-      {/* 2. LADO DIREITO: CÁPSULAS EXECUTIVAS (CLIMA, MISSÃO & AÇÕES) */}
+      {/* 2. CENTRO: MISSÕES ATIVAS CENTRALIZADAS */}
+      <div className="sh-hero-center">
+        <button
+          type="button"
+          className="sh-hero-badge-active sh-hero-badge-active-centered is-clickable"
+          onClick={() => onNavigateTab && onNavigateTab('table')}
+          title="Clique para ver a grade de missões ativas na Tabela de Serviço"
+        >
+          <span className="sh-pulse-dot green" />
+          <span className="sh-active-missions-count">{countAtivas}</span>
+          <span className="sh-active-missions-label">
+            {countAtivas === 1 ? 'missão ativa' : 'missões ativas'}
+          </span>
+        </button>
+      </div>
+
+      {/* 3. LADO DIREITO: CÁPSULAS EXECUTIVAS (CLIMA, MISSÃO & AÇÕES) */}
       <div className="sh-hero-widgets">
         {/* CÁPSULA A: CLIMA & OPERAÇÃO DE CAMPO */}
         <div className="sh-capsule sh-weather-capsule" title={`Clima em ${weatherData.cityName}: Sensação ${weatherData.apparentTemperature}°C, Vento ${weatherData.windSpeed} km/h, Umidade ${weatherData.humidity}%`}>

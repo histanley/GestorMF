@@ -256,6 +256,82 @@ export default function WeatherIllustration({
     );
   }
 
+  // 6. NOITE: NEVANDO / NEVE NOTURNA
+  if (type === 'night-snow') {
+    return (
+      <svg
+        width={s}
+        height={s}
+        viewBox="0 0 48 48"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={`weather-art-svg wi-night-snow ${className}`}
+        aria-label={title || 'Nevando à Noite'}
+      >
+        {defs}
+        {/* Lua espreitando na neve */}
+        <path
+          d="M26 6C20 7.5 15.5 12.8 15.5 19C15.5 22.5 17 25.8 19.5 28C20 23 23 17 28 12C29.2 10.8 30.5 9.8 32 9C29.8 7 27.8 6.2 26 6Z"
+          fill="url(#wi-moon-night)"
+          opacity="0.9"
+        />
+        {/* Nuvem Noturna */}
+        <path
+          d="M16 34H36C39.3 34 42 31.3 42 28C42 25 39.8 22.5 36.9 22.1C36.4 17.4 32.2 13.8 27.3 13.8C23.1 13.8 19.5 16.4 18.3 20.2C15.7 20.7 12 23 12 26C12 30.4 15.6 34 16 34Z"
+          fill="url(#wi-cloud-night)"
+          stroke="#64748B"
+          strokeWidth="1"
+          filter="url(#wi-cloud-shadow)"
+        />
+        {/* Flocos de Neve Cintilantes (Cristais de Gelo) */}
+        <g stroke="#BAE6FD" strokeWidth="1.6" strokeLinecap="round">
+          {/* Floco 1 */}
+          <line x1="16" y1="37" x2="16" y2="43" />
+          <line x1="13" y1="40" x2="19" y2="40" />
+          <line x1="14" y1="38" x2="18" y2="42" />
+          <line x1="14" y1="42" x2="18" y2="38" />
+          {/* Floco 2 */}
+          <line x1="26" y1="36" x2="26" y2="42" />
+          <line x1="23" y1="39" x2="29" y2="39" />
+          <line x1="24" y1="37" x2="28" y2="41" />
+          <line x1="24" y1="41" x2="28" y2="37" />
+          {/* Floco 3 */}
+          <line x1="35" y1="37" x2="35" y2="43" />
+          <line x1="32" y1="40" x2="38" y2="40" />
+          <line x1="33" y1="38" x2="37" y2="42" />
+          <line x1="33" y1="42" x2="37" y2="38" />
+        </g>
+      </svg>
+    );
+  }
+
+  // 7. NOITE: NÉVOA / NEVOEIRO NOTURNO
+  if (type === 'night-fog') {
+    return (
+      <svg
+        width={s}
+        height={s}
+        viewBox="0 0 48 48"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={`weather-art-svg wi-night-fog ${className}`}
+        aria-label={title || 'Névoa Noturna'}
+      >
+        {defs}
+        {/* Lua difusa atrás da névoa */}
+        <path
+          d="M26 6C20 7.5 15.5 12.8 15.5 19C15.5 22.5 17 25.8 19.5 28C20 23 23 17 28 12C29.2 10.8 30.5 9.8 32 9C29.8 7 27.8 6.2 26 6Z"
+          fill="url(#wi-moon-night)"
+          opacity="0.65"
+        />
+        <line x1="8" y1="20" x2="40" y2="20" stroke="#64748B" strokeWidth="2.8" strokeLinecap="round" opacity="0.8" />
+        <line x1="5" y1="27" x2="43" y2="27" stroke="#94A3B8" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+        <line x1="10" y1="34" x2="38" y2="34" stroke="#64748B" strokeWidth="2.8" strokeLinecap="round" opacity="0.75" />
+        <line x1="14" y1="41" x2="34" y2="41" stroke="#475569" strokeWidth="2.4" strokeLinecap="round" opacity="0.6" />
+      </svg>
+    );
+  }
+
   // 6. DIA: ENSOLARADO / CÉU ABERTO
   if (type === 'day-clear') {
     return (
@@ -385,6 +461,49 @@ export default function WeatherIllustration({
         <line x1="18" y1="36" x2="15" y2="44" stroke="#38BDF8" strokeWidth="2.2" strokeLinecap="round" />
         <line x1="26" y1="36" x2="23" y2="44" stroke="#38BDF8" strokeWidth="2.2" strokeLinecap="round" />
         <line x1="34" y1="36" x2="31" y2="44" stroke="#38BDF8" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  // 10. DIA: NEVANDO / NEVE DIURNA
+  if (type === 'day-snow') {
+    return (
+      <svg
+        width={s}
+        height={s}
+        viewBox="0 0 48 48"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={`weather-art-svg wi-day-snow ${className}`}
+        aria-label={title || 'Nevando'}
+      >
+        {defs}
+        {/* Nuvem de Neve Diurna */}
+        <path
+          d="M16 33H36C39.3 33 42 30.3 42 27C42 24 39.8 21.5 36.9 21.1C36.4 16.4 32.2 12.8 27.3 12.8C23.1 12.8 19.5 15.4 18.3 19.2C15.7 19.7 12 22 12 25C12 29.4 15.6 33 16 33Z"
+          fill="url(#wi-cloud-day)"
+          stroke="#94A3B8"
+          strokeWidth="1.2"
+          filter="url(#wi-cloud-shadow)"
+        />
+        {/* Flocos de Neve (Cristais de Gelo) */}
+        <g stroke="#38BDF8" strokeWidth="1.6" strokeLinecap="round">
+          {/* Floco 1 */}
+          <line x1="16" y1="37" x2="16" y2="43" />
+          <line x1="13" y1="40" x2="19" y2="40" />
+          <line x1="14" y1="38" x2="18" y2="42" />
+          <line x1="14" y1="42" x2="18" y2="38" />
+          {/* Floco 2 */}
+          <line x1="26" y1="36" x2="26" y2="42" />
+          <line x1="23" y1="39" x2="29" y2="39" />
+          <line x1="24" y1="37" x2="28" y2="41" />
+          <line x1="24" y1="41" x2="28" y2="37" />
+          {/* Floco 3 */}
+          <line x1="35" y1="37" x2="35" y2="43" />
+          <line x1="32" y1="40" x2="38" y2="40" />
+          <line x1="33" y1="38" x2="37" y2="42" />
+          <line x1="33" y1="42" x2="37" y2="38" />
+        </g>
       </svg>
     );
   }
