@@ -899,20 +899,7 @@ export default function TeamPayoutsDashboard({
             <Receipt size={24} />
           </div>
           <div className="psc-info">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <span className="psc-label">Vales / Adiantamentos</span>
-              <span className="psc-add-badge" style={{
-                fontSize: '0.68rem',
-                fontWeight: 800,
-                color: '#fb7185',
-                background: 'rgba(244, 63, 94, 0.2)',
-                padding: '2px 8px',
-                borderRadius: 4,
-                border: '1px solid rgba(244, 63, 94, 0.4)'
-              }}>
-                + Lançar Vale
-              </span>
-            </div>
+            <span className="psc-label">Vales / Adiantamentos</span>
             <strong className="psc-value text-rose">{formatBRL(summaryTotals.totalVales)}</strong>
             <span className="psc-sub">Adiantamentos deduzidos da folha</span>
           </div>
@@ -944,11 +931,20 @@ export default function TeamPayoutsDashboard({
           <div className="psc-icon-wrap">
             <CheckCircle2 size={24} />
           </div>
-          <div className="psc-info">
+          <div className="psc-info psc-info-status">
             <span className="psc-label">Status de Pagamento</span>
-            <strong className="psc-value">
-              <span className="text-green">{summaryTotals.totalPagos} Pagos</span> / <span className="text-amber">{summaryTotals.totalPendentes} Pendentes</span>
-            </strong>
+            <div className="psc-status-stacked">
+              <div className="psc-status-row is-paid">
+                <span className="psc-status-dot is-paid" />
+                <span className="psc-status-num">{summaryTotals.totalPagos}</span>
+                <span className="psc-status-text">Pagos</span>
+              </div>
+              <div className="psc-status-row is-pending">
+                <span className="psc-status-dot is-pending" />
+                <span className="psc-status-num">{summaryTotals.totalPendentes}</span>
+                <span className="psc-status-text">Pendentes</span>
+              </div>
+            </div>
             <span className="psc-sub">Previsão de quitação até dia 05</span>
           </div>
         </div>

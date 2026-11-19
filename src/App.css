@@ -26522,20 +26522,30 @@ body.light-theme .btn-payout-print {
 /* 2. Grade de Indicadores Executivos */
 .payouts-summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+@media (max-width: 1240px) {
+  .payouts-summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  }
 }
 
 .payout-summary-card {
   background: rgba(15, 23, 42, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  padding: 16px 18px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  gap: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   backdrop-filter: blur(8px);
+  min-height: 104px;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 body.light-theme .payout-summary-card {
@@ -26559,9 +26569,29 @@ body.light-theme .payout-summary-card.card-total-value {
   border-color: #a7f3d0;
 }
 
+.payout-summary-card.card-advances {
+  border-color: rgba(244, 63, 94, 0.25);
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.06) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+
+.payout-summary-card.card-hours {
+  border-color: rgba(6, 182, 212, 0.25);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.06) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+
+.payout-summary-card.card-travel {
+  border-color: rgba(245, 158, 11, 0.25);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+
+.payout-summary-card.card-status {
+  border-color: rgba(168, 85, 247, 0.25);
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.06) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+
 .psc-icon-wrap {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -26572,6 +26602,11 @@ body.light-theme .payout-summary-card.card-total-value {
 .payout-summary-card.card-total-value .psc-icon-wrap {
   background: rgba(16, 185, 129, 0.2);
   color: #34d399;
+}
+
+.payout-summary-card.card-advances .psc-icon-wrap {
+  background: rgba(244, 63, 94, 0.18);
+  color: #fb7185;
 }
 
 .payout-summary-card.card-hours .psc-icon-wrap {
@@ -26592,15 +26627,23 @@ body.light-theme .payout-summary-card.card-total-value {
 .psc-info {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 2px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
 }
 
 .psc-label {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 body.light-theme .psc-label {
@@ -26608,9 +26651,14 @@ body.light-theme .psc-label {
 }
 
 .psc-value {
-  font-size: 1.25rem;
+  font-size: 1.22rem;
   font-weight: 800;
   color: #ffffff;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 1px 0;
 }
 
 body.light-theme .psc-value {
@@ -26620,6 +26668,74 @@ body.light-theme .psc-value {
 .psc-sub {
   font-size: 0.72rem;
   color: #64748b;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status de Pagamento - Pagos em Cima, Pendentes Embaixo */
+.psc-status-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 1px 0;
+}
+
+.psc-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.psc-status-row.is-paid {
+  color: #34d399;
+}
+
+.psc-status-row.is-pending {
+  color: #fbbf24;
+}
+
+.psc-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.psc-status-dot.is-paid {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.psc-status-dot.is-pending {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+
+.psc-status-num {
+  font-size: 0.96rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  min-width: 12px;
+}
+
+.psc-status-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+body.light-theme .psc-status-row.is-paid,
+[data-theme="light"] .psc-status-row.is-paid {
+  color: #059669 !important;
+}
+
+body.light-theme .psc-status-row.is-pending,
+[data-theme="light"] .psc-status-row.is-pending {
+  color: #b45309 !important;
 }
 
 /* 3. Filtros e Busca */
