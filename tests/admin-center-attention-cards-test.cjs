@@ -61,16 +61,16 @@ assert(
 
 // Check rendered KPI cards in the header
 assert(
-  adminCenterContent.includes('Aprovações Pendentes</span>'),
-  'Card 1 Aprovações Pendentes must be rendered'
+  adminCenterContent.includes('Aprovações</span>'),
+  'Card 1 Aprovações must be rendered'
 );
 assert(
   adminCenterContent.includes('Prazos de Edição</span>'),
   'Card 2 Prazos de Edição must be rendered'
 );
 assert(
-  adminCenterContent.includes('Aluguel &amp; Devoluções</span>'),
-  'Card 3 Aluguel & Devoluções must be rendered'
+  adminCenterContent.includes('Aluguéis</span>'),
+  'Card 3 Aluguéis must be rendered'
 );
 assert(
   adminCenterContent.includes('Frota &amp; Combustível</span>'),
@@ -83,6 +83,10 @@ assert(
 assert(
   adminCenterContent.includes('Missões em Campo</span>'),
   'Card 6 Missões em Campo must be rendered'
+);
+assert(
+  adminCenterContent.includes('ach-kpi-head') && adminCenterContent.includes('ach-kpi-metric'),
+  'Cards must use the new non-overlapping flex structure with ach-kpi-head and ach-kpi-metric'
 );
 
 console.log('✓ AdminCenter.jsx tests passed: all 6 attention & decision cards implemented with live handlers');
