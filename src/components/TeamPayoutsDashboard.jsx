@@ -37,6 +37,7 @@ import {
 import MissionDetailModal from './MissionDetailModal';
 import SalaryAdvancesModal from './SalaryAdvancesModal';
 import FinancialOfficialStatementModal from './FinancialOfficialStatementModal';
+import PayrollOfficialStatementModal from './PayrollOfficialStatementModal';
 import { apiGetPayouts, apiSavePayout, apiGetSalaryAdvances } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 import {
@@ -129,6 +130,7 @@ export default function TeamPayoutsDashboard({
   const [editingRatesMember, setEditingRatesMember] = useState(null);
   const [viewingStatementMember, setViewingStatementMember] = useState(null);
   const [officialStatementMember, setOfficialStatementMember] = useState(null);
+  const [isPayrollOfficialModalOpen, setIsPayrollOfficialModalOpen] = useState(false);
   const [statementFilter, setStatementFilter] = useState('all'); // 'all' | 'extra_hours' | 'daily' | 'commercial' | 'scheduled'
   const [copiedPixMemberId, setCopiedPixMemberId] = useState(null);
   const [selectedMissionForDetail, setSelectedMissionForDetail] = useState(null);
@@ -951,8 +953,8 @@ export default function TeamPayoutsDashboard({
           <button
             type="button"
             className="btn-payout-print"
-            onClick={handlePrintReport}
-            title="Imprimir folha de pagamento do mês"
+            onClick={() => setIsPayrollOfficialModalOpen(true)}
+            title="Abrir folha de pagamento consolidada timbrada com download em PDF e WhatsApp"
           >
             <Printer size={15} />
             <span>Imprimir Folha</span>
@@ -2176,6 +2178,18 @@ export default function TeamPayoutsDashboard({
           financialEntries={officialStatementData.financialEntries}
           currentUser={currentUser}
           onClose={() => setOfficialStatementMember(null)}
+        />
+      )}
+
+      {/* Modal Oficial de Fechamento Consolidado da Folha Timbrado (A4 / PDF / WhatsApp) */}
+      {isPayrollOfficialModalOpen && (
+        <PayrollOfficialStatementModal
+          monthKey={selectedMonth}
+          monthLabel={monthLabel}
+          summaryTotals={summaryTotals}
+          memberPayouts={memberPayouts}
+          currentUser={currentUser}
+          onClose={() => setIsPayrollOfficialModalOpen(false)}
         />
       )}
     </div>
