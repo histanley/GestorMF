@@ -294,7 +294,7 @@ export default function SmartHeaderGreeting({
     return (
       <WeatherIllustration
         type={headerIllustrationKey}
-        size={42}
+        size={46}
         className="sh-hero-svg"
         title={weatherDetails.label}
       />
@@ -454,12 +454,12 @@ export default function SmartHeaderGreeting({
 
       {/* 2. LADO DIREITO: CÁPSULAS EXECUTIVAS (CLIMA, MISSÃO & AÇÕES) */}
       <div className="sh-hero-widgets">
-        {/* CÁPSULA A: CLIMA & OPERAÇÃO DE CAMPO */}
+        {/* CÁPSULA A: CLIMA & OPERAÇÃO DE CAMPO DETALHADO (CONFORME CLIMA REAL GOOGLE BOA VISTA) */}
         <div className="sh-capsule sh-weather-capsule" title={`Clima em ${weatherData.cityName}: Sensação ${weatherData.apparentTemperature}°C, Vento ${weatherData.windSpeed} km/h, Umidade ${weatherData.humidity}%`}>
           <div className="sh-capsule-icon-box" title={weatherDetails.label}>
             <WeatherIllustration
               type={weatherDetails.illustrationKey}
-              size={26}
+              size={32}
               className="sh-weather-capsule-svg"
               title={weatherDetails.label}
             />
@@ -472,7 +472,9 @@ export default function SmartHeaderGreeting({
             <div className="sh-weather-subinfo">
               <span>Sensação {weatherData.apparentTemperature}°C</span>
               <span>•</span>
-              <span><Wind size={10} /> {weatherData.windSpeed} km/h</span>
+              <span title={`Umidade do ar: ${weatherData.humidity}%`}><Droplets size={10} /> {weatherData.humidity}%</span>
+              <span>•</span>
+              <span title={`Vento: ${weatherData.windSpeed} km/h`}><Wind size={10} /> {weatherData.windSpeed} km/h</span>
               {operationalTip.type === 'heat' && (
                 <span className="sh-heat-warning-tag" title="Recomendada hidratação frequente e protetor solar em campo">
                   <Flame size={10} /> Hidratação

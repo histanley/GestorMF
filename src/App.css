@@ -28644,13 +28644,13 @@ body.light-theme .mori-input {
 }
 
 .sh-hero-svg {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
 }
 
 .sh-weather-capsule-svg {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
 }
 
 .sh-hero-icon-wrap:hover .sh-hero-svg {
@@ -51106,6 +51106,179 @@ body.light-theme .advances-btn-done,
   border-color: #cbd5e1;
   color: #1e293b;
 }
+
+/* ==========================================================================
+   FIN-06: ANEXO E COMPROVANTE DE VALES / ADIANTAMENTOS SALARIAIS
+   ========================================================================== */
+.advances-receipt-upload-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px dashed rgba(56, 189, 248, 0.35);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .advances-receipt-upload-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.advances-receipt-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.advances-receipt-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.advances-receipt-subtext {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+
+.advances-receipt-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.advances-btn-attach-receipt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.advances-btn-attach-receipt:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: #38bdf8;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.advances-receipt-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.receipt-name-txt {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #34d399;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.receipt-btn-remove {
+  background: transparent;
+  border: none;
+  color: #fb7185;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.receipt-btn-remove:hover {
+  background: rgba(244, 63, 94, 0.2);
+}
+
+.adv-col-receipt {
+  white-space: nowrap;
+}
+
+.adv-btn-view-receipt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.adv-btn-view-receipt:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: #38bdf8;
+  color: #ffffff;
+}
+
+.adv-btn-attach-quick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  color: #94a3b8;
+  padding: 4px 7px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.adv-btn-attach-quick:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+/* Light theme para recibos */
+body.light-theme .advances-receipt-upload-box,
+[data-theme='light'] .advances-receipt-upload-box {
+  background: #f0f9ff;
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+body.light-theme .advances-receipt-label,
+[data-theme='light'] .advances-receipt-label {
+  color: #0369a1;
+}
+
+body.light-theme .receipt-lightbox-card,
+[data-theme='light'] .receipt-lightbox-card {
+  background: #ffffff;
+  border-color: #bae6fd;
+}
+
 
 
 

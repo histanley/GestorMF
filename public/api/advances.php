@@ -34,6 +34,48 @@ function ensureSalaryAdvancesTable($db) {
 }
 ensureSalaryAdvancesTable($db);
 
+// Garante diretório seguro para armazenamento físico de comprovantes de pagamento (PIX / Transferência)
+function ensureAdvancesStorage() {
+    $dir = dirname(__DIR__) . '/images/advances';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+    return $dir;
+}
+
+// Processa o comprovante enviado (base64 data URL ou URL pública) e grava no storage físico
+function processReceiptFile($receiptInput, $advanceId) {
+    if (empty($receiptInput)) return null;
+    $trimmed = trim($receiptInput);
+    if (strpos($trimmed, 'http://') === 0 || strpos($trimmed, 'https://') === 0 || strpos($trimmed, '/images/') === 0) {
+        return $trimmed;
+    }
+    if (strpos($trimmed, 'data:') === 0) {
+        $parts = explode(',', $trimmed, 2);
+        if (count($parts) === 2) {
+            $isPdf = strpos($parts[0], 'application/pdf') !== false;
+            $ext = $isPdf ? 'pdf' : 'jpg';
+            if (strpos($parts[0], 'image/png') !== false) $ext = 'png';
+            if (strpos($parts[0], 'image/webp') !== false) $ext = 'webp';
+            $binary = base64_decode($parts[1], true);
+            if ($binary !== false && strlen($binary) > 0) {
+                if (strlen($binary) > 15728640) {
+                    throw new Exception('Comprovante excede o limite máximo permitido de 15 MB.');
+                }
+                $dir = ensureAdvancesStorage();
+                $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '', $advanceId);
+                $filename = $cleanId . '_comprovante_' . time() . '.' . $ext;
+                $dest = $dir . '/' . $filename;
+                if (@file_put_contents($dest, $binary)) {
+                    @chmod($dest, 0644);
+                    return '/images/advances/' . $filename;
+                }
+            }
+        }
+    }
+    return $trimmed;
+}
+
 // ------------------------------------------------------------------------------
 // 1. GET /api/advances.php?month=YYYY-MM[&memberId=...]
 // ------------------------------------------------------------------------------
@@ -112,6 +154,29 @@ if ($method === 'POST') {
     $user = requireAuth(['ADMIN', 'MANAGER']);
     $data = getJsonInput();
 
+    // Suporte para anexar/atualizar comprovante a um vale existente
+    if (!empty($data['action']) && $data['action'] === 'attach_receipt') {
+        $advId = trim($data['id'] ?? '');
+        $rawReceipt = trim($data['receiptUrl'] ?? $data['receipt_url'] ?? '');
+        if (empty($advId) || empty($rawReceipt)) {
+            jsonResponse(['success' => false, 'error' => 'Identificador do vale ou comprovante não informado.'], 400);
+        }
+        $savedUrl = processReceiptFile($rawReceipt, $advId);
+        $stmtUp = $db->prepare("UPDATE salary_advances SET receipt_url = ? WHERE id = ?");
+        $stmtUp->execute([$savedUrl, $advId]);
+
+        logAudit(
+            'SALARY_ADVANCE_RECEIPT',
+            'FINANCE',
+            $advId,
+            "Comprovante de pagamento anexado ao vale {$advId} por {$user['name']}.",
+            $user['id'],
+            $user['name']
+        );
+
+        jsonResponse(['success' => true, 'receiptUrl' => $savedUrl]);
+    }
+
     $memberId = trim($data['memberId'] ?? $data['member_id'] ?? '');
     $amount = isset($data['amount']) ? (float)$data['amount'] : 0.00;
     $date = trim($data['date'] ?? date('Y-m-d'));
@@ -143,6 +208,11 @@ if ($method === 'POST') {
     $advanceId = !empty($data['id']) ? trim($data['id']) : 'adv-' . $monthKey . '-' . bin2hex(random_bytes(6));
     $registeredBy = trim($user['name'] ?? 'Administração');
     $registeredById = trim($user['id'] ?? '');
+
+    // Processa e armazena arquivo de comprovante (se fornecido)
+    if (!empty($receiptUrl)) {
+        $receiptUrl = processReceiptFile($receiptUrl, $advanceId);
+    }
 
     $stmt = $db->prepare("
         INSERT INTO salary_advances (id, member_id, month_key, date, amount, description, payment_method, registered_by, registered_by_id, receipt_url, status)

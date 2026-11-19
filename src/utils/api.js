@@ -439,6 +439,22 @@ export async function apiDeleteSalaryAdvance(advanceId) {
   }
 }
 
+export async function apiAttachSalaryAdvanceReceipt(advanceId, receiptDataUrl) {
+  try {
+    const res = await apiRequest('/advances.php', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'attach_receipt',
+        id: advanceId,
+        receiptUrl: receiptDataUrl
+      })
+    });
+    return res;
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
 // ------------------------------------------------------------------------------
 // 6. TRILHA DE AUDITORIA (AUDIT LOGS)
 // ------------------------------------------------------------------------------
