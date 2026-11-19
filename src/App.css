@@ -32615,6 +32615,491 @@ body.light-theme .ac-pill-btn.active {
   min-width: 260px;
 }
 
+/* Seletor de Modo de Visualização (Cards | Lista | Kanban) */
+.ac-view-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+
+[data-theme="light"] .ac-view-mode-toggle,
+body.light-theme .ac-view-mode-toggle {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.ac-vm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.ac-vm-btn:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .ac-vm-btn {
+  color: #64748b;
+}
+
+[data-theme="light"] .ac-vm-btn:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.ac-vm-btn.active {
+  background: #f59e0b !important;
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+}
+
+/* ------------------------------------------------------------- */
+/* VISUALIZAÇÃO EM LISTA / TABELA EXECUTIVA                      */
+/* ------------------------------------------------------------- */
+.ac-pp-table-wrap {
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  overflow-x: auto;
+}
+
+[data-theme="light"] .ac-pp-table-wrap,
+body.light-theme .ac-pp-table-wrap {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06) !important;
+}
+
+.ac-pp-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  min-width: 960px;
+}
+
+.ac-pp-table th {
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+[data-theme="light"] .ac-pp-table th,
+body.light-theme .ac-pp-table th {
+  background: #f8fafc !important;
+  border-bottom-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+.ac-pp-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+  font-size: 0.82rem;
+}
+
+[data-theme="light"] .ac-pp-table td,
+body.light-theme .ac-pp-table td {
+  border-bottom-color: #f1f5f9 !important;
+}
+
+.ac-pp-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ac-pp-table tr:hover td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+[data-theme="light"] .ac-pp-table tr:hover td,
+body.light-theme .ac-pp-table tr:hover td {
+  background: #f8fafc !important;
+}
+
+.ac-pp-code-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ac-status-badge-pending {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.18);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  width: fit-content;
+}
+
+[data-theme="light"] .ac-status-badge-pending,
+body.light-theme .ac-status-badge-pending {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+
+.ac-pp-row-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f8fafc;
+  display: block;
+}
+
+[data-theme="light"] .ac-pp-row-title,
+body.light-theme .ac-pp-row-title {
+  color: #0f172a !important;
+}
+
+.ac-pp-row-sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+.ac-pp-row-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+[data-theme="light"] .ac-pp-row-date,
+body.light-theme .ac-pp-row-date {
+  color: #334155 !important;
+}
+
+.ac-pp-row-editors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ac-pp-row-editor-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ac-editor-name {
+  font-size: 0.78rem;
+  color: #e2e8f0;
+}
+
+[data-theme="light"] .ac-editor-name,
+body.light-theme .ac-editor-name {
+  color: #1e293b !important;
+}
+
+.ac-deliv-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.ac-deliv-badge.done {
+  background: rgba(16, 185, 129, 0.18);
+  color: #a7f3d0;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.ac-deliv-badge.pending {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.ac-deliv-time {
+  font-size: 0.66rem;
+  color: #64748b;
+}
+
+.ac-deadline-chip {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.ac-deadline-chip.overdue {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+}
+
+.ac-deadline-chip.today {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.ac-deadline-chip.ontime {
+  background: rgba(16, 185, 129, 0.2);
+  color: #a7f3d0;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.ac-pp-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ac-btn-action-approve-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: #10b981;
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ac-btn-action-approve-sm:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.ac-btn-action-reject-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ac-btn-action-reject-sm:hover {
+  background: rgba(239, 68, 68, 0.25);
+  transform: translateY(-1px);
+}
+
+.ac-btn-history-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ac-btn-history-sm:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* ------------------------------------------------------------- */
+/* VISUALIZAÇÃO EM QUADRO KANBAN / PIPELINE DE PÓS-PRODUÇÃO      */
+/* ------------------------------------------------------------- */
+.ac-pp-kanban-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: start;
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 12px;
+}
+
+@media (max-width: 1280px) {
+  .ac-pp-kanban-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .ac-pp-kanban-board {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.ac-pp-kanban-col {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .ac-pp-kanban-col,
+body.light-theme .ac-pp-kanban-col {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
+}
+
+.ac-pp-kanban-header {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="light"] .ac-pp-kanban-header,
+body.light-theme .ac-pp-kanban-header {
+  background: #f8fafc !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+.ac-pp-kanban-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #f8fafc;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+[data-theme="light"] .ac-pp-kanban-title,
+body.light-theme .ac-pp-kanban-title {
+  color: #0f172a !important;
+}
+
+.ac-pp-kanban-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+.ac-pp-kanban-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  max-height: 720px;
+  overflow-y: auto;
+}
+
+.ac-pp-kcard {
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ac-pp-kcard:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] .ac-pp-kcard,
+body.light-theme .ac-pp-kcard {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .ac-pp-kcard:hover,
+body.light-theme .ac-pp-kcard:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+}
+
+.ac-pp-kcard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ac-pp-kcard-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.25;
+}
+
+[data-theme="light"] .ac-pp-kcard-title,
+body.light-theme .ac-pp-kcard-title {
+  color: #0f172a !important;
+}
+
+.ac-pp-kcard-loc {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.ac-pp-kcard-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .ac-pp-kcard-actions,
+body.light-theme .ac-pp-kcard-actions {
+  border-top-color: #f1f5f9 !important;
+}
+
 .ac-search-icon {
   position: absolute;
   left: 12px;
