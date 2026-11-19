@@ -46560,8 +46560,31 @@ body.light-theme .cs-xp-role-card-footer {
   color: #94a3b8;
 }
 
-body.light-theme .cs-xp-badge-card {
+body.light-theme .cs-xp-badge-card,
+[data-theme='light'] .cs-xp-badge-card {
   background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+body.light-theme .cs-xp-badge-card.is-locked,
+[data-theme='light'] .cs-xp-badge-card.is-locked {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+body.light-theme .cs-xp-badge-card-title,
+[data-theme='light'] .cs-xp-badge-card-title {
+  color: #0f172a !important;
+}
+
+body.light-theme .cs-badge-progress-track,
+[data-theme='light'] .cs-badge-progress-track {
+  background: #e2e8f0 !important;
+}
+
+body.light-theme .cs-badge-progress-text,
+[data-theme='light'] .cs-badge-progress-text {
+  color: #475569 !important;
 }
 
 .cs-xp-badge-card-icon {
@@ -48199,7 +48222,8 @@ body.light-theme .cs-upc-divider {
   max-width: 720px !important;
 }
 
-body.light-theme .cs-upc-tier-desc {
+body.light-theme .cs-upc-tier-desc,
+[data-theme='light'] .cs-upc-tier-desc {
   color: #475569 !important;
 }
 
@@ -48320,7 +48344,8 @@ body.light-theme .cs-upc-progress-rem {
   border: 1px solid rgba(16, 185, 129, 0.2) !important;
 }
 
-body.light-theme .cs-upc-timeline-row {
+body.light-theme .cs-upc-timeline-row,
+[data-theme='light'] .cs-upc-timeline-row {
   background: #f0fdf4 !important;
   border-color: #bbf7d0 !important;
 }
@@ -48355,7 +48380,8 @@ body.light-theme .cs-upc-timeline-row {
   color: #cbd5e1 !important;
 }
 
-body.light-theme .cs-upc-timeline-chip {
+body.light-theme .cs-upc-timeline-chip,
+[data-theme='light'] .cs-upc-timeline-chip {
   background: #ffffff !important;
   border-color: #cbd5e1 !important;
   color: #334155 !important;
@@ -48904,14 +48930,72 @@ body.light-theme .ray-avatar-insignia,
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
-body.light-theme .cs-upc-ach-badge.is-locked,
-[data-theme='light'] .cs-upc-ach-badge.is-locked {
-  background: #f1f5f9 !important;
+body.light-theme .cs-upc-ach-badge,
+[data-theme='light'] .cs-upc-ach-badge {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05) !important;
 }
 
+body.light-theme .cs-upc-ach-badge.is-unlocked,
+[data-theme='light'] .cs-upc-ach-badge.is-unlocked {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+}
+
+body.light-theme .cs-upc-ach-badge.is-locked,
+[data-theme='light'] .cs-upc-ach-badge.is-locked {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+body.light-theme .cs-ach-name,
+[data-theme='light'] .cs-ach-name,
 body.light-theme .cs-upc-ach-name,
 [data-theme='light'] .cs-upc-ach-name {
-  color: #1e293b !important;
+  color: #0f172a !important;
+}
+
+body.light-theme .cs-upc-ach-badge.is-locked .cs-ach-name,
+[data-theme='light'] .cs-upc-ach-badge.is-locked .cs-ach-name {
+  color: #334155 !important;
+}
+
+body.light-theme .cs-upc-ach-badge.is-unlocked .cs-ach-name,
+[data-theme='light'] .cs-upc-ach-badge.is-unlocked .cs-ach-name {
+  color: #0f172a !important;
+}
+
+body.light-theme .ach-unlocked-lbl,
+[data-theme='light'] .ach-unlocked-lbl {
+  color: #059669 !important;
+  font-weight: 750 !important;
+}
+
+body.light-theme .ach-locked-lbl,
+[data-theme='light'] .ach-locked-lbl {
+  color: #64748b !important;
+  font-weight: 700 !important;
+}
+
+body.light-theme .cs-upc-achievements-see-all,
+[data-theme='light'] .cs-upc-achievements-see-all {
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+}
+
+body.light-theme .cs-upc-achievements-see-all:hover,
+[data-theme='light'] .cs-upc-achievements-see-all:hover {
+  background: #f0f9ff !important;
+  color: #0369a1 !important;
+}
+
+body.light-theme .cs-upc-achievements-tray,
+[data-theme='light'] .cs-upc-achievements-tray {
+  border-top-color: #e2e8f0 !important;
 }
 
 body.light-theme .ray-badges-section,
@@ -50595,9 +50679,91 @@ body.light-theme .cs-upc-ach-badge.is-unlocked,
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
 }
 
-body.light-theme .ach-unlocked-lbl,
-[data-theme='light'] .ach-unlocked-lbl {
-  color: #059669 !important;
+body.light-theme .cs-upc-tier-sub,
+[data-theme='light'] .cs-upc-tier-sub {
+  color: #64748b !important;
+}
+
+body.light-theme .cs-upc-progress-rem,
+[data-theme='light'] .cs-upc-progress-rem {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+body.light-theme .cs-upc-timeline-label,
+[data-theme='light'] .cs-upc-timeline-label {
+  color: #166534 !important;
+}
+
+body.light-theme .cs-upc-timeline-current-chip,
+[data-theme='light'] .cs-upc-timeline-current-chip {
+  background: #fef3c7 !important;
+  border-color: #fcd34d !important;
+  color: #b45309 !important;
+}
+
+body.light-theme .cs-upc-role-tag.sec,
+[data-theme='light'] .cs-upc-role-tag.sec {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+}
+
+body.light-theme .cs-upc-pix-header,
+[data-theme='light'] .cs-upc-pix-header {
+  color: #64748b !important;
+}
+
+body.light-theme .cs-upc-pix-val,
+[data-theme='light'] .cs-upc-pix-val {
+  color: #0369a1 !important;
+}
+
+body.light-theme .cs-upc-pix-action-btn,
+[data-theme='light'] .cs-upc-pix-action-btn {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+body.light-theme .cs-upc-pix-action-btn:hover,
+[data-theme='light'] .cs-upc-pix-action-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+body.light-theme .cs-section-header-sub,
+[data-theme='light'] .cs-section-header-sub {
+  color: #64748b !important;
+}
+
+body.light-theme .cs-fin-hero-status-box,
+[data-theme='light'] .cs-fin-hero-status-box {
+  color: #1e293b !important;
+}
+
+body.light-theme .cs-fin-pix-destination-card,
+[data-theme='light'] .cs-fin-pix-destination-card {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+body.light-theme .cs-fin-pix-lbl,
+[data-theme='light'] .cs-fin-pix-lbl {
+  color: #64748b !important;
+}
+
+body.light-theme .cs-fin-status-pill.is-pending,
+[data-theme="light"] .cs-fin-status-pill.is-pending {
+  background: #fef3c7 !important;
+  border-color: #fcd34d !important;
+  color: #b45309 !important;
+}
+
+body.light-theme .cs-fin-status-pill.is-paid,
+[data-theme="light"] .cs-fin-status-pill.is-paid {
+  background: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #047857 !important;
 }
 
 /* ==========================================================================
