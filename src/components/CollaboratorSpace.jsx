@@ -47,6 +47,7 @@ import {
   ArrowDownRight,
 } from 'lucide-react';
 import ConcludePostProductionModal from './ConcludePostProductionModal';
+import FinancialOfficialStatementModal from './FinancialOfficialStatementModal';
 import {
   resolveMissionEditors,
   getMissionEditionDeliverySummary,
@@ -300,6 +301,7 @@ export default function CollaboratorSpace({
 
   // Extrato Financeiro Transparente do Mês (Semelhante a Ver Extrato de XP)
   const [isFinancialModalOpen, setIsFinancialModalOpen] = useState(false);
+  const [isOfficialStatementModalOpen, setIsOfficialStatementModalOpen] = useState(false);
   const [financialTabFilter, setFinancialTabFilter] = useState('all'); // 'all' | 'credits' | 'debits'
   const [viewingReceipt, setViewingReceipt] = useState(null);
   const previewReceiptUrl = typeof viewingReceipt === 'string' ? viewingReceipt : viewingReceipt?.receiptUrl || viewingReceipt;
@@ -3188,12 +3190,12 @@ export default function CollaboratorSpace({
               <div className="cs-fin-footer-btns">
                 <button
                   type="button"
-                  className="btn-secondary"
-                  onClick={() => window.print()}
-                  title="Imprimir extrato financeiro"
+                  className="btn-secondary cs-btn-detalhes-fin"
+                  onClick={() => setIsOfficialStatementModalOpen(true)}
+                  title="Abrir detalhamento financeiro oficial com emissão de PDF e envio no WhatsApp"
                 >
-                  <Printer size={15} />
-                  <span>Imprimir Extrato</span>
+                  <FileText size={15} />
+                  <span>Detalhamento Financeiro</span>
                 </button>
                 <button
                   type="button"
@@ -3206,6 +3208,19 @@ export default function CollaboratorSpace({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Oficial de Detalhamento & Fechamento Financeiro (Termo Timbrado A4 / PDF / WhatsApp) */}
+      {isOfficialStatementModalOpen && (
+        <FinancialOfficialStatementModal
+          collaborator={myMember}
+          monthKey={currentMonthKey}
+          monthLabel={monthLabel}
+          financialSummary={financialSummary}
+          financialEntries={financialEntries}
+          currentUser={currentUser}
+          onClose={() => setIsOfficialStatementModalOpen(false)}
+        />
       )}
 
       {/* Modal de Pré-visualização de Comprovante de Pagamento */}

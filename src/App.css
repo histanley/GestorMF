@@ -40608,7 +40608,16 @@ body.light-theme .kpi-card.kpi-red {
   body.printing-rental-contract .rc-modal-topbar,
   body.printing-rental-contract .map-view-layout,
   body.printing-rental-contract .admin-center-container>*:not(.ac-rentals-view),
-  body.printing-rental-contract .print-wall-sheet {
+  body.printing-rental-contract .print-wall-sheet,
+  body.printing-official-statement .navbar-mega,
+  body.printing-official-statement .cs-container,
+  body.printing-official-statement .cs-xp-modal-overlay,
+  body.printing-official-statement .advances-modal-overlay,
+  body.printing-official-statement .modal-overlay:not(.official-statement-overlay),
+  body.printing-official-statement .map-view-layout,
+  body.printing-official-statement .admin-center-container,
+  body.printing-official-statement .no-print,
+  body.printing-official-statement .rc-modal-topbar {
     display: none !important;
   }
 
@@ -46045,6 +46054,40 @@ body.light-theme .cs-fin-footer-summary,
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.cs-btn-detalhes-fin {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(2, 132, 199, 0.25) 100%) !important;
+  border: 1.5px solid rgba(56, 189, 248, 0.45) !important;
+  color: #38bdf8 !important;
+  font-weight: 750 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15) !important;
+}
+
+.cs-btn-detalhes-fin:hover {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.3) 0%, rgba(2, 132, 199, 0.4) 100%) !important;
+  border-color: #38bdf8 !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.3) !important;
+}
+
+body.light-theme .cs-btn-detalhes-fin,
+[data-theme='light'] .cs-btn-detalhes-fin {
+  background: #f0f9ff !important;
+  border-color: #7dd3fc !important;
+  color: #0284c7 !important;
+}
+
+body.light-theme .cs-btn-detalhes-fin:hover,
+[data-theme='light'] .cs-btn-detalhes-fin:hover {
+  background: #e0f2fe !important;
+  border-color: #0284c7 !important;
+  color: #0369a1 !important;
 }
 
 /* Coluna de contagens e XP no card de cada função */

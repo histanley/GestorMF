@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import MissionDetailModal from './MissionDetailModal';
 import SalaryAdvancesModal from './SalaryAdvancesModal';
+import FinancialOfficialStatementModal from './FinancialOfficialStatementModal';
 import { apiGetPayouts, apiSavePayout, apiGetSalaryAdvances } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 import {
@@ -127,6 +128,7 @@ export default function TeamPayoutsDashboard({
   // Modais e Raio-X
   const [editingRatesMember, setEditingRatesMember] = useState(null);
   const [viewingStatementMember, setViewingStatementMember] = useState(null);
+  const [officialStatementMember, setOfficialStatementMember] = useState(null);
   const [statementFilter, setStatementFilter] = useState('all'); // 'all' | 'extra_hours' | 'daily' | 'commercial' | 'scheduled'
   const [copiedPixMemberId, setCopiedPixMemberId] = useState(null);
   const [selectedMissionForDetail, setSelectedMissionForDetail] = useState(null);
@@ -807,6 +809,97 @@ export default function TeamPayoutsDashboard({
       document.body.classList.remove('printing-statement-xray');
     }, 1500);
   };
+
+  // Dados estruturados para o Documento Timbrado Oficial (A4 / PDF / WhatsApp)
+  const officialStatementData = useMemo(() => {
+    if (!officialStatementMember) return null;
+    const m = officialStatementMember;
+    const allMissions = m.statementMissions || [];
+    const entries = [];
+
+    allMissions.forEach((mis) => {
+      if (mis.remunerationType === 'custom') {
+        entries.push({
+          id: `mis-${mis.id}`,
+          date: mis.date,
+          type: 'credit',
+          category: 'custom',
+          categoryLabel: 'Cachê / Fixo',
+          missionCode: mis.code || mis.id,
+          title: mis.title || mis.description || 'Missão com Remuneração Fixa',
+          detail: 'Cachê acordado individualmente para esta missão',
+          amount: Number(mis.subtotal || 0),
+        });
+      } else if (mis.remunerationType === 'daily') {
+        entries.push({
+          id: `mis-${mis.id}`,
+          date: mis.date,
+          type: 'credit',
+          category: 'daily',
+          categoryLabel: 'Diária de Campo',
+          missionCode: mis.code || mis.id,
+          title: mis.title || mis.description || 'Missão em Campo / Viagem',
+          detail: `${mis.daysCount || 1} diária(s) @ R$ ${mis.dailyRate || 200}/dia`,
+          amount: Number(mis.subtotal || 0),
+        });
+      } else if (mis.remunerationType === 'off_hours' && (mis.offHoursWorked > 0 || (mis.extraHoursApproved || 0) > 0)) {
+        const totalH = (mis.offHoursWorked || 0) + (mis.extraHoursApproved || 0);
+        entries.push({
+          id: `mis-${mis.id}`,
+          date: mis.date,
+          type: 'credit',
+          category: 'hours',
+          categoryLabel: 'Horas Extras',
+          missionCode: mis.code || mis.id,
+          title: mis.title || mis.description || 'Atuação Fora do Expediente',
+          detail: `${totalH.toFixed(1)}h extras @ R$ ${mis.hourlyRate || 50}/hora`,
+          amount: Number(mis.subtotal || 0),
+        });
+      }
+    });
+
+    const advList = advancesMap[String(m.id)] || advancesMap[m.id] || m.advances || [];
+    advList.forEach((adv) => {
+      entries.push({
+        id: `adv-${adv.id}`,
+        date: adv.date,
+        type: 'debit',
+        category: 'advance',
+        categoryLabel: 'Vale / Adiantamento',
+        missionCode: `VALE #${String(adv.id).slice(-4)}`,
+        title: adv.reason || adv.description || 'Adiantamento salarial concedido',
+        detail: `Forma: ${adv.paymentMethod || adv.payment_method || 'PIX'} • Concedido pela Diretoria`,
+        amount: Number(adv.amount || 0),
+        receiptUrl: adv.receiptUrl || adv.receipt_url || null,
+      });
+    });
+
+    entries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    const grossTotal = Number(m.totalAmount || 0);
+    const totalAdvancesVal = Number(m.advancesTotal || 0);
+    const netTotal = Number(m.finalPayout !== undefined ? m.finalPayout : Math.max(0, grossTotal - totalAdvancesVal));
+
+    return {
+      collaborator: m,
+      monthKey: selectedMonth,
+      monthLabel,
+      financialSummary: {
+        grossTotal,
+        totalHours: m.extraHoursCount || 0,
+        totalHoursVal: m.extraHoursTotal || 0,
+        totalDays: m.diariasCount || 0,
+        totalDaysVal: m.diariasTotal || 0,
+        totalCustomCount: m.cachesCount || 0,
+        totalCustomVal: m.cachesTotal || 0,
+        totalAdvancesVal,
+        advancesCount: advList.length,
+        netTotal,
+        isPaid: m.status === 'Pago',
+      },
+      financialEntries: entries,
+    };
+  }, [officialStatementMember, selectedMonth, monthLabel, advancesMap]);
 
   return (
     <div className="team-payouts-dashboard">
@@ -2002,12 +2095,12 @@ export default function TeamPayoutsDashboard({
                   </button>
                   <button
                     type="button"
-                    className="btn-secondary btn-statement-print"
-                    onClick={handlePrintStatement}
-                    title="Imprimir Extrato / Espelho em folha A4 ou salvar em PDF"
+                    className="btn-secondary btn-statement-print cs-btn-detalhes-fin"
+                    onClick={() => setOfficialStatementMember(viewingStatementMember)}
+                    title="Abrir detalhamento financeiro oficial com termo timbrado, PDF e WhatsApp"
                   >
-                    <Printer size={15} />
-                    <span>Imprimir Extrato</span>
+                    <FileText size={15} />
+                    <span>Detalhamento Financeiro</span>
                   </button>
                   <button
                     type="button"
@@ -2070,6 +2163,19 @@ export default function TeamPayoutsDashboard({
           onAdvancesChanged={() => {
             loadAdvances();
           }}
+        />
+      )}
+
+      {/* Modal Oficial de Detalhamento & Fechamento Financeiro Timbrado (A4 / PDF / WhatsApp) */}
+      {officialStatementData && (
+        <FinancialOfficialStatementModal
+          collaborator={officialStatementData.collaborator}
+          monthKey={officialStatementData.monthKey}
+          monthLabel={officialStatementData.monthLabel}
+          financialSummary={officialStatementData.financialSummary}
+          financialEntries={officialStatementData.financialEntries}
+          currentUser={currentUser}
+          onClose={() => setOfficialStatementMember(null)}
         />
       )}
     </div>
