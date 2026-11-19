@@ -26088,34 +26088,46 @@ body.light-theme .btn-view-member-ray:hover {
 .ray-header-info {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
+}
+
+.ray-avatar-wrap {
+  position: relative !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
 }
 
 .ray-avatar-large {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-  border: 3px solid rgba(245, 158, 11, 0.4);
+  width: 90px !important;
+  height: 90px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  border: 3px solid #f59e0b !important;
+  background: #1e293b !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.45) !important;
 }
 
 .ray-avatar-large img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
 }
 
 .ray-avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  background: #1e293b;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  font-weight: 800;
+  width: 100% !important;
+  height: 100% !important;
+  background: #1e293b !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.85rem !important;
+  font-weight: 800 !important;
 }
 
 .ray-title-row {
@@ -48148,43 +48160,46 @@ body.light-theme .cs-upc-role-chip {
   margin-top: 4px !important;
 }
 
-/* 4. Insígnia Flutuante no Raio-X Modal */
-.ray-avatar-large {
+/* 4. Insígnia Flutuante no Raio-X Modal - Idêntico ao Meu Espaço */
+.ray-avatar-wrap {
   position: relative !important;
   display: inline-block !important;
-  border-radius: 50% !important;
-  border: 3px solid #f59e0b;
+  flex-shrink: 0 !important;
 }
 
 .ray-avatar-insignia {
   position: absolute !important;
   bottom: -4px !important;
   right: -4px !important;
-  width: 34px !important;
-  height: 34px !important;
+  width: 30px !important;
+  height: 30px !important;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
   border: 2px solid #f59e0b;
   border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   padding: 0 !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7) !important;
-  z-index: 3 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 10px rgba(245, 158, 11, 0.35) !important;
+  z-index: 4 !important;
   cursor: pointer !important;
   pointer-events: auto !important;
-  transition: transform 0.2s ease !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  animation: floatInsignia 3s ease-in-out infinite alternate;
 }
 
 .ray-avatar-insignia:hover {
-  transform: scale(1.15) !important;
+  transform: scale(1.18) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.8), 0 0 14px rgba(245, 158, 11, 0.5) !important;
 }
 
 .ray-avatar-insignia .rai-icon {
-  font-size: 1rem !important;
+  font-size: 0.95rem !important;
+  line-height: 1 !important;
 }
 
 .ray-avatar-insignia small {
-  font-size: 0.72rem !important;
+  font-size: 0.68rem !important;
   font-weight: 800 !important;
 }
 

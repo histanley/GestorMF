@@ -879,25 +879,34 @@ export default function TeamPerformanceRanking({
             >
               <div className="modal-header">
                 <div className="ray-header-info">
-                  <div className="ray-avatar-large" style={{ borderColor: detailTier.color, boxShadow: `0 0 20px ${detailTier.color}35` }}>
-                    {selectedMemberDetail.photoUrl ? (
-                      <img src={selectedMemberDetail.photoUrl} alt={selectedMemberDetail.name} />
-                    ) : (
-                      <div className="ray-avatar-placeholder">
-                        {selectedMemberDetail.name.slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
-                    {/* Insígnia Flutuante Sobre o Avatar */}
+                  {/* Avatar com Halo Épico e Insígnia Oficial de Patente - Idêntico ao Meu Espaço */}
+                  <div className="cs-upc-avatar-wrap ray-avatar-wrap">
                     <div
-                      className="ray-avatar-insignia"
-                      title={`${detailTier.icon} ${detailTier.title}`}
+                      className="cs-upc-avatar ray-avatar-large"
                       style={{
-                        borderColor: detailTier.color,
-                        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                        borderColor: '#f59e0b',
+                        boxShadow: '0 0 28px rgba(245, 158, 11, 0.45)',
                       }}
                     >
-                      <span className="rai-icon">{detailTier.icon}</span>
-
+                      {selectedMemberDetail.photoUrl ? (
+                        <img src={selectedMemberDetail.photoUrl} alt={selectedMemberDetail.name} />
+                      ) : (
+                        <div className="ray-avatar-placeholder">
+                          {selectedMemberDetail.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    {/* Insígnia Flutuante Sobre o Avatar com Ícone de Patente */}
+                    <div
+                      className="cs-upc-avatar-insignia ray-avatar-insignia"
+                      title={`${detailTier.icon} ${detailTier.title}`}
+                      style={{
+                        borderColor: detailTier.color || '#38bdf8',
+                        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                        boxShadow: `0 4px 14px ${detailTier.color ? detailTier.color + '70' : 'rgba(0,0,0,0.5)'}`,
+                      }}
+                    >
+                      <span className="cs-insignia-icon rai-icon">{detailTier.icon}</span>
                     </div>
                   </div>
                   <div>
