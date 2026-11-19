@@ -1026,7 +1026,7 @@ export default function CollaboratorSpace({
                 <span>{myMember.name.slice(0, 2).toUpperCase()}</span>
               )}
             </div>
-            
+
             {/* Insígnia Flutuante Sobre o Avatar com Ícone */}
             <div
               className="cs-upc-avatar-insignia"
@@ -1486,8 +1486,8 @@ export default function CollaboratorSpace({
               {financialSummary.isPaid
                 ? '✅ Saldo já quitado e zerado'
                 : (financialSummary.totalAdvancesVal > 0
-                    ? `Bruto: ${formatBRL(financialSummary.grossTotal)} • Vales: -${formatBRL(financialSummary.totalAdvancesVal)}`
-                    : '⏳ Previsão de quitação até dia 05')}
+                  ? `Bruto: ${formatBRL(financialSummary.grossTotal)} • Vales: -${formatBRL(financialSummary.totalAdvancesVal)}`
+                  : '⏳ Previsão de quitação até dia 05')}
             </span>
           </div>
         </div>
