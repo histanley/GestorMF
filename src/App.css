@@ -28844,6 +28844,182 @@ body.light-theme .mori-input {
   height: 32px;
 }
 
+/* Animações Vivas de Clima (Padrão Google Weather 3D) */
+@keyframes wiSunPulse {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.45));
+  }
+  50% {
+    transform: scale(1.04) rotate(3deg);
+    filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.7));
+  }
+}
+
+@keyframes wiCloudFloat {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  50% {
+    transform: translateY(-2px) translateX(1px);
+  }
+}
+
+@keyframes wiCloudFloatRear {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  50% {
+    transform: translateY(1.5px) translateX(-1px);
+  }
+}
+
+@keyframes wiRainDrop1 {
+  0% { transform: translateY(-4px); opacity: 0; }
+  30% { opacity: 1; }
+  80% { transform: translateY(5px); opacity: 0.9; }
+  100% { transform: translateY(8px); opacity: 0; }
+}
+
+@keyframes wiRainDrop2 {
+  0% { transform: translateY(-4px); opacity: 0; }
+  40% { opacity: 1; }
+  85% { transform: translateY(5px); opacity: 0.9; }
+  100% { transform: translateY(8px); opacity: 0; }
+}
+
+@keyframes wiRainDrop3 {
+  0% { transform: translateY(-4px); opacity: 0; }
+  35% { opacity: 1; }
+  90% { transform: translateY(5px); opacity: 0.9; }
+  100% { transform: translateY(8px); opacity: 0; }
+}
+
+@keyframes wiSnowFlake1 {
+  0% { transform: translateY(-3px) rotate(0deg); opacity: 0; }
+  30% { opacity: 1; }
+  80% { transform: translateY(4px) rotate(30deg); opacity: 0.95; }
+  100% { transform: translateY(7px) rotate(60deg); opacity: 0; }
+}
+
+@keyframes wiSnowFlake2 {
+  0% { transform: translateY(-3px) rotate(0deg); opacity: 0; }
+  40% { opacity: 1; }
+  85% { transform: translateY(4px) rotate(-35deg); opacity: 0.95; }
+  100% { transform: translateY(7px) rotate(-70deg); opacity: 0; }
+}
+
+@keyframes wiLightningFlash {
+  0%, 88%, 100% {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 3px rgba(254, 240, 138, 0.6));
+  }
+  92% {
+    opacity: 1;
+    filter: drop-shadow(0 0 10px #FFFFFF) drop-shadow(0 0 16px #F59E0B);
+  }
+  95% {
+    opacity: 0.4;
+  }
+  97% {
+    opacity: 1;
+    filter: drop-shadow(0 0 12px #FFFFFF);
+  }
+}
+
+@keyframes wiMistDrift {
+  0%, 100% {
+    transform: translateX(0);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translateX(2.5px);
+    opacity: 0.95;
+  }
+}
+
+@keyframes wiMoonGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.7));
+  }
+}
+
+@keyframes wiStarTwinkle {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.wi-anim-sun {
+  animation: wiSunPulse 6s ease-in-out infinite;
+  transform-origin: 24px 24px;
+}
+
+.wi-anim-sun-corner {
+  animation: wiSunPulse 6s ease-in-out infinite;
+  transform-origin: 19px 19px;
+}
+
+.wi-anim-cloud {
+  animation: wiCloudFloat 4s ease-in-out infinite;
+}
+
+.wi-anim-cloud-rear {
+  animation: wiCloudFloatRear 5s ease-in-out infinite;
+}
+
+.wi-anim-rain-1 {
+  animation: wiRainDrop1 1.4s ease-in infinite;
+}
+
+.wi-anim-rain-2 {
+  animation: wiRainDrop2 1.4s ease-in infinite 0.4s;
+}
+
+.wi-anim-rain-3 {
+  animation: wiRainDrop3 1.4s ease-in infinite 0.8s;
+}
+
+.wi-anim-snow-1 {
+  animation: wiSnowFlake1 2.2s ease-in-out infinite;
+}
+
+.wi-anim-snow-2 {
+  animation: wiSnowFlake2 2.2s ease-in-out infinite 0.7s;
+}
+
+.wi-anim-snow-3 {
+  animation: wiSnowFlake1 2.2s ease-in-out infinite 1.4s;
+}
+
+.wi-anim-lightning {
+  animation: wiLightningFlash 4s ease-in-out infinite;
+}
+
+.wi-anim-mist {
+  animation: wiMistDrift 4s ease-in-out infinite;
+}
+
+.wi-anim-moon {
+  animation: wiMoonGlow 5s ease-in-out infinite;
+}
+
+.wi-anim-star {
+  animation: wiStarTwinkle 2.5s ease-in-out infinite;
+}
+
+.wi-anim-star-delayed {
+  animation: wiStarTwinkle 2.5s ease-in-out infinite 1.2s;
+}
+
 .sh-hero-icon-wrap:hover .sh-hero-svg {
   transform: scale(1.08) rotate(-2deg);
 }

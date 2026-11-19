@@ -135,7 +135,7 @@ export default function TeamPayoutsDashboard({
     if (!missionItem) return;
     const fullMission = missions.find(
       (m) => String(m.id) === String(missionItem.id) ||
-             (m.code && missionItem.code && String(m.code).trim() === String(missionItem.code).trim())
+        (m.code && missionItem.code && String(m.code).trim() === String(missionItem.code).trim())
     ) || missionItem.rawMission || missionItem;
     setSelectedMissionForDetail(fullMission);
   };
@@ -367,8 +367,8 @@ export default function TeamPayoutsDashboard({
             const inEditorsDelivery = Boolean(
               m.editorsDelivery &&
               (m.editorsDelivery[memIdStr] ||
-               m.editorsDelivery[member.name] ||
-               Object.keys(m.editorsDelivery).some((k) => k.toLowerCase().includes(memNameNorm)))
+                m.editorsDelivery[member.name] ||
+                Object.keys(m.editorsDelivery).some((k) => k.toLowerCase().includes(memNameNorm)))
             );
             const isAssignedEditor = inEditorIds || inEditorDisplay || inEditorsDelivery || isMateusSesi202611144;
 
@@ -412,8 +412,8 @@ export default function TeamPayoutsDashboard({
           const inEditorsDeliveryPost = Boolean(
             m.editorsDelivery &&
             (m.editorsDelivery[memIdStr] ||
-             m.editorsDelivery[member.name] ||
-             Object.keys(m.editorsDelivery).some((k) => k.toLowerCase().includes(memNameNorm)))
+              m.editorsDelivery[member.name] ||
+              Object.keys(m.editorsDelivery).some((k) => k.toLowerCase().includes(memNameNorm)))
           );
           const isAssignedEditorPost = inEditorIds || inEditorDisplay || inEditorsDeliveryPost || isMateusSesi202611144Post;
 
@@ -1254,7 +1254,7 @@ export default function TeamPayoutsDashboard({
                           setAdvancesModalMember(member);
                           setAdvancesModalOpen(true);
                         }}
-                        title={`Lançar novo vale ou gerenciar adiantamentos de ${member.name} (${member.advancesCount || 0} cadastrado(s))` }
+                        title={`Lançar novo vale ou gerenciar adiantamentos de ${member.name} (${member.advancesCount || 0} cadastrado(s))`}
                       >
                         <Plus size={12} className="text-rose" />
                         <span>Vale{member.advancesCount > 0 ? ` (${member.advancesCount})` : ''}</span>

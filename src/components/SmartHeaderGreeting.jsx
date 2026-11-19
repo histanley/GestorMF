@@ -41,8 +41,8 @@ function getWeatherDetails(code, isDay = 1) {
       return {
         label: isDay ? 'Predomínio de Sol' : 'Noite Estrelada',
         icon: isDay ? '🌤️' : '🌙',
-        illustrationKey: isDay ? 'day-clear' : 'night-clear',
-        condition: 'clear',
+        illustrationKey: isDay ? 'day-partly-cloudy' : 'night-partly-cloudy',
+        condition: 'partly-cloudy',
       };
     case 2:
       return {
@@ -459,7 +459,7 @@ export default function SmartHeaderGreeting({
           <div className="sh-capsule-icon-box" title={weatherDetails.label}>
             <WeatherIllustration
               type={weatherDetails.illustrationKey}
-              size={26}
+              size={32}
               className="sh-weather-capsule-svg"
               title={weatherDetails.label}
             />
