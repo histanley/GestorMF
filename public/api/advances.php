@@ -77,27 +77,49 @@ function processReceiptFile($receiptInput, $advanceId) {
 }
 
 // ------------------------------------------------------------------------------
-// 1. GET /api/advances.php?month=YYYY-MM[&memberId=...]
+// 1. GET /api/advances.php?month=YYYY-MM[&memberId=...][&startDate=...&endDate=...]
 // ------------------------------------------------------------------------------
 if ($method === 'GET') {
     $user = requireAuth();
-    $monthKey = trim($_GET['month'] ?? date('Y-m'));
-    if (!preg_match('/^\d{4}-\d{2}$/', $monthKey)) {
-        jsonResponse(['success' => false, 'error' => 'Formato de mês inválido. Use YYYY-MM.'], 400);
-    }
-
     $role = strtoupper(trim($user['role'] ?? 'USER'));
+    $monthKey = trim($_GET['month'] ?? '');
+    $startDate = trim($_GET['startDate'] ?? $_GET['start_date'] ?? '');
+    $endDate = trim($_GET['endDate'] ?? $_GET['end_date'] ?? '');
     $requestedMemberId = trim($_GET['memberId'] ?? $_GET['member_id'] ?? '');
 
-    if (in_array($role, ['ADMIN', 'MANAGER'], true)) {
-        // Administrador/Gestor: pode consultar de todos ou filtrar por colaborador
-        if (!empty($requestedMemberId)) {
-            $stmt = $db->prepare("SELECT * FROM salary_advances WHERE month_key = ? AND member_id = ? ORDER BY date DESC, created_at DESC");
-            $stmt->execute([$monthKey, $requestedMemberId]);
-        } else {
-            $stmt = $db->prepare("SELECT * FROM salary_advances WHERE month_key = ? ORDER BY date DESC, created_at DESC");
-            $stmt->execute([$monthKey]);
+    // Se nenhum filtro foi informado, assume o mês vigente padrão
+    if (empty($monthKey) && empty($startDate) && empty($endDate)) {
+        $monthKey = date('Y-m');
+    }
+
+    if (!empty($monthKey) && $monthKey !== 'all' && empty($startDate)) {
+        if (!preg_match('/^\d{4}-\d{2}$/', $monthKey)) {
+            jsonResponse(['success' => false, 'error' => 'Formato de mês inválido. Use YYYY-MM ou "all".'], 400);
         }
+    }
+
+    if (in_array($role, ['ADMIN', 'MANAGER'], true)) {
+        // Administrador/Gestor: pode consultar de todos ou filtrar por período/colaborador
+        $where = [];
+        $params = [];
+
+        if (!empty($startDate) && !empty($endDate)) {
+            $where[] = "date BETWEEN ? AND ?";
+            $params[] = $startDate;
+            $params[] = $endDate;
+        } elseif (!empty($monthKey) && $monthKey !== 'all') {
+            $where[] = "month_key = ?";
+            $params[] = $monthKey;
+        }
+
+        if (!empty($requestedMemberId) && $requestedMemberId !== 'all') {
+            $where[] = "member_id = ?";
+            $params[] = $requestedMemberId;
+        }
+
+        $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+        $stmt = $db->prepare("SELECT * FROM salary_advances {$whereClause} ORDER BY date DESC, created_at DESC");
+        $stmt->execute($params);
         $rows = $stmt->fetchAll();
     } else {
         // Colaborador comum: acessa EXCLUSIVAMENTE seus próprios vales vinculados por user_id
@@ -111,13 +133,26 @@ if ($method === 'GET') {
         if (!$myMemberId) {
             jsonResponse([
                 'success'  => true,
-                'month'    => $monthKey,
+                'month'    => $monthKey ?: date('Y-m'),
                 'advances' => []
             ]);
         }
 
-        $stmt = $db->prepare("SELECT * FROM salary_advances WHERE month_key = ? AND member_id = ? ORDER BY date DESC, created_at DESC");
-        $stmt->execute([$monthKey, $myMemberId]);
+        $where = ["member_id = ?"];
+        $params = [$myMemberId];
+
+        if (!empty($startDate) && !empty($endDate)) {
+            $where[] = "date BETWEEN ? AND ?";
+            $params[] = $startDate;
+            $params[] = $endDate;
+        } elseif (!empty($monthKey) && $monthKey !== 'all') {
+            $where[] = "month_key = ?";
+            $params[] = $monthKey;
+        }
+
+        $whereClause = 'WHERE ' . implode(' AND ', $where);
+        $stmt = $db->prepare("SELECT * FROM salary_advances {$whereClause} ORDER BY date DESC, created_at DESC");
+        $stmt->execute($params);
         $rows = $stmt->fetchAll();
     }
 

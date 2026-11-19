@@ -52038,3 +52038,303 @@ body.light-theme .receipt-lightbox-card,
   background: #ffffff;
   border-color: #bae6fd;
 }
+
+/* ==========================================================================
+   FIN-08: GESTÃO AVANÇADA DE VALES - ABAS, FILTRO POR PERÍODO & RELATÓRIOS
+   ========================================================================== */
+.advances-modal-card.advances-modal-card-wide {
+  max-width: 960px !important;
+  width: 100%;
+}
+
+.advances-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.advances-nav-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.advances-nav-tab:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.advances-nav-tab.is-active {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(225, 29, 72, 0.3) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
+}
+
+.advances-tab-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(244, 63, 94, 0.25);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+/* Barra de Filtros de Período e Critérios */
+.advances-period-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.adv-filter-row-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.adv-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.adv-filter-item label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.adv-filter-select {
+  height: 34px !important;
+  padding: 4px 10px !important;
+  font-size: 0.78rem !important;
+  border-radius: 8px !important;
+}
+
+.adv-filter-date {
+  height: 34px !important;
+  padding: 4px 8px !important;
+  font-size: 0.76rem !important;
+  width: 125px !important;
+  border-radius: 8px !important;
+}
+
+.adv-filter-row-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.adv-search-box {
+  flex: 1;
+  min-width: 260px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.adv-search-box svg.text-slate {
+  position: absolute;
+  left: 10px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.adv-search-input {
+  width: 100%;
+  height: 34px;
+  background: rgba(10, 16, 30, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  padding: 0 30px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.adv-search-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+}
+
+.adv-search-clear {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.adv-btn-print {
+  height: 34px !important;
+  padding: 0 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  white-space: nowrap !important;
+}
+
+/* Cards de Métricas Consolidadas do Período */
+.advances-period-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .advances-period-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.adv-kpi-card.kpi-vales-total {
+  border-left: 3px solid #f43f5e;
+  background: rgba(244, 63, 94, 0.04);
+}
+
+.adv-kpi-card.kpi-vales-count {
+  border-left: 3px solid #f59e0b;
+}
+
+.adv-kpi-card.kpi-vales-beneficiaries {
+  border-left: 3px solid #06b6d4;
+}
+
+.adv-kpi-card.kpi-vales-receipts {
+  border-left: 3px solid #10b981;
+}
+
+/* Célula do Colaborador na Tabela de Vales */
+.adv-col-member {
+  min-width: 170px;
+}
+
+.adv-member-cell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.adv-member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.adv-member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.adv-member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.adv-member-name {
+  font-size: 0.8rem;
+  font-weight: 750;
+  color: #f8fafc;
+  line-height: 1.2;
+}
+
+.adv-member-role {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.advances-loading-box {
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #94a3b8;
+  font-size: 0.84rem;
+}
+
+/* Light Theme para novos estilos */
+body.light-theme .advances-nav-tabs,
+[data-theme='light'] .advances-nav-tabs {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+body.light-theme .advances-nav-tab,
+[data-theme='light'] .advances-nav-tab {
+  color: #475569;
+}
+
+body.light-theme .advances-nav-tab.is-active,
+[data-theme='light'] .advances-nav-tab.is-active {
+  background: #ffffff;
+  border-color: rgba(244, 63, 94, 0.5);
+  color: #e11d48;
+}
+
+body.light-theme .advances-period-toolbar,
+[data-theme='light'] .advances-period-toolbar {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+body.light-theme .adv-search-input,
+[data-theme='light'] .adv-search-input {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+body.light-theme .adv-member-name,
+[data-theme='light'] .adv-member-name {
+  color: #0f172a;
+}

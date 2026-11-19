@@ -340,10 +340,12 @@ export async function apiSavePayout(payoutData) {
 // ------------------------------------------------------------------------------
 // 5.2 VALES & ADIANTAMENTOS SALARIAIS DE COLABORADORES (FIN-05)
 // ------------------------------------------------------------------------------
-export async function apiGetSalaryAdvances(monthKey, memberId = '') {
+export async function apiGetSalaryAdvances(monthKey, memberId = '', options = {}) {
   const params = new URLSearchParams();
   if (monthKey) params.append('month', monthKey);
   if (memberId) params.append('memberId', memberId);
+  if (options && options.startDate) params.append('startDate', options.startDate);
+  if (options && options.endDate) params.append('endDate', options.endDate);
   const q = params.toString() ? `?${params.toString()}` : '';
 
   try {
