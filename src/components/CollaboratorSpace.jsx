@@ -1229,26 +1229,35 @@ export default function CollaboratorSpace({
             </div>
           )}
 
-          {/* Card Vales e Adiantamentos Concedidos */}
-          {financialSummary.totalAdvancesVal > 0 && (
-            <div
-              className="cs-summary-card cs-card-advances is-clickable"
-              onClick={() => setShowAdvancesHistoryModal(true)}
-              style={{ borderLeft: '3px solid #f43f5e', background: 'rgba(244, 63, 94, 0.08)', cursor: 'pointer' }}
-              title="Clique para ver o extrato detalhado dos seus vales e adiantamentos salariais"
-            >
-              <div className="cs-card-header">
-                <span className="cs-card-lbl">Vales ({financialSummary.advancesCount} adiantamento{financialSummary.advancesCount === 1 ? '' : 's'})</span>
-                <Receipt size={18} className="text-rose" />
-              </div>
-              <strong className="cs-card-val text-rose">
-                -{formatBRL(financialSummary.totalAdvancesVal)}
-              </strong>
-              <span className="cs-card-sub" style={{ color: '#fda4af' }}>
-                Deduzido do saldo • Ver extrato ↗
+          {/* Card Vales e Adiantamentos Concedidos (Sempre visível para total transparência do colaborador) */}
+          <div
+            className="cs-summary-card cs-card-advances is-clickable"
+            onClick={() => setShowAdvancesHistoryModal(true)}
+            style={{
+              borderLeft: '3px solid #f43f5e',
+              background: (financialSummary.totalAdvancesVal > 0) ? 'rgba(244, 63, 94, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+              cursor: 'pointer'
+            }}
+            title="Clique para ver o extrato detalhado dos seus vales e adiantamentos salariais"
+          >
+            <div className="cs-card-header">
+              <span className="cs-card-lbl">
+                Vales &amp; Adiantamentos
+                {financialSummary.advancesCount > 0 && ` (${financialSummary.advancesCount})`}
               </span>
+              <Receipt size={18} className="text-rose" />
             </div>
-          )}
+            <strong className={`cs-card-val ${(financialSummary.totalAdvancesVal > 0) ? 'text-rose' : 'text-muted'}`}>
+              {(financialSummary.totalAdvancesVal > 0)
+                ? `-${formatBRL(financialSummary.totalAdvancesVal)}`
+                : 'R$ 0,00'}
+            </strong>
+            <span className="cs-card-sub" style={{ color: (financialSummary.totalAdvancesVal > 0) ? '#fda4af' : '#94a3b8' }}>
+              {(financialSummary.totalAdvancesVal > 0)
+                ? 'Deduzido do saldo bruto • Ver comprovantes ↗'
+                : 'Nenhum vale no mês • Ver extrato ↗'}
+            </span>
+          </div>
 
           {/* Card Total a Receber / Quitado */}
           <div className={`cs-summary-card cs-card-total ${financialSummary.isPaid ? 'is-paid' : 'is-pending'}`}>
@@ -2551,6 +2560,24 @@ export default function CollaboratorSpace({
               </button>
             </div>
 
+            {/* Aviso de Concessão Exclusiva da Administração */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px 14px',
+              background: 'rgba(56, 189, 248, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              borderRadius: 8,
+              fontSize: '0.8rem',
+              color: '#bae6fd'
+            }}>
+              <ShieldCheck size={18} className="text-cyan" style={{ flexShrink: 0 }} />
+              <span>
+                <strong>Gestão Centralizada:</strong> Os vales e adiantamentos salariais são liberados e lançados exclusivamente pela Diretoria / Administração Geral. Você pode consultar aqui em tempo real cada comprovante, data e valor deduzido do seu fechamento.
+              </span>
+            </div>
+
             <div className="advances-summary-grid">
               <div className="adv-kpi-card kpi-gross">
                 <span className="adv-kpi-lbl">Total de Créditos (Bruto)</span>
@@ -2559,13 +2586,15 @@ export default function CollaboratorSpace({
               </div>
               <div className="adv-kpi-card kpi-advances">
                 <span className="adv-kpi-lbl">Vales Recebidos</span>
-                <strong className="adv-kpi-val text-rose">-{formatBRL(financialSummary.totalAdvancesVal)}</strong>
+                <strong className="adv-kpi-val text-rose">
+                  {financialSummary.totalAdvancesVal > 0 ? `-${formatBRL(financialSummary.totalAdvancesVal)}` : 'R$ 0,00'}
+                </strong>
                 <span className="adv-kpi-sub">{financialSummary.advancesCount} adiantamento(s)</span>
               </div>
               <div className="adv-kpi-card kpi-net">
                 <span className="adv-kpi-lbl">Saldo Líquido a Receber</span>
                 <strong className="adv-kpi-val text-green">{formatBRL(financialSummary.netTotal)}</strong>
-                <span className="adv-kpi-sub">Líquido na quitação</span>
+                <span className="adv-kpi-sub">Líquido final via PIX</span>
               </div>
             </div>
 
@@ -2601,7 +2630,13 @@ export default function CollaboratorSpace({
                   </table>
                 </div>
               ) : (
-                <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Nenhum adiantamento registrado neste mês.</p>
+                <div style={{ textAlign: 'center', padding: '24px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px dashed rgba(255,255,255,0.08)' }}>
+                  <Receipt size={28} className="text-rose" style={{ opacity: 0.5, marginBottom: 8, display: 'inline-block' }} />
+                  <strong style={{ display: 'block', fontSize: '0.9rem', color: '#e2e8f0' }}>Nenhum vale registrado para você em {monthLabel}</strong>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                    Você receberá o valor integral dos seus créditos e diárias no fechamento mensal sem deduções de adiantamento.
+                  </p>
+                </div>
               )}
             </div>
 

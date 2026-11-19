@@ -121,6 +121,7 @@ export default function TeamPayoutsDashboard({
   // Vales e Adiantamentos Salariais (FIN-05: memberId -> array de vales)
   const [advancesMap, setAdvancesMap] = useState({});
   const [advancesModalMember, setAdvancesModalMember] = useState(null);
+  const [advancesModalOpen, setAdvancesModalOpen] = useState(false);
   const [isLoadingAdvances, setIsLoadingAdvances] = useState(false);
 
   // Modais e Raio-X
@@ -843,6 +844,19 @@ export default function TeamPayoutsDashboard({
         <div className="payouts-toolbar-actions">
           <button
             type="button"
+            className="btn-payout-add-advance"
+            onClick={() => {
+              setAdvancesModalMember(null);
+              setAdvancesModalOpen(true);
+            }}
+            title="Lançar um novo vale ou adiantamento salarial para qualquer colaborador"
+          >
+            <Receipt size={15} />
+            <span>+ Lançar Vale</span>
+          </button>
+
+          <button
+            type="button"
             className="btn-payout-print"
             onClick={handlePrintReport}
             title="Imprimir folha de pagamento do mês"
@@ -872,14 +886,35 @@ export default function TeamPayoutsDashboard({
           </div>
         </div>
 
-        <div className="payout-summary-card card-advances">
+        <div
+          className="payout-summary-card card-advances is-clickable"
+          onClick={() => {
+            setAdvancesModalMember(null);
+            setAdvancesModalOpen(true);
+          }}
+          title="Clique para lançar ou auditar vales e adiantamentos salariais"
+          style={{ cursor: 'pointer' }}
+        >
           <div className="psc-icon-wrap" style={{ background: 'rgba(244, 63, 94, 0.15)', color: '#fb7185' }}>
             <Receipt size={24} />
           </div>
           <div className="psc-info">
-            <span className="psc-label">Vales / Adiantamentos</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+              <span className="psc-label">Vales / Adiantamentos</span>
+              <span className="psc-add-badge" style={{
+                fontSize: '0.68rem',
+                fontWeight: 800,
+                color: '#fb7185',
+                background: 'rgba(244, 63, 94, 0.2)',
+                padding: '2px 8px',
+                borderRadius: 4,
+                border: '1px solid rgba(244, 63, 94, 0.4)'
+              }}>
+                + Lançar Vale
+              </span>
+            </div>
             <strong className="psc-value text-rose">{formatBRL(summaryTotals.totalVales)}</strong>
-            <span className="psc-sub">Total deduzido dos colaboradores</span>
+            <span className="psc-sub">Adiantamentos deduzidos da folha</span>
           </div>
         </div>
 
@@ -1175,9 +1210,17 @@ export default function TeamPayoutsDashboard({
                       {formatBRL(member.netAmount !== undefined ? member.netAmount : member.totalAmount)}
                     </strong>
                     {member.totalAdvancesAmount > 0 && (
-                      <div className="pmc-advances-breakdown" title={`Bruto: ${formatBRL(member.totalAmount)} - Vales: ${formatBRL(member.totalAdvancesAmount)}`}>
+                      <div
+                        className="pmc-advances-breakdown is-clickable"
+                        onClick={() => {
+                          setAdvancesModalMember(member);
+                          setAdvancesModalOpen(true);
+                        }}
+                        title={`Bruto: ${formatBRL(member.totalAmount)} - Vales: ${formatBRL(member.totalAdvancesAmount)}. Clique para gerenciar.`}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <span className="pmc-gross-hint">Bruto: {formatBRL(member.totalAmount)}</span>
-                        <span className="pmc-adv-hint text-rose">Vales: -{formatBRL(member.totalAdvancesAmount)}</span>
+                        <span className="pmc-adv-hint text-rose">🎟️ Vales: -{formatBRL(member.totalAdvancesAmount)} ({member.advancesCount})</span>
                       </div>
                     )}
                     {isPaid ? (
@@ -1207,11 +1250,14 @@ export default function TeamPayoutsDashboard({
                       <button
                         type="button"
                         className="pmc-action-btn btn-advances"
-                        onClick={() => setAdvancesModalMember(member)}
-                        title={`Lançar ou gerenciar vales/adiantamentos de ${member.name} (${member.advancesCount || 0} cadastrado(s))` }
+                        onClick={() => {
+                          setAdvancesModalMember(member);
+                          setAdvancesModalOpen(true);
+                        }}
+                        title={`Lançar novo vale ou gerenciar adiantamentos de ${member.name} (${member.advancesCount || 0} cadastrado(s))` }
                       >
-                        <Wallet size={13} className="text-rose" />
-                        <span>Vales ({member.advancesCount || 0})</span>
+                        <Plus size={12} className="text-rose" />
+                        <span>Vale{member.advancesCount > 0 ? ` (${member.advancesCount})` : ''}</span>
                       </button>
 
                       <button
@@ -1220,7 +1266,7 @@ export default function TeamPayoutsDashboard({
                         onClick={() => handleOpenStatement(member, 'all')}
                         title="Ver Raio-X e Espelho detalhado de todas as missões do mês"
                       >
-                        <Zap size={13} className="text-amber" /> <span>Raio-X&nbsp;/&nbsp;Espelho</span>
+                        <Zap size={13} className="text-amber" /> <span>Raio-X</span>
                       </button>
 
                       <button
@@ -2007,14 +2053,24 @@ export default function TeamPayoutsDashboard({
       )}
 
       {/* Modal de Lançamento e Gestão de Vales e Adiantamentos Salariais (FIN-05) */}
-      {advancesModalMember && (
+      {advancesModalOpen && (
         <SalaryAdvancesModal
+          isOpen={true}
           member={advancesModalMember}
+          members={members}
           monthKey={selectedMonth}
           monthLabel={monthLabel}
-          grossAmount={advancesModalMember.totalAmount || 0}
+          grossAmount={advancesModalMember?.totalAmount || 0}
+          advances={advancesModalMember ? (advancesMap[String(advancesModalMember.id)] || advancesMap[advancesModalMember.id] || []) : []}
+          advancesMap={advancesMap}
           currentUser={currentUser}
-          onClose={() => setAdvancesModalMember(null)}
+          onClose={() => {
+            setAdvancesModalMember(null);
+            setAdvancesModalOpen(false);
+          }}
+          onRefresh={() => {
+            loadAdvances();
+          }}
           onAdvancesChanged={() => {
             loadAdvances();
           }}

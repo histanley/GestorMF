@@ -14,6 +14,7 @@ import {
   User,
   Clock,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import { apiSaveSalaryAdvance, apiDeleteSalaryAdvance } from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
@@ -42,15 +43,25 @@ function formatMonthName(monthKey) {
 }
 
 export default function SalaryAdvancesModal({
-  isOpen = false,
+  isOpen = true,
   onClose = () => {},
   member = null,
+  members = [],
   monthKey = '',
+  monthLabel = '',
   grossAmount = 0,
   advances = [],
+  advancesMap = {},
   onRefresh = () => {},
+  onAdvancesChanged = null,
   currentUser = null,
 }) {
+  const [selectedMemberId, setSelectedMemberId] = useState(() => {
+    if (member?.id) return String(member.id);
+    if (members && members.length > 0) return String(members[0].id);
+    return '';
+  });
+
   const [amountStr, setAmountStr] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [description, setDescription] = useState('');
@@ -58,22 +69,49 @@ export default function SalaryAdvancesModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
+  // Colaborador ativo (selecionado no dropdown ou passado diretamente da linha)
+  const activeMember = useMemo(() => {
+    if (member) return member;
+    if (!members || members.length === 0) return null;
+    return members.find((m) => String(m.id) === String(selectedMemberId)) || members[0] || null;
+  }, [member, members, selectedMemberId]);
+
+  // Lista de vales do colaborador ativo
+  const activeAdvances = useMemo(() => {
+    if (member && advances && advances.length > 0) {
+      return advances;
+    }
+    if (activeMember && advancesMap) {
+      const fromMap = advancesMap[String(activeMember.id)] || advancesMap[activeMember.id];
+      if (Array.isArray(fromMap)) return fromMap;
+    }
+    return advances || [];
+  }, [advances, advancesMap, activeMember, member]);
+
+  // Valor bruto do colaborador ativo
+  const activeGross = useMemo(() => {
+    if (member) return Number(grossAmount) || 0;
+    if (activeMember) return Number(activeMember.totalAmount || 0);
+    return Number(grossAmount) || 0;
+  }, [member, activeMember, grossAmount]);
+
   // Calcula totais
   const totalAdvances = useMemo(() => {
-    return advances.reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
-  }, [advances]);
+    return activeAdvances.reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
+  }, [activeAdvances]);
 
   const netBalance = useMemo(() => {
-    const gross = Number(grossAmount) || 0;
+    const gross = Number(activeGross) || 0;
     return Math.max(0, gross - totalAdvances);
-  }, [grossAmount, totalAdvances]);
+  }, [activeGross, totalAdvances]);
 
   const balanceDeficit = useMemo(() => {
-    const gross = Number(grossAmount) || 0;
+    const gross = Number(activeGross) || 0;
     return totalAdvances > gross ? totalAdvances - gross : 0;
-  }, [grossAmount, totalAdvances]);
+  }, [activeGross, totalAdvances]);
 
-  if (!isOpen || !member) return null;
+  if (!isOpen) return null;
+  if (!activeMember) return null;
 
   // Lidar com digitação de moeda com máscara
   const handleAmountChange = (e) => {
@@ -97,27 +135,39 @@ export default function SalaryAdvancesModal({
     const valNum = getAmountNumber();
 
     if (valNum <= 0) {
-      await alertDialog('Informe um valor válido maior que zero para o vale.', 'Valor Obrigatório');
+      await alertDialog({
+        title: 'Valor Obrigatório',
+        message: 'Informe um valor válido maior que zero para o vale.',
+        variant: 'warning',
+      });
       return;
     }
 
     if (!date) {
-      await alertDialog('Selecione a data de liberação do vale.', 'Data Obrigatória');
+      await alertDialog({
+        title: 'Data Obrigatória',
+        message: 'Selecione a data de liberação do vale.',
+        variant: 'warning',
+      });
       return;
     }
 
     const desc = description.trim() || 'Adiantamento de Salário';
 
-    const confirmed = await confirmDialog(
-      `Confirmar a liberação de um vale de ${formatBRL(valNum)} para ${member.name} via ${paymentMethod} em ${formatDateBR(date)}?\n\nEste valor será deduzido automaticamente dos créditos a receber do colaborador.`,
-      'Confirmar Lançamento de Vale'
-    );
+    const confirmed = await confirmDialog({
+      title: 'Confirmar Lançamento de Vale',
+      message: `Confirmar a liberação de um vale de ${formatBRL(valNum)} para ${activeMember.name}?`,
+      description: `Forma de Pagamento: ${paymentMethod}\nData: ${formatDateBR(date)}\nMotivo: ${desc}\n\nEste valor será deduzido automaticamente dos créditos a receber do colaborador no fechamento.`,
+      confirmText: 'Conceder Vale',
+      cancelText: 'Cancelar',
+      variant: 'success',
+    });
     if (!confirmed) return;
 
     try {
       setIsSubmitting(true);
       const res = await apiSaveSalaryAdvance({
-        memberId: member.id,
+        memberId: activeMember.id,
         monthKey: monthKey || date.slice(0, 7),
         date,
         amount: valNum,
@@ -131,12 +181,26 @@ export default function SalaryAdvancesModal({
         setAmountStr('');
         setDescription('');
         setDate(new Date().toISOString().slice(0, 10));
-        onRefresh();
+        if (onRefresh) onRefresh();
+        if (onAdvancesChanged) onAdvancesChanged();
+        await alertDialog({
+          title: '✅ Vale Concedido com Sucesso!',
+          message: `O vale de ${formatBRL(valNum)} para ${activeMember.name} foi lançado no sistema e deduzido da folha de pagamento.`,
+          variant: 'success',
+        });
       } else {
-        await alertDialog(res?.error || 'Erro ao registrar vale no servidor.', 'Erro');
+        await alertDialog({
+          title: 'Erro',
+          message: res?.error || 'Erro ao registrar vale no servidor.',
+          variant: 'danger',
+        });
       }
     } catch (err) {
-      await alertDialog(`Erro ao comunicar com o servidor: ${err.message}`, 'Erro');
+      await alertDialog({
+        title: 'Erro',
+        message: `Erro ao comunicar com o servidor: ${err.message}`,
+        variant: 'danger',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -144,30 +208,43 @@ export default function SalaryAdvancesModal({
 
   // Excluir / Estornar vale
   const handleDeleteAdvance = async (advance) => {
-    const confirmed = await confirmDialog(
-      `Deseja realmente estornar/excluir o vale de ${formatBRL(advance.amount)} concedido em ${formatDateBR(advance.date)}?\n\nMotivo: ${advance.description}`,
-      'Estornar Vale'
-    );
+    const confirmed = await confirmDialog({
+      title: 'Estornar Vale',
+      message: `Deseja realmente estornar/excluir o vale de ${formatBRL(advance.amount)} concedido para ${activeMember.name}?`,
+      description: `Data: ${formatDateBR(advance.date)}\nMotivo: ${advance.description || 'Adiantamento'}\n\nAo estornar, o valor voltará a compor os créditos a receber do colaborador no fechamento.`,
+      confirmText: 'Estornar Vale',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
     if (!confirmed) return;
 
     try {
       setDeletingId(advance.id);
       const res = await apiDeleteSalaryAdvance(advance.id);
       if (res && res.success) {
-        onRefresh();
+        if (onRefresh) onRefresh();
+        if (onAdvancesChanged) onAdvancesChanged();
       } else {
-        await alertDialog(res?.error || 'Erro ao estornar vale.', 'Erro');
+        await alertDialog({
+          title: 'Erro',
+          message: res?.error || 'Erro ao estornar vale.',
+          variant: 'danger',
+        });
       }
     } catch (err) {
-      await alertDialog(`Erro ao estornar vale: ${err.message}`, 'Erro');
+      await alertDialog({
+        title: 'Erro',
+        message: `Erro ao estornar vale: ${err.message}`,
+        variant: 'danger',
+      });
     } finally {
       setDeletingId(null);
     }
   };
 
   return (
-    <div className="advances-modal-overlay">
-      <div className="advances-modal-card">
+    <div className="advances-modal-overlay" onClick={onClose}>
+      <div className="advances-modal-card" onClick={(e) => e.stopPropagation()}>
         {/* Cabeçalho */}
         <div className="advances-modal-header">
           <div className="advances-header-left">
@@ -177,8 +254,8 @@ export default function SalaryAdvancesModal({
             <div className="advances-header-titles">
               <h3 className="advances-modal-title">Vales &amp; Adiantamentos de Salário</h3>
               <p className="advances-modal-subtitle">
-                Colaborador: <strong>{member.name}</strong> • Competência:{' '}
-                <span className="text-cyan">{formatMonthName(monthKey)}</span>
+                Colaborador: <strong>{activeMember.name}</strong> • Competência:{' '}
+                <span className="text-cyan">{monthLabel || formatMonthName(monthKey)}</span>
               </p>
             </div>
           </div>
@@ -192,12 +269,57 @@ export default function SalaryAdvancesModal({
           </button>
         </div>
 
+        {/* Aviso de Permissão Exclusiva de Administrador */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          background: 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.25)',
+          borderRadius: 8,
+          padding: '8px 12px',
+          fontSize: '0.78rem',
+          color: '#fbbf24'
+        }}>
+          <ShieldCheck size={15} style={{ flexShrink: 0 }} />
+          <span>
+            <strong>Área Exclusiva da Diretoria &amp; Gestão:</strong> Apenas administradores têm permissão para lançar ou estornar vales. Os valores são deduzidos automaticamente da folha de pagamento e ficam visíveis em tempo real no "Meu Espaço" do colaborador.
+          </span>
+        </div>
+
+        {/* Seletor de Colaborador (quando aberto pelo botão geral da barra de topo) */}
+        {!member && members.length > 0 && (
+          <div className="advances-member-selector-box" style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 10,
+            padding: '12px 14px'
+          }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <User size={14} className="text-amber" />
+              Selecionar Colaborador para Lançar ou Consultar Vale:
+            </label>
+            <select
+              value={selectedMemberId}
+              onChange={(e) => setSelectedMemberId(e.target.value)}
+              className="advances-select"
+              style={{ width: '100%', fontSize: '0.9rem', padding: '9px 12px', borderRadius: 8 }}
+            >
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.role || 'Colaborador'}) • {m.company || 'MegaFilmes'}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Resumo Financeiro do Colaborador (Cálculo Oficial) */}
         <div className="advances-summary-grid">
           {/* Card 1: Total Apurado (Bruto) */}
           <div className="advances-kpi-card gross-card">
             <span className="advances-kpi-label">Total Apurado (Bruto)</span>
-            <strong className="advances-kpi-value text-slate">{formatBRL(grossAmount)}</strong>
+            <strong className="advances-kpi-value text-slate">{formatBRL(activeGross)}</strong>
             <small className="advances-kpi-sub">Horas extras + Diárias + Cachês</small>
           </div>
 
@@ -208,7 +330,7 @@ export default function SalaryAdvancesModal({
               {totalAdvances > 0 ? `- ${formatBRL(totalAdvances)}` : formatBRL(0)}
             </strong>
             <small className="advances-kpi-sub">
-              {advances.length === 1 ? '1 adiantamento registrado' : `${advances.length} adiantamentos registrados`}
+              {activeAdvances.length === 1 ? '1 adiantamento registrado' : `${activeAdvances.length} adiantamentos registrados`}
             </small>
           </div>
 
@@ -230,7 +352,7 @@ export default function SalaryAdvancesModal({
         <div className="advances-form-box">
           <div className="advances-form-title-row">
             <Plus size={15} className="text-amber" />
-            <span>Lançar Novo Vale / Adiantamento</span>
+            <span>Lançar Novo Vale / Adiantamento para {activeMember.name}</span>
           </div>
 
           <form onSubmit={handleCreateAdvance} className="advances-new-form">
@@ -319,14 +441,14 @@ export default function SalaryAdvancesModal({
         {/* Lista de Vales Registrados no Mês */}
         <div className="advances-list-section">
           <div className="advances-list-header">
-            <h4>Histórico de Vales Concedidos em {formatMonthName(monthKey)}</h4>
-            <span className="advances-count-pill">{advances.length} no mês</span>
+            <h4>Histórico de Vales Concedidos em {monthLabel || formatMonthName(monthKey)}</h4>
+            <span className="advances-count-pill">{activeAdvances.length} no mês</span>
           </div>
 
-          {advances.length === 0 ? (
+          {activeAdvances.length === 0 ? (
             <div className="advances-empty-box">
               <CheckCircle2 size={30} className="text-emerald" />
-              <strong>Nenhum vale registrado para {member.name} neste mês.</strong>
+              <strong>Nenhum vale registrado para {activeMember.name} neste mês.</strong>
               <p>O colaborador receberá o valor integral dos seus créditos e horas extras sem deduções de adiantamento.</p>
             </div>
           ) : (
@@ -343,7 +465,7 @@ export default function SalaryAdvancesModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {advances.map((adv) => (
+                  {activeAdvances.map((adv) => (
                     <tr key={adv.id}>
                       <td className="adv-col-date">
                         <div className="adv-date-badge">
