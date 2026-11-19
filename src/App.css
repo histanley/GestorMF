@@ -36318,15 +36318,15 @@ body.light-theme .ac-meta-chip-editors {
   text-overflow: ellipsis !important;
 }
 
-/* Rodapé de Ações - Botões Grandes, Imponentes, Modernos e Elegantes */
+/* Rodapé de Ações - Botões Ultra Expressivos, Imponentes e Decisivos */
 .ac-pp-actions-footer {
   display: grid !important;
-  grid-template-columns: 1fr 1.25fr !important;
-  align-items: center !important;
+  grid-template-columns: 1fr 1.35fr !important;
+  align-items: stretch !important;
   gap: 12px !important;
   width: 100% !important;
-  margin-top: 6px !important;
-  padding-top: 14px !important;
+  margin-top: 8px !important;
+  padding-top: 16px !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-sizing: border-box !important;
 }
@@ -36337,73 +36337,164 @@ body.light-theme .ac-pp-actions-footer {
 
 .ac-pp-btn-action {
   width: 100% !important;
-  height: 44px !important;
-  border-radius: 12px !important;
-  font-size: 0.84rem !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.2px !important;
+  min-height: 52px !important;
+  border-radius: 14px !important;
   display: inline-flex !important;
   align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
+  gap: 12px !important;
+  padding: 8px 14px !important;
   cursor: pointer !important;
-  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
   box-sizing: border-box !important;
+  text-align: left !important;
+  user-select: none !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.ac-pp-btn-action:active {
+  transform: scale(0.98) !important;
+}
+
+.ac-btn-icon-circle {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  transition: all 0.25s ease !important;
+}
+
+.ac-btn-text-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.ac-btn-main-title {
+  font-size: 0.92rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.2px !important;
+  line-height: 1.2 !important;
   white-space: nowrap !important;
-  padding: 0 12px !important;
 }
 
-/* Botão Rejeitar e Reabrir (Vermelho/Coral Moderno) */
+.ac-btn-sub-title {
+  font-size: 0.68rem !important;
+  font-weight: 600 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+  opacity: 0.85 !important;
+}
+
+/* 1. Botão REJEITAR E REABRIR (Expressivo, Vermelho / Coral com Alerta Visual Claro) */
+.ac-pp-btn-action.ac-pp-btn-reject,
 .ac-btn-reject.ac-pp-btn-action {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, rgba(185, 28, 28, 0.22) 100%) !important;
-  border: 1.5px solid rgba(248, 113, 113, 0.45) !important;
-  color: #fca5a5 !important;
-  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.15) !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(185, 28, 28, 0.28) 100%) !important;
+  border: 1.5px solid rgba(248, 113, 113, 0.55) !important;
+  color: #fecaca !important;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
 }
 
+.ac-pp-btn-action.ac-pp-btn-reject .ac-btn-icon-circle.reject,
+.ac-btn-reject.ac-pp-btn-action .ac-btn-icon-circle.reject {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border: 1px solid rgba(248, 113, 113, 0.4) !important;
+  color: #fca5a5 !important;
+}
+
+.ac-pp-btn-action.ac-pp-btn-reject:hover,
 .ac-btn-reject.ac-pp-btn-action:hover {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(220, 38, 38, 0.38) 100%) !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.32) 0%, rgba(220, 38, 38, 0.45) 100%) !important;
   border-color: #ef4444 !important;
   color: #ffffff !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 22px rgba(239, 68, 68, 0.35) !important;
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
 }
 
+.ac-pp-btn-action.ac-pp-btn-reject:hover .ac-btn-icon-circle.reject,
+.ac-btn-reject.ac-pp-btn-action:hover .ac-btn-icon-circle.reject {
+  background: rgba(239, 68, 68, 0.5) !important;
+  color: #ffffff !important;
+  transform: rotate(-90deg) !important;
+}
+
+body.light-theme .ac-pp-btn-action.ac-pp-btn-reject,
 body.light-theme .ac-btn-reject.ac-pp-btn-action {
   background: #fef2f2 !important;
-  border: 1.5px solid #fca5a5 !important;
+  border: 1.5px solid #f87171 !important;
+  color: #dc2626 !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.1) !important;
+}
+
+body.light-theme .ac-pp-btn-action.ac-pp-btn-reject .ac-btn-icon-circle.reject,
+body.light-theme .ac-btn-reject.ac-pp-btn-action .ac-btn-icon-circle.reject {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
   color: #dc2626 !important;
 }
 
+body.light-theme .ac-pp-btn-action.ac-pp-btn-reject:hover,
 body.light-theme .ac-btn-reject.ac-pp-btn-action:hover {
   background: #dc2626 !important;
+  border-color: #b91c1c !important;
   color: #ffffff !important;
-  border-color: #dc2626 !important;
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.35) !important;
 }
 
-/* Botão Confirmar Finalização (Verde Esmeralda Vibrante e Sólido) */
+body.light-theme .ac-pp-btn-action.ac-pp-btn-reject:hover .ac-btn-icon-circle.reject,
+body.light-theme .ac-btn-reject.ac-pp-btn-action:hover .ac-btn-icon-circle.reject {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+}
+
+/* 2. Botão CONFIRMAR FINALIZAÇÃO (Sólido, Esmeralda Luminous, Protagonista Visual) */
+.ac-pp-btn-action.ac-pp-btn-approve,
 .ac-btn-approve.ac-pp-btn-action {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
   border: 1.5px solid #34d399 !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
 }
 
+.ac-pp-btn-action.ac-pp-btn-approve .ac-btn-icon-circle.approve,
+.ac-btn-approve.ac-pp-btn-action .ac-btn-icon-circle.approve {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  color: #ffffff !important;
+}
+
+.ac-pp-btn-action.ac-pp-btn-approve:hover,
 .ac-btn-approve.ac-pp-btn-action:hover {
-  background: linear-gradient(135deg, #34d399 0%, #059669 100%) !important;
+  background: linear-gradient(135deg, #34d399 0%, #047857 100%) !important;
   border-color: #6ee7b7 !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 10px 28px rgba(16, 185, 129, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
 }
 
+.ac-pp-btn-action.ac-pp-btn-approve:hover .ac-btn-icon-circle.approve,
+.ac-btn-approve.ac-pp-btn-action:hover .ac-btn-icon-circle.approve {
+  background: rgba(255, 255, 255, 0.32) !important;
+  transform: scale(1.08) !important;
+}
+
+body.light-theme .ac-pp-btn-action.ac-pp-btn-approve,
 body.light-theme .ac-btn-approve.ac-pp-btn-action {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
   border: 1.5px solid #059669 !important;
   color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
 }
 
-.ac-pp-btn-action:active {
-  transform: scale(0.97) !important;
+body.light-theme .ac-pp-btn-action.ac-pp-btn-approve:hover,
+body.light-theme .ac-btn-approve.ac-pp-btn-action:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.45) !important;
 }
 
 

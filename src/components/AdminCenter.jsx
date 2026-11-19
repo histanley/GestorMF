@@ -1983,12 +1983,12 @@ export default function AdminCenter({
                         </div>
                       </div>
 
-                      {/* Botões de Ação para o Administrador - Perfeitamente Proporcionais */}
+                      {/* Botões de Ação para o Administrador - Ultra Expressivos e Decisivos */}
                       {isPending ? (
                         <div className="ac-rc-actions-row ac-pp-actions-footer">
                           <button
                             type="button"
-                            className="ac-btn-reject ac-pp-btn-action"
+                            className="ac-pp-btn-action ac-pp-btn-reject"
                             onClick={() => setReopenModal({
                               isOpen: true,
                               mission,
@@ -1997,27 +1997,37 @@ export default function AdminCenter({
                               newDeadlineDate: mission.deliveryDeadlineDate || '',
                               newDeadlineTime: mission.deliveryDeadlineTime || '18:00',
                             })}
-                            title="Rejeitar material e solicitar ajustes com novo prazo"
+                            title="Rejeitar material e solicitar ajustes com novo prazo aos editores"
                           >
-                            <RotateCcw size={16} />
-                            <span>Rejeitar e Reabrir</span>
+                            <div className="ac-btn-icon-circle reject">
+                              <RotateCcw size={17} />
+                            </div>
+                            <div className="ac-btn-text-group">
+                              <strong className="ac-btn-main-title">Rejeitar e Reabrir</strong>
+                              <span className="ac-btn-sub-title">Solicitar ajustes com novo prazo</span>
+                            </div>
                           </button>
 
                           <button
                             type="button"
-                            className="ac-btn-approve ac-pp-btn-action"
+                            className="ac-pp-btn-action ac-pp-btn-approve"
                             onClick={() => handleApproveEdition(mission)}
-                            title="Confirmar finalização da missão e encerrar serviço"
+                            title="Confirmar finalização da missão e aprovar material entregue"
                           >
-                            <CheckCheck size={17} />
-                            <span>Confirmar Finalização</span>
+                            <div className="ac-btn-icon-circle approve">
+                              <CheckCheck size={19} />
+                            </div>
+                            <div className="ac-btn-text-group">
+                              <strong className="ac-btn-main-title">Confirmar Finalização</strong>
+                              <span className="ac-btn-sub-title">Aprovar entrega e concluir</span>
+                            </div>
                           </button>
                         </div>
                       ) : (
                         <div className="ac-rc-actions-row ac-pp-actions-footer">
                           <button
                             type="button"
-                            className="ac-btn-reject ac-pp-btn-action"
+                            className="ac-pp-btn-action ac-pp-btn-reject"
                             style={{ width: '100%', justifyContent: 'center' }}
                             onClick={() => setReopenModal({
                               isOpen: true,
@@ -2029,8 +2039,13 @@ export default function AdminCenter({
                             })}
                             title="Reabrir esta missão finalizada e deixar em aberto novamente as entregas da pós-produção"
                           >
-                            <RotateCcw size={16} />
-                            <span>Reabrir Missão &amp; Pós-Produção</span>
+                            <div className="ac-btn-icon-circle reject">
+                              <RotateCcw size={17} />
+                            </div>
+                            <div className="ac-btn-text-group" style={{ textAlign: 'center' }}>
+                              <strong className="ac-btn-main-title">Reabrir Missão &amp; Pós-Produção</strong>
+                              <span className="ac-btn-sub-title">Liberar entregas para nova edição</span>
+                            </div>
                           </button>
                         </div>
                       )}
