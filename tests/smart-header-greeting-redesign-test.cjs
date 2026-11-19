@@ -2,7 +2,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🧪 Iniciando testes de redesign do Smart Header Greeting...');
+console.log('🧪 Iniciando testes da barra de saudação (Layout Empilhado & Alinhado)...');
 
 const headerPath = path.resolve(__dirname, '../src/components/SmartHeaderGreeting.jsx');
 const cssPath = path.resolve(__dirname, '../src/App.css');
@@ -10,84 +10,61 @@ const cssPath = path.resolve(__dirname, '../src/App.css');
 const headerJsx = fs.readFileSync(headerPath, 'utf8');
 const appCss = fs.readFileSync(cssPath, 'utf8');
 
-// 1. Verificações no JSX
+// 1. Garantir que "Pulso Operacional" foi completamente removido
 assert.strictEqual(
-  headerJsx.includes('className="sh-avatar-hub"'),
-  true,
-  'SmartHeaderGreeting deve conter o sh-avatar-hub para foto/iniciais do usuário'
-);
-
-assert.strictEqual(
-  headerJsx.includes('className="sh-avatar-badge"'),
-  true,
-  'SmartHeaderGreeting deve conter a insígnia sh-avatar-badge com o ícone de tempo'
-);
-
-assert.strictEqual(
-  headerJsx.includes('className="sh-hero-center-radar"'),
-  true,
-  'SmartHeaderGreeting deve conter a central de comando sh-hero-center-radar'
+  headerJsx.includes('sh-hero-center-radar'),
+  false,
+  'O bloco sh-hero-center-radar não deve existir no JSX'
 );
 
 assert.strictEqual(
   headerJsx.includes('PULSO OPERACIONAL'),
-  true,
-  'Deve conter o título PULSO OPERACIONAL'
-);
-
-assert.strictEqual(
-  headerJsx.includes('AO VIVO'),
-  true,
-  'Deve conter a tag AO VIVO'
-);
-
-assert.strictEqual(
-  headerJsx.includes('statsOverview'),
-  true,
-  'Deve calcular a telemetria em tempo real statsOverview'
-);
-
-assert.strictEqual(
-  headerJsx.includes('className="sh-last-login-tag"'),
-  true,
-  'Deve exibir o chip de último login com dia e hora'
-);
-
-assert.strictEqual(
-  headerJsx.includes('className="sh-date-tag"'),
-  true,
-  'Deve exibir o chip da data oficial com ícone'
-);
-
-// 2. Verificações no CSS
-assert.strictEqual(
-  appCss.includes('.sh-avatar-hub'),
-  true,
-  'App.css deve conter regras para .sh-avatar-hub'
+  false,
+  'O texto "PULSO OPERACIONAL" não deve existir mais no cabeçalho'
 );
 
 assert.strictEqual(
   appCss.includes('.sh-hero-center-radar'),
+  false,
+  'App.css não deve mais conter regras ativas para .sh-hero-center-radar'
+);
+
+// 2. Garantir que Saudação, Último Login e Data estão empilhados em linhas dedicadas e alinhadas
+assert.strictEqual(
+  headerJsx.includes('className="sh-hero-greeting-row"'),
   true,
-  'App.css deve conter regras para .sh-hero-center-radar'
+  'Deve conter a linha de saudação sh-hero-greeting-row'
 );
 
 assert.strictEqual(
-  appCss.includes('.sh-radar-pulse-dot'),
+  headerJsx.includes('className="sh-hero-login-row"'),
   true,
-  'App.css deve conter animação e estilo para .sh-radar-pulse-dot'
+  'Deve conter a linha dedicada de último login sh-hero-login-row'
 );
 
 assert.strictEqual(
-  appCss.includes('.sh-radar-chip'),
+  headerJsx.includes('className="sh-hero-date-row"'),
   true,
-  'App.css deve conter estilo para .sh-radar-chip'
+  'Deve conter a linha dedicada da data oficial sh-hero-date-row'
+);
+
+// 3. Verificar classes de estilo no App.css
+assert.strictEqual(
+  appCss.includes('.sh-hero-login-row'),
+  true,
+  'App.css deve estilizar .sh-hero-login-row'
 );
 
 assert.strictEqual(
-  appCss.includes('[data-theme="light"] .sh-hero-center-radar'),
+  appCss.includes('.sh-hero-date-row'),
   true,
-  'App.css deve conter suporte a tema claro para .sh-hero-center-radar'
+  'App.css deve estilizar .sh-hero-date-row'
 );
 
-console.log('✅ Todos os testes de redesign do Smart Header Greeting passaram com 100% de sucesso!');
+assert.strictEqual(
+  appCss.includes('.sh-login-line-item'),
+  true,
+  'App.css deve estilizar .sh-login-line-item'
+);
+
+console.log('✅ Todos os testes de layout empilhado e alinhado da barra de saudação passaram com 100% de sucesso!');

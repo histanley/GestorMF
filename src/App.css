@@ -28618,16 +28618,16 @@ body.light-theme .mori-input {
 
 .sh-avatar-hub {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(56, 189, 248, 0.25) 100%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(56, 189, 248, 0.22) 100%);
   border: 2px solid rgba(251, 191, 36, 0.45);
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.22);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.2);
 }
 
 .sh-user-avatar-img {
@@ -28638,7 +28638,7 @@ body.light-theme .mori-input {
 }
 
 .sh-avatar-initials {
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 900;
   color: #fbbf24;
   letter-spacing: -0.5px;
@@ -28653,16 +28653,20 @@ body.light-theme .mori-input {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
 }
 
+/* Coluna de informações: Linha 1, Linha 2 e Linha 3 perfeitamente empilhadas e alinhadas à esquerda */
 .sh-hero-info {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  justify-content: center;
 }
 
+/* Linha 1: Saudação e Cargo/Função */
 .sh-hero-greeting-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  line-height: 1.2;
 }
 
 .sh-hero-title {
@@ -28676,7 +28680,7 @@ body.light-theme .mori-input {
 
 .sh-hero-name {
   color: #fbbf24;
-  text-shadow: 0 0 16px rgba(245, 158, 11, 0.38);
+  text-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
 }
 
 .sh-hero-role-pill {
@@ -28694,62 +28698,65 @@ body.light-theme .mori-input {
   box-shadow: 0 2px 8px rgba(56, 189, 248, 0.12);
 }
 
-.sh-hero-sub-row {
+/* Linha 2: Último Login */
+.sh-hero-login-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 0.74rem;
   color: #94a3b8;
-  font-weight: 500;
-  flex-wrap: wrap;
+  line-height: 1.2;
 }
 
-.sh-last-login-tag {
+.sh-login-line-item {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  color: #94a3b8;
-  transition: all 0.2s ease;
+  gap: 6px;
   white-space: nowrap;
 }
 
-.sh-last-login-tag:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(245, 158, 11, 0.35);
-}
-
-.sh-last-login-ico {
+.sh-login-icon {
   color: #f59e0b;
   flex-shrink: 0;
 }
 
-.sh-last-login-val {
+.sh-login-highlight {
   color: #f8fafc;
   font-weight: 700;
-  margin-left: 2px;
 }
 
-.sh-date-tag {
+/* Linha 3: Data Oficial e Missões Ativas */
+.sh-hero-date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.73rem;
+  color: #94a3b8;
+  line-height: 1.2;
+  flex-wrap: wrap;
+}
+
+.sh-date-line-item {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 0.72rem;
+  gap: 6px;
   color: #94a3b8;
   white-space: nowrap;
 }
 
-.sh-date-ico {
+.sh-date-icon {
   color: #38bdf8;
   flex-shrink: 0;
+}
+
+.sh-date-val {
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+.sh-meta-separator {
+  opacity: 0.35;
+  color: #64748b;
 }
 
 .sh-hero-badge-active {
@@ -28776,166 +28783,6 @@ body.light-theme .mori-input {
   background: rgba(56, 189, 248, 0.22);
   border-color: #38bdf8;
   box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
-}
-
-/* 2. CENTRO: RADAR OPERACIONAL / PULSO AO VIVO DO DIA */
-.sh-hero-center-radar {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 7px 14px;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(30, 41, 59, 0.55) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 12px;
-  backdrop-filter: blur(12px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 18px rgba(0, 0, 0, 0.2);
-  flex: 1;
-  max-width: 440px;
-  margin: 0 8px;
-}
-
-.sh-radar-header-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.sh-radar-title-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sh-radar-pulse-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 10px #10b981;
-  animation: radarPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes radarPulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(0.85);
-  }
-}
-
-.sh-radar-pulse-icon {
-  color: #34d399;
-}
-
-.sh-radar-title {
-  font-size: 0.65rem;
-  font-weight: 800;
-  color: #cbd5e1;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-}
-
-.sh-radar-live-badge {
-  font-size: 0.58rem;
-  font-weight: 900;
-  background: rgba(16, 185, 129, 0.18);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  color: #34d399;
-  padding: 1px 5px;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
-}
-
-.sh-radar-city-tag {
-  font-size: 0.64rem;
-  font-weight: 600;
-  color: #64748b;
-  letter-spacing: 0.2px;
-}
-
-.sh-radar-chips-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
-  gap: 6px;
-  align-items: stretch;
-}
-
-.sh-radar-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  outline: none;
-  text-align: left;
-}
-
-.sh-radar-chip:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.22);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-.sh-rc-icon-dot {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.sh-rc-icon-dot.cyan {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-}
-
-.sh-rc-icon-dot.amber {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-}
-
-.sh-rc-icon-dot.emerald {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-}
-
-.sh-rc-icon-dot.purple {
-  background: rgba(168, 85, 247, 0.15);
-  color: #c084fc;
-}
-
-.sh-rc-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.05;
-  overflow: hidden;
-}
-
-.sh-rc-num {
-  font-size: 0.78rem;
-  font-weight: 800;
-  white-space: nowrap;
-  letter-spacing: -0.2px;
-}
-
-.sh-rc-lbl {
-  font-size: 0.58rem;
-  font-weight: 700;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
 }
 
 /* 3. Lado Direito: Grupo de Cápsulas Executivas */
@@ -29283,21 +29130,11 @@ body.light-theme .mori-input {
 }
 
 /* Responsividade Adaptativa */
-@media (max-width: 1400px) {
-  .sh-hero-center-radar {
-    max-width: 360px;
-  }
-}
-
 @media (max-width: 1200px) {
   .dynamic-body-greeting.premium-smart-header {
     gap: 14px;
     padding: 12px 18px;
     flex-wrap: wrap;
-  }
-
-  .sh-hero-center-radar {
-    display: none;
   }
 
   .sh-hero-widgets {
@@ -29519,33 +29356,24 @@ body.light-theme .sh-date-tag {
   color: #475569 !important;
 }
 
-[data-theme="light"] .sh-hero-center-radar,
-body.light-theme .sh-hero-center-radar {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+[data-theme="light"] .sh-login-line-item,
+body.light-theme .sh-login-line-item {
+  color: #475569 !important;
 }
 
-[data-theme="light"] .sh-radar-title,
-body.light-theme .sh-radar-title {
-  color: #334155 !important;
+[data-theme="light"] .sh-login-highlight,
+body.light-theme .sh-login-highlight {
+  color: #0f172a !important;
 }
 
-[data-theme="light"] .sh-radar-chip,
-body.light-theme .sh-radar-chip {
-  background: #f8fafc !important;
-  border-color: #e2e8f0 !important;
+[data-theme="light"] .sh-date-val,
+body.light-theme .sh-date-val {
+  color: #475569 !important;
 }
 
-[data-theme="light"] .sh-radar-chip:hover,
-body.light-theme .sh-radar-chip:hover {
-  background: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
-}
-
-[data-theme="light"] .sh-rc-lbl,
-body.light-theme .sh-rc-lbl {
-  color: #64748b !important;
+[data-theme="light"] .sh-meta-separator,
+body.light-theme .sh-meta-separator {
+  color: #94a3b8 !important;
 }
 
 [data-theme="light"] .sh-last-login-ico,

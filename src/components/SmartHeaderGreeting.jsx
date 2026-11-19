@@ -318,65 +318,13 @@ export default function SmartHeaderGreeting({
     }
   }, [missions, currentUser, isAdminUser]);
 
-  // Contadores do Pulso Operacional do Dia (Telemetria em tempo real da produtora)
-  const statsOverview = useMemo(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const executing = missions.filter(
-      (m) => m.missionStatus === 'Em Execução' || m.missionStatus === 'Em Andamento'
-    ).length;
-    const preparing = missions.filter((m) => m.missionStatus === 'Em Preparo').length;
-
-    // Viaturas em missão / em rota
-    const vehiclesOnRoad = vehicles.filter(
-      (v) =>
-        v.status === 'Em Missão' ||
-        missions.some(
-          (m) =>
-            (m.missionStatus === 'Em Execução' || m.missionStatus === 'Em Andamento' || m.missionStatus === 'Em Preparo') &&
-            (m.vehicleId === v.id || (Array.isArray(m.vehicleIds) && m.vehicleIds.includes(v.id)))
-        )
-    ).length;
-
-    // Colaboradores escalados em campo hoje
-    const activeStaffSet = new Set();
-    missions.forEach((m) => {
-      const isTodayOrActive =
-        m.date === todayStr ||
-        m.missionStatus === 'Em Execução' ||
-        m.missionStatus === 'Em Andamento' ||
-        m.missionStatus === 'Em Preparo';
-      if (isTodayOrActive && m.missionStatus !== 'Cancelada' && m.missionStatus !== 'Finalizada') {
-        if (m.driverId) activeStaffSet.add(String(m.driverId));
-        if (m.editorId) activeStaffSet.add(String(m.editorId));
-        if (Array.isArray(m.teamIds)) m.teamIds.forEach((id) => activeStaffSet.add(String(id)));
-        if (Array.isArray(m.editorIds)) m.editorIds.forEach((id) => activeStaffSet.add(String(id)));
-      }
-    });
-    const staffInField = activeStaffSet.size || members.filter((m) => m.status === 'Em Missão').length;
-
-    // Pós-produção pendente / em edição
-    const pendingPostProd = missions.filter(
-      (m) => m.editionStatus === 'Pendente' || m.editionStatus === 'Em Edição'
-    ).length;
-
-    return {
-      executing,
-      preparing,
-      inField: executing + preparing,
-      vehiclesOnRoad,
-      vehiclesFree: Math.max(0, vehicles.length - vehiclesOnRoad),
-      staffInField,
-      pendingPostProd,
-    };
-  }, [missions, vehicles, members]);
-
   if (isMobileDevice) {
     return null;
   }
 
   return (
     <div className="dynamic-body-greeting premium-smart-header">
-      {/* 1. LADO ESQUERDO: SAUDAÇÃO & IDENTIDADE EXECUTIVA */}
+      {/* 1. LADO ESQUERDO: SAUDAÇÃO, ÚLTIMO LOGIN E DATA EMPILHADOS E ALINHADOS */}
       <div className="sh-hero-identity">
         <div className="sh-avatar-hub" title={`${greeting.text}, ${greeting.firstName}!`}>
           {currentUser?.avatar ? (
@@ -392,6 +340,7 @@ export default function SmartHeaderGreeting({
         </div>
 
         <div className="sh-hero-info">
+          {/* Linha 1: Saudação e Cargo/Função */}
           <div className="sh-hero-greeting-row">
             <h1 className="sh-hero-title">
               {greeting.text}, <span className="sh-hero-name">{greeting.firstName}</span>!
@@ -401,17 +350,22 @@ export default function SmartHeaderGreeting({
             </span>
           </div>
 
-          <div className="sh-hero-sub-row">
-            {/* Informação da última vez que a pessoa logou no sistema (dia e hora) */}
-            <span className="sh-last-login-tag" title="Última vez que você acessou o sistema">
-              <Clock size={11} className="sh-last-login-ico" />
-              <span className="sh-last-login-txt">Último login: <strong className="sh-last-login-val">{lastLoginFormatted}</strong></span>
+          {/* Linha 2: Último Login */}
+          <div className="sh-hero-login-row">
+            <span className="sh-login-line-item" title="Horário do seu último acesso registrado no sistema">
+              <Clock size={12} className="sh-login-icon text-amber" />
+              <span>Último login: <strong className="sh-login-highlight">{lastLoginFormatted}</strong></span>
+            </span>
+          </div>
+
+          {/* Linha 3: Data Oficial e Missões Ativas */}
+          <div className="sh-hero-date-row">
+            <span className="sh-date-line-item" title="Data oficial">
+              <Calendar size={12} className="sh-date-icon text-cyan" />
+              <span className="sh-date-val">{greeting.dateFormatted}</span>
             </span>
 
-            <span className="sh-date-tag" title="Data de hoje">
-              <Calendar size={11} className="sh-date-ico" />
-              <span>{greeting.dateFormatted}</span>
-            </span>
+            <span className="sh-meta-separator">•</span>
 
             <span
               className="sh-hero-badge-active is-clickable"
@@ -422,89 +376,6 @@ export default function SmartHeaderGreeting({
               <span>{countAtivas} {countAtivas === 1 ? 'missão ativa' : 'missões ativas'}</span>
             </span>
           </div>
-        </div>
-      </div>
-
-      {/* 2. CENTRO: PULSO OPERACIONAL DO DIA (RADAR DE CAMPO AO VIVO) */}
-      <div className="sh-hero-center-radar">
-        <div className="sh-radar-header-line">
-          <div className="sh-radar-title-group">
-            <span className="sh-radar-pulse-dot" />
-            <Activity size={12} className="sh-radar-pulse-icon" />
-            <span className="sh-radar-title">PULSO OPERACIONAL</span>
-            <span className="sh-radar-live-badge">AO VIVO</span>
-          </div>
-          <span className="sh-radar-city-tag">Boa Vista • RR</span>
-        </div>
-
-        <div className="sh-radar-chips-row">
-          <button
-            type="button"
-            className="sh-radar-chip is-clickable"
-            onClick={() => onNavigateTab && onNavigateTab('table')}
-            title="Ver pautas ativas na Tabela de Serviço"
-          >
-            <div className="sh-rc-icon-dot cyan">
-              <Film size={12} />
-            </div>
-            <div className="sh-rc-text">
-              <strong className="sh-rc-num text-cyan">
-                {statsOverview.inField > 0 ? `${statsOverview.inField} em campo` : `${countAtivas} ativas`}
-              </strong>
-              <span className="sh-rc-lbl">Pautas</span>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            className="sh-radar-chip is-clickable"
-            onClick={() => onNavigateTab && onNavigateTab('vehicles')}
-            title="Ver status da frota em Viaturas & Combustível"
-          >
-            <div className="sh-rc-icon-dot amber">
-              <Car size={12} />
-            </div>
-            <div className="sh-rc-text">
-              <strong className="sh-rc-num text-amber">
-                {statsOverview.vehiclesOnRoad > 0
-                  ? `${statsOverview.vehiclesOnRoad} em rota`
-                  : `${statsOverview.vehiclesFree} livres`}
-              </strong>
-              <span className="sh-rc-lbl">Frotas</span>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            className="sh-radar-chip is-clickable"
-            onClick={() => onNavigateTab && onNavigateTab('members')}
-            title="Ver colaboradores escalados na aba Equipes"
-          >
-            <div className="sh-rc-icon-dot emerald">
-              <Users size={12} />
-            </div>
-            <div className="sh-rc-text">
-              <strong className="sh-rc-num text-emerald">{statsOverview.staffInField}</strong>
-              <span className="sh-rc-lbl">Equipe</span>
-            </div>
-          </button>
-
-          {statsOverview.pendingPostProd > 0 && (
-            <button
-              type="button"
-              className="sh-radar-chip is-clickable"
-              onClick={() => onNavigateTab && onNavigateTab('table')}
-              title="Pautas em fase de edição e pós-produção"
-            >
-              <div className="sh-rc-icon-dot purple">
-                <Layers size={12} />
-              </div>
-              <div className="sh-rc-text">
-                <strong className="sh-rc-num text-purple">{statsOverview.pendingPostProd}</strong>
-                <span className="sh-rc-lbl">Pós-Prod</span>
-              </div>
-            </button>
-          )}
         </div>
       </div>
 
