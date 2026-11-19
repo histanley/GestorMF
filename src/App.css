@@ -30671,20 +30671,23 @@ body.light-theme .cs-section-header-sub {
 
 .cs-summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
 }
 
 .cs-summary-card {
   background: linear-gradient(145deg, rgba(22, 31, 50, 0.95) 0%, rgba(14, 20, 34, 0.98) 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 22px 24px;
+  border-radius: 14px;
+  padding: 16px 18px;
   box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.4);
   transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .cs-summary-card:hover {
@@ -30718,14 +30721,18 @@ body.light-theme .cs-summary-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  gap: 6px;
 }
 
 .cs-card-lbl {
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   color: #cbd5e1;
   font-weight: 700;
   letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 [data-theme="light"] .cs-card-lbl,
@@ -30734,11 +30741,12 @@ body.light-theme .cs-card-lbl {
 }
 
 .cs-card-val {
-  font-size: 1.85rem;
+  font-size: 1.5rem;
   font-weight: 800;
   display: block;
   letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 .cs-card-val.text-amber {
@@ -30758,11 +30766,14 @@ body.light-theme .cs-card-lbl {
 }
 
 .cs-card-sub {
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   color: #94a3b8;
-  margin-top: 8px;
+  margin-top: 6px;
   display: block;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 [data-theme="light"] .cs-card-sub,
