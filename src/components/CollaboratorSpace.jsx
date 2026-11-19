@@ -40,6 +40,11 @@ import {
   Printer,
   Receipt,
   Wallet,
+  FileText,
+  ExternalLink,
+  Eye,
+  ArrowUpRight,
+  ArrowDownRight,
 } from 'lucide-react';
 import ConcludePostProductionModal from './ConcludePostProductionModal';
 import {
@@ -71,7 +76,7 @@ import {
   evaluateMissionExtension,
   isOffHoursTime
 } from '../utils/workHours';
-import { sortMissionsByStatusPriority, getMissionLiveProgress } from '../utils/geo';
+import { sortMissionsByStatusPriority, getMissionLiveProgress, getMissionCode } from '../utils/geo';
 import { sendPushNotification, requestNotificationPermission } from '../utils/notifications';
 
 // Formata data ISO para PT-BR
@@ -292,6 +297,13 @@ export default function CollaboratorSpace({
   const [myAdvances, setMyAdvances] = useState([]);
   const [isLoadingAdvances, setIsLoadingAdvances] = useState(false);
   const [showAdvancesHistoryModal, setShowAdvancesHistoryModal] = useState(false);
+
+  // Extrato Financeiro Transparente do Mês (Semelhante a Ver Extrato de XP)
+  const [isFinancialModalOpen, setIsFinancialModalOpen] = useState(false);
+  const [financialTabFilter, setFinancialTabFilter] = useState('all'); // 'all' | 'credits' | 'debits'
+  const [viewingReceipt, setViewingReceipt] = useState(null);
+  const previewReceiptUrl = typeof viewingReceipt === 'string' ? viewingReceipt : viewingReceipt?.receiptUrl || viewingReceipt;
+  const setPreviewReceiptUrl = setViewingReceipt;
 
   useEffect(() => {
     if (!myMember?.id) return;
@@ -550,6 +562,149 @@ export default function CollaboratorSpace({
       clearedAt: closure?.clearedAt || null,
     };
   }, [myMember, myMissions, currentMonthKey, closures, myAdvances]);
+
+  // Previsão de pagamento do mês seguinte (Dia 05 oficial)
+  const nextMonthForecast = useMemo(() => {
+    try {
+      const [y, m] = currentMonthKey.split('-').map(Number);
+      const nextDate = new Date(y, m, 5);
+      const monthNames = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+      ];
+      return `Dia 05 de ${monthNames[nextDate.getMonth()]} de ${nextDate.getFullYear()}`;
+    } catch (e) {
+      return 'Dia 05 do próximo mês';
+    }
+  }, [currentMonthKey]);
+
+  // Extrato Financeiro Transparente: Lista cronológica de todos os lançamentos do mês (créditos e débitos)
+  const financialEntries = useMemo(() => {
+    if (!myMember) return [];
+    const entries = [];
+
+    // 1. Missões elegíveis do mês (Créditos)
+    const monthMissions = myMissions.filter((m) => (m.date || '').startsWith(currentMonthKey));
+    const hourlyRate = Number(myMember.hourlyRate ?? myMember.hourly_rate ?? 50);
+    const dailyRate = Number(myMember.dailyRate ?? myMember.daily_rate ?? 200);
+
+    monthMissions.forEach((m) => {
+      if (!isMissionEligibleForPayout(m)) return;
+      const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
+      const customRate = (m.customRates && m.customRates[myMember.id] !== undefined && m.customRates[myMember.id] !== null && m.customRates[myMember.id] !== '')
+        ? Number(m.customRates[myMember.id])
+        : null;
+
+      const memberMode = (m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
+        || m.remunerationType
+        || (isMDay ? 'daily' : 'off_hours');
+
+      if (memberMode === 'custom') {
+        const val = customRate !== null ? customRate : 0;
+        entries.push({
+          id: `m-custom-${m.id}`,
+          date: m.date,
+          type: 'credit',
+          category: 'custom',
+          categoryLabel: 'Cachê / Fixo',
+          badgeColor: '#a855f7',
+          missionCode: getMissionCode(m),
+          title: m.title || m.description || 'Missão com Remuneração Personalizada',
+          detail: 'Cachê acordado individualmente para esta missão',
+          amount: val,
+          rawMission: m,
+        });
+      } else if (memberMode === 'daily') {
+        let days = 1;
+        if (isMDay && m.date && m.endDate) {
+          try {
+            const [y1, m1, d1] = m.date.split('-').map(Number);
+            const [y2, m2, d2] = m.endDate.split('-').map(Number);
+            const diff = Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / (1000 * 60 * 60 * 24)) + 1;
+            days = diff > 0 ? diff : 1;
+          } catch (e) { days = 1; }
+        }
+        const rate = customRate !== null ? customRate : dailyRate;
+        const val = days * rate;
+        entries.push({
+          id: `m-daily-${m.id}`,
+          date: m.date,
+          type: 'credit',
+          category: 'daily',
+          categoryLabel: 'Diária de Campo',
+          badgeColor: '#06b6d4',
+          missionCode: getMissionCode(m),
+          title: m.title || m.description || 'Missão em Campo / Viagem',
+          detail: `${days} ${days > 1 ? 'diárias' : 'diária'} @ ${formatBRL(rate)}/dia`,
+          amount: val,
+          rawMission: m,
+        });
+      } else {
+        const memNameNorm = String(myMember?.name || '').trim().toLowerCase();
+        const codeClean = String(m.code || m.id || '');
+        const descClean = String(m.description || '').toLowerCase();
+        const isSesi202611144 = codeClean.includes('202611144') || (descClean.includes('sesi') && descClean.includes('terceir'));
+        const isMateusSesi202611144 = isSesi202611144 && memNameNorm.includes('mateus');
+
+        const isEligibleForExtras = !isMateusSesi202611144 && isMemberEligibleForExtraHours(myMember, m);
+        if (isEligibleForExtras) {
+          const offHoursInfo = calculateEventOnlyOffHours(m);
+          const approvedExtra = Number(m.extraHoursApproved) || 0;
+          const offHoursTotal = (offHoursInfo.offHours || 0) + approvedExtra;
+          if (offHoursTotal > 0) {
+            const rate = customRate !== null ? customRate : hourlyRate;
+            const remun = calculateExtraHoursRemuneration(offHoursTotal, rate);
+            entries.push({
+              id: `m-hours-${m.id}`,
+              date: m.date,
+              type: 'credit',
+              category: 'hours',
+              categoryLabel: 'Horas Extras',
+              badgeColor: '#f59e0b',
+              missionCode: getMissionCode(m),
+              title: m.title || m.description || 'Atuação Fora do Expediente',
+              detail: `${offHoursTotal.toFixed(1)}h extras @ ${formatBRL(rate)}/hora extra`,
+              amount: remun.amount,
+              rawMission: m,
+            });
+          }
+        }
+      }
+    });
+
+    // 2. Vales Concedidos no Mês (Débitos)
+    myAdvances.forEach((adv) => {
+      entries.push({
+        id: `adv-${adv.id}`,
+        date: adv.date,
+        type: 'debit',
+        category: 'advance',
+        categoryLabel: 'Vale / Adiantamento',
+        badgeColor: '#f43f5e',
+        missionCode: `VALE #${String(adv.id).slice(-4)}`,
+        title: adv.reason || adv.description || 'Adiantamento salarial concedido',
+        detail: `Forma: ${adv.paymentMethod || adv.payment_method || 'PIX'} • Concedido pela Diretoria`,
+        amount: Number(adv.amount) || 0,
+        receiptUrl: adv.receiptUrl || adv.receipt_url || null,
+        rawAdvance: adv,
+      });
+    });
+
+    // Ordenar cronologicamente por data decrescente (mais recentes primeiro)
+    entries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    return entries;
+  }, [myMember, myMissions, currentMonthKey, myAdvances]);
+
+  const filteredFinancialEntries = useMemo(() => {
+    if (financialTabFilter === 'credits') {
+      return financialEntries.filter((e) => e.type === 'credit');
+    }
+    if (financialTabFilter === 'debits') {
+      return financialEntries.filter((e) => e.type === 'debit');
+    }
+    return financialEntries;
+  }, [financialEntries, financialTabFilter]);
 
   // Copia PIX
   const handleCopyPix = () => {
@@ -1179,14 +1334,42 @@ export default function CollaboratorSpace({
       {/* 2. RESUMO FINANCEIRO DO MÊS (EXTRATO PESSOAL)                   */}
       {/* ============================================================== */}
       <div className="cs-section-block">
-        <h3 className="cs-section-heading">
-          <DollarSign size={18} className="text-amber" />
-          Meu Fechamento &amp; Saldo do Mês
-        </h3>
+        <div className="cs-section-header-row">
+          <div>
+            <h3 className="cs-section-heading">
+              <DollarSign size={18} className="text-amber" />
+              Meu Fechamento &amp; Saldo do Mês
+            </h3>
+            <span className="cs-section-header-sub">
+              Apuração oficial e transparente de horas extras, diárias, cachês e vales salariais
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className="cs-btn-view-xp-extrato cs-btn-view-financial-extrato"
+            onClick={() => {
+              setFinancialTabFilter('all');
+              setIsFinancialModalOpen(true);
+            }}
+            title="Abrir Extrato Financeiro Transparente do Mês"
+          >
+            <Receipt size={14} className="text-green" />
+            <span>Ver Extrato Financeiro</span>
+          </button>
+        </div>
 
         <div className="cs-summary-grid">
           {/* Card Horas Extras */}
-          <div className="cs-summary-card cs-card-hours">
+          <div
+            className="cs-summary-card cs-card-hours is-clickable"
+            onClick={() => {
+              setFinancialTabFilter('credits');
+              setIsFinancialModalOpen(true);
+            }}
+            title="Clique para ver o extrato detalhado de horas extras"
+            style={{ cursor: 'pointer' }}
+          >
             <div className="cs-card-header">
               <span className="cs-card-lbl">Horas Extras ({financialSummary.totalHours}h)</span>
               <Clock size={18} className="text-amber" />
@@ -1200,7 +1383,15 @@ export default function CollaboratorSpace({
           </div>
 
           {/* Card Diárias */}
-          <div className="cs-summary-card cs-card-travel">
+          <div
+            className="cs-summary-card cs-card-travel is-clickable"
+            onClick={() => {
+              setFinancialTabFilter('credits');
+              setIsFinancialModalOpen(true);
+            }}
+            title="Clique para ver o extrato detalhado de diárias"
+            style={{ cursor: 'pointer' }}
+          >
             <div className="cs-card-header">
               <span className="cs-card-lbl">Diárias ({financialSummary.totalDays} dias)</span>
               <Compass size={18} className="text-cyan" />
@@ -1215,7 +1406,15 @@ export default function CollaboratorSpace({
 
           {/* Card Personalizadas (Cachês) */}
           {financialSummary.totalCustomCount > 0 && (
-            <div className="cs-summary-card cs-card-custom" style={{ borderLeft: '3px solid #a855f7', background: 'rgba(168, 85, 247, 0.08)' }}>
+            <div
+              className="cs-summary-card cs-card-custom is-clickable"
+              onClick={() => {
+                setFinancialTabFilter('credits');
+                setIsFinancialModalOpen(true);
+              }}
+              title="Clique para ver os cachês das missões personalizadas"
+              style={{ borderLeft: '3px solid #a855f7', background: 'rgba(168, 85, 247, 0.08)', cursor: 'pointer' }}
+            >
               <div className="cs-card-header">
                 <span className="cs-card-lbl">Personalizadas ({financialSummary.totalCustomCount} missões)</span>
                 <Sparkles size={18} className="text-purple" />
@@ -1229,10 +1428,13 @@ export default function CollaboratorSpace({
             </div>
           )}
 
-          {/* Card Vales e Adiantamentos Concedidos (Sempre visível para total transparência do colaborador) */}
+          {/* Card Vales e Adiantamentos Concedidos */}
           <div
             className="cs-summary-card cs-card-advances is-clickable"
-            onClick={() => setShowAdvancesHistoryModal(true)}
+            onClick={() => {
+              setFinancialTabFilter('debits');
+              setIsFinancialModalOpen(true);
+            }}
             style={{
               borderLeft: '3px solid #f43f5e',
               background: (financialSummary.totalAdvancesVal > 0) ? 'rgba(244, 63, 94, 0.08)' : 'rgba(255, 255, 255, 0.02)',
@@ -1260,7 +1462,15 @@ export default function CollaboratorSpace({
           </div>
 
           {/* Card Total a Receber / Quitado */}
-          <div className={`cs-summary-card cs-card-total ${financialSummary.isPaid ? 'is-paid' : 'is-pending'}`}>
+          <div
+            className={`cs-summary-card cs-card-total is-clickable ${financialSummary.isPaid ? 'is-paid' : 'is-pending'}`}
+            onClick={() => {
+              setFinancialTabFilter('all');
+              setIsFinancialModalOpen(true);
+            }}
+            title="Clique para abrir o extrato financeiro completo"
+            style={{ cursor: 'pointer' }}
+          >
             <div className="cs-card-header">
               <span className="cs-card-lbl">
                 {financialSummary.isPaid ? 'Total Quitado' : (financialSummary.totalAdvancesVal > 0 ? 'Total Líquido a Receber' : 'Total Apurado (Pendente)')}
@@ -2647,6 +2857,398 @@ export default function CollaboratorSpace({
                 onClick={() => setShowAdvancesHistoryModal(false)}
               >
                 Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL DETALHADO DE EXTRATO FINANCEIRO (SEMELHANTE A EXTRATO DE XP) */}
+      {/* ============================================================== */}
+      {isFinancialModalOpen && (
+        <div className="cs-modal-backdrop" onClick={() => setIsFinancialModalOpen(false)}>
+          <div className="cs-xp-modal-container cs-fin-modal-container" onClick={(e) => e.stopPropagation()}>
+            {/* Cabeçalho do Extrato Financeiro */}
+            <div className="cs-xp-modal-header">
+              <div className="cs-xp-modal-header-left">
+                <div
+                  className="cs-xp-modal-icon-badge"
+                  style={{
+                    borderColor: '#10b981',
+                    color: '#34d399',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                  }}
+                >
+                  <DollarSign size={22} />
+                </div>
+                <div>
+                  <div className="cs-xp-modal-tag-row">
+                    <span
+                      className="cs-xp-modal-tag"
+                      style={{
+                        borderColor: '#10b981',
+                        color: '#34d399',
+                        background: 'rgba(16, 185, 129, 0.15)',
+                      }}
+                    >
+                      {monthLabel}
+                    </span>
+                    <span className="cs-xp-modal-subtag">Fechamento &amp; Saldo Oficial</span>
+                  </div>
+                  <h3 className="cs-xp-modal-title">Extrato Financeiro Transparente</h3>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="cs-xp-modal-close"
+                onClick={() => setIsFinancialModalOpen(false)}
+                title="Fechar Extrato Financeiro"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="cs-xp-modal-body">
+              {/* Card Hero do Fechamento Salarial */}
+              <div className="cs-xp-modal-hero-card cs-fin-hero-card">
+                <div className="cs-xp-modal-hero-top">
+                  <div className="cs-xp-modal-score-big">
+                    <span className="cs-fin-hero-amount" style={{ color: financialSummary.isPaid ? '#34d399' : '#fbbf24' }}>
+                      {formatBRL(financialSummary.total)}
+                    </span>
+                    <span className="cs-xp-modal-score-lbl">
+                      {financialSummary.isPaid
+                        ? 'TOTAL SALARIAL QUITADO EM FOLHA'
+                        : (financialSummary.totalAdvancesVal > 0 ? 'SALDO LÍQUIDO A RECEBER VIA PIX' : 'TOTAL APURADO (PENDENTE DE QUITAÇÃO)')}
+                    </span>
+                  </div>
+
+                  <div className="cs-fin-hero-status-box">
+                    <div className="cs-fin-status-pill-wrap">
+                      {financialSummary.isPaid ? (
+                        <span className="cs-fin-status-pill is-paid">
+                          <CheckCircle2 size={13} />
+                          <span>Quitado em {financialSummary.clearedAt ? formatDateBR(financialSummary.clearedAt) : 'Folha'}</span>
+                        </span>
+                      ) : (
+                        <span className="cs-fin-status-pill is-pending">
+                          <Clock size={13} />
+                          <span>Previsão: {nextMonthForecast}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="cs-fin-pix-destination-card">
+                      <div className="cs-fin-pix-info">
+                        <span className="cs-fin-pix-lbl">Chave PIX Cadastrada:</span>
+                        <strong className="cs-fin-pix-val">
+                          {myMember.pixKey ? myMember.pixKey : 'Nenhuma chave cadastrada'}
+                        </strong>
+                      </div>
+                      {myMember.pixKey && (
+                        <button
+                          type="button"
+                          className="cs-fin-btn-copy-pix"
+                          onClick={handleCopyPix}
+                          title="Copiar chave PIX"
+                        >
+                          {copiedPix ? <Check size={13} className="text-green" /> : <Copy size={13} />}
+                          <span>{copiedPix ? 'Copiada!' : 'Copiar'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Barra Visual de Proporção: Total Bruto x Vales x Líquido */}
+                <div className="cs-xp-modal-bar-wrap">
+                  <div className="cs-fin-ratio-bar">
+                    <div
+                      className="cs-fin-ratio-fill net"
+                      style={{
+                        width: `${financialSummary.grossTotal > 0 ? Math.min(100, Math.max(0, (financialSummary.netTotal / financialSummary.grossTotal) * 100)) : 100}%`
+                      }}
+                      title={`Líquido a Receber: ${formatBRL(financialSummary.netTotal)}`}
+                    />
+                    {financialSummary.totalAdvancesVal > 0 && (
+                      <div
+                        className="cs-fin-ratio-fill advance"
+                        style={{
+                          width: `${Math.min(100, Math.max(0, (financialSummary.totalAdvancesVal / financialSummary.grossTotal) * 100))}%`
+                        }}
+                        title={`Vales Deduzidos: -${formatBRL(financialSummary.totalAdvancesVal)}`}
+                      />
+                    )}
+                  </div>
+                  <div className="cs-xp-progress-meta">
+                    <span>
+                      Bruto Apurado: <strong>{formatBRL(financialSummary.grossTotal)}</strong>
+                      {financialSummary.totalAdvancesVal > 0 && (
+                        <> • Vales Deduzidos: <strong className="text-rose">-{formatBRL(financialSummary.totalAdvancesVal)}</strong></>
+                      )}
+                    </span>
+                    <span>
+                      Líquido Final: <strong className="text-green">{formatBRL(financialSummary.netTotal)}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Box Explicativo Didático da Regra de Fechamento */}
+                <div className="cs-fin-explainer-box">
+                  <ShieldCheck size={18} className="text-cyan" style={{ flexShrink: 0 }} />
+                  <p className="cs-fin-explainer-text">
+                    <strong>Regra Oficial de Fechamento MegaFilmes:</strong> Horas extras e diárias de campo são computadas automaticamente assim que a missão é finalizada ou a equipe retorna à base. Os adiantamentos salariais (vales) liberados pela Diretoria são deduzidos do saldo bruto em tempo real. O pagamento do saldo líquido é creditado pontualmente até o dia 05 via transferência PIX.
+                  </p>
+                </div>
+              </div>
+
+              {/* Grid de 4 KPIs Financeiros */}
+              <div className="cs-xp-kpi-grid">
+                <div className="cs-xp-kpi-card" style={{ borderLeft: '3px solid #f59e0b' }}>
+                  <div className="cs-xp-kpi-header">
+                    <span>Horas Extras ({financialSummary.totalHours}h)</span>
+                    <Clock size={16} className="text-amber" />
+                  </div>
+                  <strong className="cs-xp-kpi-value text-amber">
+                    {formatBRL(financialSummary.totalHoursVal)}
+                  </strong>
+                  <span className="cs-xp-kpi-desc">
+                    Taxa contratada: {formatBRL(myMember.hourlyRate || 50)} / hora extra
+                  </span>
+                </div>
+
+                <div className="cs-xp-kpi-card" style={{ borderLeft: '3px solid #06b6d4' }}>
+                  <div className="cs-xp-kpi-header">
+                    <span>Diárias de Campo ({financialSummary.totalDays}d)</span>
+                    <Compass size={16} className="text-cyan" />
+                  </div>
+                  <strong className="cs-xp-kpi-value text-cyan">
+                    {formatBRL(financialSummary.totalDaysVal)}
+                  </strong>
+                  <span className="cs-xp-kpi-desc">
+                    Taxa diária: {formatBRL(myMember.dailyRate || 200)} / dia
+                  </span>
+                </div>
+
+                <div className="cs-xp-kpi-card" style={{ borderLeft: '3px solid #a855f7' }}>
+                  <div className="cs-xp-kpi-header">
+                    <span>Cachês / Personalizadas</span>
+                    <Sparkles size={16} className="text-purple" />
+                  </div>
+                  <strong className="cs-xp-kpi-value text-purple">
+                    {formatBRL(financialSummary.totalCustomVal)}
+                  </strong>
+                  <span className="cs-xp-kpi-desc">
+                    {financialSummary.totalCustomCount} missão(ões) com cachê fixo
+                  </span>
+                </div>
+
+                <div className="cs-xp-kpi-card" style={{ borderLeft: '3px solid #f43f5e' }}>
+                  <div className="cs-xp-kpi-header">
+                    <span>Vales &amp; Adiantamentos</span>
+                    <Receipt size={16} className="text-rose" />
+                  </div>
+                  <strong className="cs-xp-kpi-value text-rose">
+                    {financialSummary.totalAdvancesVal > 0 ? `-${formatBRL(financialSummary.totalAdvancesVal)}` : 'R$ 0,00'}
+                  </strong>
+                  <span className="cs-xp-kpi-desc">
+                    {financialSummary.advancesCount} adiantamento(s) no mês
+                  </span>
+                </div>
+              </div>
+
+              {/* Tabela / Lista Cronológica Analítica de Lançamentos */}
+              <div className="cs-fin-entries-section">
+                <div className="cs-fin-entries-header">
+                  <div>
+                    <h4 className="cs-xp-modal-heading">
+                      <Receipt size={17} className="text-emerald" />
+                      Lançamentos &amp; Memória de Cálculo do Mês
+                    </h4>
+                    <span className="cs-xp-modal-heading-sub">
+                      Rastreamento transparente de cada missão cumprida e adiantamento concedido
+                    </span>
+                  </div>
+
+                  {/* Tabs de Filtro */}
+                  <div className="cs-fin-tabs-group">
+                    <button
+                      type="button"
+                      className={`cs-fin-tab-btn ${financialTabFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => setFinancialTabFilter('all')}
+                    >
+                      Todos ({financialEntries.length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`cs-fin-tab-btn ${financialTabFilter === 'credits' ? 'active' : ''}`}
+                      onClick={() => setFinancialTabFilter('credits')}
+                    >
+                      Créditos ({financialEntries.filter(e => e.type === 'credit').length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`cs-fin-tab-btn ${financialTabFilter === 'debits' ? 'active' : ''}`}
+                      onClick={() => setFinancialTabFilter('debits')}
+                    >
+                      Vales ({financialEntries.filter(e => e.type === 'debit').length})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Lista de Itens */}
+                {filteredFinancialEntries.length > 0 ? (
+                  <div className="cs-fin-entries-table-wrap">
+                    <table className="cs-fin-entries-table">
+                      <thead>
+                        <tr>
+                          <th>Data</th>
+                          <th>Categoria</th>
+                          <th>Referência / Pauta</th>
+                          <th>Memória de Cálculo</th>
+                          <th className="text-right">Valor</th>
+                          <th className="text-center">Comprovante</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredFinancialEntries.map((item) => (
+                          <tr key={item.id} className={`cs-fin-row ${item.type}`}>
+                            <td className="cs-fin-cell-date">
+                              <span className="cs-fin-date-badge">
+                                <Calendar size={11} />
+                                {formatDateBR(item.date)}
+                              </span>
+                            </td>
+                            <td className="cs-fin-cell-cat">
+                              <span
+                                className="cs-fin-cat-pill"
+                                style={{
+                                  borderColor: `${item.badgeColor}40`,
+                                  background: `${item.badgeColor}15`,
+                                  color: item.badgeColor
+                                }}
+                              >
+                                {item.categoryLabel}
+                              </span>
+                            </td>
+                            <td className="cs-fin-cell-ref">
+                              <strong className="cs-fin-item-title">{item.title}</strong>
+                              <span className="cs-fin-item-code">{item.missionCode}</span>
+                            </td>
+                            <td className="cs-fin-cell-detail">
+                              <span className="cs-fin-calc-detail">{item.detail}</span>
+                            </td>
+                            <td className="cs-fin-cell-amount text-right">
+                              <strong className={`cs-fin-amount ${item.type === 'credit' ? 'text-green' : 'text-rose'}`}>
+                                {item.type === 'credit' ? `+${formatBRL(item.amount)}` : `-${formatBRL(item.amount)}`}
+                              </strong>
+                            </td>
+                            <td className="cs-fin-cell-receipt text-center">
+                              {item.receiptUrl ? (
+                                <button
+                                  type="button"
+                                  className="cs-fin-btn-receipt adv-btn-view-receipt"
+                                  onClick={() => setPreviewReceiptUrl(item.receiptUrl)}
+                                  title="Visualizar comprovante de transferência anexado"
+                                >
+                                  <FileText size={13} />
+                                  <span>Ver Anexo</span>
+                                </button>
+                              ) : (
+                                <span className="text-muted" style={{ fontSize: '0.72rem' }}>—</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="cs-fin-empty-state">
+                    <Receipt size={32} className="text-muted" style={{ opacity: 0.4, marginBottom: 8 }} />
+                    <strong>Nenhum lançamento financeiro encontrado para este filtro.</strong>
+                    <p>Suas diárias, horas extras e vales do mês aparecerão detalhados aqui.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Rodapé do Modal com Ações */}
+            <div className="cs-xp-modal-footer">
+              <div className="cs-fin-footer-summary">
+                <span>Bruto: <strong className="text-amber">+{formatBRL(financialSummary.grossTotal)}</strong></span>
+                <span>•</span>
+                <span>Vales: <strong className="text-rose">-{formatBRL(financialSummary.totalAdvancesVal)}</strong></span>
+                <span>•</span>
+                <span>Líquido: <strong className="text-green">={formatBRL(financialSummary.netTotal)}</strong></span>
+              </div>
+
+              <div className="cs-fin-footer-btns">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => window.print()}
+                  title="Imprimir extrato financeiro"
+                >
+                  <Printer size={15} />
+                  <span>Imprimir Extrato</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => setIsFinancialModalOpen(false)}
+                >
+                  Concluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Pré-visualização de Comprovante de Pagamento */}
+      {previewReceiptUrl && (
+        <div className="advances-modal-overlay" onClick={() => setPreviewReceiptUrl(null)} style={{ zIndex: 100010 }}>
+          <div className="advances-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 620 }}>
+            <div className="advances-modal-header">
+              <h3 className="advances-modal-title" style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Receipt size={17} className="text-rose" />
+                Comprovante de Transferência do Vale
+              </h3>
+              <button
+                type="button"
+                className="advances-modal-close"
+                onClick={() => setPreviewReceiptUrl(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: '16px 0', textAlign: 'center' }}>
+              <img
+                src={previewReceiptUrl}
+                alt="Comprovante de Transferência"
+                style={{ maxWidth: '100%', maxHeight: '65vh', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+              <a
+                href={previewReceiptUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary"
+                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem' }}
+              >
+                <ExternalLink size={13} />
+                <span>Abrir Original</span>
+              </a>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setPreviewReceiptUrl(null)}
+              >
+                Fechar
               </button>
             </div>
           </div>
