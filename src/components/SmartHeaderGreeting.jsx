@@ -25,25 +25,25 @@ import { formatDateBR, getMissionCode } from '../utils/geo';
 import { isNativeApp } from '../utils/nativeBridge';
 import { getLastLoginTime, formatLastLoginDisplay } from '../utils/auth';
 
-// Mapeia códigos de clima da WMO (Open-Meteo) para descrições e ícones
+// Mapeia códigos de clima da WMO (Open-Meteo) para descrições e ícones (com Sol de dia e Lua à noite)
 function getWeatherDetails(code, isDay = 1) {
   const c = Number(code);
   switch (c) {
     case 0:
       return { label: isDay ? 'Ensolarado' : 'Céu Limpo', icon: isDay ? '☀️' : '🌙', condition: 'clear' };
     case 1:
-      return { label: isDay ? 'Predomínio de Sol' : 'Céu Estrelado', icon: isDay ? '🌤️' : '🌙', condition: 'clear' };
+      return { label: isDay ? 'Predomínio de Sol' : 'Noite Estrelada', icon: isDay ? '🌤️' : '🌙', condition: 'clear' };
     case 2:
-      return { label: 'Parcialmente Nublado', icon: isDay ? '⛅' : '☁️', condition: 'cloudy' };
+      return { label: isDay ? 'Parcialmente Nublado' : 'Noite com Nuvens', icon: isDay ? '⛅' : '🌙', condition: 'cloudy' };
     case 3:
-      return { label: 'Nublado', icon: '☁️', condition: 'cloudy' };
+      return { label: isDay ? 'Nublado' : 'Noite Nublada', icon: isDay ? '☁️' : '🌙', condition: 'cloudy' };
     case 45:
     case 48:
       return { label: 'Nevoeiro / Névoa', icon: '🌫️', condition: 'fog' };
     case 51:
     case 53:
     case 55:
-      return { label: 'Chuvisco Passageiro', icon: '🌦️', condition: 'drizzle' };
+      return { label: 'Chuvisco Passageiro', icon: isDay ? '🌦️' : '🌧️', condition: 'drizzle' };
     case 61:
     case 63:
     case 65:
@@ -57,7 +57,7 @@ function getWeatherDetails(code, isDay = 1) {
     case 99:
       return { label: 'Trovoada / Temporal', icon: '⛈️', condition: 'storm' };
     default:
-      return { label: isDay ? 'Ensolarado' : 'Tempo Bom', icon: isDay ? '☀️' : '🌙', condition: 'clear' };
+      return { label: isDay ? 'Ensolarado' : 'Noite Clara', icon: isDay ? '☀️' : '🌙', condition: 'clear' };
   }
 }
 
@@ -145,12 +145,14 @@ export default function SmartHeaderGreeting({
 
   // Clima em Tempo Real (Boa Vista - RR por padrão ou coordenadas da base) com Cache de 30min
   const [weatherData, setWeatherData] = useState(() => {
+    const curHour = new Date().getHours();
+    const isCurrentlyDay = curHour >= 6 && curHour < 18 ? 1 : 0;
     try {
       const cached = localStorage.getItem('gestormf_weather_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Date.now() - parsed.timestamp < 30 * 60 * 1000) {
-          return parsed.data;
+          return { ...parsed.data, isDay: isCurrentlyDay };
         }
       }
     } catch (_) { }
@@ -160,7 +162,7 @@ export default function SmartHeaderGreeting({
       humidity: 65,
       windSpeed: 14,
       weatherCode: 0,
-      isDay: 1,
+      isDay: isCurrentlyDay,
       cityName: 'Boa Vista, RR',
     };
   });
@@ -205,8 +207,31 @@ export default function SmartHeaderGreeting({
   }, [baseLocation?.lat, baseLocation?.lon, baseLocation?.name]);
 
   const weatherDetails = useMemo(() => {
-    return getWeatherDetails(weatherData.weatherCode, weatherData.isDay);
-  }, [weatherData.weatherCode, weatherData.isDay]);
+    const curHour = currentTime.getHours();
+    const effectiveIsDay = curHour >= 6 && curHour < 18 ? 1 : 0;
+    return getWeatherDetails(weatherData.weatherCode, effectiveIsDay);
+  }, [weatherData.weatherCode, currentTime]);
+
+  // Ícone principal de turno e clima (Sol para dia, Lua para noite, obedecendo variações de chuva)
+  const headerWeatherIcon = useMemo(() => {
+    const hr = currentTime.getHours();
+    const isNight = hr >= 18 || hr < 6;
+
+    if (weatherDetails.condition === 'storm') return '⛈️';
+    if (weatherDetails.condition === 'rain') return '🌧️';
+    if (weatherDetails.condition === 'fog') return '🌫️';
+
+    // Noite: Sempre a Lua (🌙)
+    if (isNight) {
+      return '🌙';
+    }
+
+    // Dia: Variações do Sol
+    if (hr < 12) {
+      return weatherDetails.condition === 'cloudy' ? '🌤️' : '☀️';
+    }
+    return weatherDetails.condition === 'cloudy' ? '⛅' : '🌤️';
+  }, [currentTime, weatherDetails.condition]);
 
   // Dica operacional de gravação externa baseada no clima
   const operationalTip = useMemo(() => {
@@ -330,7 +355,7 @@ export default function SmartHeaderGreeting({
           className="sh-hero-icon-wrap"
           title={`Horário e Clima em ${weatherData.cityName}: ${weatherDetails.label} (${weatherData.temperature}°C)`}
         >
-          <span className="sh-hero-icon">{weatherDetails.icon || greeting.icon}</span>
+          <span className="sh-hero-icon">{headerWeatherIcon}</span>
         </div>
 
         <div className="sh-hero-info">
@@ -346,7 +371,7 @@ export default function SmartHeaderGreeting({
 
           {/* Linha 2: Último Login */}
           <div className="sh-hero-login-row">
-            <span className="sh-login-line-item" title="Horário do seu último acesso registrado no sistema">
+            <span className="sh-login-line-item sh-last-login-tag" title="Horário do seu último acesso registrado no sistema">
               <Clock size={12} className="sh-login-icon text-amber" />
               <span>Último login: <strong className="sh-login-highlight">{lastLoginFormatted}</strong></span>
             </span>

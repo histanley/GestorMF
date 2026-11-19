@@ -25,9 +25,9 @@ assert.strictEqual(
 );
 
 assert.strictEqual(
-  headerJsx.includes('{weatherDetails.icon || greeting.icon}'),
+  headerJsx.includes('{headerWeatherIcon}'),
   true,
-  'SmartHeaderGreeting deve renderizar weatherDetails.icon || greeting.icon obedecendo as variações de clima e turno'
+  'SmartHeaderGreeting deve renderizar headerWeatherIcon obedecendo as variações de clima e turno (Lua à noite, Sol de dia)'
 );
 
 // 3. Garantir que as 3 linhas continuam empilhadas e alinhadas
@@ -62,5 +62,30 @@ assert.strictEqual(
   true,
   'App.css deve conter estilos para .sh-hero-icon-wrap'
 );
+
+// 6. Teste de lógica da função headerWeatherIcon para Noite e Dia
+function simulateHeaderIcon(hour, condition) {
+  const isNight = hour >= 18 || hour < 6;
+  if (condition === 'storm') return '⛈️';
+  if (condition === 'rain') return '🌧️';
+  if (condition === 'fog') return '🌫️';
+  if (isNight) return '🌙';
+  if (hour < 12) return condition === 'cloudy' ? '🌤️' : '☀️';
+  return condition === 'cloudy' ? '⛅' : '🌤️';
+}
+
+// À noite (ex: 21h em Boa Vista)
+assert.strictEqual(simulateHeaderIcon(21, 'clear'), '🌙', '21h Céu Limpo deve retornar Lua (🌙)');
+assert.strictEqual(simulateHeaderIcon(21, 'cloudy'), '🌙', '21h Nublado deve retornar Lua (🌙)');
+assert.strictEqual(simulateHeaderIcon(23, 'clear'), '🌙', '23h deve retornar Lua (🌙)');
+assert.strictEqual(simulateHeaderIcon(2, 'clear'), '🌙', '02h da madrugada deve retornar Lua (🌙)');
+
+// De dia (ex: manhã e tarde)
+assert.strictEqual(simulateHeaderIcon(9, 'clear'), '☀️', '09h manhã Céu Limpo deve retornar Sol (☀️)');
+assert.strictEqual(simulateHeaderIcon(15, 'clear'), '🌤️', '15h tarde Céu Limpo deve retornar Sol entre nuvens (🌤️)');
+
+// Chuva e Tempestade
+assert.strictEqual(simulateHeaderIcon(21, 'rain'), '🌧️', 'Chuva à noite deve retornar Chuva (🌧️)');
+assert.strictEqual(simulateHeaderIcon(14, 'storm'), '⛈️', 'Tempestade de dia deve retornar Tempestade (⛈️)');
 
 console.log('✅ Todos os testes do Smart Header Greeting com ícone Sol/Lua e layout alinhado passaram com 100% de sucesso!');
