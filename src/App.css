@@ -28904,27 +28904,28 @@ body.light-theme .mori-input {
   box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
 }
 
-/* 3. Lado Direito: Grupo de Cápsulas Executivas */
+/* 3. Lado Direito: Grupo de Cápsulas Executivas (Alinhamento em Linha Única Perfeita) */
 .sh-hero-widgets {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 10px;
+  flex-wrap: nowrap;
   justify-content: flex-end;
-  flex: 1;
+  flex-shrink: 0;
 }
 
 /* Estilo Base das Cápsulas */
 .sh-capsule {
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  height: 48px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 12px;
-  padding: 8px 14px;
+  padding: 0 14px;
   display: flex;
   align-items: center;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
 }
@@ -28932,12 +28933,14 @@ body.light-theme .mori-input {
 /* Cápsula de Clima */
 .sh-weather-capsule {
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .sh-capsule-icon-box {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .sh-weather-emoji {
@@ -28949,24 +28952,27 @@ body.light-theme .mori-input {
 .sh-weather-content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  justify-content: center;
+  gap: 1px;
 }
 
 .sh-weather-headline {
   display: flex;
   align-items: baseline;
   gap: 6px;
+  line-height: 1.1;
 }
 
 .sh-weather-degree {
-  font-size: 1.15rem;
+  font-size: 1.12rem;
   font-weight: 900;
   color: #ffffff;
   line-height: 1;
+  letter-spacing: -0.3px;
 }
 
 .sh-weather-condition {
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: #cbd5e1;
 }
@@ -28974,10 +28980,11 @@ body.light-theme .mori-input {
 .sh-weather-subinfo {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.68rem;
-  color: #64748b;
+  gap: 5px;
+  font-size: 0.67rem;
+  color: #94a3b8;
   font-weight: 600;
+  line-height: 1;
 }
 
 .sh-heat-warning-tag {
@@ -28995,36 +29002,40 @@ body.light-theme .mori-input {
 
 /* Cápsula de Missão em Destaque */
 .sh-mission-capsule {
-  gap: 12px;
-  min-width: 260px;
-  max-width: 380px;
+  height: 48px;
+  gap: 10px;
+  padding: 0 12px;
+  min-width: 250px;
+  max-width: 360px;
   cursor: pointer;
-  border-color: rgba(245, 158, 11, 0.25);
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(15, 23, 42, 0.7) 100%);
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.75) 100%);
+  flex-shrink: 1;
 }
 
 .sh-mission-capsule:hover {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(30, 41, 59, 0.8) 100%);
-  border-color: rgba(245, 158, 11, 0.5);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.15);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(30, 41, 59, 0.85) 100%);
+  border-color: rgba(245, 158, 11, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.18);
 }
 
 .sh-mission-capsule.status-executing {
-  border-color: rgba(239, 68, 68, 0.35);
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.7) 100%);
+  border-color: rgba(239, 68, 68, 0.4);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(15, 23, 42, 0.75) 100%);
 }
 
 .sh-mission-capsule.status-executing:hover {
   border-color: #ef4444;
-  box-shadow: 0 6px 22px rgba(239, 68, 68, 0.22);
+  box-shadow: 0 6px 22px rgba(239, 68, 68, 0.25);
 }
 
 .sh-mission-badge-line {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   align-items: flex-start;
+  justify-content: center;
   flex-shrink: 0;
 }
 
@@ -29032,20 +29043,22 @@ body.light-theme .mori-input {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.65rem;
+  font-size: 0.64rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: rgba(245, 158, 11, 0.16);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.35);
   color: #fbbf24;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .sh-mission-status-pill.pill-executing {
-  background: rgba(239, 68, 68, 0.18);
-  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
   color: #fca5a5;
 }
 
@@ -29054,34 +29067,39 @@ body.light-theme .mori-input {
   font-weight: 700;
   color: #38bdf8;
   font-family: monospace;
+  line-height: 1;
 }
 
 .sh-mission-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  justify-content: center;
+  gap: 1px;
   overflow: hidden;
   flex: 1;
+  min-width: 0;
 }
 
 .sh-mission-subject {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 800;
   color: #f1f5f9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .sh-mission-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.68rem;
+  gap: 6px;
+  font-size: 0.67rem;
   color: #94a3b8;
   overflow: hidden;
+  white-space: nowrap;
+  line-height: 1.1;
 }
 
 .sh-meta-loc,
@@ -29099,36 +29117,40 @@ body.light-theme .mori-input {
   align-items: center;
   justify-content: center;
   color: #fbbf24;
-  opacity: 0.7;
+  opacity: 0.75;
   transition: transform 0.2s ease, opacity 0.2s ease;
   flex-shrink: 0;
 }
 
 .sh-mission-capsule:hover .sh-mission-arrow {
-  transform: translateX(3px);
+  transform: translateX(2px);
   opacity: 1;
 }
 
 /* Standby */
 .sh-standby-capsule {
+  height: 48px;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 0 14px;
   border-style: dashed;
+  flex-shrink: 0;
 }
 
 .sh-standby-content {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 1px;
 }
 
 .sh-standby-content strong {
   font-size: 0.8rem;
   color: #cbd5e1;
+  line-height: 1.1;
 }
 
 .sh-standby-content small {
-  font-size: 0.68rem;
+  font-size: 0.67rem;
   color: #64748b;
 }
 
@@ -29136,13 +29158,15 @@ body.light-theme .mori-input {
 .sh-action-wrap {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .sh-hero-action-btn {
+  height: 48px;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 16px;
+  padding: 0 16px;
   border-radius: 12px;
   border: 1.5px solid rgba(245, 158, 11, 0.45);
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.28) 100%);
@@ -29151,13 +29175,15 @@ body.light-theme .mori-input {
   transition: all 0.22s ease;
   box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
   outline: none;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .sh-hero-action-btn:hover {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.26) 0%, rgba(217, 119, 6, 0.42) 100%);
   border-color: #f59e0b;
   color: #ffffff;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
 }
 
@@ -29174,10 +29200,45 @@ body.light-theme .mori-input {
   box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25);
 }
 
+.sh-hero-action-btn.admin-mode {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.28) 100%);
+  color: #fbbf24;
+}
+
+.sh-hero-action-btn.me-mode {
+  border-color: rgba(168, 85, 247, 0.45);
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.16) 0%, rgba(126, 34, 206, 0.28) 100%);
+  color: #c084fc;
+}
+
+.sh-hero-action-btn.me-mode:hover {
+  border-color: #c084fc;
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.25);
+}
+
 .sh-action-icon-circle {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.sh-hero-action-btn.admin-mode .sh-action-icon-circle {
+  background: rgba(245, 158, 11, 0.18);
+}
+
+.sh-hero-action-btn.map-mode .sh-action-icon-circle {
+  background: rgba(56, 189, 248, 0.18);
+}
+
+.sh-hero-action-btn.me-mode .sh-action-icon-circle {
+  background: rgba(168, 85, 247, 0.18);
 }
 
 .sh-action-text-col {
@@ -29191,11 +29252,13 @@ body.light-theme .mori-input {
   font-size: 0.82rem;
   font-weight: 800;
   color: #ffffff;
+  white-space: nowrap;
 }
 
 .sh-action-secondary {
   font-size: 0.65rem;
-  opacity: 0.8;
+  opacity: 0.85;
+  white-space: nowrap;
 }
 
 .sh-action-badge-alert {
@@ -29249,21 +29312,23 @@ body.light-theme .mori-input {
 }
 
 /* Responsividade Adaptativa */
-@media (max-width: 1200px) {
+@media (max-width: 980px) {
   .dynamic-body-greeting.premium-smart-header {
-    gap: 14px;
-    padding: 12px 18px;
+    gap: 12px;
+    padding: 12px 16px;
     flex-wrap: wrap;
   }
 
   .sh-hero-widgets {
     width: 100%;
     justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 2px;
   }
 
   .sh-mission-capsule {
     flex: 1;
-    max-width: none;
+    min-width: 220px;
   }
 }
 

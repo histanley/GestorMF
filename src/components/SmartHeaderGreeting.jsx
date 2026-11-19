@@ -452,23 +452,7 @@ export default function SmartHeaderGreeting({
         </div>
       </div>
 
-      {/* 2. CENTRO: MISSÕES ATIVAS CENTRALIZADAS */}
-      <div className="sh-hero-center">
-        <button
-          type="button"
-          className="sh-hero-badge-active sh-hero-badge-active-centered is-clickable"
-          onClick={() => onNavigateTab && onNavigateTab('table')}
-          title="Clique para ver a grade de missões ativas na Tabela de Serviço"
-        >
-          <span className="sh-pulse-dot green" />
-          <span className="sh-active-missions-count">{countAtivas}</span>
-          <span className="sh-active-missions-label">
-            {countAtivas === 1 ? 'missão ativa' : 'missões ativas'}
-          </span>
-        </button>
-      </div>
-
-      {/* 3. LADO DIREITO: CÁPSULAS EXECUTIVAS (CLIMA, MISSÃO & AÇÕES) */}
+      {/* 2. LADO DIREITO: CÁPSULAS EXECUTIVAS (CLIMA, MISSÃO & AÇÕES) */}
       <div className="sh-hero-widgets">
         {/* CÁPSULA A: CLIMA & OPERAÇÃO DE CAMPO */}
         <div className="sh-capsule sh-weather-capsule" title={`Clima em ${weatherData.cityName}: Sensação ${weatherData.apparentTemperature}°C, Vento ${weatherData.windSpeed} km/h, Umidade ${weatherData.humidity}%`}>

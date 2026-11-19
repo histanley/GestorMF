@@ -58,17 +58,18 @@ assert.strictEqual(
   'Linha 3: Deve conter sh-hero-date-row'
 );
 
-// 5. Garantir que as Missões Ativas estão centralizadas
+// 5. Garantir que as Missões Ativas foram retiradas da barra conforme solicitação do usuário
 assert.strictEqual(
-  headerJsx.includes('sh-hero-center'),
-  true,
-  'SmartHeaderGreeting deve conter sh-hero-center para centralizar as missões ativas'
+  headerJsx.includes('sh-hero-center') || headerJsx.includes('sh-active-missions-count'),
+  false,
+  'SmartHeaderGreeting não deve conter informação de missões ativas (removido a pedido do usuário)'
 );
 
+// 5b. Garantir alinhamento perfeito sem quebra das cápsulas (Clima, Missão e Botão Executivo)
 assert.strictEqual(
-  headerJsx.includes('sh-hero-badge-active-centered'),
+  appCss.includes('flex-wrap: nowrap;') && appCss.includes('.sh-hero-widgets'),
   true,
-  'SmartHeaderGreeting deve conter sh-hero-badge-active-centered'
+  'App.css deve conter .sh-hero-widgets com flex-wrap: nowrap para alinhamento em linha única'
 );
 
 // 6. Garantir que o Pulso Operacional permanece fora
