@@ -3637,35 +3637,39 @@ export default function ServiceBoard({
                 <div className="mdm-footer-actions">
                   <button
                     type="button"
-                    className="btn-secondary btn-whatsapp-share"
+                    className="btn-mdm-action btn-mdm-whatsapp btn-whatsapp-share"
                     onClick={() => setWhatsappShareMission(detailMission)}
                     title="Compartilhar informações da missão por WhatsApp"
                   >
-                    <MessageCircle size={15} /> WhatsApp
+                    <MessageCircle size={15} />
+                    <span>WhatsApp</span>
                   </button>
 
                   <button
                     type="button"
-                    className="btn-secondary"
+                    className="btn-mdm-action btn-mdm-history btn-secondary"
                     onClick={() => {
                       const m = detailMission;
                       setSelectedHistoryMission(m);
                     }}
                     title="Ver Histórico Completo e Auditoria desta Missão"
                   >
-                    <History size={15} /> Histórico Completo
+                    <History size={15} />
+                    <span>Histórico</span>
                   </button>
 
                   <button
                     type="button"
-                    className="btn-secondary"
+                    className="btn-mdm-action btn-mdm-map btn-secondary"
                     onClick={() => {
                       const id = detailMission.id;
                       setSelectedDetailMissionId(null);
                       onSelectMissionOnMap(id);
                     }}
+                    title="Ver Trajeto e Viatura no Mapa"
                   >
-                    <Navigation size={15} /> Ver Rota no Mapa
+                    <Navigation size={15} />
+                    <span>Rota no Mapa</span>
                   </button>
 
                   {(() => {
@@ -3674,7 +3678,7 @@ export default function ServiceBoard({
                       return (
                         <button
                           type="button"
-                          className="btn-primary"
+                          className="btn-mdm-action btn-mdm-edit btn-primary"
                           onClick={() => {
                             const m = detailMission;
                             setSelectedDetailMissionId(null);
@@ -3682,18 +3686,20 @@ export default function ServiceBoard({
                           }}
                           title={isFinalizada ? "Editar Missão Finalizada (Ajuste Administrativo)" : "Editar Missão"}
                         >
-                          <Edit2 size={15} /> Editar Missão
+                          <Edit2 size={15} />
+                          <span>Editar Missão</span>
                         </button>
                       );
                     }
                     if (canEditMission && isFinalizada) {
                       return (
                         <span
-                          className="btn-secondary"
-                          style={{ opacity: 0.5, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                          className="btn-mdm-action btn-mdm-locked btn-secondary"
+                          style={{ opacity: 0.5, cursor: 'not-allowed' }}
                           title="Missão finalizada e encerrada (edição exclusiva para Administradores)"
                         >
-                          <Lock size={14} /> Missão Encerrada
+                          <Lock size={14} />
+                          <span>Missão Encerrada</span>
                         </span>
                       );
                     }
@@ -3703,7 +3709,7 @@ export default function ServiceBoard({
                   {canDeleteMission && (
                     <button
                       type="button"
-                      className="btn-danger-outline"
+                      className="btn-mdm-action btn-mdm-delete btn-danger-outline"
                       onClick={() => {
                         const id = detailMission.id;
                         setSelectedDetailMissionId(null);
@@ -3711,17 +3717,19 @@ export default function ServiceBoard({
                       }}
                       title="Excluir Missão"
                     >
-                      <Trash2 size={15} /> Excluir Missão
+                      <Trash2 size={15} />
+                      <span>Excluir</span>
                     </button>
                   )}
 
                   <button
                     type="button"
-                    className="btn-secondary btn-close-modal-footer"
+                    className="btn-mdm-action btn-mdm-close btn-secondary btn-close-modal-footer"
                     onClick={() => setSelectedDetailMissionId(null)}
                     title="Fechar Ficha da Missão"
                   >
-                    <X size={15} /> Fechar
+                    <X size={15} />
+                    <span>Fechar</span>
                   </button>
                 </div>
               </div>

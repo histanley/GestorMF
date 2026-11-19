@@ -1104,26 +1104,28 @@ export default function MissionDetailModal({
             <div className="mdm-footer-actions">
               <button
                 type="button"
-                className="btn-secondary btn-whatsapp-share"
+                className="btn-mdm-action btn-mdm-whatsapp btn-whatsapp-share"
                 onClick={() => setIsWhatsAppOpen(true)}
                 title="Compartilhar informações da missão por WhatsApp"
               >
-                <MessageCircle size={15} /> WhatsApp
+                <MessageCircle size={15} />
+                <span>WhatsApp</span>
               </button>
 
               <button
                 type="button"
-                className="btn-secondary"
+                className="btn-mdm-action btn-mdm-history btn-secondary"
                 onClick={() => setIsHistoryOpen(true)}
                 title="Ver Histórico Completo e Auditoria desta Missão"
               >
-                <History size={15} /> Histórico Completo
+                <History size={15} />
+                <span>Histórico</span>
               </button>
 
               {onSelectMissionOnMap && (
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="btn-mdm-action btn-mdm-map btn-secondary"
                   onClick={() => {
                     const id = mission.id;
                     onClose();
@@ -1131,7 +1133,8 @@ export default function MissionDetailModal({
                   }}
                   title="Ver Trajeto e Viatura no Mapa"
                 >
-                  <Navigation size={15} /> Ver Rota no Mapa
+                  <Navigation size={15} />
+                  <span>Rota no Mapa</span>
                 </button>
               )}
 
@@ -1141,7 +1144,7 @@ export default function MissionDetailModal({
                   return (
                     <button
                       type="button"
-                      className="btn-primary"
+                      className="btn-mdm-action btn-mdm-edit btn-primary"
                       onClick={() => {
                         const m = mission;
                         onClose();
@@ -1149,18 +1152,20 @@ export default function MissionDetailModal({
                       }}
                       title={isFinalizada ? "Editar Missão Finalizada (Ajuste Administrativo)" : "Editar Missão"}
                     >
-                      <Edit2 size={15} /> Editar Missão
+                      <Edit2 size={15} />
+                      <span>Editar Missão</span>
                     </button>
                   );
                 }
                 if (canEditMission && isFinalizada) {
                   return (
                     <span
-                      className="btn-secondary"
-                      style={{ opacity: 0.5, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      className="btn-mdm-action btn-mdm-locked btn-secondary"
+                      style={{ opacity: 0.5, cursor: 'not-allowed' }}
                       title="Missão finalizada e encerrada (edição exclusiva para Administradores)"
                     >
-                      <Lock size={14} /> Missão Encerrada
+                      <Lock size={14} />
+                      <span>Missão Encerrada</span>
                     </span>
                   );
                 }
@@ -1169,11 +1174,12 @@ export default function MissionDetailModal({
 
               <button
                 type="button"
-                className="btn-secondary btn-close-modal-footer"
+                className="btn-mdm-action btn-mdm-close btn-secondary btn-close-modal-footer"
                 onClick={onClose}
                 title="Fechar Ficha da Missão"
               >
-                <X size={15} /> Fechar
+                <X size={15} />
+                <span>Fechar</span>
               </button>
             </div>
           </div>
