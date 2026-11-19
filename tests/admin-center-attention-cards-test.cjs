@@ -59,34 +59,38 @@ assert(
   'AdminCenter must define handleGoToField'
 );
 
-// Check rendered KPI cards in the header
+// Check rendered KPI cards in the header with full words (no abbreviations)
 assert(
-  adminCenterContent.includes('Aprovações</span>'),
-  'Card 1 Aprovações must be rendered'
+  adminCenterContent.includes('Aprovações Pendentes</span>'),
+  'Card 1 Aprovações Pendentes must be rendered in full'
 );
 assert(
   adminCenterContent.includes('Prazos de Edição</span>'),
-  'Card 2 Prazos de Edição must be rendered'
+  'Card 2 Prazos de Edição must be rendered in full'
 );
 assert(
-  adminCenterContent.includes('Aluguéis</span>'),
-  'Card 3 Aluguéis must be rendered'
+  adminCenterContent.includes('Aluguéis &amp; Devoluções</span>'),
+  'Card 3 Aluguéis & Devoluções must be rendered in full'
 );
 assert(
   adminCenterContent.includes('Frota &amp; Combustível</span>'),
-  'Card 4 Frota & Combustível must be rendered'
+  'Card 4 Frota & Combustível must be rendered in full'
 );
 assert(
   adminCenterContent.includes('Fechamento do Mês</span>'),
-  'Card 5 Fechamento do Mês must be rendered'
+  'Card 5 Fechamento do Mês must be rendered in full'
 );
 assert(
   adminCenterContent.includes('Missões em Campo</span>'),
-  'Card 6 Missões em Campo must be rendered'
+  'Card 6 Missões em Campo must be rendered in full'
 );
 assert(
-  adminCenterContent.includes('ach-kpi-head') && adminCenterContent.includes('ach-kpi-metric'),
-  'Cards must use the new non-overlapping flex structure with ach-kpi-head and ach-kpi-metric'
+  adminCenterContent.includes('Pós-Produção •') && adminCenterContent.includes('Horas Extras'),
+  'Subtitles must not abbreviate Pós-Produção or Horas Extras'
+);
+assert(
+  adminCenterContent.includes('ach-kpi-head') && adminCenterContent.includes('ach-kpi-mid-row'),
+  'Cards must place badges in ach-kpi-mid-row in the middle of each card'
 );
 
 console.log('✓ AdminCenter.jsx tests passed: all 6 attention & decision cards implemented with live handlers');

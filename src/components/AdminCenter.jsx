@@ -860,26 +860,21 @@ export default function AdminCenter({
             onKeyDown={(e) => e.key === 'Enter' && handleGoToApprovals()}
           >
             <div className="ach-kpi-head">
-              <div className="ach-kpi-head-left">
-                <div className="ach-kpi-icon text-amber">
-                  <Clock size={15} />
-                </div>
-                <span className="ach-kpi-lbl">Aprovações</span>
+              <div className="ach-kpi-icon text-amber">
+                <Clock size={14} />
               </div>
+              <span className="ach-kpi-lbl">Aprovações Pendentes</span>
+            </div>
+            <div className="ach-kpi-mid-row">
+              <span className="ach-kpi-num">{totalPendingApprovals}</span>
               {totalPendingApprovals > 0 ? (
                 <span className="ach-kpi-tag tag-warning">Decisão</span>
               ) : (
                 <span className="ach-kpi-tag tag-success">Em Dia</span>
               )}
             </div>
-            <div className="ach-kpi-metric">
-              <span className="ach-kpi-num">{totalPendingApprovals}</span>
-              <span className="ach-kpi-suffix">
-                {totalPendingApprovals === 1 ? 'pendente' : 'pendentes'}
-              </span>
-            </div>
             <div className="ach-kpi-sub">
-              {pendingEditions.length} Pós-Prod • {pendingRequests.length} Horas
+              {pendingEditions.length} Pós-Produção • {pendingRequests.length} Horas Extras
             </div>
           </div>
 
@@ -893,12 +888,17 @@ export default function AdminCenter({
             onKeyDown={(e) => e.key === 'Enter' && handleGoToDeadlines()}
           >
             <div className="ach-kpi-head">
-              <div className="ach-kpi-head-left">
-                <div className={`ach-kpi-icon ${editionDeadlinesStats.overdue > 0 ? 'text-rose' : (editionDeadlinesStats.dueToday > 0 ? 'text-amber' : 'text-emerald')}`}>
-                  {editionDeadlinesStats.overdue > 0 ? <AlertTriangle size={15} /> : <Film size={15} />}
-                </div>
-                <span className="ach-kpi-lbl">Prazos de Edição</span>
+              <div className={`ach-kpi-icon ${editionDeadlinesStats.overdue > 0 ? 'text-rose' : (editionDeadlinesStats.dueToday > 0 ? 'text-amber' : 'text-emerald')}`}>
+                {editionDeadlinesStats.overdue > 0 ? <AlertTriangle size={14} /> : <Film size={14} />}
               </div>
+              <span className="ach-kpi-lbl">Prazos de Edição</span>
+            </div>
+            <div className="ach-kpi-mid-row">
+              <span className={`ach-kpi-num ${editionDeadlinesStats.overdue > 0 ? 'text-rose' : (editionDeadlinesStats.dueToday > 0 ? 'text-amber' : 'text-emerald')}`}>
+                {editionDeadlinesStats.overdue > 0
+                  ? editionDeadlinesStats.overdue
+                  : (editionDeadlinesStats.dueToday > 0 ? editionDeadlinesStats.dueToday : 0)}
+              </span>
               {editionDeadlinesStats.overdue > 0 ? (
                 <span className="ach-kpi-tag tag-danger">Atraso</span>
               ) : editionDeadlinesStats.dueToday > 0 ? (
@@ -907,25 +907,11 @@ export default function AdminCenter({
                 <span className="ach-kpi-tag tag-success">No Prazo</span>
               )}
             </div>
-            <div className="ach-kpi-metric">
-              <span className={`ach-kpi-num ${editionDeadlinesStats.overdue > 0 ? 'text-rose' : (editionDeadlinesStats.dueToday > 0 ? 'text-amber' : 'text-emerald')}`}>
-                {editionDeadlinesStats.overdue > 0
-                  ? editionDeadlinesStats.overdue
-                  : (editionDeadlinesStats.dueToday > 0 ? editionDeadlinesStats.dueToday : 0)}
-              </span>
-              <span className={`ach-kpi-suffix ${editionDeadlinesStats.overdue > 0 ? 'text-rose' : (editionDeadlinesStats.dueToday > 0 ? 'text-amber' : 'text-emerald')}`}>
-                {editionDeadlinesStats.overdue > 0
-                  ? (editionDeadlinesStats.overdue === 1 ? 'atrasada' : 'atrasadas')
-                  : (editionDeadlinesStats.dueToday > 0
-                    ? (editionDeadlinesStats.dueToday === 1 ? 'vence hoje' : 'vencem hoje')
-                    : 'atrasos')}
-              </span>
-            </div>
             <div className="ach-kpi-sub">
               {editionDeadlinesStats.overdue > 0
-                ? `${editionDeadlinesStats.overdue} expirada(s) • ${editionDeadlinesStats.dueToday} hoje`
+                ? `${editionDeadlinesStats.overdue} ${editionDeadlinesStats.overdue === 1 ? 'edição expirada' : 'edições expiradas'}`
                 : (editionDeadlinesStats.dueToday > 0
-                  ? `${editionDeadlinesStats.dueToday} entrega(s) previstas hoje`
+                  ? `${editionDeadlinesStats.dueToday} ${editionDeadlinesStats.dueToday === 1 ? 'entrega prevista hoje' : 'entregas previstas hoje'}`
                   : `${editionDeadlinesStats.inProgress} em produção • Em dia`)}
             </div>
           </div>
@@ -940,36 +926,31 @@ export default function AdminCenter({
             onKeyDown={(e) => e.key === 'Enter' && handleGoToRentals()}
           >
             <div className="ach-kpi-head">
-              <div className="ach-kpi-head-left">
-                <div className={`ach-kpi-icon ${rentalStats.overdue > 0 ? 'text-rose' : (rentalStats.dueToday > 0 ? 'text-amber' : 'text-cyan')}`}>
-                  <Camera size={15} />
-                </div>
-                <span className="ach-kpi-lbl">Aluguéis</span>
+              <div className={`ach-kpi-icon ${rentalStats.overdue > 0 ? 'text-rose' : (rentalStats.dueToday > 0 ? 'text-amber' : 'text-cyan')}`}>
+                <Camera size={14} />
               </div>
+              <span className="ach-kpi-lbl">Aluguéis &amp; Devoluções</span>
+            </div>
+            <div className="ach-kpi-mid-row">
+              <span className={`ach-kpi-num ${rentalStats.totalAlerts > 0 ? 'text-rose' : 'text-cyan'}`}>
+                {rentalStats.totalAlerts > 0 ? rentalStats.totalAlerts : rentalStats.active}
+              </span>
               {rentalStats.overdue > 0 ? (
                 <span className="ach-kpi-tag tag-danger">Atraso</span>
               ) : rentalStats.dueToday > 0 ? (
                 <span className="ach-kpi-tag tag-warning">Hoje</span>
               ) : rentalStats.active > 0 ? (
-                <span className="ach-kpi-tag tag-info">{rentalStats.active} Ativos</span>
+                <span className="ach-kpi-tag tag-info">Ativos</span>
               ) : (
                 <span className="ach-kpi-tag tag-success">Livre</span>
               )}
             </div>
-            <div className="ach-kpi-metric">
-              <span className={`ach-kpi-num ${rentalStats.totalAlerts > 0 ? 'text-rose' : 'text-cyan'}`}>
-                {rentalStats.totalAlerts > 0 ? rentalStats.totalAlerts : rentalStats.active}
-              </span>
-              <span className={`ach-kpi-suffix ${rentalStats.totalAlerts > 0 ? 'text-rose' : 'text-cyan'}`}>
-                {rentalStats.totalAlerts > 0
-                  ? (rentalStats.totalAlerts === 1 ? 'alerta' : 'alertas')
-                  : (rentalStats.active === 1 ? 'locação ativa' : 'locações ativas')}
-              </span>
-            </div>
             <div className="ach-kpi-sub">
               {rentalStats.totalAlerts > 0
                 ? `${rentalStats.overdue} atrasada(s) • ${rentalStats.dueToday} hoje`
-                : (rentalStats.active > 0 ? `${rentalStats.active} contrato(s) ativo(s)` : 'Nenhum aluguel pendente')}
+                : (rentalStats.active > 0
+                  ? `${rentalStats.active} ${rentalStats.active === 1 ? 'locação em andamento' : 'locações em andamento'}`
+                  : 'Nenhum equipamento alugado')}
             </div>
           </div>
 
@@ -983,32 +964,25 @@ export default function AdminCenter({
             onKeyDown={(e) => e.key === 'Enter' && handleGoToFleet()}
           >
             <div className="ach-kpi-head">
-              <div className="ach-kpi-head-left">
-                <div className={`ach-kpi-icon ${computedReserveVehicles.length > 0 ? 'text-rose' : 'text-emerald'}`}>
-                  <Car size={15} />
-                </div>
-                <span className="ach-kpi-lbl">Frota &amp; Combustível</span>
+              <div className={`ach-kpi-icon ${computedReserveVehicles.length > 0 ? 'text-rose' : 'text-emerald'}`}>
+                <Car size={14} />
               </div>
+              <span className="ach-kpi-lbl">Frota &amp; Combustível</span>
+            </div>
+            <div className="ach-kpi-mid-row">
+              <span className={`ach-kpi-num ${computedReserveVehicles.length > 0 ? 'text-rose' : 'text-emerald'}`}>
+                {computedReserveVehicles.length > 0 ? computedReserveVehicles.length : vehicles.length}
+              </span>
               {computedReserveVehicles.length > 0 ? (
                 <span className="ach-kpi-tag tag-danger">Reserva</span>
               ) : (
                 <span className="ach-kpi-tag tag-success">OK</span>
               )}
             </div>
-            <div className="ach-kpi-metric">
-              <span className={`ach-kpi-num ${computedReserveVehicles.length > 0 ? 'text-rose' : 'text-emerald'}`}>
-                {computedReserveVehicles.length > 0 ? computedReserveVehicles.length : vehicles.length}
-              </span>
-              <span className={`ach-kpi-suffix ${computedReserveVehicles.length > 0 ? 'text-rose' : 'text-emerald'}`}>
-                {computedReserveVehicles.length > 0
-                  ? (computedReserveVehicles.length === 1 ? 'na reserva' : 'na reserva')
-                  : (vehicles.length === 1 ? 'viatura' : 'viaturas')}
-              </span>
-            </div>
             <div className="ach-kpi-sub">
               {computedReserveVehicles.length > 0
                 ? 'Atenção ao abastecimento urgente'
-                : 'Nível operacional regular'}
+                : `${vehicles.length} viaturas • Nível regular`}
             </div>
           </div>
 
@@ -1022,30 +996,25 @@ export default function AdminCenter({
             onKeyDown={(e) => e.key === 'Enter' && handleGoToPayouts()}
           >
             <div className="ach-kpi-head">
-              <div className="ach-kpi-head-left">
-                <div className="ach-kpi-icon text-emerald">
-                  <DollarSign size={15} />
-                </div>
-                <span className="ach-kpi-lbl">Fechamento do Mês</span>
+              <div className="ach-kpi-icon text-emerald">
+                <DollarSign size={14} />
               </div>
+              <span className="ach-kpi-lbl">Fechamento do Mês</span>
+            </div>
+            <div className="ach-kpi-mid-row">
+              <span className={`ach-kpi-num ${payoutsStats.pendingCount > 0 ? 'text-amber' : 'text-emerald'}`}>
+                {payoutsStats.pendingCount > 0 ? payoutsStats.pendingCount : 0}
+              </span>
               {payoutsStats.pendingCount > 0 ? (
                 <span className="ach-kpi-tag tag-warning">A Quitar</span>
               ) : (
                 <span className="ach-kpi-tag tag-success">100% Pago</span>
               )}
             </div>
-            <div className="ach-kpi-metric">
-              <span className={`ach-kpi-num ${payoutsStats.pendingCount > 0 ? 'text-amber' : 'text-emerald'}`}>
-                {payoutsStats.pendingCount > 0 ? payoutsStats.pendingCount : 0}
-              </span>
-              <span className={`ach-kpi-suffix ${payoutsStats.pendingCount > 0 ? 'text-amber' : 'text-emerald'}`}>
-                {payoutsStats.pendingCount > 0
-                  ? (payoutsStats.pendingCount === 1 ? 'pendente' : 'pendentes')
-                  : 'pendências'}
-              </span>
-            </div>
             <div className="ach-kpi-sub">
-              {payoutsStats.paidCount} Pagos • Quitação dia 05
+              {payoutsStats.pendingCount > 0
+                ? `${payoutsStats.pendingCount} pendentes • Quitação dia 05`
+                : 'Folha do mês 100% quitada'}
             </div>
           </div>
 
@@ -1059,27 +1028,22 @@ export default function AdminCenter({
             onKeyDown={(e) => e.key === 'Enter' && handleGoToField()}
           >
             <div className="ach-kpi-head">
-              <div className="ach-kpi-head-left">
-                <div className="ach-kpi-icon text-gold">
-                  <Compass size={15} />
-                </div>
-                <span className="ach-kpi-lbl">Missões em Campo</span>
+              <div className="ach-kpi-icon text-gold">
+                <Compass size={14} />
               </div>
+              <span className="ach-kpi-lbl">Missões em Campo</span>
+            </div>
+            <div className="ach-kpi-mid-row">
+              <span className="ach-kpi-num text-gold">{activeFieldMissions.length}</span>
               {activeFieldMissions.length > 0 ? (
                 <span className="ach-kpi-tag tag-info">Em Campo</span>
               ) : (
-                <span className="ach-kpi-tag tag-success">Base OK</span>
+                <span className="ach-kpi-tag tag-success">Base</span>
               )}
-            </div>
-            <div className="ach-kpi-metric">
-              <span className="ach-kpi-num text-gold">{activeFieldMissions.length}</span>
-              <span className="ach-kpi-suffix text-gold">
-                {activeFieldMissions.length === 1 ? 'ativa' : 'ativas'}
-              </span>
             </div>
             <div className="ach-kpi-sub">
               {activeFieldMissions.length > 0
-                ? `${activeFieldMissions.length} equipe(s) na rua agora`
+                ? `${activeFieldMissions.length} ${activeFieldMissions.length === 1 ? 'equipe em campo' : 'equipes em campo'}`
                 : 'Todas as equipes na base'}
             </div>
           </div>
