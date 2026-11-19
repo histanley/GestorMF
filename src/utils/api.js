@@ -338,6 +338,108 @@ export async function apiSavePayout(payoutData) {
 }
 
 // ------------------------------------------------------------------------------
+// 5.2 VALES & ADIANTAMENTOS SALARIAIS DE COLABORADORES (FIN-05)
+// ------------------------------------------------------------------------------
+export async function apiGetSalaryAdvances(monthKey, memberId = '') {
+  const params = new URLSearchParams();
+  if (monthKey) params.append('month', monthKey);
+  if (memberId) params.append('memberId', memberId);
+  const q = params.toString() ? `?${params.toString()}` : '';
+
+  try {
+    const res = await apiRequest(`/advances.php${q}`);
+    if (res && res.success && Array.isArray(res.advances)) {
+      // Salva no cache local offline
+      try {
+        const cacheKey = `gestormf_advances_${monthKey || 'all'}`;
+        localStorage.setItem(cacheKey, JSON.stringify(res.advances));
+      } catch (_) {}
+      return res;
+    }
+    return res;
+  } catch (err) {
+    // Fallback offline a partir do localStorage
+    try {
+      const cacheKey = `gestormf_advances_${monthKey || 'all'}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        let list = JSON.parse(cached);
+        if (memberId) {
+          list = list.filter((a) => String(a.memberId) === String(memberId));
+        }
+        return { success: true, advances: list, fromCache: true };
+      }
+    } catch (_) {}
+    return { success: false, advances: [], error: err.message };
+  }
+}
+
+export async function apiSaveSalaryAdvance(advanceData) {
+  try {
+    const res = await apiRequest('/advances.php', {
+      method: 'POST',
+      body: JSON.stringify(advanceData)
+    });
+    // Atualiza cache local offline
+    if (res && res.success && res.advance) {
+      try {
+        const monthKey = res.advance.monthKey || advanceData.monthKey;
+        const cacheKey = `gestormf_advances_${monthKey || 'all'}`;
+        const cached = localStorage.getItem(cacheKey);
+        let list = cached ? JSON.parse(cached) : [];
+        const idx = list.findIndex((a) => a.id === res.advance.id);
+        if (idx >= 0) {
+          list[idx] = res.advance;
+        } else {
+          list.unshift(res.advance);
+        }
+        localStorage.setItem(cacheKey, JSON.stringify(list));
+      } catch (_) {}
+    }
+    return res;
+  } catch (err) {
+    // Modo offline simulado
+    try {
+      const monthKey = advanceData.monthKey || (advanceData.date ? advanceData.date.slice(0, 7) : new Date().toISOString().slice(0, 7));
+      const simulated = {
+        id: advanceData.id || `adv-local-${Date.now()}`,
+        memberId: advanceData.memberId,
+        monthKey,
+        date: advanceData.date || new Date().toISOString().slice(0, 10),
+        amount: Number(advanceData.amount) || 0,
+        description: advanceData.description || 'Adiantamento de Salário',
+        paymentMethod: advanceData.paymentMethod || 'PIX',
+        registeredBy: 'Local (Offline)',
+        registeredById: 'local',
+        receiptUrl: advanceData.receiptUrl || '',
+        status: 'Concedido',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      const cacheKey = `gestormf_advances_${monthKey || 'all'}`;
+      const cached = localStorage.getItem(cacheKey);
+      let list = cached ? JSON.parse(cached) : [];
+      list.unshift(simulated);
+      localStorage.setItem(cacheKey, JSON.stringify(list));
+      return { success: true, advance: simulated, fromLocal: true };
+    } catch (_) {
+      return { success: false, error: err.message };
+    }
+  }
+}
+
+export async function apiDeleteSalaryAdvance(advanceId) {
+  try {
+    const res = await apiRequest(`/advances.php?id=${encodeURIComponent(advanceId)}`, {
+      method: 'DELETE'
+    });
+    return res;
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+// ------------------------------------------------------------------------------
 // 6. TRILHA DE AUDITORIA (AUDIT LOGS)
 // ------------------------------------------------------------------------------
 export async function apiGetAuditLogs(module = '', search = '', limit = 100, user = '') {

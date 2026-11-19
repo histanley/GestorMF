@@ -739,6 +739,31 @@ if ($method === 'POST' && $action === 'restore') {
             }
         }
 
+        // 10.1. Restaura Vales e Adiantamentos Salariais (FIN-05: salary_advances)
+        if (isset($tables['salary_advances']) && is_array($tables['salary_advances'])) {
+            $db->exec("DELETE FROM salary_advances");
+            $stmtAdv = $db->prepare("
+                INSERT INTO salary_advances (id, member_id, month_key, date, amount, description, payment_method, registered_by, registered_by_id, receipt_url, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            foreach ($tables['salary_advances'] as $aRow) {
+                if (empty($aRow['id']) || empty($aRow['member_id'])) continue;
+                $stmtAdv->execute([
+                    $aRow['id'],
+                    $aRow['member_id'],
+                    $aRow['month_key'] ?? substr($aRow['date'] ?? date('Y-m-d'), 0, 7),
+                    $aRow['date'] ?? date('Y-m-d'),
+                    (float)($aRow['amount'] ?? 0),
+                    $aRow['description'] ?? '',
+                    $aRow['payment_method'] ?? 'PIX',
+                    $aRow['registered_by'] ?? null,
+                    $aRow['registered_by_id'] ?? null,
+                    $aRow['receipt_url'] ?? null,
+                    $aRow['status'] ?? 'Concedido'
+                ]);
+            }
+        }
+
         // 11. Restaura Mensagens Internas e Comunicados Operacionais (BKP-01: system_messages)
         if (isset($tables['system_messages']) && is_array($tables['system_messages'])) {
             $db->exec("DELETE FROM system_messages");
@@ -982,6 +1007,7 @@ function collectAllDatabaseTables($db) {
         'equipment'          => safeFetchAllTable($db, "SELECT * FROM equipment"),
         'rentals'            => safeFetchAllTable($db, "SELECT * FROM rentals"),
         'payout_closures'    => safeFetchAllTable($db, "SELECT * FROM payout_closures"),
+        'salary_advances'    => safeFetchAllTable($db, "SELECT * FROM salary_advances"),
         'system_messages'    => safeFetchAllTable($db, "SELECT * FROM system_messages"),
         'push_subscriptions' => safeFetchAllTable($db, "SELECT * FROM push_subscriptions"),
         'audit_logs'         => safeFetchAllTable($db, "SELECT id, user_id, user_name, action, module, entity_id, details, ip_address, created_at FROM audit_logs ORDER BY id DESC LIMIT 5000"),

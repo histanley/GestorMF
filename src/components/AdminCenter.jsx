@@ -1363,6 +1363,7 @@ export default function AdminCenter({
         {adminTab === 'payouts' && (
           <div className="ac-payouts-view">
             <TeamPayoutsDashboard
+              currentUser={currentUser}
               members={members}
               missions={missions}
               vehicles={vehicles}

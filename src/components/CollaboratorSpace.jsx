@@ -38,6 +38,8 @@ import {
   Target,
   ShieldCheck,
   Printer,
+  Receipt,
+  Wallet,
 } from 'lucide-react';
 import ConcludePostProductionModal from './ConcludePostProductionModal';
 import {
@@ -58,7 +60,7 @@ import {
   CAREER_TIERS,
   getCareerProgression,
 } from '../utils/companyRoles';
-import { apiRequestExtraHours, apiExtendMissionReturnTime, apiUpdatePixKey } from '../utils/api';
+import { apiRequestExtraHours, apiExtendMissionReturnTime, apiUpdatePixKey, apiGetSalaryAdvances } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 import {
   calculateMissionOffHours,
@@ -275,6 +277,34 @@ export default function CollaboratorSpace({
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }, []);
+
+  const monthLabel = useMemo(() => {
+    try {
+      const [year, month] = currentMonthKey.split('-');
+      const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+      return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    } catch (e) {
+      return currentMonthKey;
+    }
+  }, [currentMonthKey]);
+
+  // Vales e Adiantamentos Salariais do Colaborador (FIN-05)
+  const [myAdvances, setMyAdvances] = useState([]);
+  const [isLoadingAdvances, setIsLoadingAdvances] = useState(false);
+  const [showAdvancesHistoryModal, setShowAdvancesHistoryModal] = useState(false);
+
+  useEffect(() => {
+    if (!myMember?.id) return;
+    setIsLoadingAdvances(true);
+    apiGetSalaryAdvances(currentMonthKey, myMember.id)
+      .then((res) => {
+        if (res && res.success && Array.isArray(res.advances)) {
+          setMyAdvances(res.advances);
+        }
+      })
+      .catch((err) => console.warn('Erro ao carregar vales do colaborador:', err))
+      .finally(() => setIsLoadingAdvances(false));
+  }, [currentMonthKey, myMember?.id]);
 
   // Missões do colaborador
   const myMissions = useMemo(() => {
@@ -497,6 +527,12 @@ export default function CollaboratorSpace({
     const closure = closures[myMember.id] || null;
     const isPaid = closure?.status === 'Pago';
 
+    const grossTotal = Number((totalHoursVal + totalDaysVal + totalCustomVal).toFixed(2));
+    const totalAdvancesVal = Number(
+      myAdvances.reduce((acc, a) => acc + (Number(a.amount) || 0), 0).toFixed(2)
+    );
+    const netTotal = Number(Math.max(0, grossTotal - totalAdvancesVal).toFixed(2));
+
     return {
       totalHours: Number(totalHours.toFixed(1)),
       totalHoursVal: Number(totalHoursVal.toFixed(2)),
@@ -504,11 +540,16 @@ export default function CollaboratorSpace({
       totalDaysVal: Number(totalDaysVal.toFixed(2)),
       totalCustomCount,
       totalCustomVal: Number(totalCustomVal.toFixed(2)),
-      total: Number((totalHoursVal + totalDaysVal + totalCustomVal).toFixed(2)),
+      grossTotal,
+      totalAdvancesVal,
+      advancesCount: myAdvances.length,
+      advances: myAdvances,
+      netTotal,
+      total: isPaid ? grossTotal : netTotal,
       isPaid,
       clearedAt: closure?.clearedAt || null,
     };
-  }, [myMember, myMissions, currentMonthKey, closures]);
+  }, [myMember, myMissions, currentMonthKey, closures, myAdvances]);
 
   // Copia PIX
   const handleCopyPix = () => {
@@ -1188,11 +1229,32 @@ export default function CollaboratorSpace({
             </div>
           )}
 
+          {/* Card Vales e Adiantamentos Concedidos */}
+          {financialSummary.totalAdvancesVal > 0 && (
+            <div
+              className="cs-summary-card cs-card-advances is-clickable"
+              onClick={() => setShowAdvancesHistoryModal(true)}
+              style={{ borderLeft: '3px solid #f43f5e', background: 'rgba(244, 63, 94, 0.08)', cursor: 'pointer' }}
+              title="Clique para ver o extrato detalhado dos seus vales e adiantamentos salariais"
+            >
+              <div className="cs-card-header">
+                <span className="cs-card-lbl">Vales ({financialSummary.advancesCount} adiantamento{financialSummary.advancesCount === 1 ? '' : 's'})</span>
+                <Receipt size={18} className="text-rose" />
+              </div>
+              <strong className="cs-card-val text-rose">
+                -{formatBRL(financialSummary.totalAdvancesVal)}
+              </strong>
+              <span className="cs-card-sub" style={{ color: '#fda4af' }}>
+                Deduzido do saldo • Ver extrato ↗
+              </span>
+            </div>
+          )}
+
           {/* Card Total a Receber / Quitado */}
           <div className={`cs-summary-card cs-card-total ${financialSummary.isPaid ? 'is-paid' : 'is-pending'}`}>
             <div className="cs-card-header">
               <span className="cs-card-lbl">
-                {financialSummary.isPaid ? 'Total Quitado' : 'Total Apurado (Pendente)'}
+                {financialSummary.isPaid ? 'Total Quitado' : (financialSummary.totalAdvancesVal > 0 ? 'Total Líquido a Receber' : 'Total Apurado (Pendente)')}
               </span>
               {financialSummary.isPaid ? <CheckCircle2 size={18} className="text-green" /> : <DollarSign size={18} className="text-gold" />}
             </div>
@@ -1200,7 +1262,11 @@ export default function CollaboratorSpace({
               {formatBRL(financialSummary.total)}
             </strong>
             <span className="cs-card-sub">
-              {financialSummary.isPaid ? '✅ Saldo já quitado e zerado' : '⏳ Previsão de quitação até dia 05'}
+              {financialSummary.isPaid
+                ? '✅ Saldo já quitado e zerado'
+                : (financialSummary.totalAdvancesVal > 0
+                    ? `Bruto: ${formatBRL(financialSummary.grossTotal)} • Vales: -${formatBRL(financialSummary.totalAdvancesVal)}`
+                    : '⏳ Previsão de quitação até dia 05')}
             </span>
           </div>
         </div>
@@ -2455,6 +2521,97 @@ export default function CollaboratorSpace({
               >
                 <X size={16} />
                 <span>Fechar Extrato</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal / Extrato Detalhado de Vales do Colaborador (FIN-05) */}
+      {showAdvancesHistoryModal && (
+        <div className="advances-modal-overlay" onClick={() => setShowAdvancesHistoryModal(false)}>
+          <div className="advances-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 660 }}>
+            <div className="advances-modal-header">
+              <div>
+                <h3 className="advances-modal-title">
+                  <Receipt size={18} className="text-rose" />
+                  Meus Vales &amp; Adiantamentos Salariais
+                </h3>
+                <span className="advances-modal-sub">
+                  {monthLabel} • Extrato oficial de adiantamentos salariais deduzidos
+                </span>
+              </div>
+              <button
+                type="button"
+                className="advances-modal-close"
+                onClick={() => setShowAdvancesHistoryModal(false)}
+                title="Fechar"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="advances-summary-grid">
+              <div className="adv-kpi-card kpi-gross">
+                <span className="adv-kpi-lbl">Total de Créditos (Bruto)</span>
+                <strong className="adv-kpi-val text-amber">{formatBRL(financialSummary.grossTotal)}</strong>
+                <span className="adv-kpi-sub">Horas extras + diárias + cachês</span>
+              </div>
+              <div className="adv-kpi-card kpi-advances">
+                <span className="adv-kpi-lbl">Vales Recebidos</span>
+                <strong className="adv-kpi-val text-rose">-{formatBRL(financialSummary.totalAdvancesVal)}</strong>
+                <span className="adv-kpi-sub">{financialSummary.advancesCount} adiantamento(s)</span>
+              </div>
+              <div className="adv-kpi-card kpi-net">
+                <span className="adv-kpi-lbl">Saldo Líquido a Receber</span>
+                <strong className="adv-kpi-val text-green">{formatBRL(financialSummary.netTotal)}</strong>
+                <span className="adv-kpi-sub">Líquido na quitação</span>
+              </div>
+            </div>
+
+            <div className="advances-history-wrap" style={{ marginTop: 18 }}>
+              <h4 style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Wallet size={14} className="text-rose" />
+                Comprovantes de Vales Concedidos neste Mês
+              </h4>
+
+              {financialSummary.advances && financialSummary.advances.length > 0 ? (
+                <div className="advances-table-wrap">
+                  <table className="advances-table">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Valor</th>
+                        <th>Forma</th>
+                        <th>Motivo / Descrição</th>
+                        <th>Autorizado Por</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {financialSummary.advances.map((adv) => (
+                        <tr key={adv.id}>
+                          <td>{formatDateBR(adv.date)}</td>
+                          <td className="text-rose" style={{ fontWeight: 800 }}>-{formatBRL(adv.amount)}</td>
+                          <td><span className="adv-badge-method">{adv.paymentMethod || 'PIX'}</span></td>
+                          <td>{adv.reason || 'Adiantamento salarial'}</td>
+                          <td>{adv.authorizedBy || 'Gestão'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Nenhum adiantamento registrado neste mês.</p>
+              )}
+            </div>
+
+            <div className="advances-modal-actions" style={{ marginTop: 22, display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setShowAdvancesHistoryModal(false)}
+              >
+                Entendido
               </button>
             </div>
           </div>

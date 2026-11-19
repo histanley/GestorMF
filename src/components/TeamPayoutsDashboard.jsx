@@ -31,9 +31,12 @@ import {
   ExternalLink,
   ArrowUpDown,
   Plus,
+  Receipt,
+  Wallet,
 } from 'lucide-react';
 import MissionDetailModal from './MissionDetailModal';
-import { apiGetPayouts, apiSavePayout } from '../utils/api';
+import SalaryAdvancesModal from './SalaryAdvancesModal';
+import { apiGetPayouts, apiSavePayout, apiGetSalaryAdvances } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
 import {
   calculateMissionOffHours,
@@ -95,6 +98,7 @@ export default function TeamPayoutsDashboard({
   missions = [],
   vehicles = [],
   baseLocation = null,
+  currentUser = null,
   onUpdateMember,
   onEditMission = null,
 }) {
@@ -113,6 +117,11 @@ export default function TeamPayoutsDashboard({
   // Fechamentos de pagamento salvos no backend (memberId -> closure)
   const [closures, setClosures] = useState({});
   const [isLoadingClosures, setIsLoadingClosures] = useState(false);
+
+  // Vales e Adiantamentos Salariais (FIN-05: memberId -> array de vales)
+  const [advancesMap, setAdvancesMap] = useState({});
+  const [advancesModalMember, setAdvancesModalMember] = useState(null);
+  const [isLoadingAdvances, setIsLoadingAdvances] = useState(false);
 
   // Modais e Raio-X
   const [editingRatesMember, setEditingRatesMember] = useState(null);
@@ -144,7 +153,25 @@ export default function TeamPayoutsDashboard({
     pixKey: '',
   });
 
-  // Carrega status de pagamentos para o mês selecionado
+  const loadAdvances = () => {
+    setIsLoadingAdvances(true);
+    apiGetSalaryAdvances(selectedMonth)
+      .then((res) => {
+        if (res && res.success && Array.isArray(res.advances)) {
+          const map = {};
+          res.advances.forEach((adv) => {
+            const memId = String(adv.memberId);
+            if (!map[memId]) map[memId] = [];
+            map[memId].push(adv);
+          });
+          setAdvancesMap(map);
+        }
+      })
+      .catch((err) => console.warn('Erro ao carregar vales:', err))
+      .finally(() => setIsLoadingAdvances(false));
+  };
+
+  // Carrega status de pagamentos e vales para o mês selecionado
   useEffect(() => {
     let isMounted = true;
     setIsLoadingClosures(true);
@@ -158,6 +185,8 @@ export default function TeamPayoutsDashboard({
       .finally(() => {
         if (isMounted) setIsLoadingClosures(false);
       });
+
+    loadAdvances();
 
     return () => { isMounted = false; };
   }, [selectedMonth]);
@@ -442,6 +471,16 @@ export default function TeamPayoutsDashboard({
       const hoursCleared = closure?.hoursCleared ?? (status === 'Pago' ? Number(totalHours.toFixed(1)) : 0);
       const clearedAt = closure?.clearedAt || (status === 'Pago' ? paidAt : null);
 
+      // Vales e Adiantamentos Salariais (FIN-05)
+      const memberAdvances = advancesMap[memIdStr] || advancesMap[member.id] || [];
+      const totalAdvancesAmount = Number(
+        memberAdvances.reduce((acc, a) => acc + (Number(a.amount) || 0), 0).toFixed(2)
+      );
+      const advancesCount = memberAdvances.length;
+      // Saldo líquido = Bruto homologado - Vales concedidos
+      const netAmount = Number(Math.max(0, totalAmount - totalAdvancesAmount).toFixed(2));
+      const plannedNetAmount = Number(Math.max(0, (totalAmount + plannedTotalAmount) - totalAdvancesAmount).toFixed(2));
+
       return {
         ...member,
         hourlyRate,
@@ -458,6 +497,12 @@ export default function TeamPayoutsDashboard({
         totalCustomAmount: Number(totalCustomAmount.toFixed(2)),
         missionCount: completedMissionCount,
         totalAmount: Number(totalAmount.toFixed(2)),
+        // Vales e Adiantamentos
+        advances: memberAdvances,
+        advancesCount,
+        totalAdvancesAmount,
+        netAmount,
+        plannedNetAmount,
         // A cumprir (previsto / não homologado)
         plannedHours: Number(plannedHours.toFixed(1)),
         plannedOffHoursAmount: Number(plannedOffHoursAmount.toFixed(2)),
@@ -475,7 +520,7 @@ export default function TeamPayoutsDashboard({
         statementMissions: statementMissions.sort((a, b) => String(a.date).localeCompare(String(b.date))),
       };
     });
-  }, [members, missions, selectedMonth, closures]);
+  }, [members, missions, selectedMonth, closures, advancesMap]);
 
   // --------------------------------------------------------------------------
   // FILTRAGEM, BUSCA E ORDENAÇÃO NA LISTA
@@ -551,6 +596,8 @@ export default function TeamPayoutsDashboard({
   // Totais Executivos da Folha
   const summaryTotals = useMemo(() => {
     const totalFolha = memberPayouts.reduce((acc, m) => acc + m.totalAmount, 0);
+    const totalVales = memberPayouts.reduce((acc, m) => acc + (m.totalAdvancesAmount || 0), 0);
+    const totalFolhaLiquida = memberPayouts.reduce((acc, m) => acc + (m.netAmount !== undefined ? m.netAmount : m.totalAmount), 0);
     const totalHoras = memberPayouts.reduce((acc, m) => acc + m.totalHours, 0);
     const totalHorasValor = memberPayouts.reduce((acc, m) => acc + (m.totalOffHoursAmount || 0), 0);
     const totalViagens = memberPayouts.reduce((acc, m) => acc + m.totalTravelDays, 0);
@@ -558,10 +605,12 @@ export default function TeamPayoutsDashboard({
     const totalCustoms = memberPayouts.reduce((acc, m) => acc + (m.totalCustomCount || 0), 0);
     const totalCustomsValor = memberPayouts.reduce((acc, m) => acc + (m.totalCustomAmount || 0), 0);
     const totalPagos = memberPayouts.filter((m) => m.status === 'Pago').length;
-    const totalPendentes = memberPayouts.filter((m) => m.status !== 'Pago' && m.totalAmount > 0).length;
+    const totalPendentes = memberPayouts.filter((m) => m.status !== 'Pago' && (m.netAmount > 0 || m.totalAmount > 0)).length;
 
     return {
       totalFolha,
+      totalVales: Number(totalVales.toFixed(2)),
+      totalFolhaLiquida: Number(totalFolhaLiquida.toFixed(2)),
       totalHoras: Number(totalHoras.toFixed(1)),
       totalHorasValor,
       totalViagens,
@@ -648,10 +697,13 @@ export default function TeamPayoutsDashboard({
       return;
     }
 
+    const hasAdvances = (member.totalAdvancesAmount || 0) > 0;
     const confirmClear = await confirmDialog({
       title: 'Zerar Horas & Confirmar Pagamento',
       message: `Confirmar quitação e zerar saldo de horas de ${member.name}?`,
-      description: `Valor apurado: ${formatBRL(member.totalAmount)} referente a ${member.totalHours}h no banco de horas (fora do expediente) e ${member.totalTravelDays} diárias de viagem. Ao confirmar, o saldo deste mês será marcado como Pago e zerado.`,
+      description: hasAdvances
+        ? `Total Bruto Apurado: ${formatBRL(member.totalAmount)} (${member.totalHours}h extras + ${member.totalTravelDays} diárias)\n(-) Vales/Adiantamentos: -${formatBRL(member.totalAdvancesAmount)} (${member.advancesCount} vale(s))\n(=) Total Líquido Quitado: ${formatBRL(member.netAmount)}\n\nAo confirmar, o saldo deste mês será marcado como Pago e quitado.`
+        : `Valor apurado: ${formatBRL(member.totalAmount)} referente a ${member.totalHours}h no banco de horas (fora do expediente) e ${member.totalTravelDays} diárias de viagem. Ao confirmar, o saldo deste mês será marcado como Pago e zerado.`,
       confirmText: 'Zerar Horas (Quitar)',
       cancelText: 'Cancelar',
       variant: 'success',
@@ -663,7 +715,7 @@ export default function TeamPayoutsDashboard({
         monthKey: selectedMonth,
         memberId: member.id,
         status: 'Pago',
-        paidAmount: member.totalAmount,
+        paidAmount: member.netAmount !== undefined ? member.netAmount : member.totalAmount,
         hoursCleared: member.totalHours,
         clearedAt: new Date().toISOString(),
       });
@@ -690,6 +742,7 @@ export default function TeamPayoutsDashboard({
   const handleShareWhatsApp = (member) => {
     const digitsPhone = member.phone ? member.phone.replace(/\D/g, '') : '';
     const isPaid = member.status === 'Pago';
+    const hasAdvances = (member.totalAdvancesAmount || 0) > 0;
     const lines = [
       `📋 *MegaGestão - Extrato de Diárias & Horas*`,
       `👤 *Colaborador:* ${member.name}`,
@@ -700,7 +753,9 @@ export default function TeamPayoutsDashboard({
       `📅 *Diárias Homologadas:* ${member.totalTravelDays} diárias (${formatBRL(member.totalDailyAmount)})`,
       member.totalCustomCount > 0 ? `🎯 *Remunerações Personalizadas / Cachês:* ${member.totalCustomCount} missões (${formatBRL(member.totalCustomAmount)})` : null,
       member.plannedHours > 0 ? `⏳ *Previsão em Pautas Agendadas (A Cumprir):* ${member.plannedHours}h (${formatBRL(member.plannedOffHoursAmount)}) - Não Homologadas` : null,
-      `💰 *Total Líquido Homologado a Pagar:* ${formatBRL(member.totalAmount)}`,
+      `💼 *Total Bruto de Créditos:* ${formatBRL(member.totalAmount)}`,
+      hasAdvances ? `🎟️ *(-) Vales / Adiantamentos:* -${formatBRL(member.totalAdvancesAmount)} (${member.advancesCount} vale${member.advancesCount === 1 ? '' : 's'})` : null,
+      `💰 *Total Líquido a Pagar:* ${formatBRL(member.netAmount !== undefined ? member.netAmount : member.totalAmount)}`,
       member.pixKey ? `💳 *Chave PIX:* ${member.pixKey}` : null,
       `---------------------------------------`,
       isPaid
@@ -807,9 +862,24 @@ export default function TeamPayoutsDashboard({
             <DollarSign size={24} />
           </div>
           <div className="psc-info">
-            <span className="psc-label">Total a Pagar (Folha do Mês)</span>
-            <strong className="psc-value">{formatBRL(summaryTotals.totalFolha)}</strong>
-            <span className="psc-sub">Soma de todas as diárias e horas</span>
+            <span className="psc-label">Líquido a Pagar (Folha do Mês)</span>
+            <strong className="psc-value">{formatBRL(summaryTotals.totalFolhaLiquida)}</strong>
+            <span className="psc-sub">
+              {summaryTotals.totalVales > 0
+                ? `Bruto: ${formatBRL(summaryTotals.totalFolha)} • Vales: -${formatBRL(summaryTotals.totalVales)}`
+                : 'Soma de todas as diárias e horas'}
+            </span>
+          </div>
+        </div>
+
+        <div className="payout-summary-card card-advances">
+          <div className="psc-icon-wrap" style={{ background: 'rgba(244, 63, 94, 0.15)', color: '#fb7185' }}>
+            <Receipt size={24} />
+          </div>
+          <div className="psc-info">
+            <span className="psc-label">Vales / Adiantamentos</span>
+            <strong className="psc-value text-rose">{formatBRL(summaryTotals.totalVales)}</strong>
+            <span className="psc-sub">Total deduzido dos colaboradores</span>
           </div>
         </div>
 
@@ -1027,6 +1097,20 @@ export default function TeamPayoutsDashboard({
                       </div>
                     )}
 
+                    {member.totalAdvancesAmount > 0 && (
+                      <div
+                        className="pmc-prod-metric pmc-prod-interactive has-advances-highlight"
+                        onClick={() => setAdvancesModalMember(member)}
+                        title={`🎟️ Vales/Adiantamentos: ${member.advancesCount} vale(s) totalizando ${formatBRL(member.totalAdvancesAmount)}. Clique para gerenciar.`}
+                      >
+                        <span className="pmc-prod-val text-rose">-{formatBRL(member.totalAdvancesAmount)}</span>
+                        <span className="pmc-prod-lbl">Vales ({member.advancesCount})</span>
+                        <span className="pmc-xray-chip chip-rose" title="Gerenciar Vales do Colaborador">
+                          <Receipt size={10} />&nbsp;Vales
+                        </span>
+                      </div>
+                    )}
+
                     {member.plannedHours > 0 && (
                       <div
                         className="pmc-planned-strip pmc-prod-interactive"
@@ -1084,12 +1168,18 @@ export default function TeamPayoutsDashboard({
                     )}
                   </div>
 
-                  {/* Valor Total a Pagar / Quitado */}
+                  {/* Valor Total a Pagar / Quitado (com abatimento de Vales em tempo real) */}
                   <div className="pmc-col-total">
-                    <span className="pmc-total-lbl">{isPaid ? 'Total Quitado:' : 'Total Apurado:'}</span>
+                    <span className="pmc-total-lbl">{isPaid ? 'Total Quitado:' : (member.totalAdvancesAmount > 0 ? 'Saldo Líquido a Pagar:' : 'Total a Pagar:')}</span>
                     <strong className={`pmc-total-val ${isPaid ? 'text-green' : 'text-gold'}`}>
-                      {formatBRL(member.totalAmount)}
+                      {formatBRL(member.netAmount !== undefined ? member.netAmount : member.totalAmount)}
                     </strong>
+                    {member.totalAdvancesAmount > 0 && (
+                      <div className="pmc-advances-breakdown" title={`Bruto: ${formatBRL(member.totalAmount)} - Vales: ${formatBRL(member.totalAdvancesAmount)}`}>
+                        <span className="pmc-gross-hint">Bruto: {formatBRL(member.totalAmount)}</span>
+                        <span className="pmc-adv-hint text-rose">Vales: -{formatBRL(member.totalAdvancesAmount)}</span>
+                      </div>
+                    )}
                     {isPaid ? (
                       <span className="cleared-hours-badge" title={`Horas quitadas em ${formatDateBR(member.clearedAt)}`}>
                         <Check size={11} /> {member.hoursCleared || member.totalHours}h quitadas
@@ -1114,6 +1204,16 @@ export default function TeamPayoutsDashboard({
                     </button>
 
                     <div className="pmc-quick-action-buttons">
+                      <button
+                        type="button"
+                        className="pmc-action-btn btn-advances"
+                        onClick={() => setAdvancesModalMember(member)}
+                        title={`Lançar ou gerenciar vales/adiantamentos de ${member.name} (${member.advancesCount || 0} cadastrado(s))` }
+                      >
+                        <Wallet size={13} className="text-rose" />
+                        <span>Vales ({member.advancesCount || 0})</span>
+                      </button>
+
                       <button
                         type="button"
                         className="pmc-action-btn btn-xray"
@@ -1369,12 +1469,25 @@ export default function TeamPayoutsDashboard({
                       <small style={{ fontSize: '0.75rem', color: '#c084fc', opacity: 0.9 }}>{formatBRL(viewingStatementMember.totalCustomAmount)}</small>
                     </div>
                   )}
+                  {viewingStatementMember.totalAdvancesAmount > 0 && (
+                    <div
+                      className="ssb-item ssb-clickable"
+                      onClick={() => setAdvancesModalMember(viewingStatementMember)}
+                      title="Clique para gerenciar ou auditar os vales deste colaborador"
+                    >
+                      <span className="ssb-lbl">🎟️ Vales Concedidos</span>
+                      <strong className="ssb-val text-rose">-{formatBRL(viewingStatementMember.totalAdvancesAmount)}</strong>
+                      <small style={{ fontSize: '0.75rem', color: '#fb7185' }}>{viewingStatementMember.advancesCount} vale(s) deduzido(s)</small>
+                    </div>
+                  )}
                   <div className="ssb-item ssb-total">
-                    <span className="ssb-lbl">{viewingStatementMember.status === 'Pago' ? 'Total Quitado' : 'Total Líquido'}</span>
+                    <span className="ssb-lbl">{viewingStatementMember.status === 'Pago' ? 'Total Quitado' : (viewingStatementMember.totalAdvancesAmount > 0 ? 'Saldo Líquido a Pagar' : 'Total Líquido')}</span>
                     <strong className={`ssb-val ${viewingStatementMember.status === 'Pago' ? 'text-green' : 'text-gold'}`}>
-                      {formatBRL(viewingStatementMember.totalAmount)}
+                      {formatBRL(viewingStatementMember.netAmount !== undefined ? viewingStatementMember.netAmount : viewingStatementMember.totalAmount)}
                     </strong>
-                    <small style={{ fontSize: '0.72rem', color: '#a7f3d0' }}>Folha do Mês</small>
+                    <small style={{ fontSize: '0.72rem', color: '#a7f3d0' }}>
+                      {viewingStatementMember.totalAdvancesAmount > 0 ? `Bruto: ${formatBRL(viewingStatementMember.totalAmount)}` : 'Folha do Mês'}
+                    </small>
                   </div>
                 </div>
 
@@ -1742,6 +1855,70 @@ export default function TeamPayoutsDashboard({
                   )}
                 </div>
 
+                {/* Seção de Vales e Adiantamentos Salariais do Mês */}
+                {viewingStatementMember.totalAdvancesAmount > 0 && (
+                  <div className="statement-advances-section" style={{ marginTop: 20 }}>
+                    <div className="sas-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Receipt size={16} className="text-rose" />
+                        <strong style={{ fontSize: '0.95rem' }}>Vales e Adiantamentos Salariais Concedidos no Mês ({viewingStatementMember.advancesCount})</strong>
+                      </div>
+                      <span className="text-rose" style={{ fontWeight: 800, fontSize: '0.95rem' }}>
+                        Total Deduzido: -{formatBRL(viewingStatementMember.totalAdvancesAmount)}
+                      </span>
+                    </div>
+
+                    <div className="statement-advances-table-wrap">
+                      <table className="statement-advances-table">
+                        <thead>
+                          <tr>
+                            <th>Data</th>
+                            <th>Valor</th>
+                            <th>Forma de Pgto</th>
+                            <th>Motivo / Justificativa</th>
+                            <th>Autorizado Por</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {viewingStatementMember.advances.map((adv) => (
+                            <tr key={adv.id}>
+                              <td>{formatDateBR(adv.date)}</td>
+                              <td className="text-rose" style={{ fontWeight: 700 }}>-{formatBRL(adv.amount)}</td>
+                              <td>{adv.paymentMethod || 'PIX'}</td>
+                              <td>{adv.reason || 'Adiantamento salarial'}</td>
+                              <td>{adv.authorizedBy || 'Gestão'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Resumo Consolidado de Créditos e Débitos */}
+                    <div className="statement-totals-reconciliation" style={{
+                      marginTop: 12,
+                      padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.03)',
+                      borderRadius: 8,
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Total de Créditos (Bruto): </span>
+                        <strong style={{ color: '#fbbf24' }}>{formatBRL(viewingStatementMember.totalAmount)}</strong>
+                        <span style={{ margin: '0 8px', color: '#64748b' }}>•</span>
+                        <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Vales Concedidos: </span>
+                        <strong className="text-rose">-{formatBRL(viewingStatementMember.totalAdvancesAmount)}</strong>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.85rem', color: '#e2e8f0', marginRight: 8 }}>Saldo Líquido Final:</span>
+                        <strong style={{ fontSize: '1.1rem', color: '#4ade80' }}>{formatBRL(viewingStatementMember.netAmount)}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Rodapé Oficial Timbrado para Impressão com Linhas de Assinatura (visível apenas na impressão) */}
                 <div className="statement-print-footer">
                   <div className="spf-sign-col">
@@ -1825,6 +2002,21 @@ export default function TeamPayoutsDashboard({
           onEditMission={(m) => {
             setSelectedMissionForDetail(null);
             if (onEditMission) onEditMission(m);
+          }}
+        />
+      )}
+
+      {/* Modal de Lançamento e Gestão de Vales e Adiantamentos Salariais (FIN-05) */}
+      {advancesModalMember && (
+        <SalaryAdvancesModal
+          member={advancesModalMember}
+          monthKey={selectedMonth}
+          monthLabel={monthLabel}
+          grossAmount={advancesModalMember.totalAmount || 0}
+          currentUser={currentUser}
+          onClose={() => setAdvancesModalMember(null)}
+          onAdvancesChanged={() => {
+            loadAdvances();
           }}
         />
       )}
