@@ -28632,6 +28632,81 @@ body.light-theme .mori-input {
   padding: 0 2px 0 0;
 }
 
+/* Ilustrações Vetoriais de Clima e Turno */
+.weather-art-svg {
+  display: block;
+  flex-shrink: 0;
+  user-select: none;
+  overflow: visible;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sh-hero-svg {
+  width: 44px;
+  height: 44px;
+}
+
+.sh-weather-capsule-svg {
+  width: 26px;
+  height: 26px;
+}
+
+.sh-hero-icon-wrap:hover .sh-hero-svg {
+  transform: scale(1.08) rotate(-2deg);
+}
+
+/* Modos Dia / Noite do Cabeçalho */
+.dynamic-body-greeting.premium-smart-header.is-night {
+  background: linear-gradient(135deg, rgba(11, 18, 38, 0.92) 0%, rgba(18, 28, 54, 0.80) 100%);
+  border-color: rgba(99, 102, 241, 0.18);
+  box-shadow: 0 10px 32px -4px rgba(2, 6, 23, 0.55), inset 0 1px 0 rgba(147, 197, 253, 0.12);
+}
+
+.dynamic-body-greeting.premium-smart-header.is-night::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(147, 197, 253, 0.6) 20%, rgba(192, 132, 252, 0.5) 50%, rgba(253, 224, 71, 0.6) 80%, transparent 100%);
+}
+
+.dynamic-body-greeting.premium-smart-header.is-night .sh-hero-icon-wrap {
+  filter: drop-shadow(0 4px 14px rgba(254, 240, 138, 0.45)) drop-shadow(0 2px 6px rgba(147, 197, 253, 0.35));
+}
+
+.dynamic-body-greeting.premium-smart-header.is-day {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.90) 0%, rgba(30, 41, 59, 0.76) 100%);
+  border-color: rgba(245, 158, 11, 0.18);
+  box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(253, 224, 71, 0.12);
+}
+
+.dynamic-body-greeting.premium-smart-header.is-day::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(245, 158, 11, 0.65) 25%, rgba(56, 189, 248, 0.55) 75%, transparent 100%);
+}
+
+.dynamic-body-greeting.premium-smart-header.is-day .sh-hero-icon-wrap {
+  filter: drop-shadow(0 4px 16px rgba(245, 158, 11, 0.55));
+}
+
+/* Temas de Chuva e Tempestade */
+.dynamic-body-greeting.premium-smart-header.theme-night-rain,
+.dynamic-body-greeting.premium-smart-header.theme-day-rain,
+.dynamic-body-greeting.premium-smart-header.theme-night-drizzle,
+.dynamic-body-greeting.premium-smart-header.theme-day-drizzle {
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.dynamic-body-greeting.premium-smart-header.theme-night-rain::before,
+.dynamic-body-greeting.premium-smart-header.theme-day-rain::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 0.7) 30%, rgba(14, 165, 233, 0.7) 70%, transparent 100%);
+}
+
+.dynamic-body-greeting.premium-smart-header.theme-night-storm,
+.dynamic-body-greeting.premium-smart-header.theme-day-storm {
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.dynamic-body-greeting.premium-smart-header.theme-night-storm::before,
+.dynamic-body-greeting.premium-smart-header.theme-day-storm::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(168, 85, 247, 0.7) 25%, rgba(251, 191, 36, 0.75) 50%, rgba(56, 189, 248, 0.7) 75%, transparent 100%);
+}
+
 .sh-hero-icon {
   display: inline-block;
   line-height: 1;

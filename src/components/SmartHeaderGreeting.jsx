@@ -24,40 +24,91 @@ import {
 import { formatDateBR, getMissionCode } from '../utils/geo';
 import { isNativeApp } from '../utils/nativeBridge';
 import { getLastLoginTime, formatLastLoginDisplay } from '../utils/auth';
+import WeatherIllustration from './WeatherIllustration';
 
-// Mapeia códigos de clima da WMO (Open-Meteo) para descrições e ícones (com Sol de dia e Lua à noite)
+// Mapeia códigos de clima da WMO (Open-Meteo) para descrições, chave de ilustração e ícones (respeitando se é dia ou noite e todas as variações climáticas)
 function getWeatherDetails(code, isDay = 1) {
   const c = Number(code);
   switch (c) {
     case 0:
-      return { label: isDay ? 'Ensolarado' : 'Céu Limpo', icon: isDay ? '☀️' : '🌙', condition: 'clear' };
+      return {
+        label: isDay ? 'Ensolarado' : 'Céu Limpo',
+        icon: isDay ? '☀️' : '🌙',
+        illustrationKey: isDay ? 'day-clear' : 'night-clear',
+        condition: 'clear',
+      };
     case 1:
-      return { label: isDay ? 'Predomínio de Sol' : 'Noite Estrelada', icon: isDay ? '🌤️' : '🌙', condition: 'clear' };
+      return {
+        label: isDay ? 'Predomínio de Sol' : 'Noite Estrelada',
+        icon: isDay ? '🌤️' : '🌙',
+        illustrationKey: isDay ? 'day-clear' : 'night-clear',
+        condition: 'clear',
+      };
     case 2:
-      return { label: isDay ? 'Parcialmente Nublado' : 'Noite com Nuvens', icon: isDay ? '⛅' : '🌙', condition: 'cloudy' };
+      return {
+        label: isDay ? 'Parcialmente Nublado' : 'Noite com Nuvens',
+        icon: isDay ? '⛅' : '🌙',
+        illustrationKey: isDay ? 'day-partly-cloudy' : 'night-partly-cloudy',
+        condition: 'cloudy',
+      };
     case 3:
-      return { label: isDay ? 'Nublado' : 'Noite Nublada', icon: isDay ? '☁️' : '🌙', condition: 'cloudy' };
+      return {
+        label: isDay ? 'Nublado' : 'Noite Nublada',
+        icon: isDay ? '☁️' : '🌙',
+        illustrationKey: isDay ? 'day-cloudy' : 'night-cloudy',
+        condition: 'cloudy',
+      };
     case 45:
     case 48:
-      return { label: 'Nevoeiro / Névoa', icon: '🌫️', condition: 'fog' };
+      return {
+        label: 'Nevoeiro / Névoa',
+        icon: '🌫️',
+        illustrationKey: isDay ? 'day-fog' : 'night-fog',
+        condition: 'fog',
+      };
     case 51:
     case 53:
     case 55:
-      return { label: 'Chuvisco Passageiro', icon: isDay ? '🌦️' : '🌧️', condition: 'drizzle' };
+      return {
+        label: 'Chuvisco Passageiro',
+        icon: isDay ? '🌦️' : '🌧️',
+        illustrationKey: isDay ? 'day-drizzle' : 'night-drizzle',
+        condition: 'drizzle',
+      };
     case 61:
     case 63:
     case 65:
-      return { label: 'Chuva', icon: '🌧️', condition: 'rain' };
+      return {
+        label: 'Chuva',
+        icon: '🌧️',
+        illustrationKey: isDay ? 'day-rain' : 'night-rain',
+        condition: 'rain',
+      };
     case 80:
     case 81:
     case 82:
-      return { label: 'Pancadas de Chuva', icon: '🌧️', condition: 'rain' };
+      return {
+        label: 'Pancadas de Chuva',
+        icon: '🌧️',
+        illustrationKey: isDay ? 'day-rain' : 'night-rain',
+        condition: 'rain',
+      };
     case 95:
     case 96:
     case 99:
-      return { label: 'Trovoada / Temporal', icon: '⛈️', condition: 'storm' };
+      return {
+        label: 'Trovoada / Temporal',
+        icon: '⛈️',
+        illustrationKey: isDay ? 'day-storm' : 'night-storm',
+        condition: 'storm',
+      };
     default:
-      return { label: isDay ? 'Ensolarado' : 'Noite Clara', icon: isDay ? '☀️' : '🌙', condition: 'clear' };
+      return {
+        label: isDay ? 'Ensolarado' : 'Noite Clara',
+        icon: isDay ? '☀️' : '🌙',
+        illustrationKey: isDay ? 'day-clear' : 'night-clear',
+        condition: 'clear',
+      };
   }
 }
 
@@ -206,32 +257,33 @@ export default function SmartHeaderGreeting({
     };
   }, [baseLocation?.lat, baseLocation?.lon, baseLocation?.name]);
 
+  const isNight = useMemo(() => {
+    const hr = currentTime.getHours();
+    return hr >= 18 || hr < 6;
+  }, [currentTime]);
+
   const weatherDetails = useMemo(() => {
     const curHour = currentTime.getHours();
     const effectiveIsDay = curHour >= 6 && curHour < 18 ? 1 : 0;
     return getWeatherDetails(weatherData.weatherCode, effectiveIsDay);
   }, [weatherData.weatherCode, currentTime]);
 
-  // Ícone principal de turno e clima (Sol para dia, Lua para noite, obedecendo variações de chuva)
+  // Chave da ilustração visual que respeita estritamente o clima e se é dia ou noite
+  const headerIllustrationKey = useMemo(() => {
+    return weatherDetails.illustrationKey || (isNight ? 'night-clear' : 'day-clear');
+  }, [weatherDetails.illustrationKey, isNight]);
+
+  // Ilustração principal de turno e clima (Sol de dia, Lua à noite, obedecendo variações de nuvens, chuva e tempestade)
   const headerWeatherIcon = useMemo(() => {
-    const hr = currentTime.getHours();
-    const isNight = hr >= 18 || hr < 6;
-
-    if (weatherDetails.condition === 'storm') return '⛈️';
-    if (weatherDetails.condition === 'rain') return '🌧️';
-    if (weatherDetails.condition === 'fog') return '🌫️';
-
-    // Noite: Sempre a Lua (🌙)
-    if (isNight) {
-      return '🌙';
-    }
-
-    // Dia: Variações do Sol
-    if (hr < 12) {
-      return weatherDetails.condition === 'cloudy' ? '🌤️' : '☀️';
-    }
-    return weatherDetails.condition === 'cloudy' ? '⛅' : '🌤️';
-  }, [currentTime, weatherDetails.condition]);
+    return (
+      <WeatherIllustration
+        type={headerIllustrationKey}
+        size={42}
+        className="sh-hero-svg"
+        title={weatherDetails.label}
+      />
+    );
+  }, [headerIllustrationKey, weatherDetails.label]);
 
   // Dica operacional de gravação externa baseada no clima
   const operationalTip = useMemo(() => {
@@ -348,11 +400,11 @@ export default function SmartHeaderGreeting({
   }
 
   return (
-    <div className="dynamic-body-greeting premium-smart-header">
+    <div className={`dynamic-body-greeting premium-smart-header theme-${headerIllustrationKey} ${isNight ? 'is-night' : 'is-day'}`}>
       {/* 1. LADO ESQUERDO: ÍCONE DE CLIMA/HORÁRIO (SOL/LUA) & INFOS EMPILHADAS E ALINHADAS */}
       <div className="sh-hero-identity">
         <div
-          className="sh-hero-icon-wrap"
+          className={`sh-hero-icon-wrap wi-badge-${headerIllustrationKey}`}
           title={`Horário e Clima em ${weatherData.cityName}: ${weatherDetails.label} (${weatherData.temperature}°C)`}
         >
           <span className="sh-hero-icon">{headerWeatherIcon}</span>
@@ -402,8 +454,13 @@ export default function SmartHeaderGreeting({
       <div className="sh-hero-widgets">
         {/* CÁPSULA A: CLIMA & OPERAÇÃO DE CAMPO */}
         <div className="sh-capsule sh-weather-capsule" title={`Clima em ${weatherData.cityName}: Sensação ${weatherData.apparentTemperature}°C, Vento ${weatherData.windSpeed} km/h, Umidade ${weatherData.humidity}%`}>
-          <div className="sh-capsule-icon-box">
-            <span className="sh-weather-emoji">{weatherDetails.icon}</span>
+          <div className="sh-capsule-icon-box" title={weatherDetails.label}>
+            <WeatherIllustration
+              type={weatherDetails.illustrationKey}
+              size={26}
+              className="sh-weather-capsule-svg"
+              title={weatherDetails.label}
+            />
           </div>
           <div className="sh-weather-content">
             <div className="sh-weather-headline">
