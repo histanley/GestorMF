@@ -324,19 +324,13 @@ export default function SmartHeaderGreeting({
 
   return (
     <div className="dynamic-body-greeting premium-smart-header">
-      {/* 1. LADO ESQUERDO: SAUDAÇÃO, ÚLTIMO LOGIN E DATA EMPILHADOS E ALINHADOS */}
+      {/* 1. LADO ESQUERDO: ÍCONE DE CLIMA/HORÁRIO (SOL/LUA) & INFOS EMPILHADAS E ALINHADAS */}
       <div className="sh-hero-identity">
-        <div className="sh-avatar-hub" title={`${greeting.text}, ${greeting.firstName}!`}>
-          {currentUser?.avatar ? (
-            <img src={currentUser.avatar} alt={currentUser.name} className="sh-user-avatar-img" />
-          ) : (
-            <div className="sh-avatar-initials">
-              {currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'US'}
-            </div>
-          )}
-          <span className="sh-avatar-badge" title={`Horário: ${greeting.icon} ${greeting.text}`}>
-            {greeting.icon}
-          </span>
+        <div
+          className="sh-hero-icon-wrap"
+          title={`Horário e Clima em ${weatherData.cityName}: ${weatherDetails.label} (${weatherData.temperature}°C)`}
+        >
+          <span className="sh-hero-icon">{weatherDetails.icon || greeting.icon}</span>
         </div>
 
         <div className="sh-hero-info">
