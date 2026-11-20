@@ -60,7 +60,7 @@ import EquipmentDetailModal from './EquipmentDetailModal';
 import RentalInspectionModal from './RentalInspectionModal';
 
 export default function EquipmentRentalManager({ currentUser, onClose = null }) {
-  // Verificação de privilégios de administrador
+  // Verificação de privilégios de administrador ou gestor
   const isAdmin = Boolean(
     currentUser?.role === 'admin' ||
     currentUser?.role === 'ADMIN' ||
@@ -69,9 +69,43 @@ export default function EquipmentRentalManager({ currentUser, onClose = null }) 
     currentUser?.username === 'admin' ||
     currentUser?.login === 'admin'
   );
+  const isManager = Boolean(
+    currentUser?.role === 'manager' ||
+    currentUser?.role === 'MANAGER' ||
+    currentUser?.role === 'gestor' ||
+    currentUser?.role === 'GESTOR' ||
+    currentUser?.accessLevel === 'manager' ||
+    currentUser?.isManager
+  );
+  const canAccess = isAdmin || isManager;
 
   // Abas do Módulo: 'catalog' (Estoque), 'new_rental' (Nova Locação), 'rentals' (Locações Ativas & Histórico)
   const [activeTab, setActiveTab] = useState('catalog');
+
+  // Proteção interna contra acesso não autorizado
+  if (!canAccess) {
+    return (
+      <div className="erm-restricted-access" style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#94a3b8' }}>
+        <div style={{ maxWidth: '480px', margin: '0 auto', background: 'rgba(15, 23, 42, 0.75)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '16px', padding: '2.5rem 2rem', backdropFilter: 'blur(10px)' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '16px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+            <ShieldCheck size={32} />
+          </div>
+          <h3 style={{ color: '#f8fafc', fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>Acesso Restrito à Gestão</h3>
+          <p style={{ fontSize: '0.92rem', lineHeight: '1.6', color: '#94a3b8', margin: 0 }}>
+            O módulo de <strong>Aluguel de Equipamentos &amp; Gestão de Estoque</strong> é restrito exclusivamente aos Gestores e Administradores da MegaFilmes.
+          </p>
+          {onClose && (
+            <button
+              onClick={onClose}
+              style={{ marginTop: '1.5rem', background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#f8fafc', padding: '0.6rem 1.2rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Fechar Módulo
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Dados do Catálogo e Locações
   const [equipmentList, setEquipmentList] = useState(() => {

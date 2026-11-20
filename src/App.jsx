@@ -205,6 +205,8 @@ export default function App() {
   const canManageSettings = userRole === ROLES.ADMIN;
   // Apenas Gestores e Administradores visualizam e acessam Viaturas e Equipes
   const canManageFleetAndTeams = userRole === ROLES.ADMIN || userRole === ROLES.MANAGER;
+  // Apenas Gestores e Administradores visualizam e acessam o módulo de Aluguéis
+  const canManageRentals = userRole === ROLES.ADMIN || userRole === ROLES.MANAGER;
   // Administradores e Gestores podem enviar mensagens e comunicados (para todos ou individual)
   const canSendMessage = userRole === ROLES.ADMIN || userRole === ROLES.MANAGER;
 
@@ -223,7 +225,10 @@ export default function App() {
     if (!canManageFleetAndTeams && (activeTab === 'vehicles' || activeTab === 'teams')) {
       setActiveTab('map');
     }
-  }, [isAdminUser, canManageFleetAndTeams, activeTab]);
+    if (!canManageRentals && activeTab === 'rentals') {
+      setActiveTab(isAdminUser ? 'admin' : 'me');
+    }
+  }, [isAdminUser, canManageFleetAndTeams, canManageRentals, activeTab]);
 
   // Estado do Tema (Modo Escuro / Modo Claro) persistente no LocalStorage
   const [theme, setTheme] = useState(() => {
@@ -757,7 +762,9 @@ export default function App() {
   const handleSelectNotification = (notif) => {
     if (notif.rentalId || notif.type === 'rental') {
       setIsNotificationsOpen(false);
-      setActiveTab('rentals');
+      if (canManageRentals) {
+        setActiveTab('rentals');
+      }
       return;
     }
     if (notif.vehicleId || notif.type === 'fuel') {
@@ -2662,17 +2669,19 @@ export default function App() {
             </>
           )}
 
-          {/* Módulo de Aluguel no Menu Principal: Acesso para Toda a Equipe */}
-          <button
-            className={`tab-btn tab-btn-rentals ${activeTab === 'rentals' ? 'active' : ''}`}
-            onClick={() => setActiveTab('rentals')}
-            title="Aluguel & Equipamentos: Gestão de Estoque e Locações Externas"
-          >
-            <span className="tab-icon-box">
-              <Camera size={15} />
-            </span>
-            <span className="tab-label">Aluguéis</span>
-          </button>
+          {/* Módulo de Aluguel no Menu Principal: Apenas Gestores e Administradores */}
+          {canManageRentals && (
+            <button
+              className={`tab-btn tab-btn-rentals ${activeTab === 'rentals' ? 'active' : ''}`}
+              onClick={() => setActiveTab('rentals')}
+              title="Aluguel & Equipamentos: Gestão de Estoque e Locações Externas"
+            >
+              <span className="tab-icon-box">
+                <Camera size={15} />
+              </span>
+              <span className="tab-label">Aluguéis</span>
+            </button>
+          )}
 
           {/* Se for ADMINISTRADOR: Exibe a Central ADM e NÃO exibe Meu Espaço */}
           {isAdminUser ? (
@@ -2899,13 +2908,15 @@ export default function App() {
                 </>
               )}
 
-              <button
-                className={`md-nav-item ${activeTab === 'rentals' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('rentals'); setIsMobileDrawerOpen(false); }}
-              >
-                <Camera size={18} />
-                <span>Aluguel de Equipamentos</span>
-              </button>
+              {canManageRentals && (
+                <button
+                  className={`md-nav-item ${activeTab === 'rentals' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('rentals'); setIsMobileDrawerOpen(false); }}
+                >
+                  <Camera size={18} />
+                  <span>Aluguel de Equipamentos</span>
+                </button>
+              )}
 
               {isAdminUser ? (
                 <button
@@ -3503,8 +3514,8 @@ export default function App() {
           />
         )}
 
-        {/* ABA 7: ALUGUEL DE EQUIPAMENTOS (Acesso para Gestores, Administradores e Colaboradores) */}
-        {activeTab === 'rentals' && (
+        {/* ABA 7: ALUGUEL DE EQUIPAMENTOS (Apenas Gestores e Administradores) */}
+        {activeTab === 'rentals' && canManageRentals && (
           <EquipmentRentalManager currentUser={currentUser} />
         )}
       </main>
