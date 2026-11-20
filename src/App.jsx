@@ -136,6 +136,7 @@ import {
   initNativeLifecycleListeners,
   requestLocationPermissions
 } from './utils/nativeBridge';
+import { SYSTEM_NAME, SYSTEM_VERSION } from './utils/version';
 
 // Limpeza única e definitiva para entrada em Produção (Zerar dados fictícios de demonstração)
 const PROD_CLEAN_KEY = 'gestormf_prod_clean_v2';
@@ -3067,6 +3068,9 @@ export default function App() {
                 <LogOut size={16} />
                 <span>Sair do Sistema</span>
               </button>
+              <div className="md-version-caption" style={{ textAlign: 'center', marginTop: '0.85rem', fontSize: '0.78rem', color: '#64748b', letterSpacing: '0.02em', fontWeight: 500 }}>
+                {SYSTEM_NAME} • Versão {SYSTEM_VERSION}
+              </div>
             </div>
           </aside>
         </div>

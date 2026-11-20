@@ -36,6 +36,7 @@ import {
 import { apiGetAuditLogs, apiDownloadBackup, apiDownloadFullJsonBackup, apiRestoreBackup } from '../utils/api';
 import { searchAddressNominatim } from '../utils/geo';
 import { confirmDialog, alertDialog } from '../utils/dialog';
+import { SYSTEM_NAME, SYSTEM_VERSION, SYSTEM_RELEASE_NAME } from '../utils/version';
 
 // ======================================================
 // Sub-componente: Seção de título de formulário
@@ -567,8 +568,13 @@ export default function SettingsModal({
               <Sliders size={20} />
             </div>
             <div>
-              <h2 className="settings-title">Configurações do Sistema</h2>
-              <p className="settings-subtitle">Personalize tudo: empresa, visual, funções, status e dados</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 className="settings-title">Configurações do Sistema</h2>
+                <span className="settings-version-tag" style={{ background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.28)', color: '#38bdf8', fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '12px' }}>
+                  v{SYSTEM_VERSION}
+                </span>
+              </div>
+              <p className="settings-subtitle">Personalize tudo: empresa, visual, funções, status e dados • {SYSTEM_RELEASE_NAME}</p>
             </div>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>

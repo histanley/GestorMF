@@ -6,7 +6,7 @@ import pkg from './package.json' with { type: 'json' }
 export default defineConfig({
   plugins: [react()],
   define: {
-    __APP_VERSION__: JSON.stringify(pkg.version || '6.3.8'),
+    __APP_VERSION__: JSON.stringify(pkg.version || '7.5.0'),
   },
   server: {
     host: true, // Libera o acesso para qualquer dispositivo na rede local (Wi-Fi)
