@@ -34,9 +34,9 @@ assert.strictEqual(
 );
 
 assert.strictEqual(
-  headerJsx.includes('{headerWeatherIcon}'),
+  headerJsx.includes('{headerCelestialIcon}'),
   true,
-  'SmartHeaderGreeting deve renderizar headerWeatherIcon obedecendo as variações de clima e turno'
+  'SmartHeaderGreeting deve renderizar headerCelestialIcon (sol/lua) independente das condições de clima'
 );
 
 // 4. Garantir que as 3 linhas continuam empilhadas e alinhadas

@@ -25,6 +25,7 @@ import { formatDateBR, getMissionCode } from '../utils/geo';
 import { isNativeApp } from '../utils/nativeBridge';
 import { getLastLoginTime, formatLastLoginDisplay } from '../utils/auth';
 import WeatherIllustration from './WeatherIllustration';
+import CelestialShiftIllustration from './CelestialShiftIllustration';
 
 // Mapeia códigos de clima da WMO (Open-Meteo) para descrições, chave de ilustração e ícones (respeitando se é dia ou noite e todas as variações climáticas)
 function getWeatherDetails(code, isDay = 1) {
@@ -284,22 +285,55 @@ export default function SmartHeaderGreeting({
     return getWeatherDetails(weatherData.weatherCode, effectiveIsDay);
   }, [weatherData.weatherCode, currentTime]);
 
-  // Chave da ilustração visual que respeita estritamente o clima e se é dia ou noite
-  const headerIllustrationKey = useMemo(() => {
-    return weatherDetails.illustrationKey || (isNight ? 'night-clear' : 'day-clear');
-  }, [weatherDetails.illustrationKey, isNight]);
+  // Fase celeste e turno da saudação (Totalmente independente do clima):
+  // 1. Nascer do Sol (Alvorada): 05:00 às 08:29
+  // 2. Sol Forte (Pleno Dia): 08:30 às 16:15
+  // 3. Pôr do Sol (Golden Hour): 16:16 às 18:29
+  // 4. Lua Noturna (Noite): 18:30 às 04:59
+  const celestialPhase = useMemo(() => {
+    const hr = currentTime.getHours();
+    const min = currentTime.getMinutes();
+    const timeDecimal = hr + min / 60;
 
-  // Ilustração principal de turno e clima (Sol de dia, Lua à noite, obedecendo variações de nuvens, chuva e tempestade)
-  const headerWeatherIcon = useMemo(() => {
+    if (timeDecimal >= 5.0 && timeDecimal < 8.5) {
+      return {
+        phase: 'sunrise',
+        label: 'Nascer do Sol • Alvorada',
+        title: 'Nascer do Sol: Início do expediente e primeiras saídas de campo',
+      };
+    }
+    if (timeDecimal >= 8.5 && timeDecimal < 16.25) {
+      return {
+        phase: 'day-bright',
+        label: 'Sol Forte • Dia Radiante',
+        title: 'Sol Forte: Período diurno de gravações, edições e operações',
+      };
+    }
+    if (timeDecimal >= 16.25 && timeDecimal < 18.5) {
+      return {
+        phase: 'sunset',
+        label: 'Pôr do Sol • Golden Hour',
+        title: 'Pôr do Sol: Final de tarde e retorno das equipes para a base',
+      };
+    }
+    return {
+      phase: 'night',
+      label: 'Noite Estrelada • Turno Noturno',
+      title: 'Noite: Operações noturnas, monitoramento e descanso da base',
+    };
+  }, [currentTime]);
+
+  // Ilustração celeste evidente do turno (Sol com variações ou Lua, independente do clima)
+  const headerCelestialIcon = useMemo(() => {
     return (
-      <WeatherIllustration
-        type={headerIllustrationKey}
+      <CelestialShiftIllustration
+        phase={celestialPhase.phase}
         size={42}
         className="sh-hero-svg"
-        title={weatherDetails.label}
+        title={celestialPhase.title}
       />
     );
-  }, [headerIllustrationKey, weatherDetails.label]);
+  }, [celestialPhase.phase, celestialPhase.title]);
 
   // Dica operacional de gravação externa baseada no clima
   const operationalTip = useMemo(() => {
@@ -416,14 +450,14 @@ export default function SmartHeaderGreeting({
   }
 
   return (
-    <div className={`dynamic-body-greeting premium-smart-header theme-${headerIllustrationKey} ${isNight ? 'is-night' : 'is-day'}`}>
-      {/* 1. LADO ESQUERDO: ÍCONE DE CLIMA/HORÁRIO (SOL/LUA) & INFOS EMPILHADAS E ALINHADAS */}
+    <div className={`dynamic-body-greeting premium-smart-header theme-${weatherDetails.illustrationKey || 'day-clear'} ${isNight ? 'is-night' : 'is-day'}`}>
+      {/* 1. LADO ESQUERDO: ÍCONE CELESTE DE TURNO (SOL COM VARIAÇÕES / LUA INDEPENDENTE DO CLIMA) */}
       <div className="sh-hero-identity">
         <div
-          className={`sh-hero-icon-wrap wi-badge-${headerIllustrationKey}`}
-          title={`Horário e Clima em ${weatherData.cityName}: ${weatherDetails.label} (${weatherData.temperature}°C)`}
+          className={`sh-hero-icon-wrap csi-badge-${celestialPhase.phase} wi-badge-${celestialPhase.phase}`}
+          title={`${celestialPhase.label} • ${celestialPhase.title}`}
         >
-          <span className="sh-hero-icon">{headerWeatherIcon}</span>
+          <span className="sh-hero-icon">{headerCelestialIcon}</span>
         </div>
 
         <div className="sh-hero-info">

@@ -73,6 +73,7 @@ import MissionHistoryModal from './MissionHistoryModal';
 import MissionWhatsAppShareModal from './MissionWhatsAppShareModal';
 import RejectPostProductionModal from './RejectPostProductionModal';
 import ConcludePostProductionModal from './ConcludePostProductionModal';
+import ServiceBoardOfficialPrintModal from './ServiceBoardOfficialPrintModal';
 import {
   resolveMissionEditors,
   getMissionEditionDeliverySummary,
@@ -140,6 +141,9 @@ export default function ServiceBoard({
   const canViewFinancials = effectiveRole === 'admin' || effectiveRole === 'manager';
   // REGRA ESTRITA: Apenas Administradores podem aprovar, aceitar ou rejeitar a pós-produção
   const canAdminManageEdition = effectiveRole === 'admin';
+  // Apenas Gestores e Administradores podem homologar e emitir a Tabela Oficial de Serviço
+  const canPrintOfficialSchedule = effectiveRole === 'admin' || effectiveRole === 'manager';
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMissionStatus, setFilterMissionStatus] = useState('ATIVAS');
   const [filterEditionStatus, setFilterEditionStatus] = useState('TODOS');
@@ -827,11 +831,15 @@ export default function ServiceBoard({
   };
 
   const handlePrint = () => {
-    document.body.classList.add('printing-service-board');
-    window.print();
-    setTimeout(() => {
-      document.body.classList.remove('printing-service-board');
-    }, 1500);
+    if (!canPrintOfficialSchedule) {
+      alertDialog({
+        title: 'Acesso Restrito à Gestão',
+        message: 'Apenas Gestores e Administradores possuem autorização para homologar e emitir a Tabela Oficial de Serviço.',
+        variant: 'warning',
+      });
+      return;
+    }
+    setIsPrintModalOpen(true);
   };
 
   // Missões a serem impressas no relatório de parede (todas as missões daquele recorte, sem corte de paginação)
@@ -3781,6 +3789,20 @@ export default function ServiceBoard({
         members={members}
         currentUser={currentUser}
         onConfirmConclude={handleConfirmConclude}
+      />
+
+      {/* Modal Oficial de Impressão / Exportação da Tabela de Serviço (Timbrado, Excel, Assinatura Digital) */}
+      <ServiceBoardOfficialPrintModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        missions={missions}
+        filteredMissions={wallSheetMissions}
+        vehicles={vehicles}
+        members={members}
+        fuelSettings={fuelSettings}
+        filterStatusLabel={getFilterStatusLabel()}
+        currentUser={currentUser}
+        userRole={effectiveRole}
       />
     </div>
   );
