@@ -1483,13 +1483,13 @@ export default function AdminCenter({
                 <table className="ac-pp-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '130px' }}>Código &amp; Status</th>
-                      <th>Pauta &amp; Local</th>
-                      <th style={{ width: '130px' }}>Data da Pauta</th>
-                      <th style={{ minWidth: '220px' }}>Editores &amp; Entregas</th>
-                      <th style={{ width: '170px' }}>Prazo de Entrega</th>
-                      <th style={{ minWidth: '200px' }}>Servidor / Pasta</th>
-                      <th style={{ width: '190px', textAlign: 'center' }}>Ações de Decisão</th>
+                      <th style={{ width: '100px', whiteSpace: 'nowrap' }}>Código &amp; Status</th>
+                      <th style={{ minWidth: '140px' }}>Pauta &amp; Local</th>
+                      <th style={{ width: '110px', whiteSpace: 'nowrap' }}>Data da Pauta</th>
+                      <th style={{ minWidth: '170px' }}>Editores &amp; Entregas</th>
+                      <th style={{ width: '145px', whiteSpace: 'nowrap' }}>Prazo de Entrega</th>
+                      <th style={{ maxWidth: '190px' }}>Servidor / Pasta</th>
+                      <th style={{ width: '140px', textAlign: 'center', whiteSpace: 'nowrap' }}>Ações de Decisão</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1580,18 +1580,18 @@ export default function AdminCenter({
                           </td>
 
                           {/* Prazo de Entrega */}
-                          <td>
+                          <td className="ac-pp-td-deadline">
                             {mission.deliveryDeadlineDate ? (
-                              <div>
-                                <div style={{ fontSize: '0.78rem', fontWeight: 600 }}>
+                              <div className="ac-pp-deadline-cell">
+                                <div className="ac-pp-deadline-datetime">
                                   {formatDateBR(mission.deliveryDeadlineDate)} às {mission.deliveryDeadlineTime || '18:00'}
                                 </div>
-                                <span className={`ac-deadline-chip ${isOverdue ? 'overdue' : (isDueToday ? 'today' : 'ontime')}`} style={{ marginTop: '3px' }}>
+                                <span className={`ac-deadline-chip ${isOverdue ? 'overdue' : (isDueToday ? 'today' : 'ontime')}`}>
                                   {isOverdue ? '⚠️ Atrasado' : (isDueToday ? '⏰ Hoje' : '✅ No Prazo')}
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-muted" style={{ fontSize: '0.75rem' }}>Não estipulado</span>
+                              <span className="text-muted" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Não estipulado</span>
                             )}
                           </td>
 
