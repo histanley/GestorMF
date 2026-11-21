@@ -32202,6 +32202,75 @@ body.light-theme .rcf-btn-step:hover {
   color: #ffffff;
 }
 
+/* RCF Locked Display (Acesso Restrito para Gestores / Não-Admins) */
+.rcf-locked-display {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rcf-locked-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 6px 12px;
+  border-radius: 8px;
+  width: fit-content;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .rcf-locked-pill,
+body.light-theme .rcf-locked-pill {
+  background: #fef3c7 !important;
+  border-color: #fde68a !important;
+}
+
+.rcf-locked-prefix {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+[data-theme="light"] .rcf-locked-prefix,
+body.light-theme .rcf-locked-prefix {
+  color: #64748b !important;
+}
+
+.rcf-locked-val {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #fbbf24;
+}
+
+[data-theme="light"] .rcf-locked-val,
+body.light-theme .rcf-locked-val {
+  color: #b45309 !important;
+}
+
+.rcf-locked-unit {
+  font-size: 0.72rem;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+[data-theme="light"] .rcf-locked-unit,
+body.light-theme .rcf-locked-unit {
+  color: #92400e !important;
+}
+
+.rcf-locked-notice {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+[data-theme="light"] .rcf-locked-notice,
+body.light-theme .rcf-locked-notice {
+  color: #94a3b8 !important;
+}
+
 /* Subtotal Elegante */
 .rcf-subtotal-card {
   display: flex;

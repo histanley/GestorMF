@@ -52,7 +52,7 @@ import {
   generateRecurrenceDates,
   formatDaysDisplay,
 } from '../utils/recurrence';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUser, normalizeRole, ROLES } from '../utils/auth';
 import {
   fetchRouteOSRM,
   searchAddressNominatim,
@@ -239,7 +239,13 @@ export default function MissionModal({
   vehicles = [],
   members = [],
   missions = [],
+  currentUser = null,
+  userRole = 'user',
 }) {
+  const effectiveUser = currentUser || getCurrentUser();
+  const effectiveRole = normalizeRole(userRole || effectiveUser?.role);
+  // REGRA ESTRITA: Apenas Administradores podem ajustar valores de hora extra e remuneração
+  const isAdmin = effectiveRole === ROLES.ADMIN;
   const fuelSettings = settings || (typeof fuelPricePerLiter === 'object' ? fuelPricePerLiter : { gasolinePricePerLiter: fuelPricePerLiter || 6.45, dieselPricePerLiter: 6.89 });
   const [formData, setFormData] = useState({
     description: '',
@@ -1308,6 +1314,14 @@ export default function MissionModal({
   ]);
 
   const handleCustomRateChange = (memberId, value) => {
+    if (!isAdmin) {
+      alertDialog({
+        title: 'Acesso Restrito à Administração',
+        message: 'Apenas Administradores possuem autorização para alterar ou personalizar valores de remuneração e hora extra.',
+        variant: 'warning',
+      });
+      return;
+    }
     setFormData((prev) => {
       const prevRates = { ...(prev.customRates || {}) };
       if (value === '' || value === null || isNaN(value)) {
@@ -1390,6 +1404,14 @@ export default function MissionModal({
   };
 
   const handleMemberRemunerationTypeChange = (memberId, type) => {
+    if (type === 'custom' && !isAdmin) {
+      alertDialog({
+        title: 'Acesso Restrito à Administração',
+        message: 'Apenas Administradores possuem autorização para definir remuneração personalizada com cachê avulso.',
+        variant: 'warning',
+      });
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       memberRemunerationTypes: {
@@ -1400,6 +1422,14 @@ export default function MissionModal({
   };
 
   const handleRemunerationTypeChange = (type) => {
+    if (type === 'custom' && !isAdmin) {
+      alertDialog({
+        title: 'Acesso Restrito à Administração',
+        message: 'Apenas Administradores possuem autorização para definir modalidade personalizada.',
+        variant: 'warning',
+      });
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       remunerationType: type,
@@ -1573,10 +1603,34 @@ export default function MissionModal({
       : computeMissionAutoStatus(formData, new Date(), true);
     const generatedCode = generateNextMissionCode(formData.date, missions, editingMission);
 
+    // Higienização de Permissão: Apenas Administradores podem salvar valores de hora extra personalizados
+    let finalCustomRates = { ...(formData.customRates || {}) };
+    let finalMemberRemunTypes = { ...(formData.memberRemunerationTypes || {}) };
+    let finalRemunType = formData.remunerationType || 'off_hours';
+
+    if (!isAdmin) {
+      if (finalRemunType === 'custom') {
+        finalRemunType = 'off_hours';
+      }
+      // Remove qualquer taxa customizada criada em modo hora extra ou personalizada para garantir os valores oficiais do perfil
+      Object.keys(finalCustomRates).forEach((mId) => {
+        const mode = finalMemberRemunTypes[mId] || finalRemunType;
+        if (mode === 'off_hours' || mode === 'custom') {
+          delete finalCustomRates[mId];
+          if (finalMemberRemunTypes[mId] === 'custom') {
+            finalMemberRemunTypes[mId] = 'off_hours';
+          }
+        }
+      });
+    }
+
     const missionPayload = {
       id: editingMission ? editingMission.id : 'mis-' + Date.now(),
       version: editingMission?.version ?? 1,
       ...formData,
+      remunerationType: finalRemunType,
+      memberRemunerationTypes: finalMemberRemunTypes,
+      customRates: finalCustomRates,
       code: generatedCode,
       eventStartTime: formData.eventStartTime || null,
       eventEndTime: formData.eventEndTime || null,
@@ -3616,27 +3670,30 @@ export default function MissionModal({
                             2. Diária {isMultiDay ? '(Viagem)' : ''}
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleRemunerationTypeChange('custom')}
-                            className={`btn-rate-mode ${formData.remunerationType === 'custom' ? 'active' : ''}`}
-                            style={{
-                              padding: '5px 12px',
-                              borderRadius: '8px',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              border: formData.remunerationType === 'custom' ? '1px solid #a855f7' : '1px solid rgba(255,255,255,0.1)',
-                              background: formData.remunerationType === 'custom' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.03)',
-                              color: formData.remunerationType === 'custom' ? '#c084fc' : '#94a3b8',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px'
-                            }}
-                          >
-                            <Sparkles size={13} />
-                            3. Personalizada
-                          </button>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemunerationTypeChange('custom')}
+                              className={`btn-rate-mode ${formData.remunerationType === 'custom' ? 'active' : ''}`}
+                              style={{
+                                padding: '5px 12px',
+                                borderRadius: '8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                border: formData.remunerationType === 'custom' ? '1px solid #a855f7' : '1px solid rgba(255,255,255,0.1)',
+                                background: formData.remunerationType === 'custom' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.03)',
+                                color: formData.remunerationType === 'custom' ? '#c084fc' : '#94a3b8',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                              }}
+                              title="Definir valores e cachês personalizados (Exclusivo Administrador)"
+                            >
+                              <Sparkles size={13} />
+                              3. Personalizada
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -3657,9 +3714,10 @@ export default function MissionModal({
                             ? formData.customRates[mId]
                             : '';
 
-                          const effectiveRate = currentVal !== ''
-                            ? Number(currentVal)
-                            : (isDailyMode ? defaultDailyRate : isCustomMode ? 0 : defaultHourlyRate);
+                          // Apenas administradores podem aplicar taxas customizadas; gestores sempre seguem o valor padrão fixado
+                          const effectiveRate = (!isAdmin || currentVal === '')
+                            ? (isDailyMode ? defaultDailyRate : isCustomMode ? 0 : defaultHourlyRate)
+                            : Number(currentVal);
 
                           const travelDays = isMultiDay ? calculateDaysBetween(formData.date, formData.endDate) : 1;
                           const extraRemun = calculateExtraHoursRemuneration(
@@ -3836,23 +3894,25 @@ export default function MissionModal({
                                   >
                                     📅 Diária
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleMemberRemunerationTypeChange(mId, 'custom')}
-                                    style={{
-                                      padding: '3px 8px',
-                                      borderRadius: '6px',
-                                      fontSize: '0.73rem',
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                      border: memberMode === 'custom' ? '1px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
-                                      background: memberMode === 'custom' ? 'rgba(168, 85, 247, 0.25)' : 'rgba(255,255,255,0.03)',
-                                      color: memberMode === 'custom' ? '#c084fc' : '#94a3b8',
-                                    }}
-                                    title="Remuneração Personalizada com valor total fixo acordado (Cachê)"
-                                  >
-                                    🎯 Personalizada
-                                  </button>
+                                  {isAdmin && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMemberRemunerationTypeChange(mId, 'custom')}
+                                      style={{
+                                        padding: '3px 8px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.73rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        border: memberMode === 'custom' ? '1px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
+                                        background: memberMode === 'custom' ? 'rgba(168, 85, 247, 0.25)' : 'rgba(255,255,255,0.03)',
+                                        color: memberMode === 'custom' ? '#c084fc' : '#94a3b8',
+                                      }}
+                                      title="Remuneração Personalizada com valor total fixo acordado (Cachê) - Exclusivo Administrador"
+                                    >
+                                      🎯 Personalizada
+                                    </button>
+                                  )}
                                 </div>
                               </div>
 
@@ -3867,7 +3927,7 @@ export default function MissionModal({
                                         ? '🎯 Valor Fixo Acordado / Cachê (R$ Total):'
                                         : '⏱️ Valor da Hora Extra (por hora):'}
                                     </span>
-                                    {currentVal !== '' && (
+                                    {isAdmin && currentVal !== '' && (
                                       <button
                                         type="button"
                                         className="rcf-btn-reset"
@@ -3879,52 +3939,71 @@ export default function MissionModal({
                                     )}
                                   </div>
 
-                                  <div className="rcf-input-group">
-                                    <span className="rcf-prefix">R$</span>
-                                    <input
-                                      type="number"
-                                      step={isDailyMode ? '10' : isCustomMode ? '25' : '5'}
-                                      min="0"
-                                      placeholder={
-                                        isDailyMode
-                                          ? defaultDailyRate.toFixed(2)
-                                          : isCustomMode
-                                          ? '0.00'
-                                          : defaultHourlyRate.toFixed(2)
-                                      }
-                                      value={currentVal}
-                                      onChange={(e) => handleCustomRateChange(mId, e.target.value)}
-                                      className="rcf-input"
-                                    />
-                                    <button
-                                      type="button"
-                                      className="rcf-btn-step"
-                                      onClick={() => {
-                                        const cur = currentVal !== ''
-                                          ? Number(currentVal)
-                                          : (isDailyMode ? defaultDailyRate : isCustomMode ? 0 : defaultHourlyRate);
-                                        const step = isDailyMode ? 10 : isCustomMode ? 25 : 5;
-                                        handleCustomRateChange(mId, Math.max(0, cur - step));
-                                      }}
-                                      title="Diminuir"
-                                    >
-                                      -
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="rcf-btn-step"
-                                      onClick={() => {
-                                        const cur = currentVal !== ''
-                                          ? Number(currentVal)
-                                          : (isDailyMode ? defaultDailyRate : isCustomMode ? 0 : defaultHourlyRate);
-                                        const step = isDailyMode ? 10 : isCustomMode ? 25 : 5;
-                                        handleCustomRateChange(mId, cur + step);
-                                      }}
-                                      title="Aumentar"
-                                    >
-                                      +
-                                    </button>
-                                  </div>
+                                  {isAdmin ? (
+                                    <div className="rcf-input-group">
+                                      <span className="rcf-prefix">R$</span>
+                                      <input
+                                        type="number"
+                                        step={isDailyMode ? '10' : isCustomMode ? '25' : '5'}
+                                        min="0"
+                                        placeholder={
+                                          isDailyMode
+                                            ? defaultDailyRate.toFixed(2)
+                                            : isCustomMode
+                                            ? '0.00'
+                                            : defaultHourlyRate.toFixed(2)
+                                        }
+                                        value={currentVal}
+                                        onChange={(e) => handleCustomRateChange(mId, e.target.value)}
+                                        className="rcf-input"
+                                      />
+                                      <button
+                                        type="button"
+                                        className="rcf-btn-step"
+                                        onClick={() => {
+                                          const cur = currentVal !== ''
+                                            ? Number(currentVal)
+                                            : (isDailyMode ? defaultDailyRate : isCustomMode ? 0 : defaultHourlyRate);
+                                          const step = isDailyMode ? 10 : isCustomMode ? 25 : 5;
+                                          handleCustomRateChange(mId, Math.max(0, cur - step));
+                                        }}
+                                        title="Diminuir"
+                                      >
+                                        -
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="rcf-btn-step"
+                                        onClick={() => {
+                                          const cur = currentVal !== ''
+                                            ? Number(currentVal)
+                                            : (isDailyMode ? defaultDailyRate : isCustomMode ? 0 : defaultHourlyRate);
+                                          const step = isDailyMode ? 10 : isCustomMode ? 25 : 5;
+                                          handleCustomRateChange(mId, cur + step);
+                                        }}
+                                        title="Aumentar"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    /* GESTOR: Totalmente travado e protegido contra alterações nos valores das horas extras */
+                                    <div className="rcf-locked-display" title="Valor fixado pelo Administrador para este colaborador">
+                                      <div className="rcf-locked-pill">
+                                        <Lock size={13} className="text-amber" />
+                                        <span className="rcf-locked-prefix">R$</span>
+                                        <span className="rcf-locked-val">
+                                          {isDailyMode ? defaultDailyRate.toFixed(2) : defaultHourlyRate.toFixed(2)}
+                                        </span>
+                                        <span className="rcf-locked-unit">
+                                          {isDailyMode ? '/ diária' : '/ hora'}
+                                        </span>
+                                      </div>
+                                      <span className="rcf-locked-notice">
+                                        🔒 Tabela Oficial fixada pelo Administrador
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
 
                                 <div className="rcf-subtotal-card">

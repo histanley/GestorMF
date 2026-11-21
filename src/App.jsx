@@ -3537,6 +3537,8 @@ export default function App() {
         vehicles={vehicles}
         members={members}
         missions={missions}
+        currentUser={currentUser}
+        userRole={userRole}
       />
 
       {/* Modal / Ficha Completa de Detalhes da Missão (Acessível pelo Mapa, Barra Lateral e Tabela) */}
