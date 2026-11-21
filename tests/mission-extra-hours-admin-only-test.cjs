@@ -34,7 +34,20 @@ assert(
 );
 console.log('✅ 2. MissionModal.jsx valida estritamente a condição de Administrador (isAdmin).');
 
-// 3. Verificar bloqueio na UI para Não-Administradores (Gestores/Usuários)
+// 3. Verificar que para o Gestor aparece APENAS a opção de Hora Extra (opção Diária restrita ao Administrador)
+assert(
+  modalContent.includes('{isAdmin && (') &&
+  modalContent.includes("onClick={() => handleRemunerationTypeChange('daily')}"),
+  'Botão de modalidade padrão Diária deve ser visível apenas para Administradores'
+);
+assert(
+  modalContent.includes('{isAdmin && (') &&
+  modalContent.includes("onClick={() => handleMemberRemunerationTypeChange(mId, 'daily')}"),
+  'Botão individual de Diária para cada colaborador deve ser visível apenas para Administradores'
+);
+console.log('✅ 3. Opção de Diária completamente oculta para Gestores; apenas Hora Extra visível.');
+
+// 4. Verificar bloqueio na UI para Não-Administradores (Gestores/Usuários) com exibição travada
 assert(
   modalContent.includes('rcf-locked-display') && modalContent.includes('rcf-locked-pill'),
   'MissionModal deve conter o componente rcf-locked-display para usuários não-administradores'
@@ -43,9 +56,13 @@ assert(
   modalContent.includes('Tabela Oficial fixada pelo Administrador'),
   'MissionModal deve exibir aviso explícito de que o valor é fixado pelo Administrador'
 );
-console.log('✅ 3. Interface bloqueada com exibição da Tabela Oficial fixada para Gestores.');
+assert(
+  modalContent.includes('/ hora extra'),
+  'Badge bloqueado para não-administradores deve indicar estritamente / hora extra'
+);
+console.log('✅ 4. Interface bloqueada com exibição da Tabela Oficial fixada para Gestores.');
 
-// 4. Verificar bloqueio de handlers de edição de valores e modalidades personalizadas
+// 5. Verificar bloqueio de handlers de edição de valores e modalidades
 assert(
   modalContent.includes('if (!isAdmin)') &&
   modalContent.includes('handleCustomRateChange') &&
@@ -53,27 +70,27 @@ assert(
   'handleCustomRateChange deve bloquear alterações de valores por não-administradores'
 );
 assert(
-  modalContent.includes("if (type === 'custom' && !isAdmin)"),
-  'Modalidades personalizadas devem ser bloqueadas para não-administradores'
+  modalContent.includes("if (type !== 'off_hours' && !isAdmin)"),
+  'Modalidades que não sejam off_hours devem ser bloqueadas para não-administradores'
 );
-console.log('✅ 4. Handlers de mudança de taxas e modalidade personalizada bloqueiam não-administradores.');
+console.log('✅ 5. Handlers de mudança de taxas e modalidades bloqueiam não-administradores.');
 
-// 5. Verificar sanitização no submit para garantir que valores customizados não sejam injetados
+// 6. Verificar sanitização no submit para garantir que apenas off_hours seja salvo por não-administradores
 assert(
   modalContent.includes('finalCustomRates') &&
   modalContent.includes('finalRemunType') &&
-  modalContent.includes('delete finalCustomRates[mId];'),
-  'handleSubmit deve sanitizar qualquer taxa alterada indevidamente por não-administradores'
+  modalContent.includes("finalRemunType = 'off_hours';"),
+  'handleSubmit deve forçar finalRemunType = off_hours para não-administradores'
 );
-console.log('✅ 5. Sanitização rigorosa no salvamento da missão impede injeção de valores avulsos por Gestores.');
+console.log('✅ 6. Sanitização rigorosa no salvamento da missão garante estritamente Hora Extra para Gestores.');
 
-// 6. Verificar estilos CSS para rcf-locked-display
+// 7. Verificar estilos CSS para rcf-locked-display
 assert(
   cssContent.includes('.rcf-locked-display') &&
   cssContent.includes('.rcf-locked-pill') &&
   cssContent.includes('.rcf-locked-val'),
   'App.css deve conter as regras de estilo para os valores bloqueados'
 );
-console.log('✅ 6. Estilos visuais elegantes (.rcf-locked-display) presentes no App.css.');
+console.log('✅ 7. Estilos visuais elegantes (.rcf-locked-display) presentes no App.css.');
 
-console.log('\n🎉 TODOS OS TESTES DE RESTRIÇÃO DE HORA EXTRA PARA ADMINISTRADORES PASSARAM COM SUCESSO!\n');
+console.log('\n🎉 TODOS OS TESTES DE RESTRIÇÃO DE HORA EXTRA E DIÁRIA PASSARAM COM SUCESSO!\n');

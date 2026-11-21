@@ -570,12 +570,14 @@ export default function MissionModal({
         equipmentAllocations: Array.isArray(editingMission.equipmentAllocations) ? editingMission.equipmentAllocations : [],
         isMultiDay: Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date)),
         endDate: editingMission.endDate || '',
-        remunerationType: editingMission.remunerationType
-          ? editingMission.remunerationType
-          : (Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date)) ? 'daily' : 'off_hours'),
-        memberRemunerationTypes: editingMission.memberRemunerationTypes || {},
+        remunerationType: !isAdmin
+          ? 'off_hours'
+          : (editingMission.remunerationType
+            ? editingMission.remunerationType
+            : (Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date)) ? 'daily' : 'off_hours')),
+        memberRemunerationTypes: !isAdmin ? {} : (editingMission.memberRemunerationTypes || {}),
         memberRoles: editingMission.memberRoles || {},
-        customRates: editingMission.customRates || {},
+        customRates: !isAdmin ? {} : (editingMission.customRates || {}),
         memberNotes: (() => {
           const mNotes = { ...(editingMission.memberNotes || {}) };
           if (Array.isArray(editingMission.equipmentAllocations)) {
@@ -706,7 +708,9 @@ export default function MissionModal({
         ...prev,
         isMultiDay: checked,
         endDate: checked ? nextEndDate : '',
-        remunerationType: checked ? 'daily' : (prev.remunerationType || 'off_hours'),
+        remunerationType: checked
+          ? (isAdmin ? 'daily' : 'off_hours')
+          : (prev.remunerationType || 'off_hours'),
       };
     });
   };
@@ -1404,10 +1408,10 @@ export default function MissionModal({
   };
 
   const handleMemberRemunerationTypeChange = (memberId, type) => {
-    if (type === 'custom' && !isAdmin) {
+    if (type !== 'off_hours' && !isAdmin) {
       alertDialog({
         title: 'Acesso Restrito à Administração',
-        message: 'Apenas Administradores possuem autorização para definir remuneração personalizada com cachê avulso.',
+        message: 'Apenas Administradores possuem autorização para definir modalidades de remuneração além de Hora Extra (Diária ou Personalizada).',
         variant: 'warning',
       });
       return;
@@ -1422,10 +1426,10 @@ export default function MissionModal({
   };
 
   const handleRemunerationTypeChange = (type) => {
-    if (type === 'custom' && !isAdmin) {
+    if (type !== 'off_hours' && !isAdmin) {
       alertDialog({
         title: 'Acesso Restrito à Administração',
-        message: 'Apenas Administradores possuem autorização para definir modalidade personalizada.',
+        message: 'Apenas Administradores possuem autorização para definir modalidades de remuneração além de Hora Extra (Diária ou Personalizada).',
         variant: 'warning',
       });
       return;
@@ -1603,25 +1607,15 @@ export default function MissionModal({
       : computeMissionAutoStatus(formData, new Date(), true);
     const generatedCode = generateNextMissionCode(formData.date, missions, editingMission);
 
-    // Higienização de Permissão: Apenas Administradores podem salvar valores de hora extra personalizados
+    // Higienização de Permissão: Apenas Administradores podem salvar valores de hora extra personalizados ou modalidades alternativas
     let finalCustomRates = { ...(formData.customRates || {}) };
     let finalMemberRemunTypes = { ...(formData.memberRemunerationTypes || {}) };
     let finalRemunType = formData.remunerationType || 'off_hours';
 
     if (!isAdmin) {
-      if (finalRemunType === 'custom') {
-        finalRemunType = 'off_hours';
-      }
-      // Remove qualquer taxa customizada criada em modo hora extra ou personalizada para garantir os valores oficiais do perfil
-      Object.keys(finalCustomRates).forEach((mId) => {
-        const mode = finalMemberRemunTypes[mId] || finalRemunType;
-        if (mode === 'off_hours' || mode === 'custom') {
-          delete finalCustomRates[mId];
-          if (finalMemberRemunTypes[mId] === 'custom') {
-            finalMemberRemunTypes[mId] = 'off_hours';
-          }
-        }
-      });
+      finalRemunType = 'off_hours';
+      finalMemberRemunTypes = {};
+      finalCustomRates = {};
     }
 
     const missionPayload = {
@@ -1687,15 +1681,15 @@ export default function MissionModal({
       updateSeries: Boolean(editingMission && isRecurring && updateSeries),
       // Banco de Horas, Modalidade e Taxas Personalizadas da Missão
       offHours: isMultiDay ? 0 : (missionOffHours.offHours || 0),
-      remunerationType: formData.remunerationType || (isMultiDay ? 'daily' : 'off_hours'),
-      memberRemunerationTypes: formData.memberRemunerationTypes || {},
+      remunerationType: finalRemunType,
+      memberRemunerationTypes: finalMemberRemunTypes,
       memberRoles: formData.memberRoles || {},
       equipmentAllocations: formData.equipmentAllocations || [],
       memberNotes: formData.memberNotes || {},
       extraHoursPlanned: isMultiDay ? 0 : (missionOffHours.offHours || 0),
       extraHoursApproved: editingMission?.extraHoursApproved || 0,
       extraHoursRequests: editingMission?.extraHoursRequests || [],
-      customRates: formData.customRates || {},
+      customRates: finalCustomRates,
       createdBy: creatorId,
       createdByName: creatorName,
       createdAt: editingMission?.createdAt || new Date().toISOString(),
@@ -3648,27 +3642,29 @@ export default function MissionModal({
                             1. Hora Extra
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleRemunerationTypeChange('daily')}
-                            className={`btn-rate-mode ${(formData.remunerationType === 'daily' || (!formData.remunerationType && isMultiDay)) ? 'active' : ''}`}
-                            style={{
-                              padding: '5px 12px',
-                              borderRadius: '8px',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              border: (formData.remunerationType === 'daily' || (!formData.remunerationType && isMultiDay)) ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                              background: (formData.remunerationType === 'daily' || (!formData.remunerationType && isMultiDay)) ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.03)',
-                              color: (formData.remunerationType === 'daily' || (!formData.remunerationType && isMultiDay)) ? '#60a5fa' : '#94a3b8',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px'
-                            }}
-                          >
-                            <CalendarRange size={13} />
-                            2. Diária {isMultiDay ? '(Viagem)' : ''}
-                          </button>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemunerationTypeChange('daily')}
+                              className={`btn-rate-mode ${(formData.remunerationType === 'daily' || (!formData.remunerationType && isMultiDay)) ? 'active' : ''}`}
+                              style={{
+                                padding: '5px 12px',
+                                borderRadius: '8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                border: (formData.remunerationType === 'daily' || (!formData.remunerationType && isMultiDay)) ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                                background: (formData.remunerationType === 'daily' || (!formData.remunerationType && isMultiDay)) ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.03)',
+                                color: (formData.remunerationType === 'daily' || (!formData.remunerationType && isMultiDay)) ? '#60a5fa' : '#94a3b8',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <CalendarRange size={13} />
+                              2. Diária {isMultiDay ? '(Viagem)' : ''}
+                            </button>
+                          )}
 
                           {isAdmin && (
                             <button
@@ -3702,8 +3698,10 @@ export default function MissionModal({
                           const mem = members.find((x) => x.id === mId);
                           if (!mem) return null;
 
-                          // Modalidade ativa deste colaborador: pode ser individual ou herdar da missão
-                          const memberMode = formData.memberRemunerationTypes?.[mId] || formData.remunerationType || (isMultiDay ? 'daily' : 'off_hours');
+                          // Modalidade ativa deste colaborador: para o gestor é sempre Hora Extra com valores oficiais
+                          const memberMode = !isAdmin
+                            ? 'off_hours'
+                            : (formData.memberRemunerationTypes?.[mId] || formData.remunerationType || (isMultiDay ? 'daily' : 'off_hours'));
                           const isDailyMode = memberMode === 'daily';
                           const isCustomMode = memberMode === 'custom';
 
@@ -3877,23 +3875,25 @@ export default function MissionModal({
                                   >
                                     ⏱️ Hora Extra
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleMemberRemunerationTypeChange(mId, 'daily')}
-                                    style={{
-                                      padding: '3px 8px',
-                                      borderRadius: '6px',
-                                      fontSize: '0.73rem',
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                      border: memberMode === 'daily' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.08)',
-                                      background: memberMode === 'daily' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255,255,255,0.03)',
-                                      color: memberMode === 'daily' ? '#60a5fa' : '#94a3b8',
-                                    }}
-                                    title="Remuneração por Diária fechada de campo ou viagem"
-                                  >
-                                    📅 Diária
-                                  </button>
+                                  {isAdmin && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMemberRemunerationTypeChange(mId, 'daily')}
+                                      style={{
+                                        padding: '3px 8px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.73rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        border: memberMode === 'daily' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.08)',
+                                        background: memberMode === 'daily' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255,255,255,0.03)',
+                                        color: memberMode === 'daily' ? '#60a5fa' : '#94a3b8',
+                                      }}
+                                      title="Remuneração por Diária fechada de campo ou viagem"
+                                    >
+                                      📅 Diária
+                                    </button>
+                                  )}
                                   {isAdmin && (
                                     <button
                                       type="button"
@@ -3993,10 +3993,10 @@ export default function MissionModal({
                                         <Lock size={13} className="text-amber" />
                                         <span className="rcf-locked-prefix">R$</span>
                                         <span className="rcf-locked-val">
-                                          {isDailyMode ? defaultDailyRate.toFixed(2) : defaultHourlyRate.toFixed(2)}
+                                          {defaultHourlyRate.toFixed(2)}
                                         </span>
                                         <span className="rcf-locked-unit">
-                                          {isDailyMode ? '/ diária' : '/ hora'}
+                                          / hora extra
                                         </span>
                                       </div>
                                       <span className="rcf-locked-notice">
