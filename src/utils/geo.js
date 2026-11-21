@@ -147,6 +147,99 @@ export async function searchAddressNominatim(query) {
   }
 }
 
+// Geocodificação reversa via OpenStreetMap Nominatim (Coordenadas -> Endereço)
+export async function reverseGeocodeNominatim(lat, lon) {
+  if (!lat || !lon) return null;
+  const numLat = parseFloat(lat);
+  const numLon = parseFloat(lon);
+  if (isNaN(numLat) || isNaN(numLon)) return null;
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(
+      numLat
+    )}&lon=${encodeURIComponent(numLon)}&addressdetails=1`;
+    const response = await fetch(url, {
+      headers: {
+        'Accept-Language': 'pt-BR',
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data || !data.display_name) return null;
+
+    const addr = data.address || {};
+    const street = addr.road || addr.street || '';
+    const number = addr.house_number ? `, ${addr.house_number}` : '';
+    const neighborhood = addr.suburb || addr.neighbourhood || addr.district || '';
+    const city = addr.city || addr.town || addr.municipality || 'Boa Vista';
+
+    let cleanShort = [street + number, neighborhood, city].filter(Boolean).join(' - ');
+    if (!cleanShort) {
+      cleanShort = data.display_name.split(',').slice(0, 3).join(',').trim();
+    }
+
+    return {
+      name: data.display_name,
+      shortName: cleanShort,
+      lat: numLat,
+      lon: numLon,
+      raw: data,
+    };
+  } catch (e) {
+    console.warn('Erro ao obter endereço por coordenadas:', e);
+    return null;
+  }
+}
+
+// Extrai latitude e longitude de um texto digitado ou colado (Ex: -2.825358, -60.731062 ou links de mapa)
+export function parseCoordinatesFromText(text) {
+  if (!text || typeof text !== 'string') return null;
+  const trimmed = text.trim();
+
+  // Caso 1: Formato padrão "lat, lon" ou "lat lon" (Ex: "2.825358, -60.731062" ou "-2.825358 -60.731062")
+  const standardMatch = trimmed.match(/(-?\d{1,2}\.\d+)[,\s/]+(-?\d{1,3}\.\d+)/);
+  if (standardMatch) {
+    const lat = parseFloat(standardMatch[1]);
+    const lon = parseFloat(standardMatch[2]);
+    if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+      return { lat, lon };
+    }
+  }
+
+  // Caso 2: Links ou query com @lat,lon (Ex: maps.google.com/?q=@2.825358,-60.731062)
+  const queryMatch = trimmed.match(/[@=](-?\d{1,2}\.\d+)[,](-?\d{1,3}\.\d+)/);
+  if (queryMatch) {
+    const lat = parseFloat(queryMatch[1]);
+    const lon = parseFloat(queryMatch[2]);
+    if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+      return { lat, lon };
+    }
+  }
+
+  return null;
+}
+
+// Formata o endereço assegurando que as coordenadas estejam explicitamente integradas para missões
+export function formatAddressWithCoordinates(baseAddress, lat, lon) {
+  if (!lat || !lon) return baseAddress || '';
+  const numLat = Number(lat).toFixed(6);
+  const numLon = Number(lon).toFixed(6);
+  const coordTag = `(GPS: ${numLat}, ${numLon})`;
+
+  if (!baseAddress || !baseAddress.trim()) {
+    return `Local Personalizado no Mapa ${coordTag}`;
+  }
+
+  const clean = baseAddress.trim();
+  // Se já possui marcação de GPS/coordenadas, substitui pela mais recente
+  if (clean.includes('(GPS:') || clean.includes('(Lat:') || clean.includes('Coordenadas:')) {
+    return clean.replace(/\((?:GPS|Lat|Coordenadas)[^)]*\)/gi, coordTag).trim();
+  }
+
+  return `${clean} ${coordTag}`;
+}
+
 // Calcula consumo e custos de combustível (Sempre Ida e Volta à Base, suportando 1 ou múltiplas viaturas e preços Gasolina/Diesel)
 export function calculateFuelEstimate({
   distanceKm,

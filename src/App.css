@@ -54317,3 +54317,545 @@ body.light-theme .adv-member-name,
     min-height: auto !important;
   }
 }
+
+
+/* ==========================================================================
+   BOTÃO "MARCAR NO MAPA" & BANNER DE COORDENADAS GPS NA CRIAÇÃO DE MISSÃO
+   ========================================================================== */
+
+.btn-map-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-map-picker:hover {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: #f59e0b;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.mm-no-search-results-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px dashed rgba(245, 158, 11, 0.45);
+  border-radius: var(--radius-md);
+  padding: 9px 14px;
+  margin-top: 6px;
+  margin-bottom: 4px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.mm-no-search-results-banner .banner-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.btn-open-picker-prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f59e0b;
+  border: none;
+  color: #0f172a;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-open-picker-prompt:hover {
+  background: #fbbf24;
+  transform: translateY(-1px);
+}
+
+.mm-coords-status-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+
+.mm-coords-status-strip .coords-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: #34d399;
+}
+
+.btn-edit-on-map {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-edit-on-map:hover {
+  background: rgba(16, 185, 129, 0.2);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   MODAL INTERATIVO DE SELEÇÃO NO MAPA (MISSION MAP PICKER MODAL)
+   ========================================================================== */
+
+.mmp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10100;
+  background: rgba(4, 8, 16, 0.88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.18s ease-out;
+}
+
+.mmp-modal-container {
+  width: 100%;
+  max-width: 980px;
+  height: 88vh;
+  max-height: 820px;
+  background: #0b1120;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(245, 158, 11, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.mmp-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #070d18;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.mmp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mmp-header-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mmp-modal-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.mmp-modal-subtitle {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 2px 0 0 0;
+}
+
+.mmp-btn-close {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mmp-btn-close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.mmp-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: #0f172a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.mmp-search-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 600px;
+}
+
+.mmp-search-input-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.mmp-search-input-wrap input {
+  width: 100%;
+  height: 36px;
+  background: #070d18;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0 32px 0 32px;
+  color: #ffffff;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.mmp-search-input-wrap input:focus {
+  border-color: #f59e0b;
+}
+
+.mmp-search-icon {
+  position: absolute;
+  left: 10px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.mmp-clear-btn {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.mmp-search-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f59e0b;
+  color: #0f172a;
+  border: none;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mmp-search-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mmp-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mmp-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.mmp-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Dropdown de Resultados da Pesquisa */
+.mmp-search-dropdown {
+  position: absolute;
+  top: 105px;
+  left: 18px;
+  width: 580px;
+  max-width: 90vw;
+  background: #0f172a;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.85);
+  z-index: 2000;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.mmp-dropdown-header {
+  padding: 8px 12px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #fbbf24;
+  text-transform: uppercase;
+  background: #070d18;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mmp-dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.mmp-dropdown-item:hover {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.mmp-dropdown-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mmp-dropdown-text strong {
+  font-size: 0.78rem;
+  color: #ffffff;
+}
+
+.mmp-dropdown-text span {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  line-height: 1.25;
+}
+
+/* Viewport do Mapa Leaflet */
+.mmp-map-viewport {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #090e1a;
+}
+
+.mmp-leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+.mmp-floating-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(11, 17, 32, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  color: #e2e8f0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Marcador Leaflet Personalizado */
+.picker-pin-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mmp-pin-glow {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 12px;
+  background: radial-gradient(ellipse, rgba(245, 158, 11, 0.7) 0%, rgba(245, 158, 11, 0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.mmp-pin-body {
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+  animation: bounce 1.8s ease-in-out infinite;
+}
+
+.mmp-pin-label {
+  background: #0f172a;
+  color: #fbbf24;
+  border: 1px solid #f59e0b;
+  font-size: 0.62rem;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+  white-space: nowrap;
+  letter-spacing: 0.4px;
+}
+
+.mmp-base-pin {
+  font-size: 1.2rem;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
+}
+
+/* Rodapé do Map Picker */
+.mmp-footer-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #070d18;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 16px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.mmp-coords-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mmp-coord-badge {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+}
+
+.mmp-coord-badge .lbl {
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.68rem;
+}
+
+.mmp-coord-badge .val {
+  color: #38bdf8;
+  font-family: monospace;
+  font-weight: 800;
+}
+
+.mmp-address-preview {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 380px;
+  font-size: 0.76rem;
+}
+
+.mmp-address-preview .lbl {
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.mmp-address-preview .val {
+  color: #e2e8f0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mmp-actions-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mmp-btn-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+  transition: all 0.15s ease;
+}
+
+.mmp-btn-confirm:hover {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  transform: translateY(-1px);
+}

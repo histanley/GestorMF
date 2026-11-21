@@ -56,6 +56,9 @@ import { getCurrentUser } from '../utils/auth';
 import {
   fetchRouteOSRM,
   searchAddressNominatim,
+  reverseGeocodeNominatim,
+  parseCoordinatesFromText,
+  formatAddressWithCoordinates,
   calculateFuelEstimate,
   calculateArrivalTime,
   calculateSuggestedDepartureTime,
@@ -77,6 +80,7 @@ import {
 import { alertDialog, confirmDialog } from '../utils/dialog';
 import { apiRequest } from '../utils/api';
 import { CATEGORY_LABELS, formatCurrency } from '../utils/rentalsData';
+import MissionMapPickerModal from './MissionMapPickerModal';
 
 // Calcula a quantidade de dias (diárias) entre a data de início e a data final (intervalo operacional inclusivo)
 export function calculateDaysBetween(startDateStr, endDateStr) {
@@ -278,6 +282,8 @@ export default function MissionModal({
 
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
+  const [searchNoResultsPrompt, setSearchNoResultsPrompt] = useState(false);
   const [guestInput, setGuestInput] = useState('');
   // Recursos forçados/compartilhados (viaturas e colaboradores com autorização de sobreposição)
   const [forcedResources, setForcedResources] = useState(() => new Set());
@@ -827,26 +833,71 @@ export default function MissionModal({
     }
   }, [JSON.stringify(formData.vehicleAllocations), formData.departureTime]);
 
-  // Busca de endereço Nominatim
+  // Busca de endereço Nominatim com suporte a coordenadas diretas e busca no mapa
   const handleAddressSearch = async () => {
-    const query = formData.address || formData.locationName;
+    const query = (formData.address || formData.locationName || '').trim();
     if (!query) return;
+
+    // 1. Verifica se o usuário digitou ou colou coordenadas diretamente no campo
+    const parsedCoords = parseCoordinatesFromText(query);
+    if (parsedCoords) {
+      setIsSearchingAddress(true);
+      const latFixed = parsedCoords.lat.toFixed(6);
+      const lonFixed = parsedCoords.lon.toFixed(6);
+      const rev = await reverseGeocodeNominatim(latFixed, lonFixed);
+      const cleanAddr = rev?.shortName || query;
+      const formatted = formatAddressWithCoordinates(cleanAddr, latFixed, lonFixed);
+
+      setFormData((prev) => ({
+        ...prev,
+        lat: latFixed,
+        lon: lonFixed,
+        address: formatted,
+        locationName: prev.locationName || rev?.shortName || 'Local Personalizado',
+      }));
+      setSearchResults([]);
+      setSearchNoResultsPrompt(false);
+      updateRouteCalculations(latFixed, lonFixed, formData.vehicleAllocations);
+      setIsSearchingAddress(false);
+      return;
+    }
+
+    // 2. Busca textual normal no Nominatim
     setIsSearchingAddress(true);
     const results = await searchAddressNominatim(query);
     setSearchResults(results);
+    setSearchNoResultsPrompt(results.length === 0);
     setIsSearchingAddress(false);
   };
 
   const handleSelectSearchResult = (res) => {
+    const latFixed = Number(res.lat).toFixed(6);
+    const lonFixed = Number(res.lon).toFixed(6);
+    const formattedAddress = formatAddressWithCoordinates(res.name, latFixed, lonFixed);
+
     setFormData((prev) => ({
       ...prev,
-      address: res.name,
+      address: formattedAddress,
       locationName: prev.locationName || res.shortName,
-      lat: res.lat,
-      lon: res.lon,
+      lat: latFixed,
+      lon: lonFixed,
     }));
     setSearchResults([]);
-    updateRouteCalculations(res.lat, res.lon, formData.vehicleAllocations);
+    setSearchNoResultsPrompt(false);
+    updateRouteCalculations(latFixed, lonFixed, formData.vehicleAllocations);
+  };
+
+  const handleConfirmMapPicker = ({ lat, lon, address, shortName }) => {
+    setFormData((prev) => ({
+      ...prev,
+      lat,
+      lon,
+      address,
+      locationName: prev.locationName || shortName,
+    }));
+    setSearchResults([]);
+    setSearchNoResultsPrompt(false);
+    updateRouteCalculations(lat, lon, formData.vehicleAllocations);
   };
 
   // ---- Cálculo Inteligente de Horário Máximo de Saída ----
@@ -2237,7 +2288,7 @@ export default function MissionModal({
                 <div className="mm-address-search-box">
                   <input
                     type="text"
-                    placeholder="Rua, Número, Bairro, Cidade..."
+                    placeholder="Rua, Número, Bairro, Cidade ou Coordenadas..."
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddressSearch(); } }}
@@ -2247,14 +2298,44 @@ export default function MissionModal({
                     className="btn-search-coords"
                     onClick={handleAddressSearch}
                     disabled={isSearchingAddress}
-                    title="Buscar Coordenadas por Endereço"
+                    title="Buscar Coordenadas por Endereço ou Texto"
                   >
                     <Search size={14} />
                     <span>{isSearchingAddress ? 'Buscando...' : 'Buscar GPS'}</span>
                   </button>
+                  <button
+                    type="button"
+                    className="btn-map-picker"
+                    onClick={() => setIsMapPickerOpen(true)}
+                    title="Personalizar, apontar no mapa interativo e fixar coordenadas"
+                  >
+                    <MapPin size={14} />
+                    <span>Marcar no Mapa</span>
+                  </button>
                 </div>
               </div>
             </div>
+
+            {/* Banner de Aviso e Atalho quando a Busca Textual não encontrar endereço */}
+            {searchNoResultsPrompt && (
+              <div className="mm-no-search-results-banner">
+                <div className="banner-left">
+                  <AlertTriangle size={15} className="text-amber" />
+                  <span>Endereço não localizado com precisão na pesquisa textual. Deseja apontar o ponto no mapa?</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-open-picker-prompt"
+                  onClick={() => {
+                    setSearchNoResultsPrompt(false);
+                    setIsMapPickerOpen(true);
+                  }}
+                >
+                  <MapPin size={13} />
+                  <span>Personalizar e Marcar no Mapa</span>
+                </button>
+              </div>
+            )}
 
             {/* Sugestões de Busca do Nominatim */}
             {searchResults.length > 0 && (
@@ -2273,6 +2354,25 @@ export default function MissionModal({
               </div>
             )}
 
+            {/* Indicador de Coordenadas GPS Fixadas com Atalho Rápido para o Mapa */}
+            {Boolean(formData.lat && formData.lon) && (
+              <div className="mm-coords-status-strip">
+                <span className="coords-chip">
+                  <MapPin size={12} className="text-emerald" />
+                  GPS Fixado: <strong>{formData.lat}, {formData.lon}</strong>
+                </span>
+                <button
+                  type="button"
+                  className="btn-edit-on-map"
+                  onClick={() => setIsMapPickerOpen(true)}
+                  title="Ajustar ou conferir localização no mapa interativo"
+                >
+                  <MapPin size={12} />
+                  <span>Ajustar no Mapa</span>
+                </button>
+              </div>
+            )}
+
             <div className="form-row mm-three-cols" style={{ marginTop: '4px' }}>
               <div className="form-group flex-1">
                 <label>Latitude</label>
@@ -2283,7 +2383,10 @@ export default function MissionModal({
                   value={formData.lat}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setFormData({ ...formData, lat: val });
+                    setFormData((prev) => {
+                      const nextAddr = (val && prev.lon) ? formatAddressWithCoordinates(prev.address, val, prev.lon) : prev.address;
+                      return { ...prev, lat: val, address: nextAddr };
+                    });
                     if (val && formData.lon) updateRouteCalculations(val, formData.lon);
                   }}
                 />
@@ -2297,7 +2400,10 @@ export default function MissionModal({
                   value={formData.lon}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setFormData({ ...formData, lon: val });
+                    setFormData((prev) => {
+                      const nextAddr = (prev.lat && val) ? formatAddressWithCoordinates(prev.address, prev.lat, val) : prev.address;
+                      return { ...prev, lon: val, address: nextAddr };
+                    });
                     if (formData.lat && val) updateRouteCalculations(formData.lat, val);
                   }}
                 />
@@ -4419,6 +4525,18 @@ export default function MissionModal({
             </button>
           </div>
         </form>
+
+        {/* Modal Interativo para Buscar no Mapa, Inserir Marcador e Fixar Coordenadas */}
+        <MissionMapPickerModal
+          isOpen={isMapPickerOpen}
+          onClose={() => setIsMapPickerOpen(false)}
+          initialLat={formData.lat}
+          initialLon={formData.lon}
+          initialAddress={formData.address}
+          initialLocationName={formData.locationName}
+          baseLocation={baseLocation}
+          onConfirmCoordinates={handleConfirmMapPicker}
+        />
       </div>
     </div>
   );
