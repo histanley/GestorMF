@@ -59,9 +59,9 @@ assert(modalSource.includes('formatAddressWithCoordinates'), 'MissionModal deve 
 // 5. Teste da Ilustração do Sol e da Lua em CelestialShiftIllustration.jsx
 const celestialPath = path.resolve(__dirname, '../src/components/CelestialShiftIllustration.jsx');
 const celestialSource = fs.readFileSync(celestialPath, 'utf8');
-assert(celestialSource.includes('csi-sun-sphere'), 'Sol deve usar gradiente esférico 3D');
-assert(celestialSource.includes('csi-sun-ray-prim'), 'Sol deve usar raios primários elegantes');
+assert(celestialSource.includes('csi-sun-body-3d'), 'Sol deve usar gradiente esférico 3D');
+assert(celestialSource.includes('csi-ray-prim-grad'), 'Sol deve usar raios primários elegantes');
 assert(celestialSource.includes('csi-moon-body'), 'Lua deve usar gradiente 3D');
-assert(!celestialSource.includes('transform="rotate(45 24 24)"'), 'Sol não deve conter os retângulos quadrados rotacionados anteriores');
+assert(!celestialSource.includes('width="31" height="31"'), 'Sol não deve conter blocos retangulares anteriores');
 
 console.log('✅ Todos os testes de busca no mapa, coordenadas no endereço e sol/lua passaram com 100% de sucesso!');
