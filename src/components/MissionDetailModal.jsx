@@ -691,6 +691,8 @@ export default function MissionDetailModal({
                   <div className="mdm-guests-grid">
                     {mission.guests.map((g, gIdx) => {
                       const gName = typeof g === 'string' ? g : g.name;
+                      const gRoles = Array.isArray(g?.roles) ? g.roles : (g?.role ? [g.role] : []);
+                      const gRoleDisplay = gRoles.length > 0 ? `${gRoles.join(', ')} • Freelancer` : 'Freelancer / Externo';
                       return (
                         <div key={`mdm-guest-${gIdx}`} className="mdm-guest-card">
                           <div className="mgc-avatar-circle">
@@ -699,7 +701,7 @@ export default function MissionDetailModal({
                           <div className="mgc-details">
                             <div className="mgc-name-row">
                               <strong>{gName}</strong>
-                              <span className="mgc-pill">Freelancer / Externo</span>
+                              <span className="mgc-pill">{gRoleDisplay}</span>
                             </div>
                             <small className="mgc-note">Sem acesso ao sistema • Sem rastreamento GPS</small>
                           </div>

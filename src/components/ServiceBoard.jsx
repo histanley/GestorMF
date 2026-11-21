@@ -1064,14 +1064,17 @@ export default function ServiceBoard({
                             })}
                             {Array.isArray(mission.guests) && mission.guests.map((g, gi) => {
                               const gName = typeof g === 'string' ? g : g.name;
+                              const gRoles = Array.isArray(g?.roles) ? g.roles : (g?.role ? [g.role] : []);
+                              const gRoleLabel = gRoles.length > 0 ? gRoles.join(', ') : 'Convidado';
                               return (
                                 <span
                                   key={`pguest-${gi}`}
                                   className="member-tag-compact is-guest-tag"
+                                  title={`${gName} — ${gRoleLabel} (Freelancer / Convidado)`}
                                 >
                                   <span className="guest-badge-inline">👤</span>
                                   <span className="member-name-full">{gName}</span>
-                                  <span className="guest-role-tag">Convidado</span>
+                                  <span className="guest-role-tag">{gRoleLabel}</span>
                                 </span>
                               );
                             })}
@@ -1690,17 +1693,19 @@ export default function ServiceBoard({
                             })}
                             {Array.isArray(mission.guests) && mission.guests.map((g, gi) => {
                               const gName = typeof g === 'string' ? g : g.name;
+                              const gRoles = Array.isArray(g?.roles) ? g.roles : (g?.role ? [g.role] : []);
+                              const gRoleLabel = gRoles.length > 0 ? gRoles.join(', ') : 'Convidado';
                               return (
                                 <span
                                   key={`guest-${gi}`}
                                   className="member-tag-compact is-guest-tag"
-                                  title={`${gName} — Convidado Externo / Freelancer`}
+                                  title={`${gName} — ${gRoleLabel} (Convidado Externo / Freelancer)`}
                                 >
                                   <span className="guest-badge-inline" title="Convidado / Freelancer">
                                     👤
                                   </span>
                                   <span className="member-name-full">{gName}</span>
-                                  <span className="guest-role-tag">Convidado</span>
+                                  <span className="guest-role-tag">{gRoleLabel}</span>
                                 </span>
                               );
                             })}
@@ -2323,11 +2328,13 @@ export default function ServiceBoard({
                     {/* Convidados */}
                     {Array.isArray(mission.guests) && mission.guests.map((g, gIdx) => {
                       const gName = typeof g === 'object' ? (g.name || 'Convidado') : g;
+                      const gRoles = Array.isArray(g?.roles) ? g.roles : (g?.role ? [g.role] : []);
+                      const gRoleLabel = gRoles.length > 0 ? gRoles.join(', ') : 'Convidado';
                       return (
-                        <span key={`g-${gIdx}`} className="mmc-member-chip is-guest">
+                        <span key={`g-${gIdx}`} className="mmc-member-chip is-guest" title={`${gName} — ${gRoleLabel}`}>
                           <span>👤</span>
                           <span>{gName}</span>
-                          <span className="mmc-role-tag">Convidado</span>
+                          <span className="mmc-role-tag">{gRoleLabel}</span>
                         </span>
                       );
                     })}

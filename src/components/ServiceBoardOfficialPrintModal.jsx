@@ -535,13 +535,17 @@ export default function ServiceBoardOfficialPrintModal({
                                   <span>{mem.name}</span>
                                 </div>
                               ))}
-                              {Array.isArray(mission.guests) && mission.guests.map((g, gi) => (
-                                <div key={gi} className="excel-member-guest">
-                                  <span>🤝</span>
-                                  <span>{typeof g === 'string' ? g : g.name}</span>
-                                  <small>(Convidado)</small>
-                                </div>
-                              ))}
+                              {Array.isArray(mission.guests) && mission.guests.map((g, gi) => {
+                                const gRoles = Array.isArray(g?.roles) ? g.roles : (g?.role ? [g.role] : []);
+                                const gRoleText = gRoles.length > 0 ? `${gRoles.join(', ')} - Freelancer` : 'Convidado';
+                                return (
+                                  <div key={gi} className="excel-member-guest">
+                                    <span>🤝</span>
+                                    <span>{typeof g === 'string' ? g : g.name}</span>
+                                    <small>({gRoleText})</small>
+                                  </div>
+                                );
+                              })}
                               {!driverMember && teamMembers.length === 0 && (
                                 <span className="excel-empty-text">Sem equipe escalada</span>
                               )}

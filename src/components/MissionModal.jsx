@@ -291,6 +291,7 @@ export default function MissionModal({
   const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
   const [searchNoResultsPrompt, setSearchNoResultsPrompt] = useState(false);
   const [guestInput, setGuestInput] = useState('');
+  const [guestRoleInput, setGuestRoleInput] = useState('');
   // Recursos forçados/compartilhados (viaturas e colaboradores com autorização de sobreposição)
   const [forcedResources, setForcedResources] = useState(() => new Set());
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
@@ -981,7 +982,7 @@ export default function MissionModal({
     }));
   };
 
-  // ---- Gerenciamento de Convidados Externos / Freelancers ----
+  // ---- Gerenciamento de Convidados Externos / Freelancers com Funções Oficiais ----
   const handleAddGuest = (e) => {
     if (e) e.preventDefault();
     const trimmed = (guestInput || '').trim();
@@ -992,13 +993,20 @@ export default function MissionModal({
     );
     if (exists) {
       setGuestInput('');
+      setGuestRoleInput('');
       return;
     }
+    const newGuest = {
+      name: trimmed,
+      role: guestRoleInput || '',
+      roles: guestRoleInput ? [guestRoleInput] : [],
+    };
     setFormData((prev) => ({
       ...prev,
-      guests: [...(Array.isArray(prev.guests) ? prev.guests : []), trimmed],
+      guests: [...(Array.isArray(prev.guests) ? prev.guests : []), newGuest],
     }));
     setGuestInput('');
+    setGuestRoleInput('');
   };
 
   const handleRemoveGuest = (indexToRemove) => {
@@ -1006,6 +1014,60 @@ export default function MissionModal({
       ...prev,
       guests: (Array.isArray(prev.guests) ? prev.guests : []).filter((_, idx) => idx !== indexToRemove),
     }));
+  };
+
+  const handleAddGuestRole = (guestIndex, roleToAdd) => {
+    if (!roleToAdd) return;
+    setFormData((prev) => {
+      const currentGuests = Array.isArray(prev.guests) ? [...prev.guests] : [];
+      const targetGuest = currentGuests[guestIndex];
+      if (!targetGuest) return prev;
+
+      const guestObj = typeof targetGuest === 'string'
+        ? { name: targetGuest, role: '', roles: [] }
+        : { ...targetGuest };
+
+      const prevRoles = Array.isArray(guestObj.roles)
+        ? [...guestObj.roles]
+        : (guestObj.role ? [guestObj.role] : []);
+
+      if (!prevRoles.includes(roleToAdd)) {
+        prevRoles.push(roleToAdd);
+      }
+      guestObj.roles = prevRoles;
+      guestObj.role = prevRoles[0] || '';
+
+      currentGuests[guestIndex] = guestObj;
+      return {
+        ...prev,
+        guests: currentGuests,
+      };
+    });
+  };
+
+  const handleRemoveGuestRole = (guestIndex, roleToRemove) => {
+    setFormData((prev) => {
+      const currentGuests = Array.isArray(prev.guests) ? [...prev.guests] : [];
+      const targetGuest = currentGuests[guestIndex];
+      if (!targetGuest) return prev;
+
+      const guestObj = typeof targetGuest === 'string'
+        ? { name: targetGuest, role: '', roles: [] }
+        : { ...targetGuest };
+
+      const prevRoles = Array.isArray(guestObj.roles)
+        ? guestObj.roles.filter((r) => r !== roleToRemove)
+        : (guestObj.role === roleToRemove ? [] : [guestObj.role]);
+
+      guestObj.roles = prevRoles;
+      guestObj.role = prevRoles[0] || '';
+
+      currentGuests[guestIndex] = guestObj;
+      return {
+        ...prev,
+        guests: currentGuests,
+      };
+    });
   };
 
   // ---- Gerenciamento de Múltiplas Viaturas & Motoristas ----
@@ -1566,7 +1628,11 @@ export default function MissionModal({
 
     // Registro histórico de convidados externos / freelancers
     const guestsList = Array.isArray(formData.guests) ? formData.guests : [];
-    const guestsStr = guestsList.map((g) => typeof g === 'string' ? g : g.name).join(', ');
+    const guestsStr = guestsList.map((g) => {
+      if (typeof g === 'string') return g;
+      const gRoles = Array.isArray(g.roles) && g.roles.length > 0 ? g.roles : (g.role ? [g.role] : []);
+      return gRoles.length > 0 ? `${g.name} (${gRoles.join(', ')})` : g.name;
+    }).join(', ');
     if (!editingMission) {
       if (guestsStr) {
         currentHistory.push({
@@ -4035,8 +4101,8 @@ export default function MissionModal({
                       </small>
                     </div>
 
-                    <div className="mm-guest-input-row">
-                      <div className="mm-guest-input-wrap">
+                    <div className="mm-guest-input-row" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <div className="mm-guest-input-wrap" style={{ flex: '1 1 240px' }}>
                         <input
                           type="text"
                           className="mm-guest-input"
@@ -4051,6 +4117,31 @@ export default function MissionModal({
                           }}
                         />
                       </div>
+                      <select
+                        className="mm-guest-role-select-inline"
+                        value={guestRoleInput}
+                        onChange={(e) => setGuestRoleInput(e.target.value)}
+                        style={{
+                          flex: '0 1 220px',
+                          height: '38px',
+                          padding: '0 10px',
+                          borderRadius: '8px',
+                          background: 'rgba(15, 23, 42, 0.75)',
+                          border: '1.5px solid rgba(255, 255, 255, 0.12)',
+                          color: guestRoleInput ? '#fbbf24' : '#94a3b8',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          outline: 'none',
+                        }}
+                      >
+                        <option value="">+ Função (Opcional)...</option>
+                        {OFFICIAL_COMPANY_ROLES.map((r) => (
+                          <option key={r} value={r}>
+                            + {ROLE_ICONS_MAP[r] || '💼'} {r}
+                          </option>
+                        ))}
+                      </select>
                       <button
                         type="button"
                         className="btn-add-guest"
@@ -4065,26 +4156,126 @@ export default function MissionModal({
 
                     {/* Lista de convidados adicionados */}
                     {(formData.guests || []).length > 0 ? (
-                      <div className="mm-guests-list">
+                      <div className="mm-guests-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '10px' }}>
                         {(formData.guests || []).map((guest, idx) => {
                           const guestName = typeof guest === 'string' ? guest : guest.name;
+                          const guestRoles = Array.isArray(guest?.roles)
+                            ? guest.roles
+                            : (guest?.role ? [guest.role] : []);
+
                           return (
-                            <div key={idx} className="mm-guest-chip">
-                              <span className="mgc-avatar">
-                                {guestName.slice(0, 2).toUpperCase()}
-                              </span>
-                              <div className="mgc-info">
-                                <strong className="mgc-name">{guestName}</strong>
-                                <span className="mgc-badge">Freelancer / Externo</span>
+                            <div key={idx} className="mm-guest-chip" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px 12px', borderRadius: '10px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span className="mgc-avatar">
+                                    {guestName.slice(0, 2).toUpperCase()}
+                                  </span>
+                                  <div className="mgc-info">
+                                    <strong className="mgc-name">{guestName}</strong>
+                                    <span className="mgc-badge">Freelancer / Externo</span>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn-remove-guest"
+                                  onClick={() => handleRemoveGuest(idx)}
+                                  title={`Remover ${guestName}`}
+                                >
+                                  <X size={14} />
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                className="btn-remove-guest"
-                                onClick={() => handleRemoveGuest(idx)}
-                                title={`Remover ${guestName}`}
-                              >
-                                <X size={13} />
-                              </button>
+
+                              {/* Funções do Convidado / Freelancer */}
+                              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '6px', width: '100%' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
+                                    🎯 Função nesta Missão:
+                                  </span>
+                                  <span style={{ fontSize: '0.68rem', color: '#c084fc', fontWeight: 700 }}>
+                                    {guestRoles.length} {guestRoles.length === 1 ? 'função' : 'funções'}
+                                  </span>
+                                </div>
+
+                                {guestRoles.length > 0 && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                                    {guestRoles.map((r) => {
+                                      const color = ROLE_COLORS_MAP[r] || '#a855f7';
+                                      const icon = ROLE_ICONS_MAP[r] || '💼';
+                                      return (
+                                        <span
+                                          key={r}
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            padding: '2px 7px',
+                                            borderRadius: '6px',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 700,
+                                            background: `${color}22`,
+                                            border: `1px solid ${color}50`,
+                                            color: color,
+                                          }}
+                                        >
+                                          <span>{icon}</span>
+                                          <span>{r}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemoveGuestRole(idx, r)}
+                                            style={{
+                                              background: 'transparent',
+                                              border: 'none',
+                                              color: 'inherit',
+                                              cursor: 'pointer',
+                                              padding: 0,
+                                              marginLeft: '3px',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              opacity: 0.8,
+                                            }}
+                                            title={`Remover função ${r}`}
+                                          >
+                                            <X size={11} />
+                                          </button>
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+
+                                <select
+                                  value=""
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      handleAddGuestRole(idx, e.target.value);
+                                    }
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    height: '30px',
+                                    padding: '0 8px',
+                                    borderRadius: '6px',
+                                    background: 'rgba(15, 23, 42, 0.75)',
+                                    border: '1px dashed rgba(168, 85, 247, 0.4)',
+                                    color: '#c084fc',
+                                    fontSize: '0.73rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    outline: 'none',
+                                  }}
+                                >
+                                  <option value="">
+                                    {guestRoles.length === 0
+                                      ? '+ Definir função (Cinegrafista, Drone, Fotógrafo...)'
+                                      : '+ Acumular outra função (Fotógrafo, Totem, Drone, Áudio...)'}
+                                  </option>
+                                  {OFFICIAL_COMPANY_ROLES.filter((r) => !guestRoles.includes(r)).map((r) => (
+                                    <option key={r} value={r}>
+                                      + {ROLE_ICONS_MAP[r] || '💼'} {r}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
                             </div>
                           );
                         })}
@@ -4305,8 +4496,9 @@ export default function MissionModal({
               {/* Blocos de Equipamentos para Convidados Externos / Freelancers */}
               {Array.isArray(formData.guests) && formData.guests.map((guest, gIdx) => {
                 const guestName = typeof guest === 'string' ? guest : (guest.name || `Convidado ${gIdx + 1}`);
+                const guestRoles = Array.isArray(guest?.roles) ? guest.roles : (guest?.role ? [guest.role] : []);
                 const guestId = `guest-${gIdx}-${guestName.replace(/\s+/g, '-').toLowerCase()}`;
-                const roleDisplay = 'Convidado / Freelancer Externo';
+                const roleDisplay = guestRoles.length > 0 ? `${guestRoles.join(', ')} • Freelancer` : 'Convidado / Freelancer Externo';
                 const personGroup = (formData.equipmentAllocations || []).find((g) => g.collaboratorId === guestId) || { items: [] };
                 const itemsCount = (personGroup.items || []).reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
                 const selectedEquipId = selectedEquipByPerson[guestId] || '';
