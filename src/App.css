@@ -36318,14 +36318,15 @@ body.light-theme .ac-meta-chip-editors {
   text-overflow: ellipsis !important;
 }
 
-/* Rodapé de Ações - Botões Ultra Expressivos, Imponentes e Decisivos */
+/* Rodapé de Ações - Botões Ultra Expressivos Empilhados Verticalmente (Sem Cortes de Informações) */
 .ac-pp-actions-footer {
-  display: grid !important;
-  grid-template-columns: 1fr 1.35fr !important;
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: none !important;
   align-items: stretch !important;
-  gap: 12px !important;
+  gap: 10px !important;
   width: 100% !important;
-  margin-top: 8px !important;
+  margin-top: 12px !important;
   padding-top: 16px !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-sizing: border-box !important;
@@ -36337,29 +36338,29 @@ body.light-theme .ac-pp-actions-footer {
 
 .ac-pp-btn-action {
   width: 100% !important;
-  min-height: 52px !important;
+  min-height: 54px !important;
   border-radius: 14px !important;
-  display: inline-flex !important;
+  display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
-  padding: 8px 14px !important;
+  gap: 14px !important;
+  padding: 10px 16px !important;
   cursor: pointer !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
   box-sizing: border-box !important;
   text-align: left !important;
   user-select: none !important;
   position: relative !important;
-  overflow: hidden !important;
+  overflow: visible !important;
 }
 
 .ac-pp-btn-action:active {
-  transform: scale(0.98) !important;
+  transform: scale(0.985) !important;
 }
 
 .ac-btn-icon-circle {
-  width: 34px !important;
-  height: 34px !important;
-  border-radius: 10px !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 11px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -36376,19 +36377,33 @@ body.light-theme .ac-pp-actions-footer {
 }
 
 .ac-btn-main-title {
-  font-size: 0.92rem !important;
+  font-size: 0.95rem !important;
   font-weight: 800 !important;
   letter-spacing: 0.2px !important;
-  line-height: 1.2 !important;
-  white-space: nowrap !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+  display: block !important;
 }
 
 .ac-btn-sub-title {
-  font-size: 0.68rem !important;
+  font-size: 0.74rem !important;
   font-weight: 600 !important;
-  line-height: 1.15 !important;
-  white-space: nowrap !important;
-  opacity: 0.85 !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+  opacity: 0.88 !important;
+  display: block !important;
+}
+
+.ac-btn-arrow-icon {
+  opacity: 0.55 !important;
+  flex-shrink: 0 !important;
+  transition: all 0.25s ease !important;
+  margin-left: auto !important;
+}
+
+.ac-pp-btn-action:hover .ac-btn-arrow-icon {
+  opacity: 1 !important;
+  transform: translateX(3px) !important;
 }
 
 /* 1. Botão REJEITAR E REABRIR (Expressivo, Vermelho / Coral com Alerta Visual Claro) */

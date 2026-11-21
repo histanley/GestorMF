@@ -2000,12 +2000,13 @@ export default function AdminCenter({
                             title="Rejeitar material e solicitar ajustes com novo prazo aos editores"
                           >
                             <div className="ac-btn-icon-circle reject">
-                              <RotateCcw size={17} />
+                              <RotateCcw size={18} />
                             </div>
                             <div className="ac-btn-text-group">
                               <strong className="ac-btn-main-title">Rejeitar e Reabrir</strong>
                               <span className="ac-btn-sub-title">Solicitar ajustes com novo prazo</span>
                             </div>
+                            <ChevronRight size={17} className="ac-btn-arrow-icon" />
                           </button>
 
                           <button
@@ -2015,12 +2016,13 @@ export default function AdminCenter({
                             title="Confirmar finalização da missão e aprovar material entregue"
                           >
                             <div className="ac-btn-icon-circle approve">
-                              <CheckCheck size={19} />
+                              <CheckCheck size={20} />
                             </div>
                             <div className="ac-btn-text-group">
                               <strong className="ac-btn-main-title">Confirmar Finalização</strong>
                               <span className="ac-btn-sub-title">Aprovar entrega e concluir</span>
                             </div>
+                            <ChevronRight size={17} className="ac-btn-arrow-icon" />
                           </button>
                         </div>
                       ) : (
