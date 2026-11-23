@@ -961,13 +961,18 @@ export function computeVehicleFuelTelemetry(
   const baseLiters = (basePercent / 100) * tankCapacity;
 
   // Litros adicionados em abastecimentos posteriores à calibração base
-  const refuelLitersAdded = (vehicle.fuelLogs || [])
-    .filter((f) => !f.accountedInBase && !SEED_FUEL_LOG_IDS.has(f.id))
-    .reduce((acc, f) => acc + (parseFloat(f.liters) || 0), 0);
+  const validFuelLogs = (vehicle.fuelLogs || []).filter(
+    (f) => f && !f.accountedInBase && !SEED_FUEL_LOG_IDS.has(f.id)
+  );
+
+  const refuelLitersAdded = validFuelLogs.reduce(
+    (acc, f) => acc + (parseFloat(f.liters) || 0),
+    0
+  );
 
   // Missões vinculadas a esta viatura (exceto canceladas ou missão em edição se excludeMissionId informado)
   const vehicleMissions = (missions || []).filter(
-    (m) => m.id !== excludeMissionId && isVehicleInMission(vehicle, m)
+    (m) => m && m.id !== excludeMissionId && isVehicleInMission(vehicle, m)
   );
 
   let totalMissionsKm = 0;
@@ -984,9 +989,68 @@ export function computeVehicleFuelTelemetry(
   totalMissionsKm = parseFloat(totalMissionsKm.toFixed(2));
   totalMissionsLitersConsumed = parseFloat(totalMissionsLitersConsumed.toFixed(2));
 
-  // Nível líquido atual no tanque (oscila com abastecimentos e missões)
-  const rawLiters = baseLiters + refuelLitersAdded - totalMissionsLitersConsumed;
-  const currentLiters = parseFloat(Math.max(0, Math.min(tankCapacity, rawLiters)).toFixed(2));
+  // Simulação cronológica do tanque:
+  // Replay histórico de abastecimentos e missões respeitando os limites físicos do tanque [0, tankCapacity].
+  // Em condições reais, o tanque nunca pode ser negativo (um veículo não roda com combustível negativo).
+  // Abastecimentos colocados hoje nunca são engolidos ou anulados por missões antigas finalizadas no passado!
+  const events = [];
+
+  // 1. Abastecimentos da viatura
+  validFuelLogs.forEach((f, idx) => {
+    const dStr = f.date ? String(f.date).slice(0, 10) : '1970-01-01';
+    events.push({
+      type: 'refuel',
+      date: dStr,
+      idx,
+      liters: parseFloat(f.liters) || 0,
+    });
+  });
+
+  // 2. Missões da viatura
+  vehicleMissions.forEach((m, idx) => {
+    const dStr = m.date ? String(m.date).slice(0, 10) : (m.startDate ? String(m.startDate).slice(0, 10) : '1970-01-01');
+    const mKm = getMissionTotalKm(m);
+    const lit = mKm > 0 ? mKm / autonomy : 0;
+    const st = String(m.missionStatus || m.status || '').toLowerCase().trim();
+    const isFinished = st === 'concluída' || st === 'concluida' || st === 'finalizada' || st === 'finalizado';
+    events.push({
+      type: 'mission',
+      date: dStr,
+      isFinished,
+      idx,
+      liters: lit,
+    });
+  });
+
+  // Ordena cronologicamente:
+  // 1. Datas diferentes: ordem de calendário
+  // 2. Mesma data: missões já finalizadas/concluídas rodaram antes para esvaziar o tanque;
+  //    o abastecimento daquele dia veio repor o combustível;
+  //    missões agendadas/em andamento rodam depois, consumindo do novo combustível abastecido.
+  events.sort((a, b) => {
+    if (a.date !== b.date) {
+      return a.date.localeCompare(b.date);
+    }
+    if (a.type === 'mission' && b.type === 'refuel') {
+      return a.isFinished ? -1 : 1;
+    }
+    if (a.type === 'refuel' && b.type === 'mission') {
+      return b.isFinished ? 1 : -1;
+    }
+    return (a.idx || 0) - (b.idx || 0);
+  });
+
+  let currentLevel = baseLiters;
+  for (const ev of events) {
+    if (ev.type === 'refuel') {
+      currentLevel = Math.min(tankCapacity, currentLevel + ev.liters);
+    } else if (ev.type === 'mission') {
+      currentLevel = Math.max(0, currentLevel - ev.liters);
+    }
+  }
+
+  // Nível líquido atual no tanque
+  const currentLiters = parseFloat(Math.max(0, Math.min(tankCapacity, currentLevel)).toFixed(2));
   const currentPercent = parseFloat(((currentLiters / tankCapacity) * 100).toFixed(1));
   const remainingRangeKm = parseFloat((currentLiters * autonomy).toFixed(1));
 

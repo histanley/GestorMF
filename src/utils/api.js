@@ -268,10 +268,10 @@ export async function apiSaveVehicle(vehicle) {
   });
 }
 
-export async function apiAddFuelLog({ vehicleId, fuelLog }) {
+export async function apiAddFuelLog({ vehicleId, fuelLog, currentFuelPercent, currentKm }) {
   return await apiRequest('/vehicles.php?action=add_fuel_log', {
     method: 'POST',
-    body: JSON.stringify({ vehicleId, fuelLog })
+    body: JSON.stringify({ vehicleId, fuelLog, currentFuelPercent, currentKm })
   });
 }
 

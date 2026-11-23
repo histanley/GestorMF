@@ -22,7 +22,7 @@ console.log('[PASS] 02. API Client (api.js): apiAddFuelLog e apiDeleteFuelLog de
 
 // 3. Checa App.jsx
 const appJsxCode = fs.readFileSync(path.join(__dirname, '../src/App.jsx'), 'utf8');
-assert(appJsxCode.includes('apiAddFuelLog({ vehicleId, fuelLog })'), 'App.jsx deve chamar apiAddFuelLog para salvar abastecimento');
+assert(appJsxCode.includes('apiAddFuelLog({') && appJsxCode.includes('vehicleId') && appJsxCode.includes('fuelLog'), 'App.jsx deve chamar apiAddFuelLog para salvar abastecimento');
 assert(appJsxCode.includes('apiDeleteFuelLog({ vehicleId, fuelLogId })'), 'App.jsx deve chamar apiDeleteFuelLog para remover abastecimento');
 console.log('[PASS] 03. Frontend (App.jsx): handleAddFuelLog e handleDeleteFuelLog persistem dados no servidor.');
 

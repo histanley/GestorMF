@@ -66,8 +66,8 @@ if ($method === 'POST' && $action === 'add_fuel_log') {
 
     $db->beginTransaction();
     try {
-        $stmt = $db->prepare("SELECT id, name, plate, current_km, fuel_logs FROM vehicles WHERE id = ? FOR UPDATE");
-        $stmt->execute([$vehicleId]);
+        $stmt = $db->prepare("SELECT id, name, plate, current_km, fuel_logs FROM vehicles WHERE id = ? OR plate = ? FOR UPDATE");
+        $stmt->execute([$vehicleId, $vehicleId]);
         $veh = $stmt->fetch();
 
         if (!$veh) {
@@ -101,13 +101,24 @@ if ($method === 'POST' && $action === 'add_fuel_log') {
 
         $logKm = (int)($log['km'] ?? 0);
         $newKm = max((int)$veh['current_km'], $logKm);
+        $newPercent = isset($data['currentFuelPercent']) ? (float)$data['currentFuelPercent'] : null;
 
-        $stmtUp = $db->prepare("UPDATE vehicles SET fuel_logs = :logs, current_km = :km WHERE id = :id");
-        $stmtUp->execute([
-            ':logs' => json_encode($currentLogs, JSON_UNESCAPED_UNICODE),
-            ':km'   => $newKm,
-            ':id'   => $vehicleId
-        ]);
+        if ($newPercent !== null) {
+            $stmtUp = $db->prepare("UPDATE vehicles SET fuel_logs = :logs, current_km = :km, current_fuel_percent = :percent WHERE id = :id");
+            $stmtUp->execute([
+                ':logs'    => json_encode($currentLogs, JSON_UNESCAPED_UNICODE),
+                ':km'      => $newKm,
+                ':percent' => $newPercent,
+                ':id'      => $veh['id']
+            ]);
+        } else {
+            $stmtUp = $db->prepare("UPDATE vehicles SET fuel_logs = :logs, current_km = :km WHERE id = :id");
+            $stmtUp->execute([
+                ':logs' => json_encode($currentLogs, JSON_UNESCAPED_UNICODE),
+                ':km'   => $newKm,
+                ':id'   => $veh['id']
+            ]);
+        }
 
         $db->commit();
     } catch (Exception $e) {
@@ -115,7 +126,7 @@ if ($method === 'POST' && $action === 'add_fuel_log') {
             $db->rollBack();
         }
         error_log('[GestorMF Fuel Log Error] ' . $e->getMessage());
-        jsonResponse(['success' => false, 'error' => 'Falha transacional ao registrar abastecimento.'], 500);
+        jsonResponse(['success' => false, 'error' => 'Falha transacional ao registrar abastecimento: ' . $e->getMessage()], 500);
     }
 
     $liters = $log['liters'] ?? 0;
@@ -145,8 +156,8 @@ if ($method === 'POST' && $action === 'delete_fuel_log') {
 
     $db->beginTransaction();
     try {
-        $stmt = $db->prepare("SELECT id, name, plate, fuel_logs FROM vehicles WHERE id = ? FOR UPDATE");
-        $stmt->execute([$vehicleId]);
+        $stmt = $db->prepare("SELECT id, name, plate, fuel_logs FROM vehicles WHERE id = ? OR plate = ? FOR UPDATE");
+        $stmt->execute([$vehicleId, $vehicleId]);
         $veh = $stmt->fetch();
 
         if (!$veh) {
@@ -172,7 +183,7 @@ if ($method === 'POST' && $action === 'delete_fuel_log') {
         $stmtUp = $db->prepare("UPDATE vehicles SET fuel_logs = :logs WHERE id = :id");
         $stmtUp->execute([
             ':logs' => !empty($filteredLogs) ? json_encode($filteredLogs, JSON_UNESCAPED_UNICODE) : null,
-            ':id'   => $vehicleId
+            ':id'   => $veh['id']
         ]);
 
         $db->commit();

@@ -293,16 +293,25 @@ export default function VehicleManager({
 
     setShowFuelModal(false);
     if (onAddFuelLog) {
-      await onAddFuelLog(selectedVehicleForFuel.id, log);
-      setSelectedVehicleForHistory((prev) => {
-        if (!prev || prev.id !== selectedVehicleForFuel.id) return prev;
-        const currentLogs = prev.fuelLogs || [];
-        return {
-          ...prev,
-          fuelLogs: [...currentLogs, log],
-          currentKm: Math.max(prev.currentKm || 0, log.km || 0),
-        };
-      });
+      const isElec = isElectricVehicle(selectedVehicleForFuel);
+      const unit = isElec ? 'kWh' : 'L';
+      const success = await onAddFuelLog(selectedVehicleForFuel.id, log);
+      if (success !== false) {
+        setSelectedVehicleForHistory((prev) => {
+          if (!prev || prev.id !== selectedVehicleForFuel.id) return prev;
+          const currentLogs = prev.fuelLogs || [];
+          return {
+            ...prev,
+            fuelLogs: [...currentLogs, log],
+            currentKm: Math.max(prev.currentKm || 0, log.km || 0),
+          };
+        });
+        await alertDialog({
+          title: isElec ? '⚡ Recarga Registrada' : '⛽ Abastecimento Registrado',
+          message: `${isElec ? 'Recarga de' : 'Abastecimento de'} ${log.liters}${unit} (R$ ${log.amountSpent.toFixed(2)}) registrado com sucesso na viatura ${selectedVehicleForFuel.name} (${selectedVehicleForFuel.plate})! O nível do tanque foi recalculado.`,
+          variant: 'success',
+        });
+      }
     }
   };
 
@@ -1140,7 +1149,10 @@ export default function VehicleManager({
         const unit = isElec ? 'kWh' : 'L';
         const noun = isElec ? 'Bateria' : 'Tanque';
         const actionNoun = isElec ? 'Recarga' : 'Abastecimento';
-        const priceL = getFuelPriceForVehicle(selectedVehicleForFuel, fuelSettings);
+        const rawPrice = getFuelPriceForVehicle(selectedVehicleForFuel, fuelSettings);
+        const priceL = (typeof rawPrice === 'number' && !isNaN(rawPrice) && rawPrice > 0)
+          ? rawPrice
+          : (isElec ? 0.95 : isDiesel ? 6.89 : 6.45);
         const fuelTel = computeVehicleFuelTelemetry(selectedVehicleForFuel, missions, fuelSettings);
         const addedLiters = Math.max(0, parseFloat(fuelFormData.liters) || 0);
         const projectedLiters = parseFloat(

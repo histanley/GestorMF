@@ -1945,9 +1945,9 @@ export default function App() {
     let updatedTargetVeh = null;
     const previousVehicles = vehicles;
 
-    setVehicles((prev) =>
-      prev.map((v) => {
-        if (v.id === vehicleId) {
+    setVehicles((prev) => {
+      const nextVehicles = prev.map((v) => {
+        if (String(v.id) === String(vehicleId)) {
           const logs = v.fuelLogs ? [...v.fuelLogs, fuelLog] : [fuelLog];
           const tempVeh = { ...v, fuelLogs: logs };
           const tel = computeVehicleFuelTelemetry(
@@ -1955,34 +1955,31 @@ export default function App() {
             missions,
             settings?.fuelPricePerLiter || 6.45
           );
-          const tankCap = parseFloat(v.tankCapacity) || 50;
-          // Se o abastecimento completar/ultrapassar 100% da capacidade do tanque, calibra o teto em 100%
-          // para que as próximas missões deduzam imediatamente a partir do tanque cheio (100%)
-          const rawTotalLiters =
-            tel.baseLiters + tel.refuelLitersAdded - tel.totalMissionsLitersConsumed;
-          let nextBaseFuelPercent = v.baseFuelPercent;
-          if (rawTotalLiters > tankCap) {
-            const cappedBaseLiters =
-              tankCap - (tel.refuelLitersAdded - tel.totalMissionsLitersConsumed);
-            nextBaseFuelPercent = parseFloat(((cappedBaseLiters / tankCap) * 100).toFixed(4));
-          }
 
           updatedTargetVeh = {
             ...v,
             fuelLogs: logs,
-            baseFuelPercent: nextBaseFuelPercent,
             currentFuelPercent: tel.currentPercent,
             currentKm: fuelLog.km ? Math.max(v.currentKm || 0, fuelLog.km) : v.currentKm,
           };
           return updatedTargetVeh;
         }
         return v;
-      })
-    );
+      });
+      try {
+        localStorage.setItem('gestormf_vehicles', JSON.stringify(nextVehicles));
+      } catch (e) {}
+      return nextVehicles;
+    });
 
     // Persistência Imediata no MySQL (com fallback para salvamento completo da viatura)
     try {
-      const res = await apiAddFuelLog({ vehicleId, fuelLog });
+      const res = await apiAddFuelLog({
+        vehicleId,
+        fuelLog,
+        currentFuelPercent: updatedTargetVeh?.currentFuelPercent,
+        currentKm: updatedTargetVeh?.currentKm,
+      });
       if (!res.success) {
         if (updatedTargetVeh) {
           const resFull = await apiSaveVehicle(updatedTargetVeh);
