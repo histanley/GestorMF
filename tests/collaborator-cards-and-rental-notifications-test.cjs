@@ -32,19 +32,20 @@ assert(
 
 console.log('✓ App.css tests passed: all financial summary cards strictly aligned side-by-side');
 
-// 2. Verify notifications.js allows all users to receive rental notifications
+// 2. Verify notifications.js restricts rental notifications strictly to managers and administrators
 const notifContent = fs.readFileSync(path.join(__dirname, '../src/utils/notifications.js'), 'utf-8');
 
 assert(
-  !notifContent.match(/export function checkAndNotifyPendingRentals[\s\S]*?if \(!isAdminOrManager\) return/),
-  'checkAndNotifyPendingRentals must NOT restrict to isAdminOrManager'
+  notifContent.includes('role !== ROLES.ADMIN && role !== ROLES.MANAGER') &&
+  notifContent.includes('return [];'),
+  'checkAndNotifyPendingRentals must strictly restrict rental notifications to ADMIN and MANAGER'
 );
 assert(
   notifContent.includes('export function checkAndNotifyPendingRentals(rentals = [], currentUser = null) {'),
   'checkAndNotifyPendingRentals must exist'
 );
 
-console.log('✓ notifications.js tests passed: all authenticated users receive rental notifications');
+console.log('✓ notifications.js tests passed: rental notifications restricted to managers and administrators');
 
 // 3. Verify App.jsx checkRentals and tab navigation
 const appContent = fs.readFileSync(path.join(__dirname, '../src/App.jsx'), 'utf-8').replace(/\r\n/g, '\n');
@@ -58,11 +59,11 @@ assert(
   'App.jsx must not redirect non-admin users away from rentals tab'
 );
 assert(
-  appContent.includes("{activeTab === 'rentals' && (\n          <EquipmentRentalManager currentUser={currentUser} />"),
-  'App.jsx must render EquipmentRentalManager for any user on rentals tab'
+  appContent.includes("{activeTab === 'rentals' && canManageRentals && (\n          <EquipmentRentalManager currentUser={currentUser} />"),
+  'App.jsx must render EquipmentRentalManager for authorized managers and admins on rentals tab'
 );
 
-console.log('✓ App.jsx tests passed: all users can check rentals and navigate to rentals tab');
+console.log('✓ App.jsx tests passed: rentals tab correctly protected for managers and admins');
 
 // 4. Verify public/api/rentals.php allows GET for any authenticated user
 const phpContent = fs.readFileSync(path.join(__dirname, '../public/api/rentals.php'), 'utf-8').replace(/\r\n/g, '\n');

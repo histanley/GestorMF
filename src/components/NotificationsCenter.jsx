@@ -23,6 +23,7 @@ import {
   Film,
   AlertCircle,
 } from 'lucide-react';
+import { normalizeRole, ROLES } from '../utils/auth';
 
 /**
  * Categorização inteligente de notificações para garantir que NENHUM item fique oculto
@@ -135,6 +136,7 @@ export function isNotificationPending(n, isNotificationLocked) {
 
 export default function NotificationsCenter({
   notifications = [],
+  currentUser = null,
   onClose,
   onMarkAsRead,
   onMarkAllAsRead,
@@ -148,40 +150,52 @@ export default function NotificationsCenter({
   const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'pending' | 'mission' | 'messages' | 'fuel' | 'rental'
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Apenas administradores e gestores possuem acesso às notificações de locações e devoluções
+  const userRole = normalizeRole(currentUser?.role || currentUser);
+  const canSeeRentals = userRole === ROLES.ADMIN || userRole === ROLES.MANAGER;
+
+  // Notificações visíveis para este perfil
+  const visibleNotifications = useMemo(() => {
+    return notifications.filter((n) => {
+      if (!canSeeRentals && getNotificationCategory(n) === 'rental') return false;
+      return true;
+    });
+  }, [notifications, canSeeRentals]);
+
   // Contadores calculados com base na classificação abrangente
   const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.read).length,
-    [notifications]
+    () => visibleNotifications.filter((n) => !n.read).length,
+    [visibleNotifications]
   );
 
   const pendingCount = useMemo(
-    () => notifications.filter((n) => isNotificationPending(n, isNotificationLocked)).length,
-    [notifications, isNotificationLocked]
+    () => visibleNotifications.filter((n) => isNotificationPending(n, isNotificationLocked)).length,
+    [visibleNotifications, isNotificationLocked]
   );
 
   const missionsCount = useMemo(
-    () => notifications.filter((n) => getNotificationCategory(n) === 'mission').length,
-    [notifications]
+    () => visibleNotifications.filter((n) => getNotificationCategory(n) === 'mission').length,
+    [visibleNotifications]
   );
 
   const messagesCount = useMemo(
-    () => notifications.filter((n) => getNotificationCategory(n) === 'messages').length,
-    [notifications]
+    () => visibleNotifications.filter((n) => getNotificationCategory(n) === 'messages').length,
+    [visibleNotifications]
   );
 
   const fuelCount = useMemo(
-    () => notifications.filter((n) => getNotificationCategory(n) === 'fuel').length,
-    [notifications]
+    () => visibleNotifications.filter((n) => getNotificationCategory(n) === 'fuel').length,
+    [visibleNotifications]
   );
 
   const rentalsCount = useMemo(
-    () => notifications.filter((n) => getNotificationCategory(n) === 'rental').length,
-    [notifications]
+    () => (canSeeRentals ? visibleNotifications.filter((n) => getNotificationCategory(n) === 'rental').length : 0),
+    [visibleNotifications, canSeeRentals]
   );
 
   // Filtro inteligente e abrangente: nenhum item fica oculto
   const filteredNotifications = useMemo(() => {
-    return notifications.filter((n) => {
+    return visibleNotifications.filter((n) => {
       // 1. Filtro da Categoria
       if (filter === 'unread') {
         if (n.read) return false;
@@ -427,18 +441,20 @@ export default function NotificationsCenter({
             <span className="notif-tab-badge fuel">{fuelCount}</span>
           </button>
 
-          <button
-            type="button"
-            role="tab"
-            aria-selected={filter === 'rental'}
-            className={`notif-seg-tab ${filter === 'rental' ? 'is-active' : ''}`}
-            onClick={() => setFilter('rental')}
-            title="Contratos, locações e devolução de equipamentos"
-          >
-            <Package size={12} className="tab-icon" />
-            <span>Aluguéis</span>
-            <span className="notif-tab-badge rental">{rentalsCount}</span>
-          </button>
+          {canSeeRentals && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={filter === 'rental'}
+              className={`notif-seg-tab ${filter === 'rental' ? 'is-active' : ''}`}
+              onClick={() => setFilter('rental')}
+              title="Contratos, locações e devolução de equipamentos"
+            >
+              <Package size={12} className="tab-icon" />
+              <span>Aluguéis</span>
+              <span className="notif-tab-badge rental">{rentalsCount}</span>
+            </button>
+          )}
         </div>
       </div>
 

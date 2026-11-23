@@ -2749,6 +2749,7 @@ export default function App() {
             {isNotificationsOpen && (
               <NotificationsCenter
                 notifications={notifications}
+                currentUser={currentUser}
                 onClose={() => setIsNotificationsOpen(false)}
                 onMarkAsRead={handleMarkAsRead}
                 onMarkAllAsRead={handleMarkAllAsRead}

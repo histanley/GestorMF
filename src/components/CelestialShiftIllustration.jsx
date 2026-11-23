@@ -55,34 +55,80 @@ export default function CelestialShiftIllustration({
         <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.35" />
       </linearGradient>
 
-      {/* 5. Nascer do Sol (Sunrise) */}
-      <radialGradient id="csi-sunrise-sphere" cx="40%" cy="35%" r="65%">
-        <stop offset="0%" stopColor="#FFFBEB" />
-        <stop offset="35%" stopColor="#FDE047" />
-        <stop offset="70%" stopColor="#F97316" />
-        <stop offset="100%" stopColor="#DC2626" />
+      {/* 5. Nascer do Sol (Sunrise - Alvorada Dourada 3D Radiante) */}
+      <radialGradient id="csi-sunrise-aura" cx="50%" cy="58%" r="52%">
+        <stop offset="0%" stopColor="#FEF08A" stopOpacity="0.65" />
+        <stop offset="35%" stopColor="#FDE047" stopOpacity="0.4" />
+        <stop offset="68%" stopColor="#FB923C" stopOpacity="0.18" />
+        <stop offset="100%" stopColor="#F97316" stopOpacity="0" />
       </radialGradient>
 
-      <linearGradient id="csi-sunrise-horizon-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#F97316" stopOpacity="0.8" />
-        <stop offset="50%" stopColor="#FDE047" stopOpacity="1" />
-        <stop offset="100%" stopColor="#F97316" stopOpacity="0.8" />
+      <radialGradient id="csi-sunrise-sphere" cx="35%" cy="30%" r="68%">
+        <stop offset="0%" stopColor="#FFFFFF" />
+        <stop offset="15%" stopColor="#FFFBEB" />
+        <stop offset="35%" stopColor="#FDE047" />
+        <stop offset="65%" stopColor="#FB923C" />
+        <stop offset="88%" stopColor="#F97316" />
+        <stop offset="100%" stopColor="#EA580C" />
+      </radialGradient>
+
+      <linearGradient id="csi-sunrise-ray-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#FFFDE7" />
+        <stop offset="35%" stopColor="#FEF08A" />
+        <stop offset="75%" stopColor="#FBBF24" />
+        <stop offset="100%" stopColor="#F97316" stopOpacity="0.4" />
       </linearGradient>
 
-      {/* 6. Pôr do Sol (Sunset / Golden Hour) */}
-      <radialGradient id="csi-sunset-sphere" cx="38%" cy="32%" r="65%">
-        <stop offset="0%" stopColor="#FEF08A" />
-        <stop offset="30%" stopColor="#FB923C" />
-        <stop offset="65%" stopColor="#EA580C" />
-        <stop offset="90%" stopColor="#BE123C" />
+      <linearGradient id="csi-sunrise-ray-sec" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#FFFBEB" stopOpacity="0.9" />
+        <stop offset="50%" stopColor="#FDE047" stopOpacity="0.65" />
+        <stop offset="100%" stopColor="#FB923C" stopOpacity="0.2" />
+      </linearGradient>
+
+      <linearGradient id="csi-sunrise-horizon-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#F97316" stopOpacity="0.2" />
+        <stop offset="25%" stopColor="#FB923C" stopOpacity="0.85" />
+        <stop offset="50%" stopColor="#FFFDE7" stopOpacity="1" />
+        <stop offset="75%" stopColor="#FB923C" stopOpacity="0.85" />
+        <stop offset="100%" stopColor="#F97316" stopOpacity="0.2" />
+      </linearGradient>
+
+      {/* 6. Pôr do Sol (Sunset / Golden Hour - Crepúsculo 3D) */}
+      <radialGradient id="csi-sunset-aura" cx="50%" cy="58%" r="52%">
+        <stop offset="0%" stopColor="#FEF08A" stopOpacity="0.6" />
+        <stop offset="40%" stopColor="#FB923C" stopOpacity="0.35" />
+        <stop offset="75%" stopColor="#BE123C" stopOpacity="0.15" />
+        <stop offset="100%" stopColor="#881337" stopOpacity="0" />
+      </radialGradient>
+
+      <radialGradient id="csi-sunset-sphere" cx="35%" cy="30%" r="68%">
+        <stop offset="0%" stopColor="#FFFDE7" />
+        <stop offset="20%" stopColor="#FEF08A" />
+        <stop offset="45%" stopColor="#FB923C" />
+        <stop offset="75%" stopColor="#EA580C" />
+        <stop offset="92%" stopColor="#BE123C" />
         <stop offset="100%" stopColor="#881337" />
       </radialGradient>
 
+      <linearGradient id="csi-sunset-ray-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#FFFBEB" />
+        <stop offset="35%" stopColor="#FDE047" />
+        <stop offset="70%" stopColor="#FB923C" />
+        <stop offset="100%" stopColor="#EA580C" stopOpacity="0.35" />
+      </linearGradient>
+
+      <linearGradient id="csi-sunset-ray-sec" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#FEF08A" stopOpacity="0.9" />
+        <stop offset="55%" stopColor="#FB923C" stopOpacity="0.6" />
+        <stop offset="100%" stopColor="#BE123C" stopOpacity="0.2" />
+      </linearGradient>
+
       <linearGradient id="csi-sunset-horizon-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#C026D3" />
-        <stop offset="35%" stopColor="#EA580C" />
-        <stop offset="65%" stopColor="#F59E0B" />
-        <stop offset="100%" stopColor="#9333EA" />
+        <stop offset="0%" stopColor="#C026D3" stopOpacity="0.25" />
+        <stop offset="28%" stopColor="#EA580C" stopOpacity="0.85" />
+        <stop offset="50%" stopColor="#FEF08A" stopOpacity="1" />
+        <stop offset="72%" stopColor="#EA580C" stopOpacity="0.85" />
+        <stop offset="100%" stopColor="#9333EA" stopOpacity="0.25" />
       </linearGradient>
 
       {/* 7. Lua Noturna 3D */}
@@ -113,7 +159,7 @@ export default function CelestialShiftIllustration({
     </defs>
   );
 
-  // 1. NASCER DO SOL (Sunrise - Alvorada)
+  // 1. NASCER DO SOL (Sunrise - Alvorada Radiante 3D)
   if (phase === 'sunrise') {
     return (
       <svg
@@ -126,43 +172,111 @@ export default function CelestialShiftIllustration({
         aria-label={title || 'Nascer do Sol'}
       >
         {defs}
-        {/* Halo Suave de Alvorada */}
-        <circle cx="24" cy="27" r="21" fill="url(#csi-sun-aura)" />
+        {/* Halo Suave e Difuso de Alvorada Dourada */}
+        <circle cx="24" cy="27" r="23.5" fill="url(#csi-sunrise-aura)" />
 
-        {/* Raios Matinais Ascendentes */}
-        <g opacity="0.95" filter="url(#csi-warm-shadow)">
-          <path d="M 24 5 L 26 15 L 22 15 Z" fill="#FDE047" />
-          <path d="M 12 11 L 18.5 18 L 16 20 Z" fill="#FBBF24" />
-          <path d="M 36 11 L 32 20 L 29.5 18 Z" fill="#FBBF24" />
-          <path d="M 4 23 L 14 25.5 L 14 23 Z" fill="#F97316" />
-          <path d="M 44 23 L 34 23 L 34 25.5 Z" fill="#F97316" />
+        {/* Leque Majestoso de Raios Diamantados Radiantes Ascendentes */}
+        <g filter="url(#csi-warm-shadow)">
+          {/* Raios Primários Diamantados em Arco Ascendente (Alvorada) */}
+          {[-68, -45, -22.5, 0, 22.5, 45, 68].map((angle) => (
+            <path
+              key={`sr-prim-${angle}`}
+              d="M 24 3.5 L 25.8 15 C 24.6 15.6 23.4 15.6 22.2 15 Z"
+              fill="url(#csi-sunrise-ray-grad)"
+              transform={`rotate(${angle} 24 28)`}
+            />
+          ))}
+
+          {/* Raios Secundários Delicados (Micro-Flares de Alvorada) */}
+          {[-56.5, -33.75, -11.25, 11.25, 33.75, 56.5].map((angle) => (
+            <path
+              key={`sr-sec-${angle}`}
+              d="M 24 8.5 L 25 15.2 C 24.4 15.6 23.6 15.6 23 15.2 Z"
+              fill="url(#csi-sunrise-ray-sec)"
+              transform={`rotate(${angle} 24 28)`}
+            />
+          ))}
         </g>
 
-        {/* Semi-Sol 3D Nascendo */}
+        {/* Cúpula do Sol Nascente 3D Volumétrica */}
         <g filter="url(#csi-warm-shadow)">
+          {/* Anel de Transição Suave */}
           <path
-            d="M 11 31 A 13 13 0 0 1 37 31 Z"
+            d="M 11 28.5 A 13 13 0 0 1 37 28.5 Z"
+            fill="#FB923C"
+            opacity="0.35"
+          />
+
+          {/* Corpo do Disco Solar com Gradiente 3D Luminoso */}
+          <path
+            d="M 11.5 28.5 A 12.5 12.5 0 0 1 36.5 28.5 Z"
             fill="url(#csi-sunrise-sphere)"
           />
-          {/* Arco Especular de Brilho Matinal */}
+
+          {/* Arco Especular de Brilho Vítreo Matinal */}
           <path
-            d="M 16 24 A 9.5 9.5 0 0 1 32 24"
+            d="M 16.5 22.5 C 18 18.5 22.5 17 28 18"
             stroke="#FFFFFF"
-            strokeWidth="2"
+            strokeWidth="2.2"
             strokeLinecap="round"
-            opacity="0.9"
+            opacity="0.95"
+          />
+
+          {/* Ponto Focal de Brilho Solar */}
+          <circle cx="18.5" cy="20" r="1.5" fill="#FFFFFF" opacity="0.95" />
+        </g>
+
+        {/* Linhas de Horizonte e Ondas de Reflexo Dourado da Alvorada */}
+        <g filter="url(#csi-warm-shadow)">
+          {/* Linha Principal do Horizonte com Brilho Central */}
+          <rect
+            x="3.5"
+            y="28"
+            width="41"
+            height="3"
+            rx="1.5"
+            fill="url(#csi-sunrise-horizon-grad)"
+          />
+
+          {/* Reflexo Secundário Elegante */}
+          <rect
+            x="10.5"
+            y="34"
+            width="27"
+            height="2.2"
+            rx="1.1"
+            fill="url(#csi-sunrise-horizon-grad)"
+            opacity="0.8"
+          />
+
+          {/* Reflexo Terciário Suave */}
+          <rect
+            x="17"
+            y="39.2"
+            width="14"
+            height="1.6"
+            rx="0.8"
+            fill="url(#csi-sunrise-horizon-grad)"
+            opacity="0.55"
           />
         </g>
 
-        {/* Linhas de Horizonte com Reflexos Dourados */}
-        <rect x="4" y="31" width="40" height="3" rx="1.5" fill="url(#csi-sunrise-horizon-grad)" filter="url(#csi-warm-shadow)" />
-        <rect x="10" y="37" width="28" height="2" rx="1" fill="url(#csi-sunrise-horizon-grad)" opacity="0.75" />
-        <rect x="17" y="42" width="14" height="1.5" rx="0.75" fill="url(#csi-sunrise-horizon-grad)" opacity="0.5" />
+        {/* Estrelas/Partículas Matinais Cintilantes de 4 Pontas */}
+        <g opacity="0.95">
+          <path
+            d="M 7 11 C 7 12.2 6 13 4.5 13 C 6 13 7 13.8 7 15 C 7 13.8 8 13 9.5 13 C 8 13 7 12.2 7 11 Z"
+            fill="#FEF08A"
+          />
+          <path
+            d="M 40 12 C 40 13.2 39 14 37.5 14 C 39 14 40 14.8 40 16 C 40 14.8 41 14 42.5 14 C 41 14 40 13.2 40 12 Z"
+            fill="#FEF08A"
+          />
+        </g>
       </svg>
     );
   }
 
-  // 2. PÔR DO SOL (Sunset - Golden Hour / Fim de Tarde)
+  // 2. PÔR DO SOL (Sunset - Golden Hour / Fim de Tarde Radiante)
   if (phase === 'sunset') {
     return (
       <svg
@@ -175,38 +289,89 @@ export default function CelestialShiftIllustration({
         aria-label={title || 'Pôr do Sol'}
       >
         {defs}
-        {/* Halo Quente de Crepúsculo */}
-        <circle cx="24" cy="27" r="21" fill="url(#csi-sun-aura)" />
+        {/* Halo Quente Crepuscular */}
+        <circle cx="24" cy="27" r="23.5" fill="url(#csi-sunset-aura)" />
 
-        {/* Raios Descendentes do Entardecer */}
-        <g opacity="0.9" filter="url(#csi-warm-shadow)">
-          <path d="M 24 7 L 26 16 L 22 16 Z" fill="#FDE047" />
-          <path d="M 12 12 L 18.5 19 L 16 21 Z" fill="#FB923C" />
-          <path d="M 36 12 L 32 21 L 29.5 19 Z" fill="#FB923C" />
-          <path d="M 5 23 L 14 25.5 L 14 23 Z" fill="#F97316" />
-          <path d="M 43 23 L 34 23 L 34 25.5 Z" fill="#F97316" />
+        {/* Leque de Raios Diamantados do Pôr do Sol */}
+        <g filter="url(#csi-warm-shadow)">
+          {/* Raios Primários Diamantados Crepusculares */}
+          {[-68, -45, -22.5, 0, 22.5, 45, 68].map((angle) => (
+            <path
+              key={`ss-prim-${angle}`}
+              d="M 24 3.5 L 25.8 15 C 24.6 15.6 23.4 15.6 22.2 15 Z"
+              fill="url(#csi-sunset-ray-grad)"
+              transform={`rotate(${angle} 24 28)`}
+            />
+          ))}
+
+          {/* Raios Secundários Delicados */}
+          {[-56.5, -33.75, -11.25, 11.25, 33.75, 56.5].map((angle) => (
+            <path
+              key={`ss-sec-${angle}`}
+              d="M 24 8.5 L 25 15.2 C 24.4 15.6 23.6 15.6 23 15.2 Z"
+              fill="url(#csi-sunset-ray-sec)"
+              transform={`rotate(${angle} 24 28)`}
+            />
+          ))}
         </g>
 
-        {/* Disco Solar Avermelhado Descendente */}
+        {/* Disco Solar Avermelhado Descendente 3D */}
         <g filter="url(#csi-warm-shadow)">
+          {/* Transição Crepuscular */}
           <path
-            d="M 11 31 A 13 13 0 0 1 37 31 Z"
+            d="M 11 28.5 A 13 13 0 0 1 37 28.5 Z"
+            fill="#EA580C"
+            opacity="0.35"
+          />
+
+          {/* Corpo do Disco Solar */}
+          <path
+            d="M 11.5 28.5 A 12.5 12.5 0 0 1 36.5 28.5 Z"
             fill="url(#csi-sunset-sphere)"
           />
-          {/* Brilho Suave */}
+
+          {/* Brilho Especular Suave */}
           <path
-            d="M 16 24 A 9.5 9.5 0 0 1 32 24"
+            d="M 16.5 22.5 C 18 18.5 22.5 17 28 18"
             stroke="#FEF08A"
-            strokeWidth="1.8"
+            strokeWidth="2"
             strokeLinecap="round"
-            opacity="0.85"
+            opacity="0.9"
           />
+
+          {/* Ponto de Brilho */}
+          <circle cx="18.5" cy="20" r="1.4" fill="#FFFFFF" opacity="0.9" />
         </g>
 
-        {/* Horizonte do Crepúsculo */}
-        <rect x="4" y="31" width="40" height="3" rx="1.5" fill="url(#csi-sunset-horizon-grad)" filter="url(#csi-warm-shadow)" />
-        <rect x="9" y="37" width="30" height="2" rx="1" fill="url(#csi-sunset-horizon-grad)" opacity="0.8" />
-        <rect x="16" y="42" width="16" height="1.5" rx="0.75" fill="url(#csi-sunset-horizon-grad)" opacity="0.55" />
+        {/* Horizonte do Crepúsculo com Tons Púrpura e Dourado */}
+        <g filter="url(#csi-warm-shadow)">
+          <rect
+            x="3.5"
+            y="28"
+            width="41"
+            height="3"
+            rx="1.5"
+            fill="url(#csi-sunset-horizon-grad)"
+          />
+          <rect
+            x="10.5"
+            y="34"
+            width="27"
+            height="2.2"
+            rx="1.1"
+            fill="url(#csi-sunset-horizon-grad)"
+            opacity="0.8"
+          />
+          <rect
+            x="17"
+            y="39.2"
+            width="14"
+            height="1.6"
+            rx="0.8"
+            fill="url(#csi-sunset-horizon-grad)"
+            opacity="0.55"
+          />
+        </g>
       </svg>
     );
   }

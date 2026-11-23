@@ -3,6 +3,7 @@
 // ==============================================================================
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { isNativeApp } from './nativeBridge';
+import { ROLES, normalizeRole } from './auth';
 
 let sharedAudioCtx = null;
 let channelCreated = false;
@@ -320,11 +321,17 @@ export function checkAndNotifyPendingPostProductions(missions = [], currentUser 
 export const RENTAL_NOTIFY_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
 /**
- * Monitora e notifica toda a equipe (Administradores, Gestores e Colaboradores)
- * sobre locações com devolução vencendo hoje, devolução atrasada ou lembretes.
+ * Monitora e notifica exclusivamente Gestores e Administradores sobre locações
+ * com devolução vencendo hoje, devolução atrasada ou lembretes operacionais.
+ * Usuários colaboradores comuns nunca recebem alertas sonoros ou notificações de locação.
  */
 export function checkAndNotifyPendingRentals(rentals = [], currentUser = null) {
   if (!currentUser || typeof window === 'undefined') return [];
+  // Restrição estrita de perfil: apenas Administradores e Gestores recebem notificações de locações/aluguéis
+  const role = normalizeRole(currentUser?.role || currentUser);
+  if (role !== ROLES.ADMIN && role !== ROLES.MANAGER) {
+    return [];
+  }
   if (!Array.isArray(rentals) || rentals.length === 0) return [];
 
   const now = Date.now();
