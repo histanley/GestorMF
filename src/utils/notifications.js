@@ -19,7 +19,7 @@ async function ensureNotificationChannel() {
       vibration: true,
     });
     channelCreated = true;
-  } catch (e) {}
+  } catch (e) { }
 }
 
 /**
@@ -36,7 +36,7 @@ export function initAudioUnlock() {
           sharedAudioCtx.resume();
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   };
   window.addEventListener('click', unlock, { passive: true, once: true });
   window.addEventListener('touchstart', unlock, { passive: true, once: true });
@@ -111,7 +111,7 @@ export async function requestNotificationPermission() {
 
   if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
   if (Notification.permission === 'granted') {
-    registerPushSubscriptionWithServer().catch(() => {});
+    registerPushSubscriptionWithServer().catch(() => { });
     return 'granted';
   }
   if (Notification.permission === 'denied') return 'denied';
@@ -119,7 +119,7 @@ export async function requestNotificationPermission() {
   try {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
-      registerPushSubscriptionWithServer().catch(() => {});
+      registerPushSubscriptionWithServer().catch(() => { });
     }
     return permission;
   } catch (e) {
@@ -187,7 +187,7 @@ export function sendPushNotification(title, options = {}) {
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     try {
       navigator.vibrate([200, 100, 200, 100, 300]);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // 2. Notificação Nativa via Capacitor (Android / iOS)
@@ -207,9 +207,9 @@ export function sendPushNotification(title, options = {}) {
               extra: options.data || null,
             },
           ],
-        }).catch(() => {});
+        }).catch(() => { });
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // 3. Notificação Web Nativa (Navegadores desktop e mobile)
@@ -247,7 +247,7 @@ export function clearPostProductionNotification(missionId) {
   if (typeof window === 'undefined' || !missionId) return;
   try {
     localStorage.removeItem(`gestormf_last_pp_notify_${missionId}`);
-  } catch (e) {}
+  } catch (e) { }
 }
 
 /**
@@ -295,7 +295,7 @@ export function checkAndNotifyPendingPostProductions(missions = [], currentUser 
     try {
       const val = localStorage.getItem(storageKey);
       if (val) lastNotified = Number(val);
-    } catch (e) {}
+    } catch (e) { }
 
     // Dispara se for a primeira vez ou se já completou 30 minutos
     if (!lastNotified || (now - lastNotified >= POST_PROD_NOTIFY_INTERVAL_MS)) {
@@ -311,7 +311,7 @@ export function checkAndNotifyPendingPostProductions(missions = [], currentUser 
 
       try {
         localStorage.setItem(storageKey, String(now));
-      } catch (e) {}
+      } catch (e) { }
     }
   });
 }
@@ -350,7 +350,7 @@ export function checkAndNotifyPendingRentals(rentals = [], currentUser = null) {
     try {
       const val = localStorage.getItem(notifKey);
       if (val) lastNotified = Number(val);
-    } catch (e) {}
+    } catch (e) { }
 
     let notifTitle = '';
     let notifBody = '';
@@ -401,7 +401,7 @@ export function checkAndNotifyPendingRentals(rentals = [], currentUser = null) {
 
       try {
         localStorage.setItem(notifKey, String(now));
-      } catch (e) {}
+      } catch (e) { }
     }
   });
 
