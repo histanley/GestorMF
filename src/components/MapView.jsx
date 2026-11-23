@@ -25,6 +25,7 @@ import {
 import { getNavigationLinks, getMissionTotalKm, fetchRouteOSRM, formatDateBR } from '../utils/geo';
 import { apiGetActiveGpsLocations, apiSendGpsLocation, apiStopGpsLocation } from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
+import { watchNativePosition, requestLocationPermissions, isNativeApp } from '../utils/nativeBridge';
 
 // Ícones personalizados SVG para Leaflet
 const createBaseIcon = () => {
@@ -205,6 +206,14 @@ export default function MapView({
         tileLayerRef.current = null;
         markersLayerRef.current = null;
         routePolylineRef.current = null;
+      }
+      if (gpsWatchIdRef.current !== null) {
+        if (typeof gpsWatchIdRef.current === 'object' && gpsWatchIdRef.current.clear) {
+          gpsWatchIdRef.current.clear();
+        } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+        }
+        gpsWatchIdRef.current = null;
       }
     };
   }, []);
@@ -652,7 +661,7 @@ export default function MapView({
     return () => clearInterval(interval);
   }, [canViewStaffGps, showStaffGpsMarkers]);
 
-  // Alternador de Compartilhamento Consentido de GPS (LGPD / Privacidade)
+  // Alternador de Compartilhamento Consentido de GPS (LGPD / Privacidade / Alta Precisão Nativa)
   const handleToggleGpsSharing = async () => {
     if (userRole === 'admin') {
       await alertDialog({
@@ -664,7 +673,11 @@ export default function MapView({
     }
     if (isSharingGps) {
       if (gpsWatchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+        if (typeof gpsWatchIdRef.current === 'object' && gpsWatchIdRef.current.clear) {
+          gpsWatchIdRef.current.clear();
+        } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+        }
         gpsWatchIdRef.current = null;
       }
       setIsSharingGps(false);
@@ -675,10 +688,11 @@ export default function MapView({
         variant: 'info',
       });
     } else {
-      if (!('geolocation' in navigator)) {
+      const hasPermission = await requestLocationPermissions();
+      if (!hasPermission) {
         await alertDialog({
-          title: 'GPS Indisponível',
-          message: 'Seu dispositivo ou navegador não suporta geolocalização.',
+          title: 'Permissão de GPS Necessária',
+          message: 'Não foi possível acessar o GPS. Por favor, autorize o acesso à localização nas configurações do seu aparelho ou navegador.',
           variant: 'warning',
         });
         return;
@@ -695,7 +709,7 @@ export default function MapView({
 
       if (confirmed) {
         setIsSharingGps(true);
-        const watchId = navigator.geolocation.watchPosition(
+        const watchHandle = await watchNativePosition(
           (pos) => {
             const { latitude, longitude, speed, heading, accuracy } = pos.coords;
             apiSendGpsLocation({
@@ -709,17 +723,17 @@ export default function MapView({
             }).catch(() => {});
           },
           (err) => {
-            console.warn('Erro ao obter GPS:', err);
+            console.warn('Erro ao obter GPS nativo:', err);
             setIsSharingGps(false);
             alertDialog({
-              title: 'Erro de Permissão',
-              message: 'Não foi possível obter a localização. Verifique as permissões de GPS no seu navegador.',
+              title: 'Erro de Sinal GPS',
+              message: 'Não foi possível obter a localização. Verifique se o GPS do aparelho está ativado.',
               variant: 'warning',
             });
           },
           { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
         );
-        gpsWatchIdRef.current = watchId;
+        gpsWatchIdRef.current = watchHandle;
       }
     }
   };

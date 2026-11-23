@@ -160,7 +160,7 @@ export default function ServiceBoard({
     setViewMode(mode);
     try {
       localStorage.setItem('gestormf_board_view_mode', mode);
-    } catch {}
+    } catch { }
   };
   const [selectedDetailMissionId, setSelectedDetailMissionId] = useState(null);
   const [selectedHistoryMission, setSelectedHistoryMission] = useState(null);
@@ -1129,9 +1129,8 @@ export default function ServiceBoard({
 
                             {mission.editionDeliveryStatus && (
                               <div
-                                className={`pp-badge pp-badge-delivery ${
-                                  mission.editionDeliveryStatus === 'Dentro do Prazo' ? 'ontime' : 'late'
-                                }`}
+                                className={`pp-badge pp-badge-delivery ${mission.editionDeliveryStatus === 'Dentro do Prazo' ? 'ontime' : 'late'
+                                  }`}
                               >
                                 {mission.editionDeliveryStatus === 'Dentro do Prazo'
                                   ? '✅ No Prazo'
@@ -1171,11 +1170,11 @@ export default function ServiceBoard({
                                 : null;
                               const mBd = vObj
                                 ? computeMissionVehicleFuelBreakdown({
-                                    vehicle: vObj,
-                                    totalRoundTripKm: totalKm,
-                                    currentTelemetry: vTel,
-                                    fuelPricePerLiter: fuelSettings,
-                                  })
+                                  vehicle: vObj,
+                                  totalRoundTripKm: totalKm,
+                                  currentTelemetry: vTel,
+                                  fuelPricePerLiter: fuelSettings,
+                                })
                                 : null;
 
                               const isElecV = isElectricVehicle(vObj);
@@ -1213,9 +1212,8 @@ export default function ServiceBoard({
 
                                     {vTel && (
                                       <span
-                                        className={`veh-tank-mini-pill ${
-                                          vTel.isReserveAlert ? 'pill-reserve' : 'pill-ok'
-                                        }`}
+                                        className={`veh-tank-mini-pill ${vTel.isReserveAlert ? 'pill-reserve' : 'pill-ok'
+                                          }`}
                                       >
                                         {iconV} {vTel.currentPercent}% ({vTel.currentLiters}{unitV})
                                       </span>
@@ -1490,33 +1488,702 @@ export default function ServiceBoard({
         <>
           {/* Grid da Tabela de Serviço (Exclusivo Desktop / PC - 100% inalterado) */}
           <div className="table-responsive-wrapper desktop-service-board">
-        <table className="whiteboard-table compact-service-table">
-          <thead>
-            <tr>
-              <th className="col-desc">CÓDIGO &amp; PAUTA DA MISSÃO</th>
-              <th className="col-local">LOCAL &amp; PERCURSO</th>
-              <th className="col-agenda">AGENDA &amp; HORÁRIOS</th>
-              <th className="col-equipe">EQUIPE ESCALADA</th>
-              <th className="col-edicao">STATUS &amp; EDIÇÃO</th>
-              <th className="col-viatura">
-                {canViewFinancials ? 'VIATURA, MOTORISTA & TANQUE' : 'VIATURA & MOTORISTA'}
-              </th>
-              <th className="col-acoes">AÇÕES</th>
-            </tr>
-          </thead>
-          <tbody>
+            <table className="whiteboard-table compact-service-table">
+              <thead>
+                <tr>
+                  <th className="col-desc">CÓDIGO &amp; PAUTA DA MISSÃO</th>
+                  <th className="col-local">LOCAL &amp; PERCURSO</th>
+                  <th className="col-agenda">AGENDA &amp; HORÁRIOS</th>
+                  <th className="col-equipe">EQUIPE ESCALADA</th>
+                  <th className="col-edicao">STATUS &amp; EDIÇÃO</th>
+                  <th className="col-viatura">
+                    {canViewFinancials ? 'VIATURA, MOTORISTA & TANQUE' : 'VIATURA & MOTORISTA'}
+                  </th>
+                  <th className="col-acoes">AÇÕES</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedMissions.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="empty-table-cell">
+                      <div className="empty-state">
+                        <Film size={36} className="empty-icon" />
+                        <p>Nenhuma missão encontrada com os filtros selecionados.</p>
+                        <button className="btn-primary-sm" onClick={onNewMission}>
+                          Cadastrar Nova Missão
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedMissions.map((mission) => {
+                    const missionCode = getMissionCode(mission, missions);
+                    const allocations = getMissionAllocations(mission, vehicles, members);
+                    const driverInfo = resolveMissionDriver(mission);
+                    const teamList = resolveMissionTeamMembers(mission);
+                    const statusSlug = (mission.missionStatus || 'Agendada')
+                      .toLowerCase()
+                      .normalize('NFD')
+                      .replace(/[\u0300-\u036f]/g, '')
+                      .replace(/\s+/g, '-');
+                    const isSelectedRow = selectedDetailMissionId === mission.id;
+                    const isOverdueMission = checkIsMissionOverdue(mission);
+                    const isAssignedEditor = checkIsAssignedEditor(mission);
+                    const deliverySummary = getMissionEditionDeliverySummary(mission, members);
+
+                    const myMemIdStr = userMember ? String(userMember.id) : (currentUser ? String(currentUser.id) : '');
+                    const myMemNameNorm = (userMember?.name || currentUser?.name || '').trim().toLowerCase();
+
+                    const matchedEditorObj = deliverySummary.assignedEditors.find((ed) => {
+                      const edIdStr = String(ed.id);
+                      const edNameNorm = (ed.name || '').trim().toLowerCase();
+                      if (myMemIdStr && (edIdStr === myMemIdStr || edIdStr.includes(myMemIdStr))) return true;
+                      if (myMemNameNorm && (edNameNorm === myMemNameNorm || edNameNorm.includes(myMemNameNorm) || myMemNameNorm.includes(edNameNorm))) return true;
+                      const firstWord = myMemNameNorm.split(' ')[0];
+                      if (firstWord && firstWord.length >= 3 && edNameNorm.includes(firstWord)) return true;
+                      return false;
+                    });
+
+                    const isUserAssignedToThis = Boolean(matchedEditorObj) || isAssignedEditor;
+                    const edKey = matchedEditorObj ? String(matchedEditorObj.id) : myMemIdStr;
+                    const isMyPartDone = Boolean(deliverySummary.deliveryMap[edKey]?.status === 'delivered');
+                    const canConcludeThis = isAssignedEditor || canAdminManageEdition;
+
+                    return (
+                      <tr
+                        key={mission.id}
+                        className={`whiteboard-row row-status-${statusSlug} ${isSelectedRow ? 'row-selected' : ''} ${isOverdueMission ? 'mission-row-overdue' : ''}`}
+                        onClick={() => setSelectedDetailMissionId(mission.id)}
+                        title="Clique para abrir a Ficha Completa da Missão"
+                      >
+                        {/* 1. CÓDIGO & DESCRIÇÃO COMPLETA E LEGÍVEL */}
+                        <td className="col-desc">
+                          <div className="desc-cell-compact">
+                            <div className="desc-top-meta">
+                              <span
+                                className="mission-code-pill"
+                                title={`Código da missão: ${missionCode} (Ano + Mês + Dia + Ordem do Dia)`}
+                              >
+                                #{missionCode}
+                              </span>
+                              <span className="row-ficha-badge">
+                                <Eye size={10} /> Ver Ficha
+                              </span>
+                              {mission.isRecurring && (
+                                <span
+                                  className="row-recurring-badge"
+                                  title={`Missão Recorrente ${mission.recurrenceDays ? `(${mission.recurrenceDays})` : ''}`}
+                                >
+                                  <Repeat size={10} /> {mission.recurrenceDays || 'Recorrente'}
+                                </span>
+                              )}
+                            </div>
+                            <strong className="mission-name-compact">
+                              {mission.description}
+                            </strong>
+                            {mission.notes && (
+                              <span className="mission-notes-compact">
+                                {mission.notes}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 2. LOCAL & PERCURSO SEM ABREVIAÇÃO */}
+                        <td className="col-local">
+                          <div className="local-cell-compact">
+                            <div className="location-name-compact">
+                              <MapPin size={13} className="pin-icon" />
+                              <span>{mission.locationName || 'Local não informado'}</span>
+                            </div>
+                            {mission.address && (
+                              <span className="location-address-compact">
+                                {mission.address}
+                              </span>
+                            )}
+                            {mission.distanceKm > 0 && (
+                              <div className="location-distance-pill-compact">
+                                <Navigation size={10} />
+                                <span>
+                                  <strong>{getMissionTotalKm(mission)} km</strong> ida e volta ({mission.distanceKm} km/trecho)
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 3. AGENDA & HORÁRIOS COMPLETOS (SEM ABREVIAÇÕES) */}
+                        <td className="col-agenda">
+                          <div className="agenda-compact-box">
+                            <div className="agenda-date-header">
+                              <Calendar size={12} className="date-icon" />
+                              <strong>
+                                {Boolean(mission.isMultiDay && mission.endDate && mission.endDate !== mission.date)
+                                  ? `${formatDateBR(mission.date)} a ${formatDateBR(mission.endDate)}`
+                                  : formatDateBR(mission.date)}
+                              </strong>
+                            </div>
+                            <div className="agenda-shift-row"><ShiftBadge mission={mission} compact /></div>
+                            <div className={`agenda-times-grid ${mission.eventStartTime ? 'has-event-slot' : ''}`}>
+                              <div className="ag-time-item highlight">
+                                <span>Saída</span>
+                                <strong>{mission.departureTime || '--:--'}</strong>
+                              </div>
+                              <div className="ag-time-item cyan">
+                                <span>Chegada</span>
+                                <strong>{mission.arrivalTimeEstimated || '--:--'}</strong>
+                              </div>
+                              {mission.eventStartTime && (
+                                <div className="ag-time-item amber">
+                                  <span>Evento</span>
+                                  <strong>{mission.eventStartTime}</strong>
+                                </div>
+                              )}
+                              <div className="ag-time-item muted">
+                                <span>Retorno</span>
+                                <strong>{mission.returnTimeEstimated || '--:--'}</strong>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 4. EQUIPE ESCALADA (MOTORISTA SEMPRE EM 1º LUGAR E EM DESTAQUE) */}
+                        <td className="col-equipe">
+                          <div className="equipe-cell-compact">
+                            {(teamList.length > 0 || (Array.isArray(mission.guests) && mission.guests.length > 0)) ? (
+                              <div className="equipe-compact-wrap">
+                                {teamList.map((mem, i) => {
+                                  const isDriver = isMemberMissionDriver(
+                                    mem,
+                                    mission,
+                                    allocations,
+                                    driverInfo
+                                  );
+                                  return (
+                                    <span
+                                      key={mem.id || i}
+                                      className={`member-tag-compact ${isDriver ? 'is-driver-first' : ''}`}
+                                      title={
+                                        isDriver
+                                          ? `${mem.name} (${mem.role}) — Motorista Responsável pela Viatura`
+                                          : `${mem.name} (${mem.role})`
+                                      }
+                                    >
+                                      {isDriver ? (
+                                        <span className="driver-badge-inline" title="Condutor da Viatura">
+                                          🛞
+                                        </span>
+                                      ) : mem.photoUrl ? (
+                                        <img
+                                          src={mem.photoUrl}
+                                          alt={mem.name}
+                                          className="member-tag-avatar-sm"
+                                        />
+                                      ) : (
+                                        <Users size={11} className="member-icon-sm" />
+                                      )}
+                                      <span className="member-name-full">{mem.name}</span>
+                                      {isDriver && (
+                                        <span className="driver-role-tag">Motorista</span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                                {Array.isArray(mission.guests) && mission.guests.map((g, gi) => {
+                                  const gName = typeof g === 'string' ? g : g.name;
+                                  const gRoles = Array.isArray(g?.roles) ? g.roles : (g?.role ? [g.role] : []);
+                                  const gRoleLabel = gRoles.length > 0 ? gRoles.join(', ') : 'Convidado';
+                                  return (
+                                    <span
+                                      key={`guest-${gi}`}
+                                      className="member-tag-compact is-guest-tag"
+                                      title={`${gName} — ${gRoleLabel} (Convidado Externo / Freelancer)`}
+                                    >
+                                      <span className="guest-badge-inline" title="Convidado / Freelancer">
+                                        👤
+                                      </span>
+                                      <span className="member-name-full">{gName}</span>
+                                      <span className="guest-role-tag">{gRoleLabel}</span>
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <span className="unassigned-badge">Sem equipe</span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 5. STATUS & EDIÇÃO (Com identificação de editor, prazo, pontualidade e ações de conclusão/reabertura) */}
+                        <td className="col-edicao" onClick={(e) => e.stopPropagation()}>
+                          <div className="edicao-cell-compact">
+                            <div
+                              className={`board-mission-status-pill ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'pill-atrasada' : `pill-${statusSlug}`}`}
+                              onClick={() => setSelectedDetailMissionId(mission.id)}
+                              style={{ cursor: 'pointer' }}
+                              title={isOverdueMission ? 'Missão de pós-produção com entrega atrasada!' : 'Clique para ver os detalhes da missão'}
+                            >
+                              <span
+                                className={`status-dot ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'dot-atrasada' : `dot-${(mission.missionStatus || 'Agendada')
+                                  .toLowerCase()
+                                  .replace(/\s+/g, '-')}`}`}
+                              ></span>
+                              <span>{isOverdueMission && mission.missionStatus === 'Pendente' ? 'Atrasado' : (mission.missionStatus || 'Agendada')}</span>
+                            </div>
+
+                            {/* Bloco de Informações de Pós-Produção */}
+                            {!hasMissionPostProduction(mission) ? (
+                              <div className="postprod-compact-strip">
+                                <div className="pp-badge pp-badge-not-applicable" title="Pós-produção não necessária para esta missão (Não se aplica / Mega Print / Instalação)">
+                                  <span>Pós-Produção: Não se aplica</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="postprod-compact-strip">
+                                {/* Fluxo Visual dos Editores: Quem entregou e quem falta entregar */}
+                                {deliverySummary.assignedEditors.length > 0 ? (
+                                  <div className="pp-editors-flow-wrap">
+                                    <div className="pp-editors-chips-grid">
+                                      {deliverySummary.assignedEditors.map((ed) => {
+                                        const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
+                                        const isDelivered = edDeliv && edDeliv.status === 'delivered';
+                                        const isMe = matchedEditorObj && String(matchedEditorObj.id) === String(ed.id);
+                                        const deliveredTimeLabel = isDelivered && edDeliv?.deliveredAt
+                                          ? formatDeliveryDateTimeBR(edDeliv.deliveredAt, true)
+                                          : '';
+
+                                        return (
+                                          <div
+                                            key={ed.id}
+                                            className={`pp-editor-status-chip ${isDelivered ? 'is-delivered' : 'is-pending'} ${isMe ? 'is-me' : ''}`}
+                                            title={
+                                              isDelivered
+                                                ? `${ed.name}: Concluído e entregue ${edDeliv?.deliveredAt ? `em ${formatDeliveryDateTimeBR(edDeliv.deliveredAt)}` : ''}`
+                                                : `${ed.name}: Aguardando conclusão da sua parte`
+                                            }
+                                            style={{ flexDirection: 'column', alignItems: 'stretch', gap: '3px' }}
+                                          >
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', width: '100%' }}>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                                                <Film size={10} style={{ flexShrink: 0 }} />
+                                                <span className="pp-chip-name">{ed.name}</span>
+                                              </div>
+                                              <span className={`pp-chip-tag ${isDelivered ? 'tag-delivered' : 'tag-pending'}`}>
+                                                {isDelivered ? '✅ Entregou' : '⏳ Pendente'}
+                                              </span>
+                                            </div>
+                                            {deliveredTimeLabel && (
+                                              <div style={{ fontSize: '0.64rem', color: '#6ee7b7', display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.92 }}>
+                                                <Clock size={9} style={{ flexShrink: 0 }} />
+                                                <span>Entregue: {deliveredTimeLabel}</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+
+                                    {deliverySummary.assignedEditors.length > 1 && (
+                                      <div className="pp-team-counter-strip">
+                                        <span>👥 {deliverySummary.deliveredEditors.length}/{deliverySummary.assignedEditors.length} Concluídos</span>
+                                        {deliverySummary.pendingEditors.length > 0 && (
+                                          <span className="pp-team-pending-names" title={`Aguardando: ${deliverySummary.pendingEditors.map((p) => p.name).join(', ')}`}>
+                                            Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="pp-badge pp-badge-unassigned" title="Sem editor designado">
+                                    <Film size={11} />
+                                    <em>Sem Editor</em>
+                                  </div>
+                                )}
+
+                                {/* Prazo de Entrega */}
+                                {mission.deliveryDeadlineDate && (
+                                  <div className="pp-badge pp-badge-deadline" title={`Prazo estipulado: ${formatDateBR(mission.deliveryDeadlineDate)} às ${mission.deliveryDeadlineTime || '18:00'}`}>
+                                    <Clock size={11} />
+                                    <span>{formatDateBR(mission.deliveryDeadlineDate).slice(0, 5)} {mission.deliveryDeadlineTime || '18:00'}</span>
+                                  </div>
+                                )}
+
+                                {/* Alerta de Missão Reaberta / Em Atraso */}
+                                {isOverdueMission && (
+                                  <div
+                                    className="pp-badge pp-badge-overdue"
+                                    title={mission.reopenReason ? `Retrabalho solicitado: ${mission.reopenReason}` : 'Prazo estipulado de entrega expirado'}
+                                  >
+                                    <AlertTriangle size={11} />
+                                    <span>{mission.reopenReason ? 'Ajustes Solicitados' : 'Atrasado'}</span>
+                                  </div>
+                                )}
+
+                                {/* Tag de Pontualidade se Concluída */}
+                                {mission.editionDeliveryStatus && (
+                                  <div className={`pp-badge pp-badge-delivery ${mission.editionDeliveryStatus === 'Dentro do Prazo' ? 'ontime' : 'late'}`}>
+                                    {mission.editionDeliveryStatus === 'Dentro do Prazo' ? '✅ No Prazo' : '⚠️ Fora do Prazo'}
+                                  </div>
+                                )}
+
+                                {/* Caminho dos Arquivos no Servidor */}
+                                {mission.serverFilePath && (
+                                  <div
+                                    className="pp-badge pp-badge-server-path"
+                                    title={`Local no Servidor: ${mission.serverFilePath} (Clique para copiar)`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (navigator.clipboard) {
+                                        navigator.clipboard.writeText(mission.serverFilePath);
+                                        alertDialog({
+                                          title: 'Caminho Copiado!',
+                                          message: `Caminho copiado para a área de transferência:\n\n${mission.serverFilePath}`,
+                                          variant: 'info'
+                                        });
+                                      }
+                                    }}
+                                    style={{ cursor: 'pointer', background: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.35)', color: '#38bdf8' }}
+                                  >
+                                    <Folder size={11} />
+                                    <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {mission.serverFilePath}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Botões Operacionais de Conclusão / Aprovação / Recusa */}
+                            {hasMissionPostProduction(mission) && (
+                              <div className="postprod-actions-row">
+                                {/* 1. Tarefa de pós-produção pendente / em andamento (ainda não 100% entregue pelos editores) */}
+                                {!deliverySummary.isFullyDelivered && mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && (
+                                  <>
+                                    {isUserAssignedToThis ? (
+                                      isMyPartDone ? (
+                                        <div className="pp-user-delivered-block">
+                                          <div className="pp-user-delivered-badge" title="Você já concluiu e enviou a sua parte desta edição!">
+                                            <CheckCircle2 size={12} />
+                                            <span>Sua Parte Entregue</span>
+                                          </div>
+                                          {deliverySummary.pendingEditors.length > 0 && (
+                                            <div className="pp-waiting-others-hint">
+                                              ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                            </div>
+                                          )}
+                                          <button
+                                            type="button"
+                                            className="btn-pp-update-mine"
+                                            onClick={() => handleConcludeEdition(mission)}
+                                            title="Ver ou atualizar informações da sua entrega de pós-produção"
+                                          >
+                                            <Edit2 size={10} />
+                                            <span>Ver / Atualizar</span>
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="btn-pp-conclude"
+                                          onClick={() => handleConcludeEdition(mission)}
+                                          title="Concluir e entregar a sua parte da pós-produção"
+                                        >
+                                          <CheckCircle2 size={12} />
+                                          <span>{deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa'}</span>
+                                        </button>
+                                      )
+                                    ) : canAdminManageEdition ? (
+                                      <div className="pp-admin-partial-block" style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
+                                        {deliverySummary.pendingEditors.length > 0 && (
+                                          <span className="pp-waiting-others-hint" style={{ fontSize: '0.68rem' }}>
+                                            ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                          </span>
+                                        )}
+                                        <button
+                                          type="button"
+                                          className="btn-pp-conclude"
+                                          onClick={() => handleConcludeEdition(mission)}
+                                          title="Concluir tarefa ou registrar entrega como Administrador"
+                                        >
+                                          <CheckCircle2 size={12} />
+                                          <span>Concluir Tarefa</span>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span className={`status-static-tag ${isOverdueMission ? 'status-atrasado' : 'status-pendente'}`}>
+                                        {isOverdueMission ? '⚠️ Atrasado' : `Edição: ${mission.editionStatus || 'Pendente'}`}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+
+                                {/* 2. Edição CONCLUÍDA por todos os editores: Apenas Administradores podem aceitar ou rejeitar */}
+                                {(deliverySummary.isFullyDelivered || mission.editionStatus === 'Edição Concluída' || mission.editionStatus === 'Entregue') && mission.missionStatus !== 'Finalizada' && (
+                                  <div className="pp-approval-flow-row">
+                                    {!canAdminManageEdition ? (
+                                      <div
+                                        className="btn-pp-waiting"
+                                        title="Material 100% concluído por todos os editores. Aguardando aceitação e confirmação pelo Administrador."
+                                      >
+                                        <Clock size={12} />
+                                        <span>Aguardando Confirmação</span>
+                                      </div>
+                                    ) : (
+                                      <div className="pp-admin-buttons">
+                                        <button
+                                          type="button"
+                                          className="btn-pp-reopen"
+                                          onClick={() => handleReopenClick(mission)}
+                                          title="Rejeitar material e solicitar ajustes / novo prazo para os editores"
+                                        >
+                                          <RotateCcw size={11} />
+                                          <span>Rejeitar e Reabrir</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="btn-pp-approve"
+                                          onClick={() => handleApproveEdition(mission)}
+                                          title="Confirmar finalização da missão e encerrar serviço"
+                                        >
+                                          <CheckCheck size={12} />
+                                          <span>Confirmar Finalização</span>
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* 3. Missão já finalizada (com botão de Reabertura para o Administrador) */}
+                                {mission.missionStatus === 'Finalizada' && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                    <span className="pp-concluded-badge">
+                                      <Check size={11} /> Finalizada
+                                    </span>
+                                    {canAdminManageEdition && (
+                                      <button
+                                        type="button"
+                                        className="btn-pp-reopen"
+                                        onClick={() => handleReopenClick(mission)}
+                                        title="Reabrir missão e deixar em aberto novamente as entregas da pós-produção"
+                                        style={{ width: '100%', justifyContent: 'center', fontSize: '0.7rem', padding: '4px 8px' }}
+                                      >
+                                        <RotateCcw size={11} />
+                                        <span>Reabrir Pós-Produção</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 6. VIATURA, MOTORISTA & TANQUE (MODELO E DADOS 100% APARENTES) */}
+                        <td className="col-viatura">
+                          <div className="viatura-cell-compact">
+                            {allocations.length > 0 ? (
+                              <div className="veh-mini-cards-stack">
+                                {allocations.map((alloc, aIdx) => {
+                                  const vObj = alloc.vehicle;
+                                  const vTel = vObj
+                                    ? computeVehicleFuelTelemetry(vObj, missions, fuelSettings)
+                                    : null;
+                                  const mTotalKm = getMissionTotalKm(mission);
+                                  const mBd = vObj
+                                    ? computeMissionVehicleFuelBreakdown({
+                                      vehicle: vObj,
+                                      totalRoundTripKm: mTotalKm,
+                                      currentTelemetry: vTel,
+                                      fuelPricePerLiter: fuelSettings,
+                                    })
+                                    : null;
+
+                                  const litersUsed =
+                                    mBd && mBd.litersNeeded > 0
+                                      ? mBd.litersNeeded
+                                      : Number(mission.estimatedFuelLiters || 0);
+                                  const costUsed =
+                                    mBd && mBd.totalCost > 0
+                                      ? mBd.totalCost
+                                      : Number(mission.estimatedFuelCost || 0);
+
+                                  return (
+                                    <div key={aIdx} className="veh-mini-card">
+                                      {/* Linha 1: Modelo Completo da Viatura + Placa */}
+                                      <div className="vmc-top-row">
+                                        <div className="vmc-ident">
+                                          <Car size={13} className="veh-car-icon" />
+                                          <strong className="vmc-name-full">
+                                            {vObj ? vObj.name : alloc.vehicleName}
+                                          </strong>
+                                        </div>
+                                        {vObj && <span className="vmc-plate">{vObj.plate}</span>}
+                                      </div>
+
+                                      {/* Linha 2: Motorista Completo + Nível do Tanque */}
+                                      <div className="vmc-middle-row">
+                                        <div
+                                          className="vmc-driver-chip"
+                                          onClick={canEditMission ? (e) => {
+                                            e.stopPropagation();
+                                            onEditMission(mission);
+                                          } : undefined}
+                                          style={!canEditMission ? { cursor: 'default' } : undefined}
+                                          title={canEditMission ? "Clique para alterar o motorista da viatura" : undefined}
+                                        >
+                                          <span className="veh-driver-wheel">🛞</span>
+                                          <span className="vmc-driver-label">Motorista:</span>
+                                          <strong className="vmc-driver-name-full">
+                                            {alloc.driverName || driverInfo.name || 'Definir'}
+                                          </strong>
+                                        </div>
+
+                                        {/* Nível do Tanque / Bateria: Apenas Gestores e Administradores */}
+                                        {canViewFinancials && vTel && (() => {
+                                          const isElecV = isElectricVehicle(vObj);
+                                          const unitV = isElecV ? 'kWh' : 'L';
+                                          const nounV = isElecV ? 'Bateria' : 'Tanque';
+                                          const iconV = getFuelTypeIcon(vObj);
+                                          return (
+                                            <span
+                                              className={`veh-tank-mini-pill ${vTel.isReserveAlert ? 'pill-reserve' : 'pill-ok'
+                                                }`}
+                                              title={`Nível atual da ${nounV.toLowerCase()}: ${vTel.currentLiters}${unitV} / ${vTel.tankCapacity}${unitV} (${vTel.currentPercent}%)`}
+                                            >
+                                              {iconV} {vTel.currentPercent}% ({vTel.currentLiters}{unitV})
+                                            </span>
+                                          );
+                                        })()}
+                                      </div>
+
+                                      {/* Linha 3: Consumo da Missão e Custo em R$: Apenas Gestores e Administradores */}
+                                      {canViewFinancials && (() => {
+                                        const isElecV = isElectricVehicle(vObj);
+                                        const unitV = isElecV ? 'kWh' : 'L';
+                                        return (
+                                          <div className="vmc-bottom-row">
+                                            <div
+                                              className="vmc-fuel-deduction"
+                                              title="Combustível/Energia deduzido nesta missão (ida e volta)"
+                                            >
+                                              {isElecV ? <Zap size={11} className="text-green" /> : <Fuel size={11} />}
+                                              <span>
+                                                Consumo: <strong>-{litersUsed}{unitV}</strong> •{' '}
+                                                <strong>R$ {Number(costUsed || 0).toFixed(2)}</strong>
+                                              </span>
+                                            </div>
+                                          </div>
+                                        );
+                                      })()}
+
+                                      {canViewFinancials && mBd && mBd.exceedsFullTankCapacity && (
+                                        <div
+                                          className="veh-excess-fuel-pill"
+                                          title={`Ultrapassa 1 tanque (${mBd.maxTankRangeKm} km): +${mBd.excessOverFullTankKm} km | +${mBd.excessOverFullTankLiters}L | Excedente: +R$ ${mBd.excessOverFullTankCost.toFixed(2)}`}
+                                        >
+                                          ⚠️ Excedente &gt; 1 Tanque: +{mBd.excessOverFullTankLiters}L (+R${' '}
+                                          {Number(mBd.excessOverFullTankCost || 0).toFixed(2)})
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <span className="no-vehicle-pill">Sem viatura</span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 7. AÇÕES COMPACTAS */}
+                        <td className="col-acoes" onClick={(e) => e.stopPropagation()}>
+                          <div className="acoes-cell-compact">
+                            <button
+                              className="action-btn-icon view-history"
+                              title="Ver Histórico Completo da Missão (Pós-Produção, Prazos & Trilha de Auditoria)"
+                              onClick={() => setSelectedHistoryMission(mission)}
+                            >
+                              <History size={14} />
+                            </button>
+                            <button
+                              className="action-btn-icon view-details"
+                              title="Abrir Ficha Completa da Missão"
+                              onClick={() => setSelectedDetailMissionId(mission.id)}
+                            >
+                              <Eye size={14} />
+                            </button>
+                            <button
+                              className="action-btn-icon view-route"
+                              title="Visualizar Rota no Mapa Interativo"
+                              onClick={() => onSelectMissionOnMap(mission.id)}
+                            >
+                              <Navigation size={14} />
+                            </button>
+                            <button
+                              className="action-btn-icon share-whatsapp"
+                              title="Compartilhar informações da missão por WhatsApp (Freelancers, Convidados ou Equipe)"
+                              onClick={() => setWhatsappShareMission(mission)}
+                            >
+                              <MessageCircle size={14} />
+                            </button>
+                            {(() => {
+                              const isFinalizada = mission.missionStatus === 'Finalizada' || mission.missionStatus === 'Finalizado' || mission.missionStatus === 'Concluída';
+                              if (canEditMission && (!isFinalizada || isAdmin)) {
+                                return (
+                                  <button
+                                    className={`action-btn-icon edit ${isFinalizada ? 'edit-finalized-admin' : ''}`}
+                                    title={isFinalizada ? "Editar Missão Finalizada (Ajuste Administrativo)" : "Editar Missão / Pauta"}
+                                    onClick={() => onEditMission(mission)}
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                );
+                              }
+                              if (canEditMission && isFinalizada) {
+                                return (
+                                  <span
+                                    className="action-btn-icon locked"
+                                    title="Missão finalizada e encerrada (edição exclusiva para Administradores)"
+                                    style={{ opacity: 0.45, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                  >
+                                    <Lock size={13} />
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
+                            {canDeleteMission && (
+                              <button
+                                className="action-btn-icon delete"
+                                title="Excluir Missão"
+                                onClick={() => onDeleteMission(mission.id)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 2. VISÃO CARDS MODERNOS NATIVOS PARA SMARTPHONE / iOS / ANDROID */}
+          <div className="mobile-service-board">
             {paginatedMissions.length === 0 ? (
-              <tr>
-                <td colSpan="7" className="empty-table-cell">
-                  <div className="empty-state">
-                    <Film size={36} className="empty-icon" />
-                    <p>Nenhuma missão encontrada com os filtros selecionados.</p>
-                    <button className="btn-primary-sm" onClick={onNewMission}>
-                      Cadastrar Nova Missão
-                    </button>
-                  </div>
-                </td>
-              </tr>
+              <div className="empty-state-mobile">
+                <Film size={38} className="empty-icon" />
+                <p>Nenhuma missão encontrada com os filtros selecionados.</p>
+                {canCreateMission && (
+                  <button className="btn-primary-sm" onClick={onNewMission}>
+                    <Plus size={14} /> Cadastrar Nova Missão
+                  </button>
+                )}
+              </div>
             ) : (
               paginatedMissions.map((mission) => {
                 const missionCode = getMissionCode(mission, missions);
@@ -1550,1048 +2217,379 @@ export default function ServiceBoard({
                 const edKey = matchedEditorObj ? String(matchedEditorObj.id) : myMemIdStr;
                 const isMyPartDone = Boolean(deliverySummary.deliveryMap[edKey]?.status === 'delivered');
                 const canConcludeThis = isAssignedEditor || canAdminManageEdition;
+                const mTotalKm = getMissionTotalKm(mission);
 
                 return (
-                  <tr
+                  <div
                     key={mission.id}
-                    className={`whiteboard-row row-status-${statusSlug} ${isSelectedRow ? 'row-selected' : ''} ${isOverdueMission ? 'mission-row-overdue' : ''}`}
+                    className={`mobile-mission-card card-status-${statusSlug} ${isOverdueMission ? 'card-overdue' : ''} ${isSelectedRow ? 'card-selected' : ''}`}
                     onClick={() => setSelectedDetailMissionId(mission.id)}
-                    title="Clique para abrir a Ficha Completa da Missão"
                   >
-                    {/* 1. CÓDIGO & DESCRIÇÃO COMPLETA E LEGÍVEL */}
-                    <td className="col-desc">
-                      <div className="desc-cell-compact">
-                        <div className="desc-top-meta">
-                          <span
-                            className="mission-code-pill"
-                            title={`Código da missão: ${missionCode} (Ano + Mês + Dia + Ordem do Dia)`}
-                          >
-                            #{missionCode}
+                    {/* 1. TOPO DO CARD: CÓDIGO, BADGES E STATUS */}
+                    <div className="mmc-header">
+                      <div className="mmc-header-left">
+                        <span className="mmc-code-badge">#{missionCode}</span>
+                        {mission.isRecurring && (
+                          <span className="mmc-recurring-badge" title="Missão Recorrente">
+                            <Repeat size={10} /> {mission.recurrenceDays || 'Recorrente'}
                           </span>
-                          <span className="row-ficha-badge">
-                            <Eye size={10} /> Ver Ficha
+                        )}
+                      </div>
+                      <div className={`mmc-status-pill pill-${statusSlug} ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'pill-atrasada' : ''}`}>
+                        <span className={`status-dot dot-${statusSlug}`} />
+                        <span>{isOverdueMission && mission.missionStatus === 'Pendente' ? 'Atrasado' : (mission.missionStatus || 'Agendada')}</span>
+                      </div>
+                    </div>
+
+                    {/* 2. TÍTULO / PAUTA & OBSERVAÇÕES */}
+                    <div className="mmc-title-row">
+                      <h4 className="mmc-mission-title">{mission.description}</h4>
+                      {mission.notes && (
+                        <p className="mmc-notes-snippet">
+                          <FileText size={11} /> {mission.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 3. LOCAL & PERCURSO */}
+                    <div className="mmc-location-box">
+                      <div className="mmc-loc-main">
+                        <MapPin size={14} className="mmc-pin-icon" />
+                        <div className="mmc-loc-text">
+                          <strong className="mmc-loc-name">{mission.locationName || 'Local não informado'}</strong>
+                          {mission.address && <p className="mmc-loc-address">{mission.address}</p>}
+                        </div>
+                      </div>
+                      {mTotalKm > 0 && (
+                        <div className="mmc-distance-badge">
+                          <Navigation size={11} />
+                          <span><strong>{mTotalKm} km</strong> ida e volta</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 4. AGENDA & HORÁRIOS */}
+                    <div className="mmc-schedule-strip">
+                      <div className="mmc-date-row">
+                        <Calendar size={12} />
+                        <span>
+                          <strong>Data da Missão:</strong>{' '}
+                          {Boolean(mission.isMultiDay && mission.endDate && mission.endDate !== mission.date)
+                            ? `${formatDateBR(mission.date)} a ${formatDateBR(mission.endDate)}`
+                            : formatDateBR(mission.date)}
+                        </span>
+                      </div>
+                      <div className="mmc-shift-row"><ShiftBadge mission={mission} /></div>
+                      <div className="mmc-times-grid">
+                        <div className="mmc-time-box saida">
+                          <span className="mmc-time-label">Saída Base</span>
+                          <strong className="mmc-time-val">{mission.departureTime || '--:--'}</strong>
+                        </div>
+                        <div className="mmc-time-box chegada">
+                          <span className="mmc-time-label">Chegada</span>
+                          <strong className="mmc-time-val">{mission.arrivalTimeEstimated || '--:--'}</strong>
+                        </div>
+                        <div className="mmc-time-box evento">
+                          <span className="mmc-time-label">Início Evento</span>
+                          <strong className="mmc-time-val">{mission.eventStartTime || '--:--'}</strong>
+                        </div>
+                        <div className="mmc-time-box retorno">
+                          <span className="mmc-time-label">Retorno</span>
+                          <strong className="mmc-time-val">{mission.returnTimeEstimated || '--:--'}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 5. EQUIPE ESCALADA */}
+                    <div className="mmc-team-section">
+                      <div className="mmc-team-label">
+                        <Users size={12} />
+                        <span>Equipe Escalada em Campo:</span>
+                      </div>
+                      <div className="mmc-team-chips">
+                        {/* Motorista em destaque */}
+                        {driverInfo && (
+                          <span className="mmc-member-chip is-driver">
+                            <span className="mmc-driver-wheel">🛞</span>
+                            <strong>{driverInfo.name}</strong>
+                            <span className="mmc-role-tag">Motorista</span>
                           </span>
-                          {mission.isRecurring && (
-                            <span
-                              className="row-recurring-badge"
-                              title={`Missão Recorrente ${mission.recurrenceDays ? `(${mission.recurrenceDays})` : ''}`}
-                            >
-                              <Repeat size={10} /> {mission.recurrenceDays || 'Recorrente'}
+                        )}
+                        {/* Membros escalados */}
+                        {teamList.filter((tm) => tm.name !== driverInfo?.name).map((tm, idx) => (
+                          <span key={idx} className="mmc-member-chip">
+                            <User size={11} />
+                            <span>{tm.name}</span>
+                            {tm.role && <span className="mmc-role-tag">{tm.role}</span>}
+                          </span>
+                        ))}
+                        {/* Convidados */}
+                        {Array.isArray(mission.guests) && mission.guests.map((g, gIdx) => {
+                          const gName = typeof g === 'object' ? (g.name || 'Convidado') : g;
+                          const gRoles = Array.isArray(g?.roles) ? g.roles : (g?.role ? [g.role] : []);
+                          const gRoleLabel = gRoles.length > 0 ? gRoles.join(', ') : 'Convidado';
+                          return (
+                            <span key={`g-${gIdx}`} className="mmc-member-chip is-guest" title={`${gName} — ${gRoleLabel}`}>
+                              <span>👤</span>
+                              <span>{gName}</span>
+                              <span className="mmc-role-tag">{gRoleLabel}</span>
                             </span>
-                          )}
-                        </div>
-                        <strong className="mission-name-compact">
-                          {mission.description}
-                        </strong>
-                        {mission.notes && (
-                          <span className="mission-notes-compact">
-                            {mission.notes}
-                          </span>
-                        )}
+                          );
+                        })}
                       </div>
-                    </td>
+                    </div>
 
-                    {/* 2. LOCAL & PERCURSO SEM ABREVIAÇÃO */}
-                    <td className="col-local">
-                      <div className="local-cell-compact">
-                        <div className="location-name-compact">
-                          <MapPin size={13} className="pin-icon" />
-                          <span>{mission.locationName || 'Local não informado'}</span>
-                        </div>
-                        {mission.address && (
-                          <span className="location-address-compact">
-                            {mission.address}
-                          </span>
-                        )}
-                        {mission.distanceKm > 0 && (
-                          <div className="location-distance-pill-compact">
-                            <Navigation size={10} />
-                            <span>
-                              <strong>{getMissionTotalKm(mission)} km</strong> ida e volta ({mission.distanceKm} km/trecho)
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
+                    {/* 6. VIATURA, TANQUE & CONSUMO */}
+                    {allocations.length > 0 && (
+                      <div className="mmc-vehicle-section">
+                        {allocations.map((alloc, aIdx) => {
+                          const vObj = alloc.vehicle;
+                          const vTel = vObj ? computeVehicleFuelTelemetry(vObj, missions, fuelSettings) : null;
+                          const isElecV = vObj && isElectricVehicle(vObj);
+                          const unitV = isElecV ? 'kWh' : 'L';
+                          const mBd = vObj ? computeMissionVehicleFuelBreakdown({
+                            vehicle: vObj,
+                            totalRoundTripKm: mTotalKm,
+                            currentTelemetry: vTel,
+                            fuelPricePerLiter: fuelSettings,
+                          }) : null;
+                          const litersUsed = mBd && mBd.litersNeeded > 0 ? mBd.litersNeeded : Number(mission.estimatedFuelLiters || 0);
+                          const costUsed = mBd && mBd.totalCost > 0 ? mBd.totalCost : Number(mission.estimatedFuelCost || 0);
 
-                    {/* 3. AGENDA & HORÁRIOS COMPLETOS (SEM ABREVIAÇÕES) */}
-                    <td className="col-agenda">
-                      <div className="agenda-compact-box">
-                        <div className="agenda-date-header">
-                          <Calendar size={12} className="date-icon" />
-                          <strong>
-                            {Boolean(mission.isMultiDay && mission.endDate && mission.endDate !== mission.date)
-                              ? `${formatDateBR(mission.date)} a ${formatDateBR(mission.endDate)}`
-                              : formatDateBR(mission.date)}
-                          </strong>
-                        </div>
-                        <div className="agenda-shift-row"><ShiftBadge mission={mission} compact /></div>
-                        <div className={`agenda-times-grid ${mission.eventStartTime ? 'has-event-slot' : ''}`}>
-                          <div className="ag-time-item highlight">
-                            <span>Saída</span>
-                            <strong>{mission.departureTime || '--:--'}</strong>
-                          </div>
-                          <div className="ag-time-item cyan">
-                            <span>Chegada</span>
-                            <strong>{mission.arrivalTimeEstimated || '--:--'}</strong>
-                          </div>
-                          {mission.eventStartTime && (
-                            <div className="ag-time-item amber">
-                              <span>Evento</span>
-                              <strong>{mission.eventStartTime}</strong>
-                            </div>
-                          )}
-                          <div className="ag-time-item muted">
-                            <span>Retorno</span>
-                            <strong>{mission.returnTimeEstimated || '--:--'}</strong>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* 4. EQUIPE ESCALADA (MOTORISTA SEMPRE EM 1º LUGAR E EM DESTAQUE) */}
-                    <td className="col-equipe">
-                      <div className="equipe-cell-compact">
-                        {(teamList.length > 0 || (Array.isArray(mission.guests) && mission.guests.length > 0)) ? (
-                          <div className="equipe-compact-wrap">
-                            {teamList.map((mem, i) => {
-                              const isDriver = isMemberMissionDriver(
-                                mem,
-                                mission,
-                                allocations,
-                                driverInfo
-                              );
-                              return (
-                                <span
-                                  key={mem.id || i}
-                                  className={`member-tag-compact ${isDriver ? 'is-driver-first' : ''}`}
-                                  title={
-                                    isDriver
-                                      ? `${mem.name} (${mem.role}) — Motorista Responsável pela Viatura`
-                                      : `${mem.name} (${mem.role})`
-                                  }
-                                >
-                                  {isDriver ? (
-                                    <span className="driver-badge-inline" title="Condutor da Viatura">
-                                      🛞
-                                    </span>
-                                  ) : mem.photoUrl ? (
-                                    <img
-                                      src={mem.photoUrl}
-                                      alt={mem.name}
-                                      className="member-tag-avatar-sm"
-                                    />
-                                  ) : (
-                                    <Users size={11} className="member-icon-sm" />
-                                  )}
-                                  <span className="member-name-full">{mem.name}</span>
-                                  {isDriver && (
-                                    <span className="driver-role-tag">Motorista</span>
-                                  )}
-                                </span>
-                              );
-                            })}
-                            {Array.isArray(mission.guests) && mission.guests.map((g, gi) => {
-                              const gName = typeof g === 'string' ? g : g.name;
-                              const gRoles = Array.isArray(g?.roles) ? g.roles : (g?.role ? [g.role] : []);
-                              const gRoleLabel = gRoles.length > 0 ? gRoles.join(', ') : 'Convidado';
-                              return (
-                                <span
-                                  key={`guest-${gi}`}
-                                  className="member-tag-compact is-guest-tag"
-                                  title={`${gName} — ${gRoleLabel} (Convidado Externo / Freelancer)`}
-                                >
-                                  <span className="guest-badge-inline" title="Convidado / Freelancer">
-                                    👤
-                                  </span>
-                                  <span className="member-name-full">{gName}</span>
-                                  <span className="guest-role-tag">{gRoleLabel}</span>
-                                </span>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <span className="unassigned-badge">Sem equipe</span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* 5. STATUS & EDIÇÃO (Com identificação de editor, prazo, pontualidade e ações de conclusão/reabertura) */}
-                    <td className="col-edicao" onClick={(e) => e.stopPropagation()}>
-                      <div className="edicao-cell-compact">
-                        <div
-                          className={`board-mission-status-pill ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'pill-atrasada' : `pill-${statusSlug}`}`}
-                          onClick={() => setSelectedDetailMissionId(mission.id)}
-                          style={{ cursor: 'pointer' }}
-                          title={isOverdueMission ? 'Missão de pós-produção com entrega atrasada!' : 'Clique para ver os detalhes da missão'}
-                        >
-                          <span
-                            className={`status-dot ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'dot-atrasada' : `dot-${(mission.missionStatus || 'Agendada')
-                              .toLowerCase()
-                              .replace(/\s+/g, '-')}`}`}
-                          ></span>
-                          <span>{isOverdueMission && mission.missionStatus === 'Pendente' ? 'Atrasado' : (mission.missionStatus || 'Agendada')}</span>
-                        </div>
-
-                        {/* Bloco de Informações de Pós-Produção */}
-                        {!hasMissionPostProduction(mission) ? (
-                          <div className="postprod-compact-strip">
-                            <div className="pp-badge pp-badge-not-applicable" title="Pós-produção não necessária para esta missão (Não se aplica / Mega Print / Instalação)">
-                              <span>Pós-Produção: Não se aplica</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="postprod-compact-strip">
-                            {/* Fluxo Visual dos Editores: Quem entregou e quem falta entregar */}
-                            {deliverySummary.assignedEditors.length > 0 ? (
-                              <div className="pp-editors-flow-wrap">
-                                <div className="pp-editors-chips-grid">
-                                  {deliverySummary.assignedEditors.map((ed) => {
-                                    const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
-                                    const isDelivered = edDeliv && edDeliv.status === 'delivered';
-                                    const isMe = matchedEditorObj && String(matchedEditorObj.id) === String(ed.id);
-                                    const deliveredTimeLabel = isDelivered && edDeliv?.deliveredAt
-                                      ? formatDeliveryDateTimeBR(edDeliv.deliveredAt, true)
-                                      : '';
-
-                                    return (
-                                      <div
-                                        key={ed.id}
-                                        className={`pp-editor-status-chip ${isDelivered ? 'is-delivered' : 'is-pending'} ${isMe ? 'is-me' : ''}`}
-                                        title={
-                                          isDelivered
-                                            ? `${ed.name}: Concluído e entregue ${edDeliv?.deliveredAt ? `em ${formatDeliveryDateTimeBR(edDeliv.deliveredAt)}` : ''}`
-                                            : `${ed.name}: Aguardando conclusão da sua parte`
-                                        }
-                                        style={{ flexDirection: 'column', alignItems: 'stretch', gap: '3px' }}
-                                      >
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', width: '100%' }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
-                                            <Film size={10} style={{ flexShrink: 0 }} />
-                                            <span className="pp-chip-name">{ed.name}</span>
-                                          </div>
-                                          <span className={`pp-chip-tag ${isDelivered ? 'tag-delivered' : 'tag-pending'}`}>
-                                            {isDelivered ? '✅ Entregou' : '⏳ Pendente'}
-                                          </span>
-                                        </div>
-                                        {deliveredTimeLabel && (
-                                          <div style={{ fontSize: '0.64rem', color: '#6ee7b7', display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.92 }}>
-                                            <Clock size={9} style={{ flexShrink: 0 }} />
-                                            <span>Entregue: {deliveredTimeLabel}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
+                          return (
+                            <div key={aIdx} className="mmc-veh-card">
+                              <div className="mmc-veh-top">
+                                <div className="mmc-veh-ident">
+                                  <Car size={13} />
+                                  <strong>{vObj ? vObj.name : alloc.vehicleName}</strong>
                                 </div>
-
-                                {deliverySummary.assignedEditors.length > 1 && (
-                                  <div className="pp-team-counter-strip">
-                                    <span>👥 {deliverySummary.deliveredEditors.length}/{deliverySummary.assignedEditors.length} Concluídos</span>
-                                    {deliverySummary.pendingEditors.length > 0 && (
-                                      <span className="pp-team-pending-names" title={`Aguardando: ${deliverySummary.pendingEditors.map((p) => p.name).join(', ')}`}>
-                                        Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="pp-badge pp-badge-unassigned" title="Sem editor designado">
-                                <Film size={11} />
-                                <em>Sem Editor</em>
-                              </div>
-                            )}
-
-                            {/* Prazo de Entrega */}
-                            {mission.deliveryDeadlineDate && (
-                              <div className="pp-badge pp-badge-deadline" title={`Prazo estipulado: ${formatDateBR(mission.deliveryDeadlineDate)} às ${mission.deliveryDeadlineTime || '18:00'}`}>
-                                <Clock size={11} />
-                                <span>{formatDateBR(mission.deliveryDeadlineDate).slice(0, 5)} {mission.deliveryDeadlineTime || '18:00'}</span>
-                              </div>
-                            )}
-
-                            {/* Alerta de Missão Reaberta / Em Atraso */}
-                            {isOverdueMission && (
-                              <div
-                                className="pp-badge pp-badge-overdue"
-                                title={mission.reopenReason ? `Retrabalho solicitado: ${mission.reopenReason}` : 'Prazo estipulado de entrega expirado'}
-                              >
-                                <AlertTriangle size={11} />
-                                <span>{mission.reopenReason ? 'Ajustes Solicitados' : 'Atrasado'}</span>
-                              </div>
-                            )}
-
-                            {/* Tag de Pontualidade se Concluída */}
-                            {mission.editionDeliveryStatus && (
-                              <div className={`pp-badge pp-badge-delivery ${mission.editionDeliveryStatus === 'Dentro do Prazo' ? 'ontime' : 'late'}`}>
-                                {mission.editionDeliveryStatus === 'Dentro do Prazo' ? '✅ No Prazo' : '⚠️ Fora do Prazo'}
-                              </div>
-                            )}
-
-                            {/* Caminho dos Arquivos no Servidor */}
-                            {mission.serverFilePath && (
-                              <div
-                                className="pp-badge pp-badge-server-path"
-                                title={`Local no Servidor: ${mission.serverFilePath} (Clique para copiar)`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (navigator.clipboard) {
-                                    navigator.clipboard.writeText(mission.serverFilePath);
-                                    alertDialog({
-                                      title: 'Caminho Copiado!',
-                                      message: `Caminho copiado para a área de transferência:\n\n${mission.serverFilePath}`,
-                                      variant: 'info'
-                                    });
-                                  }
-                                }}
-                                style={{ cursor: 'pointer', background: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.35)', color: '#38bdf8' }}
-                              >
-                                <Folder size={11} />
-                                <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {mission.serverFilePath}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Botões Operacionais de Conclusão / Aprovação / Recusa */}
-                        {hasMissionPostProduction(mission) && (
-                          <div className="postprod-actions-row">
-                            {/* 1. Tarefa de pós-produção pendente / em andamento (ainda não 100% entregue pelos editores) */}
-                            {!deliverySummary.isFullyDelivered && mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && (
-                              <>
-                                {isUserAssignedToThis ? (
-                                  isMyPartDone ? (
-                                    <div className="pp-user-delivered-block">
-                                      <div className="pp-user-delivered-badge" title="Você já concluiu e enviou a sua parte desta edição!">
-                                        <CheckCircle2 size={12} />
-                                        <span>Sua Parte Entregue</span>
-                                      </div>
-                                      {deliverySummary.pendingEditors.length > 0 && (
-                                        <div className="pp-waiting-others-hint">
-                                          ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
-                                        </div>
-                                      )}
-                                      <button
-                                        type="button"
-                                        className="btn-pp-update-mine"
-                                        onClick={() => handleConcludeEdition(mission)}
-                                        title="Ver ou atualizar informações da sua entrega de pós-produção"
-                                      >
-                                        <Edit2 size={10} />
-                                        <span>Ver / Atualizar</span>
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      className="btn-pp-conclude"
-                                      onClick={() => handleConcludeEdition(mission)}
-                                      title="Concluir e entregar a sua parte da pós-produção"
-                                    >
-                                      <CheckCircle2 size={12} />
-                                      <span>{deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa'}</span>
-                                    </button>
-                                  )
-                                ) : canAdminManageEdition ? (
-                                  <div className="pp-admin-partial-block" style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
-                                    {deliverySummary.pendingEditors.length > 0 && (
-                                      <span className="pp-waiting-others-hint" style={{ fontSize: '0.68rem' }}>
-                                        ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
-                                      </span>
-                                    )}
-                                    <button
-                                      type="button"
-                                      className="btn-pp-conclude"
-                                      onClick={() => handleConcludeEdition(mission)}
-                                      title="Concluir tarefa ou registrar entrega como Administrador"
-                                    >
-                                      <CheckCircle2 size={12} />
-                                      <span>Concluir Tarefa</span>
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span className={`status-static-tag ${isOverdueMission ? 'status-atrasado' : 'status-pendente'}`}>
-                                    {isOverdueMission ? '⚠️ Atrasado' : `Edição: ${mission.editionStatus || 'Pendente'}`}
+                                {vObj && <span className="mmc-plate">{vObj.plate}</span>}
+                                {canViewFinancials && vTel && (
+                                  <span className={`mmc-tank-pill ${vTel.isReserveAlert ? 'reserve' : 'ok'}`}>
+                                    {getFuelTypeIcon(vObj)} {vTel.currentPercent}% ({vTel.currentLiters}{unitV})
                                   </span>
                                 )}
-                              </>
-                            )}
+                              </div>
+                              {canViewFinancials && (
+                                <div className="mmc-veh-fuel-info">
+                                  <Fuel size={11} />
+                                  <span>Consumo: <strong>-{litersUsed}{unitV}</strong> • <strong>R$ {Number(costUsed || 0).toFixed(2)}</strong></span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                            {/* 2. Edição CONCLUÍDA por todos os editores: Apenas Administradores podem aceitar ou rejeitar */}
-                            {(deliverySummary.isFullyDelivered || mission.editionStatus === 'Edição Concluída' || mission.editionStatus === 'Entregue') && mission.missionStatus !== 'Finalizada' && (
-                              <div className="pp-approval-flow-row">
-                                {!canAdminManageEdition ? (
-                                  <div
-                                    className="btn-pp-waiting"
-                                    title="Material 100% concluído por todos os editores. Aguardando aceitação e confirmação pelo Administrador."
-                                  >
-                                    <Clock size={12} />
-                                    <span>Aguardando Confirmação</span>
+                    {/* 7. PÓS-PRODUÇÃO / EDIÇÃO */}
+                    {hasMissionPostProduction(mission) && (
+                      <div className="mmc-postprod-box" onClick={(e) => e.stopPropagation()}>
+                        <div className="mmc-pp-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
+                          {deliverySummary.assignedEditors.length > 0 ? (
+                            <div className="pp-editors-flow-wrap">
+                              <div className="pp-editors-chips-grid">
+                                {deliverySummary.assignedEditors.map((ed) => {
+                                  const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
+                                  const isDelivered = edDeliv && edDeliv.status === 'delivered';
+                                  const isMe = matchedEditorObj && String(matchedEditorObj.id) === String(ed.id);
+
+                                  return (
+                                    <div
+                                      key={ed.id}
+                                      className={`pp-editor-status-chip ${isDelivered ? 'is-delivered' : 'is-pending'} ${isMe ? 'is-me' : ''}`}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                                        <Film size={10} style={{ flexShrink: 0 }} />
+                                        <span className="pp-chip-name">{ed.name}</span>
+                                      </div>
+                                      <span className={`pp-chip-tag ${isDelivered ? 'tag-delivered' : 'tag-pending'}`}>
+                                        {isDelivered ? '✅ Entregou' : '⏳ Pendente'}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {deliverySummary.assignedEditors.length > 1 && (
+                                <div className="pp-team-counter-strip">
+                                  <span>👥 {deliverySummary.deliveredEditors.length}/{deliverySummary.assignedEditors.length} Concluídos</span>
+                                  {deliverySummary.pendingEditors.length > 0 && (
+                                    <span className="pp-team-pending-names">
+                                      Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="mmc-pp-editor">
+                              <Film size={12} />
+                              <span>Editor: <strong>{mission.editorNamesDisplay || mission.editorName || 'Sem Editor'}</strong></span>
+                            </div>
+                          )}
+
+                          {mission.deliveryDeadlineDate && (
+                            <div className="mmc-pp-deadline">
+                              <Clock size={11} />
+                              <span>Prazo: {formatDateBR(mission.deliveryDeadlineDate).slice(0, 5)} {mission.deliveryDeadlineTime || '18:00'}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mmc-pp-actions-row">
+                          {mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && (
+                            <>
+                              {isUserAssignedToThis ? (
+                                isMyPartDone ? (
+                                  <div className="pp-user-delivered-block">
+                                    <div className="pp-user-delivered-badge">
+                                      <CheckCircle2 size={12} />
+                                      <span>Sua Parte Entregue</span>
+                                    </div>
+                                    {deliverySummary.pendingEditors.length > 0 && (
+                                      <div className="pp-waiting-others-hint">
+                                        ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                      </div>
+                                    )}
+                                    <button
+                                      type="button"
+                                      className="btn-pp-update-mine"
+                                      onClick={() => handleConcludeEdition(mission)}
+                                    >
+                                      <Edit2 size={10} />
+                                      <span>Ver / Atualizar</span>
+                                    </button>
                                   </div>
                                 ) : (
-                                  <div className="pp-admin-buttons">
-                                    <button
-                                      type="button"
-                                      className="btn-pp-reopen"
-                                      onClick={() => handleReopenClick(mission)}
-                                      title="Rejeitar material e solicitar ajustes / novo prazo para os editores"
-                                    >
-                                      <RotateCcw size={11} />
-                                      <span>Rejeitar e Reabrir</span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn-pp-approve"
-                                      onClick={() => handleApproveEdition(mission)}
-                                      title="Confirmar finalização da missão e encerrar serviço"
-                                    >
-                                      <CheckCheck size={12} />
-                                      <span>Confirmar Finalização</span>
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* 3. Missão já finalizada (com botão de Reabertura para o Administrador) */}
-                            {mission.missionStatus === 'Finalizada' && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
-                                <span className="pp-concluded-badge">
-                                  <Check size={11} /> Finalizada
+                                  <button
+                                    type="button"
+                                    className="mmc-btn-conclude"
+                                    onClick={() => handleConcludeEdition(mission)}
+                                  >
+                                    <CheckCircle2 size={13} /> {deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa'}
+                                  </button>
+                                )
+                              ) : canAdminManageEdition ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+                                  {deliverySummary.pendingEditors.length > 0 && (
+                                    <span className="pp-waiting-others-hint" style={{ fontSize: '0.68rem' }}>
+                                      ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="mmc-btn-conclude"
+                                    onClick={() => handleConcludeEdition(mission)}
+                                  >
+                                    <CheckCircle2 size={13} /> Concluir Tarefa
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className={`mmc-pp-status-tag ${isOverdueMission ? 'atrasado' : 'pendente'}`}>
+                                  {isOverdueMission ? '⚠️ Edição Atrasada' : `Edição: ${mission.editionStatus || 'Pendente'}`}
                                 </span>
-                                {canAdminManageEdition && (
+                              )}
+                            </>
+                          )}
+
+                          {mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada' && (
+                            <>
+                              {!canAdminManageEdition ? (
+                                <div className="btn-pp-waiting">
+                                  <Clock size={12} /> Aguardando Confirmação
+                                </div>
+                              ) : (
+                                <div className="mmc-admin-buttons">
                                   <button
                                     type="button"
                                     className="btn-pp-reopen"
                                     onClick={() => handleReopenClick(mission)}
-                                    title="Reabrir missão e deixar em aberto novamente as entregas da pós-produção"
-                                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.7rem', padding: '4px 8px' }}
                                   >
-                                    <RotateCcw size={11} />
-                                    <span>Reabrir Pós-Produção</span>
+                                    <RotateCcw size={12} /> Rejeitar
                                   </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                    </div>
-                  </td>
-
-                    {/* 6. VIATURA, MOTORISTA & TANQUE (MODELO E DADOS 100% APARENTES) */}
-                    <td className="col-viatura">
-                      <div className="viatura-cell-compact">
-                        {allocations.length > 0 ? (
-                          <div className="veh-mini-cards-stack">
-                            {allocations.map((alloc, aIdx) => {
-                              const vObj = alloc.vehicle;
-                              const vTel = vObj
-                                ? computeVehicleFuelTelemetry(vObj, missions, fuelSettings)
-                                : null;
-                              const mTotalKm = getMissionTotalKm(mission);
-                              const mBd = vObj
-                                ? computeMissionVehicleFuelBreakdown({
-                                  vehicle: vObj,
-                                  totalRoundTripKm: mTotalKm,
-                                  currentTelemetry: vTel,
-                                  fuelPricePerLiter: fuelSettings,
-                                })
-                                : null;
-
-                              const litersUsed =
-                                mBd && mBd.litersNeeded > 0
-                                  ? mBd.litersNeeded
-                                  : Number(mission.estimatedFuelLiters || 0);
-                              const costUsed =
-                                mBd && mBd.totalCost > 0
-                                  ? mBd.totalCost
-                                  : Number(mission.estimatedFuelCost || 0);
-
-                              return (
-                                <div key={aIdx} className="veh-mini-card">
-                                  {/* Linha 1: Modelo Completo da Viatura + Placa */}
-                                  <div className="vmc-top-row">
-                                    <div className="vmc-ident">
-                                      <Car size={13} className="veh-car-icon" />
-                                      <strong className="vmc-name-full">
-                                        {vObj ? vObj.name : alloc.vehicleName}
-                                      </strong>
-                                    </div>
-                                    {vObj && <span className="vmc-plate">{vObj.plate}</span>}
-                                  </div>
-
-                                  {/* Linha 2: Motorista Completo + Nível do Tanque */}
-                                  <div className="vmc-middle-row">
-                                    <div
-                                      className="vmc-driver-chip"
-                                      onClick={canEditMission ? (e) => {
-                                        e.stopPropagation();
-                                        onEditMission(mission);
-                                      } : undefined}
-                                      style={!canEditMission ? { cursor: 'default' } : undefined}
-                                      title={canEditMission ? "Clique para alterar o motorista da viatura" : undefined}
-                                    >
-                                      <span className="veh-driver-wheel">🛞</span>
-                                      <span className="vmc-driver-label">Motorista:</span>
-                                      <strong className="vmc-driver-name-full">
-                                        {alloc.driverName || driverInfo.name || 'Definir'}
-                                      </strong>
-                                    </div>
-
-                                    {/* Nível do Tanque / Bateria: Apenas Gestores e Administradores */}
-                                    {canViewFinancials && vTel && (() => {
-                                      const isElecV = isElectricVehicle(vObj);
-                                      const unitV = isElecV ? 'kWh' : 'L';
-                                      const nounV = isElecV ? 'Bateria' : 'Tanque';
-                                      const iconV = getFuelTypeIcon(vObj);
-                                      return (
-                                        <span
-                                          className={`veh-tank-mini-pill ${vTel.isReserveAlert ? 'pill-reserve' : 'pill-ok'
-                                            }`}
-                                          title={`Nível atual da ${nounV.toLowerCase()}: ${vTel.currentLiters}${unitV} / ${vTel.tankCapacity}${unitV} (${vTel.currentPercent}%)`}
-                                        >
-                                          {iconV} {vTel.currentPercent}% ({vTel.currentLiters}{unitV})
-                                        </span>
-                                      );
-                                    })()}
-                                  </div>
-
-                                  {/* Linha 3: Consumo da Missão e Custo em R$: Apenas Gestores e Administradores */}
-                                  {canViewFinancials && (() => {
-                                    const isElecV = isElectricVehicle(vObj);
-                                    const unitV = isElecV ? 'kWh' : 'L';
-                                    return (
-                                      <div className="vmc-bottom-row">
-                                        <div
-                                          className="vmc-fuel-deduction"
-                                          title="Combustível/Energia deduzido nesta missão (ida e volta)"
-                                        >
-                                          {isElecV ? <Zap size={11} className="text-green" /> : <Fuel size={11} />}
-                                          <span>
-                                            Consumo: <strong>-{litersUsed}{unitV}</strong> •{' '}
-                                            <strong>R$ {Number(costUsed || 0).toFixed(2)}</strong>
-                                          </span>
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-
-                                  {canViewFinancials && mBd && mBd.exceedsFullTankCapacity && (
-                                    <div
-                                      className="veh-excess-fuel-pill"
-                                      title={`Ultrapassa 1 tanque (${mBd.maxTankRangeKm} km): +${mBd.excessOverFullTankKm} km | +${mBd.excessOverFullTankLiters}L | Excedente: +R$ ${mBd.excessOverFullTankCost.toFixed(2)}`}
-                                    >
-                                      ⚠️ Excedente &gt; 1 Tanque: +{mBd.excessOverFullTankLiters}L (+R${' '}
-                                      {Number(mBd.excessOverFullTankCost || 0).toFixed(2)})
-                                    </div>
-                                  )}
+                                  <button
+                                    type="button"
+                                    className="btn-pp-approve"
+                                    onClick={() => handleApproveEdition(mission)}
+                                  >
+                                    <CheckCheck size={13} /> Confirmar
+                                  </button>
                                 </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <span className="no-vehicle-pill">Sem viatura</span>
-                        )}
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </td>
+                    )}
 
-                    {/* 7. AÇÕES COMPACTAS */}
-                    <td className="col-acoes" onClick={(e) => e.stopPropagation()}>
-                      <div className="acoes-cell-compact">
+                    {/* 8. BARRA DE AÇÕES DO CARD */}
+                    <div className="mmc-footer-actions" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="mmc-action-pill primary"
+                        onClick={() => setSelectedDetailMissionId(mission.id)}
+                        title="Abrir Ficha Completa"
+                      >
+                        <Eye size={13} />
+                        <span>Ficha</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="mmc-action-pill map"
+                        onClick={() => onSelectMissionOnMap(mission.id)}
+                        title="Ver no Mapa"
+                      >
+                        <Navigation size={13} />
+                        <span>Mapa</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="mmc-action-pill history"
+                        onClick={() => setSelectedHistoryMission(mission)}
+                        title="Histórico Completo"
+                      >
+                        <History size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className="mmc-action-pill whatsapp"
+                        onClick={() => setWhatsappShareMission(mission)}
+                        title="Compartilhar via WhatsApp"
+                      >
+                        <MessageCircle size={13} />
+                      </button>
+                      {(() => {
+                        const isFinalizada = mission.missionStatus === 'Finalizada' || mission.missionStatus === 'Finalizado' || mission.missionStatus === 'Concluída';
+                        if (canEditMission && (!isFinalizada || isAdmin)) {
+                          return (
+                            <button
+                              type="button"
+                              className="mmc-action-pill edit"
+                              onClick={() => onEditMission(mission)}
+                              title={isFinalizada ? "Editar Missão Finalizada (Administrador)" : "Editar Missão"}
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                          );
+                        }
+                        return null;
+                      })()}
+                      {canDeleteMission && (
                         <button
-                          className="action-btn-icon view-history"
-                          title="Ver Histórico Completo da Missão (Pós-Produção, Prazos & Trilha de Auditoria)"
-                          onClick={() => setSelectedHistoryMission(mission)}
+                          type="button"
+                          className="mmc-action-pill delete"
+                          onClick={() => onDeleteMission(mission.id)}
+                          title="Excluir Missão"
                         >
-                          <History size={14} />
+                          <Trash2 size={13} />
                         </button>
-                        <button
-                          className="action-btn-icon view-details"
-                          title="Abrir Ficha Completa da Missão"
-                          onClick={() => setSelectedDetailMissionId(mission.id)}
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button
-                          className="action-btn-icon view-route"
-                          title="Visualizar Rota no Mapa Interativo"
-                          onClick={() => onSelectMissionOnMap(mission.id)}
-                        >
-                          <Navigation size={14} />
-                        </button>
-                        <button
-                          className="action-btn-icon share-whatsapp"
-                          title="Compartilhar informações da missão por WhatsApp (Freelancers, Convidados ou Equipe)"
-                          onClick={() => setWhatsappShareMission(mission)}
-                        >
-                          <MessageCircle size={14} />
-                        </button>
-                        {(() => {
-                          const isFinalizada = mission.missionStatus === 'Finalizada' || mission.missionStatus === 'Finalizado' || mission.missionStatus === 'Concluída';
-                          if (canEditMission && (!isFinalizada || isAdmin)) {
-                            return (
-                              <button
-                                className={`action-btn-icon edit ${isFinalizada ? 'edit-finalized-admin' : ''}`}
-                                title={isFinalizada ? "Editar Missão Finalizada (Ajuste Administrativo)" : "Editar Missão / Pauta"}
-                                onClick={() => onEditMission(mission)}
-                              >
-                                <Edit2 size={14} />
-                              </button>
-                            );
-                          }
-                          if (canEditMission && isFinalizada) {
-                            return (
-                              <span
-                                className="action-btn-icon locked"
-                                title="Missão finalizada e encerrada (edição exclusiva para Administradores)"
-                                style={{ opacity: 0.45, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                              >
-                                <Lock size={13} />
-                              </span>
-                            );
-                          }
-                          return null;
-                        })()}
-                        {canDeleteMission && (
-                          <button
-                            className="action-btn-icon delete"
-                            title="Excluir Missão"
-                            onClick={() => onDeleteMission(mission.id)}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                      )}
+                    </div>
+                  </div>
                 );
               })
             )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* 2. VISÃO CARDS MODERNOS NATIVOS PARA SMARTPHONE / iOS / ANDROID */}
-      <div className="mobile-service-board">
-        {paginatedMissions.length === 0 ? (
-          <div className="empty-state-mobile">
-            <Film size={38} className="empty-icon" />
-            <p>Nenhuma missão encontrada com os filtros selecionados.</p>
-            {canCreateMission && (
-              <button className="btn-primary-sm" onClick={onNewMission}>
-                <Plus size={14} /> Cadastrar Nova Missão
-              </button>
-            )}
           </div>
-        ) : (
-          paginatedMissions.map((mission) => {
-            const missionCode = getMissionCode(mission, missions);
-            const allocations = getMissionAllocations(mission, vehicles, members);
-            const driverInfo = resolveMissionDriver(mission);
-            const teamList = resolveMissionTeamMembers(mission);
-            const statusSlug = (mission.missionStatus || 'Agendada')
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .replace(/\s+/g, '-');
-            const isSelectedRow = selectedDetailMissionId === mission.id;
-            const isOverdueMission = checkIsMissionOverdue(mission);
-            const isAssignedEditor = checkIsAssignedEditor(mission);
-            const deliverySummary = getMissionEditionDeliverySummary(mission, members);
-
-            const myMemIdStr = userMember ? String(userMember.id) : (currentUser ? String(currentUser.id) : '');
-            const myMemNameNorm = (userMember?.name || currentUser?.name || '').trim().toLowerCase();
-
-            const matchedEditorObj = deliverySummary.assignedEditors.find((ed) => {
-              const edIdStr = String(ed.id);
-              const edNameNorm = (ed.name || '').trim().toLowerCase();
-              if (myMemIdStr && (edIdStr === myMemIdStr || edIdStr.includes(myMemIdStr))) return true;
-              if (myMemNameNorm && (edNameNorm === myMemNameNorm || edNameNorm.includes(myMemNameNorm) || myMemNameNorm.includes(edNameNorm))) return true;
-              const firstWord = myMemNameNorm.split(' ')[0];
-              if (firstWord && firstWord.length >= 3 && edNameNorm.includes(firstWord)) return true;
-              return false;
-            });
-
-            const isUserAssignedToThis = Boolean(matchedEditorObj) || isAssignedEditor;
-            const edKey = matchedEditorObj ? String(matchedEditorObj.id) : myMemIdStr;
-            const isMyPartDone = Boolean(deliverySummary.deliveryMap[edKey]?.status === 'delivered');
-            const canConcludeThis = isAssignedEditor || canAdminManageEdition;
-            const mTotalKm = getMissionTotalKm(mission);
-
-            return (
-              <div
-                key={mission.id}
-                className={`mobile-mission-card card-status-${statusSlug} ${isOverdueMission ? 'card-overdue' : ''} ${isSelectedRow ? 'card-selected' : ''}`}
-                onClick={() => setSelectedDetailMissionId(mission.id)}
-              >
-                {/* 1. TOPO DO CARD: CÓDIGO, BADGES E STATUS */}
-                <div className="mmc-header">
-                  <div className="mmc-header-left">
-                    <span className="mmc-code-badge">#{missionCode}</span>
-                    {mission.isRecurring && (
-                      <span className="mmc-recurring-badge" title="Missão Recorrente">
-                        <Repeat size={10} /> {mission.recurrenceDays || 'Recorrente'}
-                      </span>
-                    )}
-                  </div>
-                  <div className={`mmc-status-pill pill-${statusSlug} ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'pill-atrasada' : ''}`}>
-                    <span className={`status-dot dot-${statusSlug}`} />
-                    <span>{isOverdueMission && mission.missionStatus === 'Pendente' ? 'Atrasado' : (mission.missionStatus || 'Agendada')}</span>
-                  </div>
-                </div>
-
-                {/* 2. TÍTULO / PAUTA & OBSERVAÇÕES */}
-                <div className="mmc-title-row">
-                  <h4 className="mmc-mission-title">{mission.description}</h4>
-                  {mission.notes && (
-                    <p className="mmc-notes-snippet">
-                      <FileText size={11} /> {mission.notes}
-                    </p>
-                  )}
-                </div>
-
-                {/* 3. LOCAL & PERCURSO */}
-                <div className="mmc-location-box">
-                  <div className="mmc-loc-main">
-                    <MapPin size={14} className="mmc-pin-icon" />
-                    <div className="mmc-loc-text">
-                      <strong className="mmc-loc-name">{mission.locationName || 'Local não informado'}</strong>
-                      {mission.address && <p className="mmc-loc-address">{mission.address}</p>}
-                    </div>
-                  </div>
-                  {mTotalKm > 0 && (
-                    <div className="mmc-distance-badge">
-                      <Navigation size={11} />
-                      <span><strong>{mTotalKm} km</strong> ida e volta</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* 4. AGENDA & HORÁRIOS */}
-                <div className="mmc-schedule-strip">
-                  <div className="mmc-date-row">
-                    <Calendar size={12} />
-                    <span>
-                      <strong>Data da Missão:</strong>{' '}
-                      {Boolean(mission.isMultiDay && mission.endDate && mission.endDate !== mission.date)
-                        ? `${formatDateBR(mission.date)} a ${formatDateBR(mission.endDate)}`
-                        : formatDateBR(mission.date)}
-                    </span>
-                  </div>
-                  <div className="mmc-shift-row"><ShiftBadge mission={mission} /></div>
-                  <div className="mmc-times-grid">
-                    <div className="mmc-time-box saida">
-                      <span className="mmc-time-label">Saída Base</span>
-                      <strong className="mmc-time-val">{mission.departureTime || '--:--'}</strong>
-                    </div>
-                    <div className="mmc-time-box chegada">
-                      <span className="mmc-time-label">Chegada</span>
-                      <strong className="mmc-time-val">{mission.arrivalTimeEstimated || '--:--'}</strong>
-                    </div>
-                    <div className="mmc-time-box evento">
-                      <span className="mmc-time-label">Início Evento</span>
-                      <strong className="mmc-time-val">{mission.eventStartTime || '--:--'}</strong>
-                    </div>
-                    <div className="mmc-time-box retorno">
-                      <span className="mmc-time-label">Retorno</span>
-                      <strong className="mmc-time-val">{mission.returnTimeEstimated || '--:--'}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 5. EQUIPE ESCALADA */}
-                <div className="mmc-team-section">
-                  <div className="mmc-team-label">
-                    <Users size={12} />
-                    <span>Equipe Escalada em Campo:</span>
-                  </div>
-                  <div className="mmc-team-chips">
-                    {/* Motorista em destaque */}
-                    {driverInfo && (
-                      <span className="mmc-member-chip is-driver">
-                        <span className="mmc-driver-wheel">🛞</span>
-                        <strong>{driverInfo.name}</strong>
-                        <span className="mmc-role-tag">Motorista</span>
-                      </span>
-                    )}
-                    {/* Membros escalados */}
-                    {teamList.filter((tm) => tm.name !== driverInfo?.name).map((tm, idx) => (
-                      <span key={idx} className="mmc-member-chip">
-                        <User size={11} />
-                        <span>{tm.name}</span>
-                        {tm.role && <span className="mmc-role-tag">{tm.role}</span>}
-                      </span>
-                    ))}
-                    {/* Convidados */}
-                    {Array.isArray(mission.guests) && mission.guests.map((g, gIdx) => {
-                      const gName = typeof g === 'object' ? (g.name || 'Convidado') : g;
-                      const gRoles = Array.isArray(g?.roles) ? g.roles : (g?.role ? [g.role] : []);
-                      const gRoleLabel = gRoles.length > 0 ? gRoles.join(', ') : 'Convidado';
-                      return (
-                        <span key={`g-${gIdx}`} className="mmc-member-chip is-guest" title={`${gName} — ${gRoleLabel}`}>
-                          <span>👤</span>
-                          <span>{gName}</span>
-                          <span className="mmc-role-tag">{gRoleLabel}</span>
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 6. VIATURA, TANQUE & CONSUMO */}
-                {allocations.length > 0 && (
-                  <div className="mmc-vehicle-section">
-                    {allocations.map((alloc, aIdx) => {
-                      const vObj = alloc.vehicle;
-                      const vTel = vObj ? computeVehicleFuelTelemetry(vObj, missions, fuelSettings) : null;
-                      const isElecV = vObj && isElectricVehicle(vObj);
-                      const unitV = isElecV ? 'kWh' : 'L';
-                      const mBd = vObj ? computeMissionVehicleFuelBreakdown({
-                        vehicle: vObj,
-                        totalRoundTripKm: mTotalKm,
-                        currentTelemetry: vTel,
-                        fuelPricePerLiter: fuelSettings,
-                      }) : null;
-                      const litersUsed = mBd && mBd.litersNeeded > 0 ? mBd.litersNeeded : Number(mission.estimatedFuelLiters || 0);
-                      const costUsed = mBd && mBd.totalCost > 0 ? mBd.totalCost : Number(mission.estimatedFuelCost || 0);
-
-                      return (
-                        <div key={aIdx} className="mmc-veh-card">
-                          <div className="mmc-veh-top">
-                            <div className="mmc-veh-ident">
-                              <Car size={13} />
-                              <strong>{vObj ? vObj.name : alloc.vehicleName}</strong>
-                            </div>
-                            {vObj && <span className="mmc-plate">{vObj.plate}</span>}
-                            {canViewFinancials && vTel && (
-                              <span className={`mmc-tank-pill ${vTel.isReserveAlert ? 'reserve' : 'ok'}`}>
-                                {getFuelTypeIcon(vObj)} {vTel.currentPercent}% ({vTel.currentLiters}{unitV})
-                              </span>
-                            )}
-                          </div>
-                          {canViewFinancials && (
-                            <div className="mmc-veh-fuel-info">
-                              <Fuel size={11} />
-                              <span>Consumo: <strong>-{litersUsed}{unitV}</strong> • <strong>R$ {Number(costUsed || 0).toFixed(2)}</strong></span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* 7. PÓS-PRODUÇÃO / EDIÇÃO */}
-                {hasMissionPostProduction(mission) && (
-                  <div className="mmc-postprod-box" onClick={(e) => e.stopPropagation()}>
-                    <div className="mmc-pp-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
-                      {deliverySummary.assignedEditors.length > 0 ? (
-                        <div className="pp-editors-flow-wrap">
-                          <div className="pp-editors-chips-grid">
-                            {deliverySummary.assignedEditors.map((ed) => {
-                              const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
-                              const isDelivered = edDeliv && edDeliv.status === 'delivered';
-                              const isMe = matchedEditorObj && String(matchedEditorObj.id) === String(ed.id);
-
-                              return (
-                                <div
-                                  key={ed.id}
-                                  className={`pp-editor-status-chip ${isDelivered ? 'is-delivered' : 'is-pending'} ${isMe ? 'is-me' : ''}`}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
-                                    <Film size={10} style={{ flexShrink: 0 }} />
-                                    <span className="pp-chip-name">{ed.name}</span>
-                                  </div>
-                                  <span className={`pp-chip-tag ${isDelivered ? 'tag-delivered' : 'tag-pending'}`}>
-                                    {isDelivered ? '✅ Entregou' : '⏳ Pendente'}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          {deliverySummary.assignedEditors.length > 1 && (
-                            <div className="pp-team-counter-strip">
-                              <span>👥 {deliverySummary.deliveredEditors.length}/{deliverySummary.assignedEditors.length} Concluídos</span>
-                              {deliverySummary.pendingEditors.length > 0 && (
-                                <span className="pp-team-pending-names">
-                                  Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="mmc-pp-editor">
-                          <Film size={12} />
-                          <span>Editor: <strong>{mission.editorNamesDisplay || mission.editorName || 'Sem Editor'}</strong></span>
-                        </div>
-                      )}
-
-                      {mission.deliveryDeadlineDate && (
-                        <div className="mmc-pp-deadline">
-                          <Clock size={11} />
-                          <span>Prazo: {formatDateBR(mission.deliveryDeadlineDate).slice(0, 5)} {mission.deliveryDeadlineTime || '18:00'}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mmc-pp-actions-row">
-                      {mission.editionStatus !== 'Edição Concluída' && mission.editionStatus !== 'Entregue' && (
-                        <>
-                          {isUserAssignedToThis ? (
-                            isMyPartDone ? (
-                              <div className="pp-user-delivered-block">
-                                <div className="pp-user-delivered-badge">
-                                  <CheckCircle2 size={12} />
-                                  <span>Sua Parte Entregue</span>
-                                </div>
-                                {deliverySummary.pendingEditors.length > 0 && (
-                                  <div className="pp-waiting-others-hint">
-                                    ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
-                                  </div>
-                                )}
-                                <button
-                                  type="button"
-                                  className="btn-pp-update-mine"
-                                  onClick={() => handleConcludeEdition(mission)}
-                                >
-                                  <Edit2 size={10} />
-                                  <span>Ver / Atualizar</span>
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                className="mmc-btn-conclude"
-                                onClick={() => handleConcludeEdition(mission)}
-                              >
-                                <CheckCircle2 size={13} /> {deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa'}
-                              </button>
-                            )
-                          ) : canAdminManageEdition ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
-                              {deliverySummary.pendingEditors.length > 0 && (
-                                <span className="pp-waiting-others-hint" style={{ fontSize: '0.68rem' }}>
-                                  ⏳ Falta: {deliverySummary.pendingEditors.map((p) => p.name).join(', ')}
-                                </span>
-                              )}
-                              <button
-                                type="button"
-                                className="mmc-btn-conclude"
-                                onClick={() => handleConcludeEdition(mission)}
-                              >
-                                <CheckCircle2 size={13} /> Concluir Tarefa
-                              </button>
-                            </div>
-                          ) : (
-                            <span className={`mmc-pp-status-tag ${isOverdueMission ? 'atrasado' : 'pendente'}`}>
-                              {isOverdueMission ? '⚠️ Edição Atrasada' : `Edição: ${mission.editionStatus || 'Pendente'}`}
-                            </span>
-                          )}
-                        </>
-                      )}
-
-                      {mission.editionStatus === 'Edição Concluída' && mission.missionStatus !== 'Finalizada' && (
-                        <>
-                          {!canAdminManageEdition ? (
-                            <div className="btn-pp-waiting">
-                              <Clock size={12} /> Aguardando Confirmação
-                            </div>
-                          ) : (
-                            <div className="mmc-admin-buttons">
-                              <button
-                                type="button"
-                                className="btn-pp-reopen"
-                                onClick={() => handleReopenClick(mission)}
-                              >
-                                <RotateCcw size={12} /> Rejeitar
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-pp-approve"
-                                onClick={() => handleApproveEdition(mission)}
-                              >
-                                <CheckCheck size={13} /> Confirmar
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* 8. BARRA DE AÇÕES DO CARD */}
-                <div className="mmc-footer-actions" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    className="mmc-action-pill primary"
-                    onClick={() => setSelectedDetailMissionId(mission.id)}
-                    title="Abrir Ficha Completa"
-                  >
-                    <Eye size={13} />
-                    <span>Ficha</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="mmc-action-pill map"
-                    onClick={() => onSelectMissionOnMap(mission.id)}
-                    title="Ver no Mapa"
-                  >
-                    <Navigation size={13} />
-                    <span>Mapa</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="mmc-action-pill history"
-                    onClick={() => setSelectedHistoryMission(mission)}
-                    title="Histórico Completo"
-                  >
-                    <History size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    className="mmc-action-pill whatsapp"
-                    onClick={() => setWhatsappShareMission(mission)}
-                    title="Compartilhar via WhatsApp"
-                  >
-                    <MessageCircle size={13} />
-                  </button>
-                  {(() => {
-                    const isFinalizada = mission.missionStatus === 'Finalizada' || mission.missionStatus === 'Finalizado' || mission.missionStatus === 'Concluída';
-                    if (canEditMission && (!isFinalizada || isAdmin)) {
-                      return (
-                        <button
-                          type="button"
-                          className="mmc-action-pill edit"
-                          onClick={() => onEditMission(mission)}
-                          title={isFinalizada ? "Editar Missão Finalizada (Administrador)" : "Editar Missão"}
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                      );
-                    }
-                    return null;
-                  })()}
-                  {canDeleteMission && (
-                    <button
-                      type="button"
-                      className="mmc-action-pill delete"
-                      onClick={() => onDeleteMission(mission.id)}
-                      title="Excluir Missão"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
 
           {/* Contador de Páginas / Paginador (Exibido quando passar de 10 missões por página) */}
           {filteredMissions.length > ITEMS_PER_PAGE && (
@@ -3286,333 +3284,333 @@ export default function ServiceBoard({
                     ) : (
                       <>
                         <div className="mdm-pp-grid">
-                      {/* Editores Responsáveis */}
-                      <div className="mdm-pp-block">
-                        <label className="mdm-pp-label">
-                          <Users size={12} /> Editores Responsáveis Designados
-                        </label>
-                        {assignedEditors.length > 0 ? (
-                          <div className="mdm-editor-tags">
-                            {assignedEditors.map((ed, idx) => {
-                              const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
-                              const isDone = edDeliv && edDeliv.status === 'delivered';
-                              const deliveredFullStr = isDone && edDeliv?.deliveredAt
-                                ? formatDeliveryDateTimeBR(edDeliv.deliveredAt)
-                                : '';
-                              return (
-                                <div key={ed.id || idx} className="mdm-editor-tag" style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <span className="mdm-editor-avatar">
-                                        {ed.photoUrl ? (
-                                          <img src={ed.photoUrl} alt={ed.name} />
-                                        ) : (
-                                          <span>{ed.name.slice(0, 2).toUpperCase()}</span>
-                                        )}
-                                      </span>
-                                      <div className="mdm-editor-info">
-                                        <strong>{ed.name}</strong>
-                                        <small>{ed.role || 'Editor de Vídeo'}</small>
+                          {/* Editores Responsáveis */}
+                          <div className="mdm-pp-block">
+                            <label className="mdm-pp-label">
+                              <Users size={12} /> Editores Responsáveis Designados
+                            </label>
+                            {assignedEditors.length > 0 ? (
+                              <div className="mdm-editor-tags">
+                                {assignedEditors.map((ed, idx) => {
+                                  const edDeliv = deliverySummary.deliveryMap[String(ed.id)];
+                                  const isDone = edDeliv && edDeliv.status === 'delivered';
+                                  const deliveredFullStr = isDone && edDeliv?.deliveredAt
+                                    ? formatDeliveryDateTimeBR(edDeliv.deliveredAt)
+                                    : '';
+                                  return (
+                                    <div key={ed.id || idx} className="mdm-editor-tag" style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                          <span className="mdm-editor-avatar">
+                                            {ed.photoUrl ? (
+                                              <img src={ed.photoUrl} alt={ed.name} />
+                                            ) : (
+                                              <span>{ed.name.slice(0, 2).toUpperCase()}</span>
+                                            )}
+                                          </span>
+                                          <div className="mdm-editor-info">
+                                            <strong>{ed.name}</strong>
+                                            <small>{ed.role || 'Editor de Vídeo'}</small>
+                                          </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                          <span style={{
+                                            fontSize: '0.72rem',
+                                            padding: '3px 8px',
+                                            borderRadius: '4px',
+                                            background: isDone ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                            color: isDone ? '#34d399' : '#fbbf24',
+                                            border: `1px solid ${isDone ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                                            fontWeight: 700
+                                          }}>
+                                            {isDone ? '✅ Concluído' : '⏳ Pendente'}
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <span style={{
-                                        fontSize: '0.72rem',
-                                        padding: '3px 8px',
-                                        borderRadius: '4px',
-                                        background: isDone ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                                        color: isDone ? '#34d399' : '#fbbf24',
-                                        border: `1px solid ${isDone ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                                        fontWeight: 700
-                                      }}>
-                                        {isDone ? '✅ Concluído' : '⏳ Pendente'}
-                                      </span>
-                                    </div>
-                                  </div>
 
-                                  {isDone && (
-                                    <div style={{
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      gap: '3px',
-                                      padding: '6px 10px',
-                                      borderRadius: '6px',
-                                      background: 'rgba(16, 185, 129, 0.07)',
-                                      border: '1px solid rgba(16, 185, 129, 0.2)',
-                                      fontSize: '0.74rem',
-                                      color: '#a7f3d0',
-                                    }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                                        <Clock size={12} style={{ color: '#34d399', flexShrink: 0 }} />
-                                        <span>
-                                          Entregue em: <strong style={{ color: '#ecfdf5' }}>{deliveredFullStr || 'Data/hora registrada'}</strong>
-                                        </span>
-                                      </div>
-                                      {edDeliv?.serverFilePath && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7dd3fc', fontSize: '0.71rem' }}>
-                                          <Folder size={11} style={{ flexShrink: 0 }} />
-                                          <code style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={edDeliv.serverFilePath}>
-                                            {edDeliv.serverFilePath}
-                                          </code>
+                                      {isDone && (
+                                        <div style={{
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '3px',
+                                          padding: '6px 10px',
+                                          borderRadius: '6px',
+                                          background: 'rgba(16, 185, 129, 0.07)',
+                                          border: '1px solid rgba(16, 185, 129, 0.2)',
+                                          fontSize: '0.74rem',
+                                          color: '#a7f3d0',
+                                        }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                                            <Clock size={12} style={{ color: '#34d399', flexShrink: 0 }} />
+                                            <span>
+                                              Entregue em: <strong style={{ color: '#ecfdf5' }}>{deliveredFullStr || 'Data/hora registrada'}</strong>
+                                            </span>
+                                          </div>
+                                          {edDeliv?.serverFilePath && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7dd3fc', fontSize: '0.71rem' }}>
+                                              <Folder size={11} style={{ flexShrink: 0 }} />
+                                              <code style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={edDeliv.serverFilePath}>
+                                                {edDeliv.serverFilePath}
+                                              </code>
+                                            </div>
+                                          )}
+                                          {edDeliv?.notes && (
+                                            <div style={{ fontSize: '0.71rem', color: '#cbd5e1', fontStyle: 'italic' }}>
+                                              💬 "{edDeliv.notes}"
+                                            </div>
+                                          )}
                                         </div>
                                       )}
-                                      {edDeliv?.notes && (
-                                        <div style={{ fontSize: '0.71rem', color: '#cbd5e1', fontStyle: 'italic' }}>
-                                          💬 "{edDeliv.notes}"
-                                        </div>
-                                      )}
                                     </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="mdm-pp-empty">
-                            <em>Nenhum editor designado para esta pauta.</em>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Prazo Limite de Entrega & Pontualidade */}
-                      <div className="mdm-pp-block">
-                        <label className="mdm-pp-label">
-                          <Clock size={12} /> Prazo Limite de Entrega
-                        </label>
-                        <div className="mdm-pp-deadline-box">
-                          {detailMission.deliveryDeadlineDate ? (
-                            <div>
-                              <div className="mdm-deadline-time-row">
-                                <Calendar size={13} className="icon-accent" />
-                                <strong className="mdm-deadline-val">
-                                  {formatDateBR(detailMission.deliveryDeadlineDate)} às {detailMission.deliveryDeadlineTime || '18:00'}
-                                </strong>
-                                {detailMission.editionDeliveryStatus && (
-                                  <span className={`pp-badge pp-badge-delivery ${detailMission.editionDeliveryStatus === 'Dentro do Prazo' ? 'ontime' : 'late'}`}>
-                                    {detailMission.editionDeliveryStatus === 'Dentro do Prazo' ? '✅ No Prazo' : '⚠️ Fora do Prazo'}
-                                  </span>
-                                )}
+                                  );
+                                })}
                               </div>
-                              {(detailMission.isOverdue || detailMission.reopenReason) && (
-                                <div className="mdm-overdue-alert">
-                                  <AlertTriangle size={14} />
-                                  <span>{detailMission.reopenReason ? `Retrabalho Solicitado: "${detailMission.reopenReason}"` : 'Entrega em Atraso'}</span>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted">Prazo limite não estipulado para esta missão.</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                            ) : (
+                              <div className="mdm-pp-empty">
+                                <em>Nenhum editor designado para esta pauta.</em>
+                              </div>
+                            )}
+                          </div>
 
-                    {/* Barra de Status e Ações de Pós-Produção */}
-                    <div className="mdm-pp-status-bar">
-                      <div className="mdm-pp-status-left">
-                        <span className="mdm-pp-label-sm">Situação da Pós-Produção:</span>
-                        <span className={`status-badge-inline status-${(deliverySummary.hasMultipleEditors ? (deliverySummary.isFullyDelivered ? 'edicao-concluida' : 'em-edicao') : (detailMission.editionStatus || 'Pendente')).toLowerCase().replace(/\s+/g, '-')}`}>
-                          {deliverySummary.hasMultipleEditors ? deliverySummary.summaryBadgeText : (detailMission.editionStatus || 'Pendente')}
-                        </span>
-                        {deliverySummary.isFullyDelivered && detailMission.editionCompletedAt && (
-                          <small className="mdm-pp-completed-info">
-                            Concluído em {formatDateBR(detailMission.editionCompletedAt.slice(0, 10))} às {detailMission.editionCompletedAt.slice(11, 16)} por {detailMission.editionCompletedBy || 'Editor'}
-                          </small>
-                        )}
-                      </div>
-
-                      {/* Aviso se a missão possui múltiplos editores e nem todos concluíram */}
-                      {deliverySummary.hasMultipleEditors && !deliverySummary.isFullyDelivered && (
-                        <div style={{
-                          margin: '8px 0',
-                          padding: '8px 12px',
-                          background: 'rgba(245, 158, 11, 0.08)',
-                          border: '1px solid rgba(245, 158, 11, 0.25)',
-                          borderRadius: '6px',
-                          fontSize: '0.8rem',
-                          color: '#fbbf24',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          width: '100%'
-                        }}>
-                          <AlertTriangle size={15} style={{ flexShrink: 0 }} />
-                          <span>
-                            Edição compartilhada entre <strong>{assignedEditors.length} editores</strong>. A missão só irá para a tela de aprovação da diretoria quando <strong>todos os editores confirmarem individualmente</strong> a conclusão de sua parte.
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="mdm-pp-actions">
-                        {/* Concluir Tarefa de Edição (Individual para cada editor) */}
-                        {!deliverySummary.isFullyDelivered && detailMission.editionStatus !== 'Não se aplica' && (
-                          <>
-                            {isUserAssignedToDetail ? (
-                              isDetailMyPartDone ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                  <div className="pp-user-delivered-badge" style={{ padding: '6px 12px', fontSize: '0.82rem' }}>
-                                    <CheckCircle2 size={15} />
-                                    <span>Sua parte foi entregue com sucesso!</span>
+                          {/* Prazo Limite de Entrega & Pontualidade */}
+                          <div className="mdm-pp-block">
+                            <label className="mdm-pp-label">
+                              <Clock size={12} /> Prazo Limite de Entrega
+                            </label>
+                            <div className="mdm-pp-deadline-box">
+                              {detailMission.deliveryDeadlineDate ? (
+                                <div>
+                                  <div className="mdm-deadline-time-row">
+                                    <Calendar size={13} className="icon-accent" />
+                                    <strong className="mdm-deadline-val">
+                                      {formatDateBR(detailMission.deliveryDeadlineDate)} às {detailMission.deliveryDeadlineTime || '18:00'}
+                                    </strong>
+                                    {detailMission.editionDeliveryStatus && (
+                                      <span className={`pp-badge pp-badge-delivery ${detailMission.editionDeliveryStatus === 'Dentro do Prazo' ? 'ontime' : 'late'}`}>
+                                        {detailMission.editionDeliveryStatus === 'Dentro do Prazo' ? '✅ No Prazo' : '⚠️ Fora do Prazo'}
+                                      </span>
+                                    )}
                                   </div>
-                                  {deliverySummary.pendingEditors.length > 0 && (
-                                    <div className="pp-waiting-others-hint" style={{ fontSize: '0.78rem' }}>
-                                      ⏳ Aguardando conclusão dos demais editores: <strong>{deliverySummary.pendingEditors.map((p) => p.name).join(', ')}</strong>
+                                  {(detailMission.isOverdue || detailMission.reopenReason) && (
+                                    <div className="mdm-overdue-alert">
+                                      <AlertTriangle size={14} />
+                                      <span>{detailMission.reopenReason ? `Retrabalho Solicitado: "${detailMission.reopenReason}"` : 'Entrega em Atraso'}</span>
                                     </div>
                                   )}
-                                  <button
-                                    type="button"
-                                    className="btn-pp-update-mine"
-                                    style={{ padding: '6px 12px', alignSelf: 'flex-start' }}
-                                    onClick={() => handleConcludeEdition(detailMission)}
-                                    title="Atualizar detalhes ou link da sua entrega"
-                                  >
-                                    <Edit2 size={13} />
-                                    <span>Atualizar Minha Entrega</span>
-                                  </button>
                                 </div>
                               ) : (
-                                <button
-                                  type="button"
-                                  className="btn-pp-conclude"
-                                  onClick={() => handleConcludeEdition(detailMission)}
-                                  title={deliverySummary.hasMultipleEditors ? "Entregar minha parte na edição" : "Concluir tarefa de edição e enviar para confirmação da gestão"}
-                                >
-                                  <CheckCircle2 size={13} />
-                                  <span>{deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa de Edição'}</span>
-                                </button>
-                              )
-                            ) : canAdminManageEdition ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                {deliverySummary.pendingEditors.length > 0 && (
-                                  <span className="pp-waiting-others-hint" style={{ fontSize: '0.78rem' }}>
-                                    ⏳ Aguardando entregas de: <strong>{deliverySummary.pendingEditors.map((p) => p.name).join(', ')}</strong>
-                                  </span>
-                                )}
-                                <button
-                                  type="button"
-                                  className="btn-pp-conclude"
-                                  onClick={() => handleConcludeEdition(detailMission)}
-                                  title="Concluir tarefa ou registrar entrega pela gestão"
-                                >
-                                  <CheckCircle2 size={13} />
-                                  <span>Concluir Tarefa de Edição</span>
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="status-badge-inline status-pendente">
-                                {isDetailOverdue ? '⚠️ Edição Atrasada' : 'Edição Pendente'}
-                              </span>
-                            )}
-                          </>
-                        )}
+                                <span className="text-muted">Prazo limite não estipulado para esta missão.</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
 
-                        {/* Ações após conclusão de TODOS os editores: Apenas Administradores podem aceitar ou rejeitar */}
-                        {deliverySummary.isFullyDelivered && detailMission.missionStatus !== 'Finalizada' && (
-                          <>
-                            {!canAdminManageEdition ? (
-                              <div
-                                className="btn-pp-waiting"
-                                title="Material entregue por todos os editores. Aguardando aceitação e confirmação pelo Administrador."
-                              >
-                                <Clock size={13} />
-                                <span>Aguardando Confirmação</span>
-                              </div>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  className="btn-pp-reopen"
-                                  onClick={() => handleReopenClick(detailMission)}
-                                  title="Rejeitar material e solicitar ajustes / novo prazo"
-                                >
-                                  <RotateCcw size={12} />
-                                  <span>Rejeitar e Reabrir</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn-pp-approve"
-                                  onClick={() => handleApproveEdition(detailMission)}
-                                  title="Confirmar finalização da missão e encerrar serviço"
-                                >
-                                  <CheckCheck size={13} />
-                                  <span>Confirmar Finalização</span>
-                                </button>
-                              </>
-                            )}
-                          </>
-                        )}
-
-                        {detailMission.missionStatus === 'Finalizada' && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                            <span className="pp-concluded-badge">
-                              <Check size={12} /> Missão Finalizada
+                        {/* Barra de Status e Ações de Pós-Produção */}
+                        <div className="mdm-pp-status-bar">
+                          <div className="mdm-pp-status-left">
+                            <span className="mdm-pp-label-sm">Situação da Pós-Produção:</span>
+                            <span className={`status-badge-inline status-${(deliverySummary.hasMultipleEditors ? (deliverySummary.isFullyDelivered ? 'edicao-concluida' : 'em-edicao') : (detailMission.editionStatus || 'Pendente')).toLowerCase().replace(/\s+/g, '-')}`}>
+                              {deliverySummary.hasMultipleEditors ? deliverySummary.summaryBadgeText : (detailMission.editionStatus || 'Pendente')}
                             </span>
-                            {canAdminManageEdition && (
-                              <button
-                                type="button"
-                                className="btn-pp-reopen"
-                                onClick={() => handleReopenClick(detailMission)}
-                                title="Reabrir missão e deixar em aberto novamente as entregas da pós-produção"
-                              >
-                                <RotateCcw size={13} />
-                                <span>Reabrir Missão &amp; Pós-Produção</span>
-                              </button>
+                            {deliverySummary.isFullyDelivered && detailMission.editionCompletedAt && (
+                              <small className="mdm-pp-completed-info">
+                                Concluído em {formatDateBR(detailMission.editionCompletedAt.slice(0, 10))} às {detailMission.editionCompletedAt.slice(11, 16)} por {detailMission.editionCompletedBy || 'Editor'}
+                              </small>
                             )}
                           </div>
-                        )}
 
-                        {/* Exibição Destacada do Caminho no Servidor */}
-                        {detailMission.serverFilePath && (
-                          <div
-                            style={{
-                              marginTop: '10px',
+                          {/* Aviso se a missão possui múltiplos editores e nem todos concluíram */}
+                          {deliverySummary.hasMultipleEditors && !deliverySummary.isFullyDelivered && (
+                            <div style={{
+                              margin: '8px 0',
                               padding: '8px 12px',
-                              background: 'rgba(56, 189, 248, 0.08)',
-                              border: '1px solid rgba(56, 189, 248, 0.25)',
+                              background: 'rgba(245, 158, 11, 0.08)',
+                              border: '1px solid rgba(245, 158, 11, 0.25)',
                               borderRadius: '6px',
+                              fontSize: '0.8rem',
+                              color: '#fbbf24',
                               display: 'flex',
                               alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: '10px'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                              <Folder size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
-                              <div style={{ overflow: 'hidden' }}>
-                                <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>
-                                  Local do Arquivo no Servidor
-                                </div>
-                                <code style={{ fontSize: '0.82rem', color: '#38bdf8', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {detailMission.serverFilePath}
-                                </code>
-                              </div>
+                              gap: '8px',
+                              width: '100%'
+                            }}>
+                              <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+                              <span>
+                                Edição compartilhada entre <strong>{assignedEditors.length} editores</strong>. A missão só irá para a tela de aprovação da diretoria quando <strong>todos os editores confirmarem individualmente</strong> a conclusão de sua parte.
+                              </span>
                             </div>
-                            <button
-                              type="button"
-                              className="btn-secondary"
-                              style={{ padding: '3px 8px', fontSize: '0.72rem', flexShrink: 0 }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (navigator.clipboard) {
-                                  navigator.clipboard.writeText(detailMission.serverFilePath);
-                                  alertDialog({
-                                    title: 'Caminho Copiado!',
-                                    message: `Caminho copiado para a área de transferência:\n\n${detailMission.serverFilePath}`,
-                                    variant: 'info'
-                                  });
-                                }
-                              }}
-                            >
-                              Copiar
-                            </button>
+                          )}
+
+                          <div className="mdm-pp-actions">
+                            {/* Concluir Tarefa de Edição (Individual para cada editor) */}
+                            {!deliverySummary.isFullyDelivered && detailMission.editionStatus !== 'Não se aplica' && (
+                              <>
+                                {isUserAssignedToDetail ? (
+                                  isDetailMyPartDone ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                      <div className="pp-user-delivered-badge" style={{ padding: '6px 12px', fontSize: '0.82rem' }}>
+                                        <CheckCircle2 size={15} />
+                                        <span>Sua parte foi entregue com sucesso!</span>
+                                      </div>
+                                      {deliverySummary.pendingEditors.length > 0 && (
+                                        <div className="pp-waiting-others-hint" style={{ fontSize: '0.78rem' }}>
+                                          ⏳ Aguardando conclusão dos demais editores: <strong>{deliverySummary.pendingEditors.map((p) => p.name).join(', ')}</strong>
+                                        </div>
+                                      )}
+                                      <button
+                                        type="button"
+                                        className="btn-pp-update-mine"
+                                        style={{ padding: '6px 12px', alignSelf: 'flex-start' }}
+                                        onClick={() => handleConcludeEdition(detailMission)}
+                                        title="Atualizar detalhes ou link da sua entrega"
+                                      >
+                                        <Edit2 size={13} />
+                                        <span>Atualizar Minha Entrega</span>
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="btn-pp-conclude"
+                                      onClick={() => handleConcludeEdition(detailMission)}
+                                      title={deliverySummary.hasMultipleEditors ? "Entregar minha parte na edição" : "Concluir tarefa de edição e enviar para confirmação da gestão"}
+                                    >
+                                      <CheckCircle2 size={13} />
+                                      <span>{deliverySummary.hasMultipleEditors ? 'Entregar Minha Parte' : 'Concluir Tarefa de Edição'}</span>
+                                    </button>
+                                  )
+                                ) : canAdminManageEdition ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    {deliverySummary.pendingEditors.length > 0 && (
+                                      <span className="pp-waiting-others-hint" style={{ fontSize: '0.78rem' }}>
+                                        ⏳ Aguardando entregas de: <strong>{deliverySummary.pendingEditors.map((p) => p.name).join(', ')}</strong>
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      className="btn-pp-conclude"
+                                      onClick={() => handleConcludeEdition(detailMission)}
+                                      title="Concluir tarefa ou registrar entrega pela gestão"
+                                    >
+                                      <CheckCircle2 size={13} />
+                                      <span>Concluir Tarefa de Edição</span>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="status-badge-inline status-pendente">
+                                    {isDetailOverdue ? '⚠️ Edição Atrasada' : 'Edição Pendente'}
+                                  </span>
+                                )}
+                              </>
+                            )}
+
+                            {/* Ações após conclusão de TODOS os editores: Apenas Administradores podem aceitar ou rejeitar */}
+                            {deliverySummary.isFullyDelivered && detailMission.missionStatus !== 'Finalizada' && (
+                              <>
+                                {!canAdminManageEdition ? (
+                                  <div
+                                    className="btn-pp-waiting"
+                                    title="Material entregue por todos os editores. Aguardando aceitação e confirmação pelo Administrador."
+                                  >
+                                    <Clock size={13} />
+                                    <span>Aguardando Confirmação</span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="btn-pp-reopen"
+                                      onClick={() => handleReopenClick(detailMission)}
+                                      title="Rejeitar material e solicitar ajustes / novo prazo"
+                                    >
+                                      <RotateCcw size={12} />
+                                      <span>Rejeitar e Reabrir</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn-pp-approve"
+                                      onClick={() => handleApproveEdition(detailMission)}
+                                      title="Confirmar finalização da missão e encerrar serviço"
+                                    >
+                                      <CheckCheck size={13} />
+                                      <span>Confirmar Finalização</span>
+                                    </button>
+                                  </>
+                                )}
+                              </>
+                            )}
+
+                            {detailMission.missionStatus === 'Finalizada' && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                <span className="pp-concluded-badge">
+                                  <Check size={12} /> Missão Finalizada
+                                </span>
+                                {canAdminManageEdition && (
+                                  <button
+                                    type="button"
+                                    className="btn-pp-reopen"
+                                    onClick={() => handleReopenClick(detailMission)}
+                                    title="Reabrir missão e deixar em aberto novamente as entregas da pós-produção"
+                                  >
+                                    <RotateCcw size={13} />
+                                    <span>Reabrir Missão &amp; Pós-Produção</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Exibição Destacada do Caminho no Servidor */}
+                            {detailMission.serverFilePath && (
+                              <div
+                                style={{
+                                  marginTop: '10px',
+                                  padding: '8px 12px',
+                                  background: 'rgba(56, 189, 248, 0.08)',
+                                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                                  borderRadius: '6px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '10px'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                                  <Folder size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                                  <div style={{ overflow: 'hidden' }}>
+                                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>
+                                      Local do Arquivo no Servidor
+                                    </div>
+                                    <code style={{ fontSize: '0.82rem', color: '#38bdf8', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {detailMission.serverFilePath}
+                                    </code>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn-secondary"
+                                  style={{ padding: '3px 8px', fontSize: '0.72rem', flexShrink: 0 }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (navigator.clipboard) {
+                                      navigator.clipboard.writeText(detailMission.serverFilePath);
+                                      alertDialog({
+                                        title: 'Caminho Copiado!',
+                                        message: `Caminho copiado para a área de transferência:\n\n${detailMission.serverFilePath}`,
+                                        variant: 'info'
+                                      });
+                                    }
+                                  }}
+                                >
+                                  Copiar
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Rodapé de Ações do Card */}

@@ -3053,16 +3053,16 @@ export default function MissionModal({
                             editionStatus: val,
                             ...(isValNotApp
                               ? {
-                                  editorIds: [],
-                                  deliveryDeadlineDate: '',
-                                  deliveryDeadlineTime: '',
-                                  isOverdue: 0,
-                                  editionDeliveryStatus: '',
-                                }
+                                editorIds: [],
+                                deliveryDeadlineDate: '',
+                                deliveryDeadlineTime: '',
+                                isOverdue: 0,
+                                editionDeliveryStatus: '',
+                              }
                               : {
-                                  deliveryDeadlineDate: prev.deliveryDeadlineDate || prev.date || getLocalTodayStr(),
-                                  deliveryDeadlineTime: prev.deliveryDeadlineTime || '18:00',
-                                }),
+                                deliveryDeadlineDate: prev.deliveryDeadlineDate || prev.date || getLocalTodayStr(),
+                                deliveryDeadlineTime: prev.deliveryDeadlineTime || '18:00',
+                              }),
                           }));
                         }}
                         style={{
@@ -3808,8 +3808,8 @@ export default function MissionModal({
                           const selectedRoles = Array.isArray(rawMemberRole)
                             ? (rawMemberRole.length > 0 ? rawMemberRole : [normalizeToOfficialRole(mem.role)])
                             : (typeof rawMemberRole === 'string' && rawMemberRole.trim()
-                                ? (rawMemberRole.includes(',') ? rawMemberRole.split(',').map((s) => s.trim()).filter(Boolean) : [rawMemberRole.trim()])
-                                : [normalizeToOfficialRole(mem.role)]);
+                              ? (rawMemberRole.includes(',') ? rawMemberRole.split(',').map((s) => s.trim()).filter(Boolean) : [rawMemberRole.trim()])
+                              : [normalizeToOfficialRole(mem.role)]);
 
                           return (
                             <div key={mId} className="mm-offhours-rate-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.75rem' }}>
@@ -3990,8 +3990,8 @@ export default function MissionModal({
                                       {isDailyMode
                                         ? '📅 Valor da Diária (por dia):'
                                         : isCustomMode
-                                        ? '🎯 Valor Fixo Acordado / Cachê (R$ Total):'
-                                        : '⏱️ Valor da Hora Extra (por hora):'}
+                                          ? '🎯 Valor Fixo Acordado / Cachê (R$ Total):'
+                                          : '⏱️ Valor da Hora Extra (por hora):'}
                                     </span>
                                     {isAdmin && currentVal !== '' && (
                                       <button
@@ -4016,8 +4016,8 @@ export default function MissionModal({
                                           isDailyMode
                                             ? defaultDailyRate.toFixed(2)
                                             : isCustomMode
-                                            ? '0.00'
-                                            : defaultHourlyRate.toFixed(2)
+                                              ? '0.00'
+                                              : defaultHourlyRate.toFixed(2)
                                         }
                                         value={currentVal}
                                         onChange={(e) => handleCustomRateChange(mId, e.target.value)}

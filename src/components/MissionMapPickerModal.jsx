@@ -18,6 +18,7 @@ import {
   reverseGeocodeNominatim,
   formatAddressWithCoordinates,
 } from '../utils/geo';
+import { getNativePosition } from '../utils/nativeBridge';
 
 // Ícone personalizado moderno para o marcador no Map Picker
 const createPickerPinIcon = () => {
@@ -188,30 +189,24 @@ export default function MissionMapPickerModal({
     setSearchQuery('');
   };
 
-  // Obter localização atual do dispositivo via GPS
-  const handleLocateMe = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocalização não suportada no seu dispositivo.');
-      return;
-    }
+  // Obter localização atual do dispositivo via GPS Nativo / Web
+  const handleLocateMe = async () => {
     setIsLocatingUser(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setIsLocatingUser(false);
-        const { latitude, longitude } = pos.coords;
-        if (mapInstanceRef.current && markerRef.current) {
-          mapInstanceRef.current.flyTo([latitude, longitude], 17, { animate: true, duration: 1 });
-          markerRef.current.setLatLng([latitude, longitude]);
-          handleUpdatePoint(latitude, longitude);
-        }
-      },
-      (err) => {
-        setIsLocatingUser(false);
-        console.warn('Erro ao obter GPS atual:', err);
-        alert('Não foi possível capturar sua posição atual. Verifique se o GPS está ativo.');
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
+    try {
+      const pos = await getNativePosition();
+      const latitude = Number(pos.lat);
+      const longitude = Number(pos.lon);
+      if (mapInstanceRef.current && markerRef.current) {
+        mapInstanceRef.current.flyTo([latitude, longitude], 17, { animate: true, duration: 1 });
+        markerRef.current.setLatLng([latitude, longitude]);
+        handleUpdatePoint(latitude, longitude);
+      }
+    } catch (err) {
+      console.warn('Erro ao obter GPS atual:', err);
+      alert('Não foi possível capturar sua posição atual. Verifique se o GPS e as permissões de localização estão ativos.');
+    } finally {
+      setIsLocatingUser(false);
+    }
   };
 
   // Ir para a Base

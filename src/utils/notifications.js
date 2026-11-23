@@ -96,9 +96,19 @@ export function playNotificationSound() {
 }
 
 /**
- * Solicita permissão para exibir notificações nativas no celular / navegador
+ * Solicita permissão para exibir notificações nativas no celular (Capacitor) ou navegador Web
  */
 export async function requestNotificationPermission() {
+  if (isNativeApp()) {
+    try {
+      await ensureNotificationChannel();
+      const perm = await LocalNotifications.requestPermissions();
+      return perm?.display === 'granted' ? 'granted' : 'denied';
+    } catch (e) {
+      console.warn('[Notifications] Erro ao solicitar permissões nativas:', e);
+    }
+  }
+
   if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
   if (Notification.permission === 'granted') {
     registerPushSubscriptionWithServer().catch(() => {});
@@ -115,6 +125,24 @@ export async function requestNotificationPermission() {
   } catch (e) {
     return 'denied';
   }
+}
+
+/**
+ * Verifica o status atual da permissão de notificações (Nativa ou Web)
+ */
+export async function checkNotificationPermission() {
+  if (isNativeApp()) {
+    try {
+      const status = await LocalNotifications.checkPermissions();
+      return status?.display === 'granted' ? 'granted' : 'denied';
+    } catch (e) {
+      return 'denied';
+    }
+  }
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    return Notification.permission;
+  }
+  return 'unsupported';
 }
 
 /**

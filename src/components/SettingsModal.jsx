@@ -37,6 +37,7 @@ import { apiGetAuditLogs, apiDownloadBackup, apiDownloadFullJsonBackup, apiResto
 import { searchAddressNominatim } from '../utils/geo';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { SYSTEM_NAME, SYSTEM_VERSION, SYSTEM_RELEASE_NAME } from '../utils/version';
+import { getNativePosition } from '../utils/nativeBridge';
 
 // ======================================================
 // Sub-componente: Seção de título de formulário
@@ -283,28 +284,25 @@ export default function SettingsModal({
   const [isRestoring, setIsRestoring] = useState(false);
   const logoInputRef = useRef(null);
 
-  // ---- GPS ----
-  const handleDetectGPS = () => {
-    if (!navigator.geolocation) {
-      alertDialog({ title: 'GPS Indisponível', message: 'Geolocalização não suportada no seu navegador.', variant: 'warning' });
-      return;
-    }
+  // ---- GPS Nativo / Web ----
+  const handleDetectGPS = async () => {
     setGpsLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setFormData((prev) => ({
-          ...prev,
-          baseLat: parseFloat(pos.coords.latitude.toFixed(6)),
-          baseLon: parseFloat(pos.coords.longitude.toFixed(6)),
-        }));
-        setGpsLoading(false);
-      },
-      (err) => {
-        setGpsLoading(false);
-        alertDialog({ title: 'Erro de GPS', message: 'Não foi possível obter coordenadas: ' + err.message, variant: 'warning' });
-      },
-      { timeout: 10000 }
-    );
+    try {
+      const pos = await getNativePosition();
+      setFormData((prev) => ({
+        ...prev,
+        baseLat: parseFloat(Number(pos.lat).toFixed(6)),
+        baseLon: parseFloat(Number(pos.lon).toFixed(6)),
+      }));
+    } catch (err) {
+      alertDialog({
+        title: 'Erro de GPS',
+        message: 'Não foi possível obter coordenadas: ' + (err.message || 'Verifique as permissões de localização do dispositivo.'),
+        variant: 'warning'
+      });
+    } finally {
+      setGpsLoading(false);
+    }
   };
 
   // ---- Busca de endereço ----
@@ -480,14 +478,14 @@ export default function SettingsModal({
 
   // ---- Definição das abas ----
   const TABS = [
-    { id: 'empresa',    icon: Building2,   label: 'Empresa' },
-    { id: 'sede',       icon: MapPin,       label: 'Sede / Base' },
-    { id: 'combustivel',icon: Fuel,         label: 'Combustível' },
-    { id: 'visual',     icon: Palette,      label: 'Visual & Logo' },
-    { id: 'funcoes',    icon: Tag,          label: 'Funções' },
-    { id: 'status',     icon: ListChecks,   label: 'Status & Tipos' },
-    { id: 'backup',     icon: Download,     label: 'Backup & Dados' },
-    { id: 'auditoria',  icon: ShieldCheck,  label: 'Auditoria' },
+    { id: 'empresa', icon: Building2, label: 'Empresa' },
+    { id: 'sede', icon: MapPin, label: 'Sede / Base' },
+    { id: 'combustivel', icon: Fuel, label: 'Combustível' },
+    { id: 'visual', icon: Palette, label: 'Visual & Logo' },
+    { id: 'funcoes', icon: Tag, label: 'Funções' },
+    { id: 'status', icon: ListChecks, label: 'Status & Tipos' },
+    { id: 'backup', icon: Download, label: 'Backup & Dados' },
+    { id: 'auditoria', icon: ShieldCheck, label: 'Auditoria' },
   ];
 
   // ---- Trilha de Auditoria (Audit Logs) ----
