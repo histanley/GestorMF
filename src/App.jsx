@@ -360,6 +360,8 @@ export default function App() {
               lon: cleanLon,
               routeCoordinates: cleanRouteCoords,
               returnCoordinates: cleanReturnCoords,
+              lunchBreakOption: m.lunchBreakOption || (m.hasLunchBreak === true ? 'with_break' : 'no_break'),
+              hasLunchBreak: m.hasLunchBreak !== undefined ? Boolean(m.hasLunchBreak) : (m.lunchBreakOption === 'with_break'),
             };
           });
       } catch (e) {

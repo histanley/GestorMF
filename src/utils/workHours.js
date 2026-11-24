@@ -82,19 +82,16 @@ export function calculateEventOnlyOffHours(missionOrData) {
   const endDateStr = missionOrData.endDate || missionOrData.date;
   const isMultiDay = Boolean(missionOrData.isMultiDay || (missionOrData.endDate && missionOrData.endDate !== missionOrData.date));
 
-  // Identificação automática de missões contínuas ao vivo (ex: #202611242 TJRR Sessões Criminais)
-  const codeStr = String(missionOrData.code || '');
-  const descStr = String(missionOrData.description || '').toLowerCase();
-  const isContinuousLive = codeStr.includes('202611242') || (descStr.includes('tjrr') && descStr.includes('sessoes'));
-
   let effectiveLunchOption = missionOrData.lunchBreakOption;
   let effectiveHasLunchBreak = missionOrData.hasLunchBreak;
 
-  if (effectiveLunchOption === undefined && effectiveHasLunchBreak === undefined) {
-    if (isContinuousLive) {
-      effectiveLunchOption = 'no_break';
-      effectiveHasLunchBreak = false;
-    }
+  // Regra Oficial MegaFilmes para Missões em Campo (atuais, futuras e finalizadas):
+  // Se não foi explicitamente marcado que a equipe teve pausa livre de almoço ('with_break' ou hasLunchBreak === true),
+  // as missões de campo são contínuas ('no_break'). Quando a missão cruzar o intervalo comercial das 12h às 14h,
+  // esse período é automaticamente contabilizado como HORAS EXTRAS para a equipe de campo!
+  if (effectiveLunchOption !== 'with_break' && effectiveHasLunchBreak !== true) {
+    effectiveLunchOption = 'no_break';
+    effectiveHasLunchBreak = false;
   }
 
   return calculateMissionOffHours(startDateStr, startTime, endDateStr, endTime, isMultiDay, {
@@ -799,13 +796,9 @@ export function classifyMissionShift(missionOrData) {
   let offNightMin = 0;
   let lunchMin = 0;
 
-  const codeStr = String(missionOrData.code || '');
-  const descStr = String(missionOrData.description || '').toLowerCase();
-  const isContinuousLive = codeStr.includes('202611242') || (descStr.includes('tjrr') && descStr.includes('sessoes'));
-
   let effectiveLunchOption = missionOrData.lunchBreakOption;
   let effectiveHasLunchBreak = missionOrData.hasLunchBreak;
-  if (effectiveLunchOption === undefined && effectiveHasLunchBreak === undefined && isContinuousLive) {
+  if (effectiveLunchOption !== 'with_break' && effectiveHasLunchBreak !== true) {
     effectiveLunchOption = 'no_break';
     effectiveHasLunchBreak = false;
   }

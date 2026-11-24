@@ -115,6 +115,88 @@ function ensureMissionColumnsExist($db)
             }
         }
     });
+
+    // Migração de recálculo retroativo de horas extras de almoço para missões finalizadas e existentes (Regra MegaFilmes)
+    runVersionedMigration($db, 'recalc_finalized_missions_lunch_v3', function ($pdo) {
+        // 1. Garante que qualquer missão sem opção de almoço definida receba 'no_break' e has_lunch_break = 0
+        $pdo->exec("
+            UPDATE missions
+            SET lunch_break_option = 'no_break',
+                has_lunch_break = 0
+            WHERE lunch_break_option IS NULL OR lunch_break_option = ''
+        ");
+
+        // 2. Recalcula o off_hours das missões considerando o intervalo de almoço contínuo (12h às 14h)
+        $stmt = $pdo->query("SELECT id, date, departure_time, arrival_time_estimated, return_time_estimated, event_start_time, event_end_time, is_multi_day, end_date, lunch_break_option, off_hours FROM missions");
+        if ($stmt) {
+            $missions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $upStmt = $pdo->prepare("UPDATE missions SET off_hours = ? WHERE id = ?");
+            foreach ($missions as $m) {
+                $start = $m['event_start_time'] ?: ($m['arrival_time_estimated'] ?: $m['departure_time']);
+                $end = $m['event_end_time'] ?: $m['return_time_estimated'];
+                if (!$start || !$end || empty($m['date'])) continue;
+
+                $opt = $m['lunch_break_option'] ?? 'no_break';
+                $calcOff = calculateMissionOffHoursPHP($m['date'], $start, $m['end_date'] ?: $m['date'], $end, (bool)$m['is_multi_day'], $opt);
+                if ($calcOff !== null) {
+                    $upStmt->execute([$calcOff, $m['id']]);
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Função utilitária no PHP para cálculo de off_hours de evento de acordo com a regra oficial MegaFilmes:
+ * - Seg a Sex: 08:00 às 12:00 e 14:00 às 18:00 (Comercial)
+ * - 12:00 às 14:00 (Almoço): se contínuo (no_break), vira hora extra!
+ * - Sábado: 08:00 às 12:00 (Comercial), após 12h é hora extra
+ * - Domingo: 100% hora extra
+ */
+function calculateMissionOffHoursPHP($startDateStr, $startTime, $endDateStr, $endTime, $isMultiDay = false, $lunchBreakOption = 'no_break')
+{
+    if (!$startDateStr || !$startTime || !$endTime)
+        return 0.0;
+    $effEnd = ($isMultiDay && $endDateStr) ? $endDateStr : $startDateStr;
+    $startTs = strtotime("{$startDateStr} {$startTime}:00");
+    $endTs = strtotime("{$effEnd} {$endTime}:00");
+    if ($endTs <= $startTs && $startDateStr === $effEnd) {
+        $endTs += 86400; // virou a meia-noite
+    }
+    if ($endTs <= $startTs)
+        return 0.0;
+
+    $offMinutes = 0;
+    $isContinuous = ($lunchBreakOption !== 'with_break');
+    $cur = $startTs;
+    while ($cur < $endTs) {
+        $dow = (int) date('w', $cur); // 0 = Domingo, 1 = Segunda ... 6 = Sabado
+        $hour = (int) date('G', $cur);
+        $min = (int) date('i', $cur);
+        $minOfDay = $hour * 60 + $min;
+
+        $isWork = false;
+        if ($dow >= 1 && $dow <= 5) {
+            if ($minOfDay >= 480 && $minOfDay < 720) {
+                $isWork = true;
+            } elseif ($minOfDay >= 720 && $minOfDay < 840) {
+                // Almoço: se contínuo vira hora extra
+                $isWork = false;
+            } elseif ($minOfDay >= 840 && $minOfDay < 1080) {
+                $isWork = true;
+            }
+        } elseif ($dow === 6) {
+            if ($minOfDay >= 480 && $minOfDay < 720) {
+                $isWork = true;
+            }
+        }
+
+        if (!$isWork) {
+            $offMinutes++;
+        }
+        $cur += 60;
+    }
+    return round($offMinutes / 60, 1);
 }
 
 // ------------------------------------------------------------------------------

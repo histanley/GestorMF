@@ -127,4 +127,26 @@ assert.strictEqual(legacy.inHours, 8.0, 'Chamada legado mantém 8h em expediente
 assert.strictEqual(legacy.offHours, 0.0, 'Chamada legado mantém 0h fora de expediente');
 console.log('  ✅ Cenário 8: Compatibilidade 100% mantida com testes e chamadas legadas');
 
+// --------------------------------------------------------------------------
+// 9. Missões Finalizadas Antigas (sem lunchBreakOption definido no cadastro)
+// --------------------------------------------------------------------------
+const pastFinalizedMission = {
+  id: 'mis-finalized-past',
+  code: '202611131',
+  description: 'ENSAIO FOTOGRAFICO EXTERNO ABC SESI',
+  date: '2026-11-13', // Sexta-feira
+  departureTime: '08:00',
+  eventStartTime: '08:30',
+  eventEndTime: '15:00',
+  returnTimeEstimated: '15:30',
+  missionStatus: 'Finalizada',
+  // lunchBreakOption e hasLunchBreak não estavam definidos no passado
+};
+
+const t9 = calculateEventOnlyOffHours(pastFinalizedMission);
+assert.strictEqual(t9.lunchOffHours, 2.0, 'Missão finalizada no almoço deve apurar 2.0h de almoço trabalhado');
+assert.strictEqual(t9.offHours, 2.0, 'Deve conter 2.0h de horas extras de almoço');
+assert.strictEqual(t9.isOffHours, true, 'Deve ser marcada como fora do expediente');
+console.log('  ✅ Cenário 9: Missão finalizada antiga (#202611131 SESI) recalculada com sucesso: 2.0h extras de almoço');
+
 console.log('\n🎉 TODOS OS TESTES DE HORAS EXTRAS DE ALMOÇO E REFEIÇÃO PASSARAM COM 100% DE SUCESSO!\n');
