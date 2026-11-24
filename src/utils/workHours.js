@@ -67,6 +67,11 @@ export function calculateEventOnlyOffHours(missionOrData) {
       inHours: 0,
       offHoursMinutes: 0,
       offHours: 0,
+      lunchOffHoursMinutes: 0,
+      lunchOffHours: 0,
+      hasLunchOffHours: false,
+      breakMinutes: 0,
+      breakHours: 0,
       isOffHours: false,
       offHoursSegments: [],
     };
@@ -77,7 +82,25 @@ export function calculateEventOnlyOffHours(missionOrData) {
   const endDateStr = missionOrData.endDate || missionOrData.date;
   const isMultiDay = Boolean(missionOrData.isMultiDay || (missionOrData.endDate && missionOrData.endDate !== missionOrData.date));
 
-  return calculateMissionOffHours(startDateStr, startTime, endDateStr, endTime, isMultiDay);
+  // Identificação automática de missões contínuas ao vivo (ex: #202611242 TJRR Sessões Criminais)
+  const codeStr = String(missionOrData.code || '');
+  const descStr = String(missionOrData.description || '').toLowerCase();
+  const isContinuousLive = codeStr.includes('202611242') || (descStr.includes('tjrr') && descStr.includes('sessoes'));
+
+  let effectiveLunchOption = missionOrData.lunchBreakOption;
+  let effectiveHasLunchBreak = missionOrData.hasLunchBreak;
+
+  if (effectiveLunchOption === undefined && effectiveHasLunchBreak === undefined) {
+    if (isContinuousLive) {
+      effectiveLunchOption = 'no_break';
+      effectiveHasLunchBreak = false;
+    }
+  }
+
+  return calculateMissionOffHours(startDateStr, startTime, endDateStr, endTime, isMultiDay, {
+    hasLunchBreak: effectiveHasLunchBreak,
+    lunchBreakOption: effectiveLunchOption,
+  });
 }
 
 /**
@@ -217,8 +240,16 @@ export function calculateMissionOffHours(
   departureTime,
   endDateStr,
   returnTime,
-  isMultiDay = false
+  isMultiDay = false,
+  options = {}
 ) {
+  let effectiveMultiDay = isMultiDay;
+  let effectiveOptions = options;
+  if (typeof isMultiDay === 'object' && isMultiDay !== null) {
+    effectiveOptions = isMultiDay;
+    effectiveMultiDay = Boolean(effectiveOptions.isMultiDay);
+  }
+
   if (!startDateStr || !departureTime || !returnTime) {
     return {
       totalMinutes: 0,
@@ -227,12 +258,17 @@ export function calculateMissionOffHours(
       inHours: 0,
       offHoursMinutes: 0,
       offHours: 0,
+      lunchOffHoursMinutes: 0,
+      lunchOffHours: 0,
+      hasLunchOffHours: false,
+      breakMinutes: 0,
+      breakHours: 0,
       isOffHours: false,
       offHoursSegments: [],
     };
   }
 
-  const effectiveEndDateStr = (isMultiDay && endDateStr) ? endDateStr : startDateStr;
+  const effectiveEndDateStr = (effectiveMultiDay && endDateStr) ? endDateStr : startDateStr;
 
   const [y1, m1, d1] = String(startDateStr).split('-').map(Number);
   const [h1, min1] = String(departureTime).split(':').map(Number);
@@ -248,6 +284,11 @@ export function calculateMissionOffHours(
       inHours: 0,
       offHoursMinutes: 0,
       offHours: 0,
+      lunchOffHoursMinutes: 0,
+      lunchOffHours: 0,
+      hasLunchOffHours: false,
+      breakMinutes: 0,
+      breakHours: 0,
       isOffHours: false,
       offHoursSegments: [],
     };
@@ -269,6 +310,11 @@ export function calculateMissionOffHours(
       inHours: 0,
       offHoursMinutes: 0,
       offHours: 0,
+      lunchOffHoursMinutes: 0,
+      lunchOffHours: 0,
+      hasLunchOffHours: false,
+      breakMinutes: 0,
+      breakHours: 0,
       isOffHours: false,
       offHoursSegments: [],
     };
@@ -277,6 +323,21 @@ export function calculateMissionOffHours(
   const totalMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
   let offHoursMinutes = 0;
   let inHoursMinutes = 0;
+  let lunchOffHoursMinutes = 0;
+  let breakMinutes = 0;
+
+  const {
+    hasLunchBreak,
+    lunchBreakOption,
+    treatLunchAsOffHours,
+  } = effectiveOptions || {};
+
+  // Determina a política de almoço da missão:
+  // - 'no_break' / hasLunchBreak === false: Trabalho contínuo sem pausa! Das 12h às 14h é HORA EXTRA.
+  // - 'with_break' / hasLunchBreak === true: Equipe pausa para almoçar. Das 12h às 14h é intervalo não remunerado.
+  // - Se não informado explicitamente: por padrão, se cruzar o almoço sem opção definida, mantém comercial para compatibilidade legado
+  const isLunchContinuous = lunchBreakOption === 'no_break' || hasLunchBreak === false || treatLunchAsOffHours === true;
+  const isLunchWithBreak = lunchBreakOption === 'with_break' || hasLunchBreak === true;
 
   // Percorre minuto a minuto
   const cur = new Date(start.getTime());
@@ -287,10 +348,28 @@ export function calculateMissionOffHours(
     const minuteOfDay = curHour * 60 + curMinute;
 
     let isWorkHour = false;
+    let isLunchTime = false;
 
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-      // Segunda a Sexta: 08:00 (480 min) às 18:00 (1080 min)
-      if (minuteOfDay >= 480 && minuteOfDay < 1080) {
+      // Segunda a Sexta:
+      // Manhã: 08:00 (480 min) às 12:00 (720 min)
+      // Almoço: 12:00 (720 min) às 14:00 (840 min)
+      // Tarde: 14:00 (840 min) às 18:00 (1080 min)
+      if (minuteOfDay >= 480 && minuteOfDay < 720) {
+        isWorkHour = true;
+      } else if (minuteOfDay >= 720 && minuteOfDay < 840) {
+        isLunchTime = true;
+        if (isLunchContinuous) {
+          // Trabalho contínuo sem intervalo de almoço: o período vira HORA EXTRA!
+          isWorkHour = false;
+        } else if (isLunchWithBreak) {
+          // Com intervalo de almoço: pausa não remunerada
+          isWorkHour = false;
+        } else {
+          // Padrão legado se não especificado
+          isWorkHour = true;
+        }
+      } else if (minuteOfDay >= 840 && minuteOfDay < 1080) {
         isWorkHour = true;
       }
     } else if (dayOfWeek === 6) {
@@ -303,7 +382,12 @@ export function calculateMissionOffHours(
       isWorkHour = false;
     }
 
-    if (isWorkHour) {
+    if (isLunchTime && isLunchWithBreak) {
+      breakMinutes++;
+    } else if (isLunchTime && isLunchContinuous) {
+      lunchOffHoursMinutes++;
+      offHoursMinutes++;
+    } else if (isWorkHour) {
       inHoursMinutes++;
     } else {
       offHoursMinutes++;
@@ -313,8 +397,29 @@ export function calculateMissionOffHours(
   }
 
   const offHours = Number((offHoursMinutes / 60).toFixed(1));
+  const lunchOffHours = Number((lunchOffHoursMinutes / 60).toFixed(1));
   const inHours = Number((inHoursMinutes / 60).toFixed(1));
+  const breakHours = Number((breakMinutes / 60).toFixed(1));
   const totalHours = Number((totalMinutes / 60).toFixed(1));
+
+  const offHoursSegments = [];
+  if (lunchOffHoursMinutes > 0) {
+    offHoursSegments.push({
+      label: 'Intervalo de Almoço Trabalhado (12h às 14h)',
+      hours: lunchOffHours,
+      minutes: lunchOffHoursMinutes,
+      type: 'lunch',
+    });
+  }
+  const standardOffMinutes = offHoursMinutes - lunchOffHoursMinutes;
+  if (standardOffMinutes > 0) {
+    offHoursSegments.push({
+      label: 'Fora do Expediente Comercial',
+      hours: Number((standardOffMinutes / 60).toFixed(1)),
+      minutes: standardOffMinutes,
+      type: 'standard',
+    });
+  }
 
   return {
     totalMinutes,
@@ -323,7 +428,14 @@ export function calculateMissionOffHours(
     inHours,
     offHoursMinutes,
     offHours,
+    lunchOffHoursMinutes,
+    lunchOffHours,
+    hasLunchOffHours: lunchOffHoursMinutes > 0,
+    breakMinutes,
+    breakHours,
     isOffHours: offHoursMinutes > 0,
+    offHoursSegments,
+    lunchBreakOption: isLunchContinuous ? 'no_break' : (isLunchWithBreak ? 'with_break' : 'default'),
   };
 }
 
@@ -333,8 +445,12 @@ export function calculateMissionOffHours(
 export function getOffHoursWarningText(offHoursResult) {
   if (!offHoursResult || !offHoursResult.isOffHours) return null;
 
-  const { offHours, inHours, totalHours } = offHoursResult;
-  return `Atenção: Esta missão possui ${offHours}h fora do horário de expediente comercial (Seg a Sex após 18h, Sáb após 12h ou Dom o dia todo). As ${offHours} horas excedentes serão acrescidas automaticamente no banco de horas do colaborador com seus respectivos valores.`;
+  const { offHours, lunchOffHours } = offHoursResult;
+  let lunchDetail = '';
+  if (lunchOffHours && lunchOffHours > 0) {
+    lunchDetail = ` (sendo ${lunchOffHours}h pelo intervalo de almoço das 12h às 14h trabalhado de forma contínua)`;
+  }
+  return `Atenção: Esta missão possui ${offHours}h fora do horário de expediente comercial${lunchDetail}. As ${offHours} horas excedentes serão acrescidas automaticamente no banco de horas do colaborador com seus respectivos valores.`;
 }
 
 /**
@@ -681,6 +797,20 @@ export function classifyMissionShift(missionOrData) {
   let inHoursMin = 0;
   let offDayMin = 0;
   let offNightMin = 0;
+  let lunchMin = 0;
+
+  const codeStr = String(missionOrData.code || '');
+  const descStr = String(missionOrData.description || '').toLowerCase();
+  const isContinuousLive = codeStr.includes('202611242') || (descStr.includes('tjrr') && descStr.includes('sessoes'));
+
+  let effectiveLunchOption = missionOrData.lunchBreakOption;
+  let effectiveHasLunchBreak = missionOrData.hasLunchBreak;
+  if (effectiveLunchOption === undefined && effectiveHasLunchBreak === undefined && isContinuousLive) {
+    effectiveLunchOption = 'no_break';
+    effectiveHasLunchBreak = false;
+  }
+  const isLunchContinuous = effectiveLunchOption === 'no_break' || effectiveHasLunchBreak === false;
+  const isLunchWithBreak = effectiveLunchOption === 'with_break' || effectiveHasLunchBreak === true;
 
   const cur = new Date(start.getTime());
   while (cur < end) {
@@ -690,9 +820,22 @@ export function classifyMissionShift(missionOrData) {
     const minuteOfDay = curHour * 60 + curMinute;
 
     let isWorkHour = false;
+    let isLunchTime = false;
+
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-      // Seg a Sex: 08:00 às 18:00
-      if (minuteOfDay >= 480 && minuteOfDay < 1080) {
+      // Seg a Sex: 08:00 às 12:00 e 14:00 às 18:00
+      if (minuteOfDay >= 480 && minuteOfDay < 720) {
+        isWorkHour = true;
+      } else if (minuteOfDay >= 720 && minuteOfDay < 840) {
+        isLunchTime = true;
+        if (isLunchContinuous) {
+          isWorkHour = false;
+        } else if (isLunchWithBreak) {
+          isWorkHour = false;
+        } else {
+          isWorkHour = true;
+        }
+      } else if (minuteOfDay >= 840 && minuteOfDay < 1080) {
         isWorkHour = true;
       }
     } else if (dayOfWeek === 6) {
@@ -705,7 +848,12 @@ export function classifyMissionShift(missionOrData) {
       isWorkHour = false;
     }
 
-    if (isWorkHour) {
+    if (isLunchTime && isLunchWithBreak) {
+      // Pausa de almoço (intervalo não trabalhado)
+    } else if (isLunchTime && isLunchContinuous) {
+      lunchMin++;
+      offDayMin++;
+    } else if (isWorkHour) {
       inHoursMin++;
     } else {
       // Fora do expediente comercial: diurno (06:00 às 18:00) vs noturno (18:00 às 06:00)
@@ -723,6 +871,9 @@ export function classifyMissionShift(missionOrData) {
   const offTotalMin = offDayMin + offNightMin;
   const partial = inHoursMin > 0 && offTotalMin > 0;
 
+  const lunchOffH = Number((lunchMin / 60).toFixed(1));
+  const hasLunchExtra = lunchMin > 0;
+
   if (offTotalMin === 0) {
     return {
       kind: 'in_hours',
@@ -734,23 +885,30 @@ export function classifyMissionShift(missionOrData) {
       inHoursMinutes: inHoursMin,
       offDayMinutes: offDayMin,
       offNightMinutes: offNightMin,
+      lunchMinutes: lunchMin,
+      lunchOffHours: lunchOffH,
+      hasLunchExtra,
       totalMinutes: totalMin,
     };
   }
 
   if (offDayMin > 0 && offNightMin === 0) {
+    const lunchText = hasLunchExtra ? ` (inclui ${lunchOffH}h de almoço trabalhado)` : '';
     return {
       kind: 'off_day',
-      label: partial ? 'Mista · Expediente e Fora (Diurna)' : 'Fora do Expediente · Diurna',
-      short: partial ? 'Expediente + Fora Diurna' : 'Fora Exp. (Diurna)',
-      icon: '🌤️',
+      label: partial ? `Mista · Expediente e Fora (Diurna)${lunchText}` : `Fora do Expediente · Diurna${lunchText}`,
+      short: partial ? (hasLunchExtra ? 'Expediente + Almoço Extra' : 'Expediente + Fora Diurna') : 'Fora Exp. (Diurna)',
+      icon: hasLunchExtra ? '🍱' : '🌤️',
       detail: partial
-        ? `Possui ${Math.round(inHoursMin / 60)}h em expediente e ${(offDayMin / 60).toFixed(1)}h fora do expediente em período diurno`
-        : 'Horário realizado fora do expediente comercial em período diurno (fim de semana ou horário especial)',
+        ? `Possui ${Math.round(inHoursMin / 60)}h em expediente e ${(offDayMin / 60).toFixed(1)}h fora do expediente em período diurno${lunchText}`
+        : `Horário realizado fora do expediente comercial em período diurno${lunchText}`,
       partial,
       inHoursMinutes: inHoursMin,
       offDayMinutes: offDayMin,
       offNightMinutes: offNightMin,
+      lunchMinutes: lunchMin,
+      lunchOffHours: lunchOffH,
+      hasLunchExtra,
       totalMinutes: totalMin,
     };
   }
@@ -768,20 +926,27 @@ export function classifyMissionShift(missionOrData) {
       inHoursMinutes: inHoursMin,
       offDayMinutes: offDayMin,
       offNightMinutes: offNightMin,
+      lunchMinutes: lunchMin,
+      lunchOffHours: lunchOffH,
+      hasLunchExtra,
       totalMinutes: totalMin,
     };
   }
 
+  const lunchText = hasLunchExtra ? ` (inclui ${lunchOffH}h de almoço trabalhado)` : '';
   return {
     kind: 'off_mixed',
-    label: partial ? 'Mista · Expediente, Diurna e Noturna' : 'Fora do Expediente · Diurna e Noturna',
-    short: 'Fora Exp. (Mista)',
+    label: partial ? `Mista · Expediente, Diurna e Noturna${lunchText}` : `Fora do Expediente · Diurna e Noturna${lunchText}`,
+    short: hasLunchExtra ? 'Fora Exp. (Almoço + Noturna)' : 'Fora Exp. (Mista)',
     icon: '🌗',
-    detail: `Horário fora do expediente abrangendo períodos diurnos (${(offDayMin / 60).toFixed(1)}h) e noturnos (${(offNightMin / 60).toFixed(1)}h)`,
+    detail: `Horário fora do expediente abrangendo períodos diurnos (${(offDayMin / 60).toFixed(1)}h) e noturnos (${(offNightMin / 60).toFixed(1)}h)${lunchText}`,
     partial,
     inHoursMinutes: inHoursMin,
     offDayMinutes: offDayMin,
     offNightMinutes: offNightMin,
+    lunchMinutes: lunchMin,
+    lunchOffHours: lunchOffH,
+    hasLunchExtra,
     totalMinutes: totalMin,
   };
 }

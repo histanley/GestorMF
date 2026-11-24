@@ -91,6 +91,30 @@ function ensureMissionColumnsExist($db)
         } catch (Exception $ex) {
         }
     });
+
+    runVersionedMigration($db, 'schema_missions_cols_v5_lunch', function ($pdo) {
+        $cols = [
+            'lunch_break_option' => "VARCHAR(30) DEFAULT 'no_break'",
+            'has_lunch_break' => 'TINYINT(1) DEFAULT 0',
+            'meal_allowance_option' => "VARCHAR(40) DEFAULT 'none'",
+            'meal_allowance_cost' => 'DECIMAL(10,2) DEFAULT 0.00',
+            'meal_allowance_notes' => 'TEXT NULL'
+        ];
+        $existingCols = [];
+        $stmt = $pdo->query("SHOW COLUMNS FROM missions");
+        if ($stmt) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $existingCols[strtolower($row['Field'])] = true;
+            }
+        }
+        foreach ($cols as $colName => $colDef) {
+            if (!isset($existingCols[strtolower($colName)])) {
+                try {
+                    $pdo->exec("ALTER TABLE missions ADD COLUMN {$colName} {$colDef}");
+                } catch (Exception $ex) {}
+            }
+        }
+    });
 }
 
 // ------------------------------------------------------------------------------
@@ -423,6 +447,11 @@ if ($method === 'GET') {
             'extraHoursPlanned' => isset($m['extra_hours_planned']) ? (float) $m['extra_hours_planned'] : 0.0,
             'extraHoursApproved' => isset($m['extra_hours_approved']) ? (float) $m['extra_hours_approved'] : 0.0,
             'extraHoursRequests' => !empty($m['extra_hours_requests']) ? json_decode($m['extra_hours_requests'], true) : [],
+            'lunchBreakOption' => $m['lunch_break_option'] ?? ($m['has_lunch_break'] === '0' || $m['has_lunch_break'] === 0 ? 'no_break' : ($m['has_lunch_break'] === '1' || $m['has_lunch_break'] === 1 ? 'with_break' : (stripos($m['code'] ?? '', '202611242') !== false || stripos($m['description'] ?? '', 'tjrr') !== false ? 'no_break' : 'no_break'))),
+            'hasLunchBreak' => isset($m['has_lunch_break']) && $m['has_lunch_break'] !== null ? (bool) $m['has_lunch_break'] : ($m['lunch_break_option'] === 'with_break' ? true : false),
+            'mealAllowanceOption' => $m['meal_allowance_option'] ?? 'none',
+            'mealAllowanceCost' => isset($m['meal_allowance_cost']) ? (float) $m['meal_allowance_cost'] : 0.0,
+            'mealAllowanceNotes' => $m['meal_allowance_notes'] ?? null,
             'version' => (int) ($m['version'] ?? 1),
             'createdAt' => $m['created_at'],
             'updatedAt' => $m['updated_at'],
@@ -1237,6 +1266,7 @@ if ($method === 'POST' || $method === 'PUT') {
             is_multi_day, end_date,
             custom_rates, off_hours,
             remuneration_type, member_remuneration_types, member_roles, equipment_allocations, member_notes, extra_hours_planned, extra_hours_approved, extra_hours_requests,
+            lunch_break_option, has_lunch_break, meal_allowance_option, meal_allowance_cost, meal_allowance_notes,
             editors_delivery,
             created_by,
             created_by_name
@@ -1257,6 +1287,7 @@ if ($method === 'POST' || $method === 'PUT') {
             :is_multi_day, :end_date,
             :custom_rates, :off_hours,
             :remuneration_type, :member_remuneration_types, :member_roles, :equipment_allocations, :member_notes, :extra_hours_planned, :extra_hours_approved, :extra_hours_requests,
+            :lunch_break_option, :has_lunch_break, :meal_allowance_option, :meal_allowance_cost, :meal_allowance_notes,
             :editors_delivery,
             :created_by,
             :created_by_name
@@ -1327,6 +1358,11 @@ if ($method === 'POST' || $method === 'PUT') {
             extra_hours_planned = VALUES(extra_hours_planned),
             extra_hours_approved = VALUES(extra_hours_approved),
             extra_hours_requests = VALUES(extra_hours_requests),
+            lunch_break_option = VALUES(lunch_break_option),
+            has_lunch_break = VALUES(has_lunch_break),
+            meal_allowance_option = VALUES(meal_allowance_option),
+            meal_allowance_cost = VALUES(meal_allowance_cost),
+            meal_allowance_notes = VALUES(meal_allowance_notes),
             editors_delivery = VALUES(editors_delivery)
     ";
 
@@ -1424,6 +1460,11 @@ if ($method === 'POST' || $method === 'PUT') {
             ':extra_hours_planned' => isset($data['extraHoursPlanned']) ? (float) $data['extraHoursPlanned'] : 0.0,
             ':extra_hours_approved' => isset($data['extraHoursApproved']) ? (float) $data['extraHoursApproved'] : 0.0,
             ':extra_hours_requests' => !empty($data['extraHoursRequests']) ? (is_string($data['extraHoursRequests']) ? $data['extraHoursRequests'] : json_encode($data['extraHoursRequests'], JSON_UNESCAPED_UNICODE)) : null,
+            ':lunch_break_option' => $data['lunchBreakOption'] ?? (!empty($data['hasLunchBreak']) ? 'with_break' : 'no_break'),
+            ':has_lunch_break' => isset($data['hasLunchBreak']) ? ($data['hasLunchBreak'] ? 1 : 0) : (($data['lunchBreakOption'] ?? '') === 'with_break' ? 1 : 0),
+            ':meal_allowance_option' => $data['mealAllowanceOption'] ?? 'none',
+            ':meal_allowance_cost' => isset($data['mealAllowanceCost']) ? (float) $data['mealAllowanceCost'] : 0.0,
+            ':meal_allowance_notes' => $data['mealAllowanceNotes'] ?? null,
             ':editors_delivery' => !empty($data['editorsDelivery']) ? (is_string($data['editorsDelivery']) ? $data['editorsDelivery'] : json_encode($data['editorsDelivery'], JSON_UNESCAPED_UNICODE)) : null,
             ':created_by' => $data['createdBy'] ?? ($user['id'] ?? null),
             ':created_by_name' => $data['createdByName'] ?? ($user['name'] ?? 'Administrador')

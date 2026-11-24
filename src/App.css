@@ -54936,3 +54936,375 @@ body.light-theme .adv-member-name,
   background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
   transform: translateY(-1px);
 }
+
+/* ============================================================== */
+/* INTERVALO DE ALMOÇO & REFEIÇÃO DE CAMPO                        */
+/* ============================================================== */
+.mm-lunch-break-box {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-left: 4px solid #10b981;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+body.light-theme .mm-lunch-break-box {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  border-left-color: #059669;
+}
+
+.mm-lunch-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mm-lunch-title-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mm-lunch-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.mm-lunch-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mm-lunch-title {
+  font-size: 0.95rem;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+body.light-theme .mm-lunch-title {
+  color: #0f172a;
+}
+
+.mm-lunch-status-pill {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.mm-lunch-status-pill.pill-extra {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.mm-lunch-status-pill.pill-break {
+  background: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.mm-lunch-desc {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 4px 0 0 0;
+  line-height: 1.4;
+}
+
+body.light-theme .mm-lunch-desc {
+  color: #475569;
+}
+
+.mm-lunch-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.mm-lunch-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+body.light-theme .mm-lunch-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.mm-lunch-btn:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.mm-lunch-btn.is-selected {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10b981;
+  color: #f8fafc;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+}
+
+body.light-theme .mm-lunch-btn.is-selected {
+  background: #e6fffa;
+  border-color: #059669;
+  color: #064e3b;
+}
+
+.mm-lunch-btn-radio {
+  margin-top: 2px;
+}
+
+.mm-lunch-btn-radio .radio-dot {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #64748b;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.mm-lunch-btn-radio .radio-dot.checked {
+  border-color: #10b981;
+}
+
+.mm-lunch-btn-radio .radio-dot.checked::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.mm-lunch-btn-text strong {
+  display: block;
+  font-size: 0.88rem;
+  margin-bottom: 3px;
+}
+
+.mm-lunch-btn-text small {
+  display: block;
+  font-size: 0.76rem;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+body.light-theme .mm-lunch-btn-text small {
+  color: #64748b;
+}
+
+.mm-meal-allowance-section {
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.25);
+}
+
+body.light-theme .mm-meal-allowance-section {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.mm-meal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.mm-meal-icon {
+  font-size: 1.15rem;
+}
+
+.mm-meal-title {
+  font-size: 0.86rem;
+  color: #f1f5f9;
+}
+
+body.light-theme .mm-meal-title {
+  color: #1e293b;
+}
+
+.mm-meal-subtitle {
+  display: block;
+  font-size: 0.74rem;
+  color: #94a3b8;
+}
+
+.mm-meal-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.mm-meal-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+body.light-theme .mm-meal-chip {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.mm-meal-chip:hover {
+  background: rgba(51, 65, 85, 0.8);
+}
+
+.mm-meal-chip.active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.mm-meal-cost-inputs {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+/* Modal Detail Badges */
+.mdm-lunch-badge-detail {
+  font-size: 0.74rem;
+  padding: 3px 9px;
+  border-radius: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mdm-lunch-badge-detail.pill-lunch-extra {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.mdm-lunch-badge-detail.pill-lunch-break {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.mdm-meal-badge-detail {
+  font-size: 0.74rem;
+  padding: 3px 9px;
+  border-radius: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mdm-meal-badge-detail.pill-meal-client {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.mdm-meal-badge-detail.pill-meal-company {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.mdm-lunch-info-card {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.mdm-lunch-info-card.is-continuous {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.3);
+  border-left: 3px solid #f59e0b;
+}
+
+.mdm-lunch-info-left {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.mdm-lunch-info-emoji {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.mdm-lunch-info-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+  color: #f8fafc;
+}
+
+body.light-theme .mdm-lunch-info-title {
+  color: #0f172a;
+}
+
+.badge-lunch-extra-tag {
+  font-size: 0.72rem;
+  background: #f59e0b;
+  color: #000;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+}
+
+.mdm-lunch-info-text {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 4px 0 0 0;
+  line-height: 1.35;
+}
+
+body.light-theme .mdm-lunch-info-text {
+  color: #475569;
+}
+
+.mdm-lunch-meal-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #38bdf8;
+  margin-top: 6px;
+  font-weight: 500;
+}

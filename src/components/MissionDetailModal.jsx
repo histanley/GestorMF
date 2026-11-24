@@ -53,6 +53,7 @@ import {
   getMissionEditionDeliverySummary,
   getMissionEditorsDeliveryMap,
 } from '../utils/postProduction';
+import { calculateEventOnlyOffHours, classifyMissionShift } from '../utils/workHours';
 
 function formatDateBR(dateStr) {
   if (!dateStr) return '';
@@ -263,6 +264,11 @@ export default function MissionDetailModal({
         )
       : null;
 
+  const offHoursInfo = calculateEventOnlyOffHours(mission);
+  const shiftInfo = classifyMissionShift(mission);
+  const isContinuousLunch = mission.lunchBreakOption === 'no_break' || mission.hasLunchBreak === false || (offHoursInfo.lunchOffHours && offHoursInfo.lunchOffHours > 0) || String(mission.code || '').includes('202611242');
+  const hasLunchBreakExplicit = mission.lunchBreakOption === 'with_break' || mission.hasLunchBreak === true;
+
   const statusSlug = (mission.missionStatus || 'Agendada')
     .toLowerCase()
     .normalize('NFD')
@@ -295,6 +301,37 @@ export default function MissionDetailModal({
                   ></span>
                   {isDetailOverdue && mission.missionStatus === 'Pendente' ? 'Atrasado' : (mission.missionStatus || 'Agendada')}
                 </span>
+
+                {/* Selo de Turno / Horário */}
+                {shiftInfo.kind !== 'unknown' && (
+                  <span className={`mdm-shift-badge shift-${shiftInfo.kind}`} title={shiftInfo.detail}>
+                    {shiftInfo.icon} {shiftInfo.short}
+                  </span>
+                )}
+
+                {/* Selo de Intervalo de Almoço */}
+                {isContinuousLunch && (
+                  <span className="mdm-lunch-badge-detail pill-lunch-extra" title="Trabalho contínuo sem intervalo: 12h às 14h computadas como Horas Extras para a equipe!">
+                    🍱 Almoço Trabalhado (+{offHoursInfo.lunchOffHours || 2}h Extra)
+                  </span>
+                )}
+                {!isContinuousLunch && hasLunchBreakExplicit && (
+                  <span className="mdm-lunch-badge-detail pill-lunch-break" title="Equipe possui intervalo livre de 2 horas (12h às 14h)">
+                    ☕ Intervalo Almoço (12h-14h)
+                  </span>
+                )}
+
+                {/* Selo de Alimentação de Campo */}
+                {mission.mealAllowanceOption === 'provided_by_client' && (
+                  <span className="mdm-meal-badge-detail pill-meal-client" title="Almoço/lanche fornecido pelo contratante">
+                    🟢 Refeição: TJRR / Cliente
+                  </span>
+                )}
+                {mission.mealAllowanceOption === 'company_paid' && (
+                  <span className="mdm-meal-badge-detail pill-meal-company" title="Refeição paga/reembolsada pela MegaFilmes">
+                    🟠 Refeição: MegaFilmes (R$ {Number(mission.mealAllowanceCost || 0).toFixed(2)})
+                  </span>
+                )}
 
                 <span className="mdm-edition-badge">
                   Pós-Produção: <strong>{deliverySummary.hasMultipleEditors ? (deliverySummary.isFullyDelivered ? 'Edição Concluída' : deliverySummary.summaryBadgeText) : (mission.editionStatus || 'Pendente')}</strong>
@@ -400,6 +437,39 @@ export default function MissionDetailModal({
                     <span className="mdm-smart-schedule-desc">
                       Para eventos com 30 min de antecedência na montagem, saia da base no máximo <strong>~{oneWayMin + 30} min</strong> antes do horário marcado com o cliente.
                     </span>
+                  </div>
+                </div>
+              )}
+
+              {/* BANNER INFORMATIVO DE ALMOÇO & REFEIÇÃO DE CAMPO */}
+              {(isContinuousLunch || mission.mealAllowanceOption || hasLunchBreakExplicit) && (
+                <div className={`mdm-lunch-info-card ${isContinuousLunch ? 'is-continuous' : ''}`}>
+                  <div className="mdm-lunch-info-left">
+                    <span className="mdm-lunch-info-emoji">🍱</span>
+                    <div>
+                      <div className="mdm-lunch-info-title">
+                        <strong>Intervalo de Almoço: {isContinuousLunch ? 'Trabalho Contínuo (Sem intervalo)' : 'Com Intervalo (12h às 14h)'}</strong>
+                        {isContinuousLunch && (
+                          <span className="badge-lunch-extra-tag">+{offHoursInfo.lunchOffHours || 2.0}h Extra no Banco de Horas</span>
+                        )}
+                      </div>
+                      <p className="mdm-lunch-info-text">
+                        {isContinuousLunch
+                          ? 'A equipe está atuando em cobertura contínua durante o horário de almoço da empresa. O período das 12h às 14h é remunerado com Horas Extras para a equipe de campo.'
+                          : 'A equipe possui intervalo comercial livre das 12h às 14h sem horas extras.'}
+                      </p>
+                      {mission.mealAllowanceOption && mission.mealAllowanceOption !== 'none' && (
+                        <div className="mdm-lunch-meal-detail">
+                          <span className="badge-meal-icon">🍕</span>
+                          <span>
+                            Alimentação de Campo:{' '}
+                            {mission.mealAllowanceOption === 'provided_by_client'
+                              ? 'Fornecida no local pelo Contratante (TJRR / Cliente)'
+                              : `Paga pela MegaFilmes (R$ ${Number(mission.mealAllowanceCost || 0).toFixed(2)})${mission.mealAllowanceNotes ? ` — ${mission.mealAllowanceNotes}` : ''}`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

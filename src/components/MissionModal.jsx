@@ -284,6 +284,11 @@ export default function MissionModal({
     memberRoles: {},
     customRates: {},
     memberNotes: {},
+    lunchBreakOption: 'no_break',
+    hasLunchBreak: false,
+    mealAllowanceOption: 'none',
+    mealAllowanceCost: 0,
+    mealAllowanceNotes: '',
   });
 
   const [searchResults, setSearchResults] = useState([]);
@@ -594,6 +599,11 @@ export default function MissionModal({
         recurrenceId: editingMission.recurrenceId || null,
         recurrenceRule: editingMission.recurrenceRule || 'weekly',
         recurrenceDays: editingMission.recurrenceDays || '',
+        lunchBreakOption: editingMission.lunchBreakOption || (editingMission.hasLunchBreak === false ? 'no_break' : (editingMission.hasLunchBreak === true ? 'with_break' : (String(editingMission.code || '').includes('202611242') || String(editingMission.description || '').toLowerCase().includes('tjrr') ? 'no_break' : 'no_break'))),
+        hasLunchBreak: editingMission.hasLunchBreak !== undefined ? Boolean(editingMission.hasLunchBreak) : (editingMission.lunchBreakOption === 'with_break'),
+        mealAllowanceOption: editingMission.mealAllowanceOption || 'none',
+        mealAllowanceCost: editingMission.mealAllowanceCost || 0,
+        mealAllowanceNotes: editingMission.mealAllowanceNotes || '',
       });
 
       const isMDay = Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date));
@@ -671,6 +681,11 @@ export default function MissionModal({
         recurrenceId: null,
         recurrenceRule: 'weekly',
         recurrenceDays: '',
+        lunchBreakOption: 'no_break',
+        hasLunchBreak: false,
+        mealAllowanceOption: 'none',
+        mealAllowanceCost: 0,
+        mealAllowanceNotes: '',
       });
 
       setIsMultiDay(false);
@@ -1373,11 +1388,24 @@ export default function MissionModal({
     formData.arrivalTimeEstimated,
     formData.returnTimeEstimated,
     formData.endDate,
+    formData.lunchBreakOption,
+    formData.hasLunchBreak,
     routeInfo.durationMinutes,
     formData.drivingDurationMinutes,
     formData.roundTripDurationMinutes,
     isMultiDay,
   ]);
+
+  // Identifica se os horários da missão ou evento atravessam o horário oficial de almoço (12h às 14h)
+  const crossesLunchWindow = useMemo(() => {
+    if (isMultiDay) return true;
+    const dow = getDayOfWeekFromDate(formData.date);
+    if (dow < 1 || dow > 5) return false; // Seg a Sex
+    const startT = formData.eventStartTime || formData.departureTime || '08:00';
+    const endT = formData.eventEndTime || formData.returnTimeEstimated || '18:00';
+    if (!startT || !endT) return false;
+    return startT < '14:00' && endT > '12:00';
+  }, [formData.date, formData.eventStartTime, formData.eventEndTime, formData.departureTime, formData.returnTimeEstimated, isMultiDay]);
 
   const handleCustomRateChange = (memberId, value) => {
     if (!isAdmin) {
@@ -2073,6 +2101,123 @@ export default function MissionModal({
                           🕒 {seg.date ? `${seg.date.slice(8, 10)}/${seg.date.slice(5, 7)}: ` : ''}{seg.label} ({seg.hours}h)
                         </span>
                       ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* INTERVALO DE ALMOÇO & ALIMENTAÇÃO DE CAMPO (12h às 14h)      */}
+            {/* ============================================================== */}
+            {crossesLunchWindow && (
+              <div className="mm-lunch-break-box">
+                <div className="mm-lunch-header">
+                  <div className="mm-lunch-title-group">
+                    <span className="mm-lunch-icon">🍱</span>
+                    <div>
+                      <div className="mm-lunch-title-row">
+                        <strong className="mm-lunch-title">Intervalo de Almoço da Equipe (12:00 às 14:00)</strong>
+                        <span className={`mm-lunch-status-pill ${formData.lunchBreakOption === 'no_break' ? 'pill-extra' : 'pill-break'}`}>
+                          {formData.lunchBreakOption === 'no_break' ? '⚡ Trabalho Contínuo (+2h Extra)' : '☕ Com Intervalo Livre'}
+                        </span>
+                      </div>
+                      <p className="mm-lunch-desc">
+                        O expediente comercial oficial da MegaFilmes possui intervalo de almoço das 12h às 14h. Selecione se a equipe trabalhará continuamente no evento ou se terá pausa de descanso.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mm-lunch-options-grid">
+                  <button
+                    type="button"
+                    className={`mm-lunch-btn ${formData.lunchBreakOption === 'no_break' ? 'is-selected' : ''}`}
+                    onClick={() => setFormData({ ...formData, lunchBreakOption: 'no_break', hasLunchBreak: false })}
+                  >
+                    <div className="mm-lunch-btn-radio">
+                      <span className={`radio-dot ${formData.lunchBreakOption === 'no_break' ? 'checked' : ''}`}></span>
+                    </div>
+                    <div className="mm-lunch-btn-text">
+                      <strong>Trabalho Contínuo (Sem intervalo de almoço)</strong>
+                      <small>Lives, transmissões e gravações sem pausa: as 2 horas do almoço (12h às 14h) viram <strong>Horas Extras</strong> para a equipe!</small>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`mm-lunch-btn ${formData.lunchBreakOption === 'with_break' ? 'is-selected' : ''}`}
+                    onClick={() => setFormData({ ...formData, lunchBreakOption: 'with_break', hasLunchBreak: true })}
+                  >
+                    <div className="mm-lunch-btn-radio">
+                      <span className={`radio-dot ${formData.lunchBreakOption === 'with_break' ? 'checked' : ''}`}></span>
+                    </div>
+                    <div className="mm-lunch-btn-text">
+                      <strong>Com Intervalo de Almoço (12h às 14h livre)</strong>
+                      <small>A equipe pausa 2 horas para almoço. Período não remunerado (não gera horas extras durante o almoço).</small>
+                    </div>
+                  </button>
+                </div>
+
+                {/* ALIMENTAÇÃO DE CAMPO / ALMOÇO */}
+                <div className="mm-meal-allowance-section">
+                  <div className="mm-meal-header">
+                    <span className="mm-meal-icon">🍕</span>
+                    <div>
+                      <strong className="mm-meal-title">Alimentação de Campo / Refeição da Equipe</strong>
+                      <small className="mm-meal-subtitle">Como será providenciado o almoço da equipe durante a operação:</small>
+                    </div>
+                  </div>
+
+                  <div className="mm-meal-chips">
+                    <button
+                      type="button"
+                      className={`mm-meal-chip ${formData.mealAllowanceOption === 'none' ? 'active' : ''}`}
+                      onClick={() => setFormData({ ...formData, mealAllowanceOption: 'none', mealAllowanceCost: 0 })}
+                    >
+                      🍽️ Sem auxílio / Por conta própria
+                    </button>
+                    <button
+                      type="button"
+                      className={`mm-meal-chip ${formData.mealAllowanceOption === 'provided_by_client' ? 'active' : ''}`}
+                      onClick={() => setFormData({ ...formData, mealAllowanceOption: 'provided_by_client', mealAllowanceCost: 0 })}
+                    >
+                      🟢 Fornecida pelo Cliente (TJRR / Contratante)
+                    </button>
+                    <button
+                      type="button"
+                      className={`mm-meal-chip ${formData.mealAllowanceOption === 'company_paid' ? 'active' : ''}`}
+                      onClick={() => setFormData({ ...formData, mealAllowanceOption: 'company_paid', mealAllowanceCost: formData.mealAllowanceCost || 35.00 })}
+                    >
+                      🟠 Paga pela MegaFilmes (iFood / Reembolso / Marmita)
+                    </button>
+                  </div>
+
+                  {formData.mealAllowanceOption === 'company_paid' && (
+                    <div className="mm-meal-cost-inputs">
+                      <div className="form-group" style={{ maxWidth: '200px' }}>
+                        <label>Valor Total da Refeição (R$)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Ex: 70.00"
+                          value={formData.mealAllowanceCost || ''}
+                          onChange={(e) => setFormData({ ...formData, mealAllowanceCost: e.target.value })}
+                        />
+                        <small className="field-hint-sub">Custo reembolsado/pago</small>
+                      </div>
+
+                      <div className="form-group flex-1">
+                        <label>Detalhes do Pedido / Local de Entrega</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Marmitas entregues no Tribunal de Justiça (iFood / Restaurante X)"
+                          value={formData.mealAllowanceNotes || ''}
+                          onChange={(e) => setFormData({ ...formData, mealAllowanceNotes: e.target.value })}
+                        />
+                        <small className="field-hint-sub">Informações para a equipe e financeiro</small>
+                      </div>
                     </div>
                   )}
                 </div>
