@@ -324,7 +324,7 @@ export default function MissionDetailModal({
                 {/* Selo de Alimentação de Campo */}
                 {mission.mealAllowanceOption === 'provided_by_client' && (
                   <span className="mdm-meal-badge-detail pill-meal-client" title="Almoço/lanche fornecido pelo contratante">
-                    🟢 Refeição: TJRR / Cliente
+                    🟢 Refeição: Cliente (Contratante)
                   </span>
                 )}
                 {mission.mealAllowanceOption === 'company_paid' && (
@@ -464,7 +464,7 @@ export default function MissionDetailModal({
                           <span>
                             Alimentação de Campo:{' '}
                             {mission.mealAllowanceOption === 'provided_by_client'
-                              ? 'Fornecida no local pelo Contratante (TJRR / Cliente)'
+                              ? 'Fornecida no local pelo Cliente (Contratante)'
                               : `Paga pela MegaFilmes (R$ ${Number(mission.mealAllowanceCost || 0).toFixed(2)})${mission.mealAllowanceNotes ? ` — ${mission.mealAllowanceNotes}` : ''}`}
                           </span>
                         </div>

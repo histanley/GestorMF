@@ -1398,14 +1398,24 @@ export default function MissionModal({
 
   // Identifica se os horários da missão ou evento atravessam o horário oficial de almoço (12h às 14h)
   const crossesLunchWindow = useMemo(() => {
-    if (isMultiDay) return true;
+    if (isMultiDay && formData.date && formData.endDate) return true;
     const dow = getDayOfWeekFromDate(formData.date);
-    if (dow < 1 || dow > 5) return false; // Seg a Sex
-    const startT = formData.eventStartTime || formData.departureTime || '08:00';
-    const endT = formData.eventEndTime || formData.returnTimeEstimated || '18:00';
+    if (dow < 1 || dow > 5) return false; // Apenas Seg a Sex
+    const startT = formData.eventStartTime || formData.departureTime;
+    const endT = formData.eventEndTime || formData.returnTimeEstimated || formData.arrivalTimeEstimated;
+    // Só exibe se os horários estiverem devidamente preenchidos e entrarem no intervalo das 12h às 14h
     if (!startT || !endT) return false;
     return startT < '14:00' && endT > '12:00';
-  }, [formData.date, formData.eventStartTime, formData.eventEndTime, formData.departureTime, formData.returnTimeEstimated, isMultiDay]);
+  }, [
+    formData.date,
+    formData.eventStartTime,
+    formData.eventEndTime,
+    formData.departureTime,
+    formData.returnTimeEstimated,
+    formData.arrivalTimeEstimated,
+    isMultiDay,
+    formData.endDate,
+  ]);
 
   const handleCustomRateChange = (memberId, value) => {
     if (!isAdmin) {
@@ -2182,7 +2192,7 @@ export default function MissionModal({
                       className={`mm-meal-chip ${formData.mealAllowanceOption === 'provided_by_client' ? 'active' : ''}`}
                       onClick={() => setFormData({ ...formData, mealAllowanceOption: 'provided_by_client', mealAllowanceCost: 0 })}
                     >
-                      🟢 Fornecida pelo Cliente (TJRR / Contratante)
+                      🟢 Fornecida pelo Cliente (Contratante)
                     </button>
                     <button
                       type="button"
@@ -2212,7 +2222,7 @@ export default function MissionModal({
                         <label>Detalhes do Pedido / Local de Entrega</label>
                         <input
                           type="text"
-                          placeholder="Ex: Marmitas entregues no Tribunal de Justiça (iFood / Restaurante X)"
+                          placeholder="Ex: Marmitas entregues no local do evento (iFood / Restaurante)"
                           value={formData.mealAllowanceNotes || ''}
                           onChange={(e) => setFormData({ ...formData, mealAllowanceNotes: e.target.value })}
                         />
