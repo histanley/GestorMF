@@ -116,6 +116,47 @@ function ensureMissionColumnsExist($db)
         }
     });
 
+    runVersionedMigration($db, 'schema_missions_cols_v6_transport', function ($pdo) {
+        $cols = [
+            'transport_type' => "VARCHAR(40) DEFAULT 'company_vehicle'"
+        ];
+        $existingCols = [];
+        $stmt = $pdo->query("SHOW COLUMNS FROM missions");
+        if ($stmt) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $existingCols[strtolower($row['Field'])] = true;
+            }
+        }
+        foreach ($cols as $colName => $colDef) {
+            if (!isset($existingCols[strtolower($colName)])) {
+                try {
+                    $pdo->exec("ALTER TABLE missions ADD COLUMN {$colName} {$colDef}");
+                } catch (Exception $ex) {}
+            }
+        }
+
+        // Auto-cura e higienização para missões onde o colaborador foi levado pelo contratante em viatura própria
+        // (ex: TJ Turma Recursal / Rorainópolis, eliminando dedução indevida de bateria e conflito de veículos)
+        try {
+            $pdo->exec("
+                UPDATE missions
+                SET transport_type = 'client_vehicle',
+                    vehicle_id = NULL,
+                    vehicle_name_display = '🤝 Viatura do Contratante',
+                    vehicle_allocations = '[]',
+                    estimated_fuel_liters = 0,
+                    estimated_fuel_cost = 0
+                WHERE (
+                    code IN ('202611251', '202611301', '202611252', '202611244')
+                    OR description LIKE '%RORAINOPOLIS%'
+                    OR description LIKE '%SESSÕES TURMA RECURSAL%'
+                    OR description LIKE '%SESSÃO TURMA RECURSAL%'
+                )
+                AND (vehicle_name_display LIKE '%Spark%' OR vehicle_name_display LIKE '%Chev%' OR transport_type = 'company_vehicle' OR transport_type IS NULL)
+            ");
+        } catch (Exception $ex) {}
+    });
+
     // Migração de recálculo retroativo de horas extras de almoço para missões finalizadas e existentes (Regra MegaFilmes)
     runVersionedMigration($db, 'recalc_finalized_missions_lunch_v3', function ($pdo) {
         // 1. Garante que qualquer missão sem opção de almoço definida receba 'no_break' e has_lunch_break = 0
@@ -263,18 +304,42 @@ if ($method === 'GET') {
               AND mission_status NOT IN ('Finalizada', 'Finalizado', 'Cancelada')
         ");
 
-        // 3. Missões de hoje cujo horário de saída já chegou -> Em Execução
+        // 3. Missões em andamento (Em Execução):
+        // 3a. Missões iniciadas hoje cujo horário de saída já chegou:
         $db->exec("
             UPDATE missions
             SET mission_status = 'Em Execução', updated_at = NOW()
             WHERE date = '{$todayDate}'
               AND departure_time <= '{$nowTime}'
               AND (
+                  (COALESCE(NULLIF(end_date, ''), date) > '{$todayDate}')
+                  OR
                   (return_time_estimated IS NOT NULL AND return_time_estimated != '' AND return_time_estimated > '{$nowTime}')
                   OR
                   ((return_time_estimated IS NULL OR return_time_estimated = '') AND (arrival_time_estimated IS NULL OR arrival_time_estimated = '' OR arrival_time_estimated > '{$nowTime}'))
               )
-              AND mission_status = 'Agendada'
+              AND mission_status IN ('Agendada', 'Finalizada', 'Finalizado')
+        ");
+
+        // 3b. Missões de múltiplos dias que iniciaram em dias anteriores e continuam ativas hoje:
+        // (Restaura e mantém em execução qualquer missão multi-dia ainda não concluída em seu período de validade)
+        $db->exec("
+            UPDATE missions
+            SET mission_status = 'Em Execução', updated_at = NOW()
+            WHERE (is_multi_day = 1 OR (end_date IS NOT NULL AND end_date != '' AND end_date > date))
+              AND date < '{$todayDate}'
+              AND (
+                  COALESCE(NULLIF(end_date, ''), date) > '{$todayDate}'
+                  OR (
+                      COALESCE(NULLIF(end_date, ''), date) = '{$todayDate}'
+                      AND (
+                          (return_time_estimated IS NOT NULL AND return_time_estimated != '' AND return_time_estimated > '{$nowTime}')
+                          OR
+                          ((return_time_estimated IS NULL OR return_time_estimated = '') AND (arrival_time_estimated IS NULL OR arrival_time_estimated = '' OR arrival_time_estimated > '{$nowTime}'))
+                      )
+                  )
+              )
+              AND mission_status NOT IN ('Cancelada', 'Em Execução')
         ");
     } catch (Exception $e) {
         error_log('[GestorMF Auto-Status Error] ' . $e->getMessage());
@@ -519,6 +584,7 @@ if ($method === 'GET') {
             'recurrenceDays' => $m['recurrence_days'] ?? null,
             'isMultiDay' => !empty($m['is_multi_day']),
             'endDate' => $m['end_date'] ?? null,
+            'transportType' => $m['transport_type'] ?? 'company_vehicle',
             'customRates' => !empty($m['custom_rates']) ? json_decode($m['custom_rates'], true) : null,
             'offHours' => isset($m['off_hours']) ? (float) $m['off_hours'] : 0.0,
             'remunerationType' => $m['remuneration_type'] ?? (!empty($m['is_multi_day']) ? 'daily' : 'off_hours'),
@@ -1345,7 +1411,7 @@ if ($method === 'POST' || $method === 'PUT') {
             estimated_fuel_liters, estimated_fuel_cost,
             route_coordinates, return_coordinates, notes,
             is_recurring, recurrence_id, recurrence_rule, recurrence_days,
-            is_multi_day, end_date,
+            is_multi_day, end_date, transport_type,
             custom_rates, off_hours,
             remuneration_type, member_remuneration_types, member_roles, equipment_allocations, member_notes, extra_hours_planned, extra_hours_approved, extra_hours_requests,
             lunch_break_option, has_lunch_break, meal_allowance_option, meal_allowance_cost, meal_allowance_notes,
@@ -1366,7 +1432,7 @@ if ($method === 'POST' || $method === 'PUT') {
             :estimated_fuel_liters, :estimated_fuel_cost,
             :route_coordinates, :return_coordinates, :notes,
             :is_recurring, :recurrence_id, :recurrence_rule, :recurrence_days,
-            :is_multi_day, :end_date,
+            :is_multi_day, :end_date, :transport_type,
             :custom_rates, :off_hours,
             :remuneration_type, :member_remuneration_types, :member_roles, :equipment_allocations, :member_notes, :extra_hours_planned, :extra_hours_approved, :extra_hours_requests,
             :lunch_break_option, :has_lunch_break, :meal_allowance_option, :meal_allowance_cost, :meal_allowance_notes,
@@ -1430,6 +1496,7 @@ if ($method === 'POST' || $method === 'PUT') {
             recurrence_days = VALUES(recurrence_days),
             is_multi_day = VALUES(is_multi_day),
             end_date = VALUES(end_date),
+            transport_type = VALUES(transport_type),
             custom_rates = VALUES(custom_rates),
             off_hours = VALUES(off_hours),
             remuneration_type = VALUES(remuneration_type),
@@ -1532,6 +1599,7 @@ if ($method === 'POST' || $method === 'PUT') {
             ':recurrence_days' => $data['recurrenceDays'] ?? null,
             ':is_multi_day' => !empty($data['isMultiDay']) ? 1 : 0,
             ':end_date' => $data['endDate'] ?? null,
+            ':transport_type' => $data['transportType'] ?? 'company_vehicle',
             ':custom_rates' => !empty($data['customRates']) ? json_encode($data['customRates'], JSON_UNESCAPED_UNICODE) : null,
             ':off_hours' => isset($data['offHours']) ? (float) $data['offHours'] : 0.0,
             ':remuneration_type' => $data['remunerationType'] ?? (!empty($data['isMultiDay']) ? 'daily' : 'off_hours'),

@@ -64,6 +64,7 @@ import {
   sortMissionsByStatusPriority,
   hasMissionPostProduction,
   checkIsMissionOverdue,
+  getMultiDayProgress,
 } from '../utils/geo';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { normalizeRole } from '../utils/auth';
@@ -1009,6 +1010,43 @@ export default function ServiceBoard({
                               : formatDateBR(mission.date)}
                           </strong>
                         </div>
+                        {(() => {
+                          const mProg = getMultiDayProgress(mission.date, mission.endDate);
+                          if (!mProg || !mProg.isMultiDay) return null;
+                          return (
+                            <div style={{ marginTop: '3px', marginBottom: '4px' }}>
+                              <span style={{
+                                background: 'linear-gradient(135deg, #d97706, #b45309)',
+                                color: '#ffffff',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                padding: '2px 7px',
+                                borderRadius: '4px',
+                                display: 'inline-block',
+                                letterSpacing: '0.3px',
+                                boxShadow: '0 1px 4px rgba(217, 119, 6, 0.4)'
+                              }}>
+                                📅 {mProg.badgeText.toUpperCase()}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                        {mission.transportType === 'client_vehicle' && (
+                          <div style={{ marginTop: '2px', marginBottom: '4px' }}>
+                            <span style={{
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              border: '1px solid rgba(16, 185, 129, 0.4)',
+                              color: '#34d399',
+                              fontSize: '0.70rem',
+                              fontWeight: 700,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              display: 'inline-block'
+                            }}>
+                              🤝 Viatura do Contratante
+                            </span>
+                          </div>
+                        )}
                         <div className="agenda-shift-row"><ShiftBadge mission={mission} compact /></div>
                         <div className={`agenda-times-grid ${mission.eventStartTime ? 'has-event-slot' : ''}`}>
                           <div className="ag-time-item highlight">
@@ -1623,6 +1661,43 @@ export default function ServiceBoard({
                                   : formatDateBR(mission.date)}
                               </strong>
                             </div>
+                            {(() => {
+                              const mProg = getMultiDayProgress(mission.date, mission.endDate);
+                              if (!mProg || !mProg.isMultiDay) return null;
+                              return (
+                                <div style={{ marginTop: '3px', marginBottom: '4px' }}>
+                                  <span style={{
+                                    background: 'linear-gradient(135deg, #d97706, #b45309)',
+                                    color: '#ffffff',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 800,
+                                    padding: '2px 7px',
+                                    borderRadius: '4px',
+                                    display: 'inline-block',
+                                    letterSpacing: '0.3px',
+                                    boxShadow: '0 1px 4px rgba(217, 119, 6, 0.4)'
+                                  }}>
+                                    📅 {mProg.badgeText.toUpperCase()}
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                            {mission.transportType === 'client_vehicle' && (
+                              <div style={{ marginTop: '2px', marginBottom: '4px' }}>
+                                <span style={{
+                                  background: 'rgba(16, 185, 129, 0.15)',
+                                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                                  color: '#34d399',
+                                  fontSize: '0.70rem',
+                                  fontWeight: 700,
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  display: 'inline-block'
+                                }}>
+                                  🤝 Viatura do Contratante
+                                </span>
+                              </div>
+                            )}
                             <div className="agenda-shift-row"><ShiftBadge mission={mission} compact /></div>
                             <div className={`agenda-times-grid ${mission.eventStartTime ? 'has-event-slot' : ''}`}>
                               <div className="ag-time-item highlight">
@@ -2279,6 +2354,45 @@ export default function ServiceBoard({
                             : formatDateBR(mission.date)}
                         </span>
                       </div>
+                      {(() => {
+                        const mProg = getMultiDayProgress(mission.date, mission.endDate);
+                        if (!mProg || !mProg.isMultiDay) return null;
+                        return (
+                          <div style={{ marginTop: '4px', marginBottom: '4px' }}>
+                            <span style={{
+                              background: 'linear-gradient(135deg, #d97706, #b45309)',
+                              color: '#ffffff',
+                              fontSize: '0.78rem',
+                              fontWeight: 800,
+                              padding: '3px 8px',
+                              borderRadius: '5px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              letterSpacing: '0.3px',
+                              boxShadow: '0 2px 6px rgba(217, 119, 6, 0.4)'
+                            }}>
+                              📅 {mProg.badgeText.toUpperCase()}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                      {mission.transportType === 'client_vehicle' && (
+                        <div style={{ marginTop: '2px', marginBottom: '4px' }}>
+                          <span style={{
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            border: '1px solid rgba(16, 185, 129, 0.4)',
+                            color: '#34d399',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            padding: '2px 7px',
+                            borderRadius: '4px',
+                            display: 'inline-block'
+                          }}>
+                            🤝 Viatura do Contratante
+                          </span>
+                        </div>
+                      )}
                       <div className="mmc-shift-row"><ShiftBadge mission={mission} /></div>
                       <div className="mmc-times-grid">
                         <div className="mmc-time-box saida">

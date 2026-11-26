@@ -393,17 +393,6 @@ export function computeMissionAutoStatus(mission, now = new Date(), forceRecompu
   const lastDecision = [...history].reverse().find((h) => h && (h.type === 'APPROVED' || h.type === 'REOPENED'));
   const isApprovedByAdmin = Boolean(lastDecision && lastDecision.type === 'APPROVED');
 
-  if (!forceRecompute && (currentStatus === 'Finalizada' || currentStatus === 'Finalizado' || currentStatus === 'Concluída')) {
-    if (hasPostProd && !isApprovedByAdmin) {
-      return 'Pendente';
-    }
-    return 'Finalizada';
-  }
-
-  if (!forceRecompute && currentStatus === 'Pendente') {
-    return 'Pendente';
-  }
-
   const dateParts = String(mission.date).split('-').map(Number);
   const depParts = String(mission.departureTime).split(':').map(Number);
   if (dateParts.length < 3 || depParts.length < 2 || isNaN(depParts[0]) || isNaN(depParts[1])) {
@@ -416,20 +405,48 @@ export function computeMissionAutoStatus(mission, now = new Date(), forceRecompu
   // 1 hora antes da saída entra em "Em Preparo"
   const prepTime = new Date(startTime.getTime() - 60 * 60 * 1000);
 
+  // Data final efetiva (considera missões de múltiplos dias / longa duração)
+  const isMultiDay = Boolean(mission.isMultiDay || mission.is_multi_day);
+  const rawEndDate = isMultiDay && (mission.endDate || mission.end_date)
+    ? (mission.endDate || mission.end_date)
+    : mission.date;
+  const endDateParts = String(rawEndDate).split('-').map(Number);
+  const [endYear, endMonth, endDay] = (endDateParts.length >= 3 && !isNaN(endDateParts[0]))
+    ? endDateParts
+    : dateParts;
+
   let endTime;
   const returnCandidate = mission.returnTimeEstimated || mission.arrivalTimeEstimated;
   if (returnCandidate && String(returnCandidate).includes(':')) {
     const [retH, retM] = String(returnCandidate).split(':').map(Number);
     if (!isNaN(retH) && !isNaN(retM)) {
-      endTime = new Date(year, month - 1, day, retH, retM, 0, 0);
+      endTime = new Date(endYear, endMonth - 1, endDay, retH, retM, 0, 0);
       if (endTime <= startTime) {
         endTime.setDate(endTime.getDate() + 1);
       }
     }
   }
   if (!endTime) {
-    // Fallback: 2 horas de duração caso não tenha horário de retorno definido
-    endTime = new Date(startTime.getTime() + 2 * 60 * 60 * 1000);
+    if (isMultiDay && rawEndDate > mission.date) {
+      endTime = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
+    } else {
+      // Fallback: 2 horas de duração caso não tenha horário de retorno definido
+      endTime = new Date(startTime.getTime() + 2 * 60 * 60 * 1000);
+    }
+  }
+
+  // Se a missão é multi-dia e ainda está no intervalo [startTime, endTime], ela NÃO pode estar finalizada prematuramente!
+  const isCurrentlyActiveMultiDay = isMultiDay && now >= startTime && now < endTime;
+
+  if (!forceRecompute && !isCurrentlyActiveMultiDay && (currentStatus === 'Finalizada' || currentStatus === 'Finalizado' || currentStatus === 'Concluída')) {
+    if (hasPostProd && !isApprovedByAdmin) {
+      return 'Pendente';
+    }
+    return 'Finalizada';
+  }
+
+  if (!forceRecompute && currentStatus === 'Pendente' && !isCurrentlyActiveMultiDay) {
+    return 'Pendente';
   }
 
   // EXIGÊNCIA DO CLIENTE: Chegou no horário previsto de término da ida a campo:
@@ -448,6 +465,96 @@ export function computeMissionAutoStatus(mission, now = new Date(), forceRecompu
     return 'Em Preparo';
   }
   return 'Agendada';
+}
+
+/**
+ * Retorna informações e progresso detalhado de uma missão de múltiplos dias (ex: 25/11 a 27/11).
+ * Calcula o dia corrente (1º Dia, 2º Dia, etc.), total de dias e rótulos para exibição destacada.
+ */
+export function getMultiDayProgress(startDateStr, endDateStr, referenceDate = new Date()) {
+  if (!startDateStr) return null;
+  const effectiveEndStr = endDateStr || startDateStr;
+
+  const startYMD = String(startDateStr).slice(0, 10);
+  const endYMD = String(effectiveEndStr).slice(0, 10);
+
+  const [sYear, sMonth, sDay] = startYMD.split('-').map(Number);
+  const [eYear, eMonth, eDay] = endYMD.split('-').map(Number);
+
+  if (isNaN(sYear) || isNaN(eYear)) return null;
+
+  // Meia-noite UTC para cálculo sem desvio de fuso horário
+  const dStart = new Date(Date.UTC(sYear, sMonth - 1, sDay));
+  const dEnd = new Date(Date.UTC(eYear, eMonth - 1, eDay));
+
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const totalDays = Math.max(1, Math.round((dEnd.getTime() - dStart.getTime()) / msPerDay) + 1);
+
+  let refYMD;
+  if (typeof referenceDate === 'string') {
+    refYMD = referenceDate.slice(0, 10);
+  } else if (referenceDate instanceof Date) {
+    const rY = referenceDate.getFullYear();
+    const rM = String(referenceDate.getMonth() + 1).padStart(2, '0');
+    const rD = String(referenceDate.getDate()).padStart(2, '0');
+    refYMD = `${rY}-${rM}-${rD}`;
+  } else {
+    refYMD = startYMD;
+  }
+
+  const [rYear, rMonth, rDay] = refYMD.split('-').map(Number);
+  const dRef = new Date(Date.UTC(rYear, rMonth - 1, rDay));
+
+  const diffDays = Math.round((dRef.getTime() - dStart.getTime()) / msPerDay);
+  const currentDayNumber = diffDays + 1;
+
+  const formatBR = (ymd) => {
+    const parts = ymd.split('-');
+    return `${parts[2]}/${parts[1]}`;
+  };
+
+  const dateSpan = `${formatBR(startYMD)} a ${formatBR(endYMD)}`;
+  const isMultiDay = totalDays > 1 || startYMD !== endYMD;
+
+  let status = 'in_progress';
+  let badgeText = '';
+  let shortBadge = '';
+
+  if (currentDayNumber < 1) {
+    status = 'upcoming';
+    const daysUntil = 1 - currentDayNumber;
+    badgeText = daysUntil === 1 ? 'Inicia Amanhã' : `Inicia em ${daysUntil} dias`;
+    shortBadge = 'Em breve';
+  } else if (currentDayNumber > totalDays) {
+    status = 'completed';
+    badgeText = 'Missão Concluída';
+    shortBadge = 'Concluída';
+  } else {
+    status = 'in_progress';
+    if (currentDayNumber === totalDays && totalDays > 1) {
+      badgeText = `${currentDayNumber}º Dia de Missão (Último dia)`;
+      shortBadge = `${currentDayNumber}º Dia (Fim)`;
+    } else {
+      badgeText = `${currentDayNumber}º Dia de Missão`;
+      shortBadge = `${currentDayNumber}º Dia`;
+    }
+  }
+
+  return {
+    isMultiDay,
+    totalDays,
+    currentDayNumber: Math.max(1, Math.min(totalDays, currentDayNumber)),
+    rawDayNumber: currentDayNumber,
+    isFirstDay: currentDayNumber === 1,
+    isLastDay: currentDayNumber === totalDays,
+    status,
+    badgeText: isMultiDay ? badgeText : 'Missão de 1 Dia',
+    shortBadge: isMultiDay ? shortBadge : '1 Dia',
+    dateSpan,
+    fullLabel: isMultiDay
+      ? `${badgeText} • ${dateSpan} (${totalDays} dias)`
+      : `${formatBR(startYMD)} (1 dia)`
+  };
 }
 
 // Verifica se uma missão está ativa ou em fase de preparo (ocupando viatura e participantes)
@@ -684,6 +791,11 @@ export function getActiveMissionForVehicle(vehicle, missions = []) {
   if (!vehicle || !Array.isArray(missions)) return null;
   const matches = missions.filter((m) => {
     if (!isMissionActiveOrPrep(m)) return false;
+    const tType = m.transportType || m.transport_type || 'company_vehicle';
+    if (tType === 'client_vehicle' || tType === 'no_vehicle') return false;
+    if (m.vehicleNameDisplay && (m.vehicleNameDisplay.includes('Contratante') || m.vehicleNameDisplay.includes('Sem Viatura'))) {
+      return false;
+    }
     if (m.vehicleId && m.vehicleId === vehicle.id) return true;
     if (Array.isArray(m.vehicleIds) && m.vehicleIds.includes(vehicle.id)) return true;
     if (
@@ -805,6 +917,12 @@ export function getNavigationLinks(originLat, originLon, destLat, destLon) {
 // Verifica se uma viatura está alocada em uma determinada missão (suporta 1 ou N viaturas)
 export function isVehicleInMission(vehicle, mission) {
   if (!vehicle || !mission || mission.missionStatus === 'Cancelada') return false;
+  // Se a missão usa transporte do contratante ou é sem viatura da empresa, não afeta viaturas da frota
+  const tType = mission.transportType || mission.transport_type || 'company_vehicle';
+  if (tType === 'client_vehicle' || tType === 'no_vehicle') return false;
+  if (mission.vehicleNameDisplay && (mission.vehicleNameDisplay.includes('Contratante') || mission.vehicleNameDisplay.includes('Sem Viatura'))) {
+    return false;
+  }
   if (mission.vehicleId && mission.vehicleId === vehicle.id) return true;
   if (Array.isArray(mission.vehicleIds) && mission.vehicleIds.includes(vehicle.id)) return true;
   if (

@@ -30,6 +30,7 @@ import {
   Package,
   Camera,
   HardDrive,
+  UserCheck,
 } from 'lucide-react';
 import {
   OFFICIAL_COMPANY_ROLES,
@@ -261,6 +262,7 @@ export default function MissionModal({
     departureTime: '',
     arrivalTimeEstimated: '',
     returnTimeEstimated: '',
+    transportType: 'company_vehicle',
     vehicleAllocations: [{ vehicleId: '', driverId: '' }],
     teamIds: [],
     guests: [],
@@ -604,6 +606,7 @@ export default function MissionModal({
         mealAllowanceOption: editingMission.mealAllowanceOption || 'none',
         mealAllowanceCost: editingMission.mealAllowanceCost || 0,
         mealAllowanceNotes: editingMission.mealAllowanceNotes || '',
+        transportType: editingMission.transportType || (editingMission.vehicleNameDisplay && editingMission.vehicleNameDisplay.includes('Contratante') ? 'client_vehicle' : (editingMission.vehicleNameDisplay && editingMission.vehicleNameDisplay.includes('Sem Viatura') ? 'no_vehicle' : 'company_vehicle')),
       });
 
       const isMDay = Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date));
@@ -655,6 +658,7 @@ export default function MissionModal({
         departureTime: '',
         arrivalTimeEstimated: '',
         returnTimeEstimated: '',
+        transportType: 'company_vehicle',
         vehicleAllocations: [{ vehicleId: defaultVehicle, driverId: '' }],
         teamIds: [],
         guests: [],
@@ -787,16 +791,19 @@ export default function MissionModal({
       );
 
       const activeAllocs = allocationsOverride || formData.vehicleAllocations;
-      const autonomies = getAutonomiesFromAllocations(activeAllocs);
-      const breakdowns = getVehicleBreakdownsFromAllocations(activeAllocs);
+      const isCompanyVeh = (formData.transportType || 'company_vehicle') === 'company_vehicle';
+      const autonomies = isCompanyVeh ? getAutonomiesFromAllocations(activeAllocs) : [];
+      const breakdowns = isCompanyVeh ? getVehicleBreakdownsFromAllocations(activeAllocs) : [];
 
-      const fuelRes = calculateFuelEstimate({
-        distanceKm: routeRes.distanceKm,
-        totalRoundTripKm: routeRes.totalRoundTripKm,
-        vehicleBreakdowns: breakdowns.length > 0 ? breakdowns : null,
-        autonomies,
-        fuelPricePerLiter: fuelSettings,
-      });
+      const fuelRes = isCompanyVeh
+        ? calculateFuelEstimate({
+            distanceKm: routeRes.distanceKm,
+            totalRoundTripKm: routeRes.totalRoundTripKm,
+            vehicleBreakdowns: breakdowns.length > 0 ? breakdowns : null,
+            autonomies,
+            fuelPricePerLiter: fuelSettings,
+          })
+        : { litersNeeded: 0, estimatedCost: 0, breakdowns: [] };
 
       const arrivalTime = formData.departureTime
         ? calculateArrivalTime(formData.departureTime, routeRes.durationMinutes)
@@ -832,15 +839,19 @@ export default function MissionModal({
     if (!routeInfo.distanceKm && (!formData.lat || !formData.lon)) return;
 
     if (routeInfo.distanceKm > 0) {
-      const autonomies = getAutonomiesFromAllocations(formData.vehicleAllocations);
-      const breakdowns = getVehicleBreakdownsFromAllocations(formData.vehicleAllocations);
-      const fuelRes = calculateFuelEstimate({
-        distanceKm: routeInfo.distanceKm,
-        totalRoundTripKm: routeInfo.totalRoundTripKm,
-        vehicleBreakdowns: breakdowns.length > 0 ? breakdowns : null,
-        autonomies,
-        fuelPricePerLiter: fuelSettings,
-      });
+      const isCompanyVeh = (formData.transportType || 'company_vehicle') === 'company_vehicle';
+      const autonomies = isCompanyVeh ? getAutonomiesFromAllocations(formData.vehicleAllocations) : [];
+      const breakdowns = isCompanyVeh ? getVehicleBreakdownsFromAllocations(formData.vehicleAllocations) : [];
+      const fuelRes = isCompanyVeh
+        ? calculateFuelEstimate({
+            distanceKm: routeInfo.distanceKm,
+            totalRoundTripKm: routeInfo.totalRoundTripKm,
+            vehicleBreakdowns: breakdowns.length > 0 ? breakdowns : null,
+            autonomies,
+            fuelPricePerLiter: fuelSettings,
+          })
+        : { litersNeeded: 0, estimatedCost: 0, breakdowns: [] };
+
       const arrivalTime = formData.departureTime
         ? calculateArrivalTime(formData.departureTime, routeInfo.durationMinutes)
         : '';
@@ -857,7 +868,7 @@ export default function MissionModal({
     } else if (formData.lat && formData.lon) {
       updateRouteCalculations(formData.lat, formData.lon, formData.vehicleAllocations);
     }
-  }, [JSON.stringify(formData.vehicleAllocations), formData.departureTime]);
+  }, [JSON.stringify(formData.vehicleAllocations), formData.departureTime, formData.transportType]);
 
   // Busca de endereço Nominatim com suporte a coordenadas diretas e busca no mapa
   const handleAddressSearch = async () => {
@@ -1551,27 +1562,32 @@ export default function MissionModal({
       return;
     }
 
-    // Filtra viaturas válidas alocadas
-    const validAllocations = formData.vehicleAllocations
-      .filter((a) => a && a.vehicleId)
-      .map((a) => {
-        const veh = vehicles.find((v) => v.id === a.vehicleId);
-        const drv = members.find((m) => m.id === a.driverId);
-        return {
-          vehicleId: a.vehicleId,
-          vehicleName: veh ? `${veh.name} (${veh.plate})` : 'Viatura',
-          driverId: a.driverId || '',
-          driverName: drv ? drv.name : '',
-        };
-      });
+    // Filtra viaturas válidas alocadas (apenas para frota própria)
+    const isCompanyVehicle = (formData.transportType || 'company_vehicle') === 'company_vehicle';
+    const validAllocations = isCompanyVehicle
+      ? formData.vehicleAllocations
+          .filter((a) => a && a.vehicleId)
+          .map((a) => {
+            const veh = vehicles.find((v) => v.id === a.vehicleId);
+            const drv = members.find((m) => m.id === a.driverId);
+            return {
+              vehicleId: a.vehicleId,
+              vehicleName: veh ? `${veh.name} (${veh.plate})` : 'Viatura',
+              driverId: a.driverId || '',
+              driverName: drv ? drv.name : '',
+            };
+          })
+      : [];
 
     // Verificação proativa de conflitos antes de submeter
-    const conflictingVehicles = validAllocations
-      .filter((a) => scheduleConflicts.vehicleConflicts[a.vehicleId])
-      .map((a) => {
-        const c = scheduleConflicts.vehicleConflicts[a.vehicleId];
-        return `• Viatura ${a.vehicleName}: Já ocupada na missão ${c.code} "${c.description}" (${c.timeRange})`;
-      });
+    const conflictingVehicles = isCompanyVehicle
+      ? validAllocations
+          .filter((a) => scheduleConflicts.vehicleConflicts[a.vehicleId])
+          .map((a) => {
+            const c = scheduleConflicts.vehicleConflicts[a.vehicleId];
+            return `• Viatura ${a.vehicleName}: Já ocupada na missão ${c.code} "${c.description}" (${c.timeRange})`;
+          })
+      : [];
 
     const conflictingDrivers = validAllocations
       .filter((a) => a.driverId && scheduleConflicts.memberConflicts[a.driverId])
@@ -1603,10 +1619,13 @@ export default function MissionModal({
     }
 
     const primaryAlloc = validAllocations[0] || null;
-    const vehicleNamesDisplay =
-      validAllocations.length > 0
-        ? validAllocations.map((a) => a.vehicleName).join(' • ')
-        : 'Não alocada';
+    const vehicleNamesDisplay = isCompanyVehicle
+      ? (validAllocations.length > 0
+          ? validAllocations.map((a) => a.vehicleName).join(' • ')
+          : 'Não alocada')
+      : (formData.transportType === 'client_vehicle'
+          ? '🤝 Viatura do Contratante'
+          : '🚶 Sem Viatura (Transporte Próprio)');
     const driverNamesDisplay = validAllocations
       .map((a) => a.driverName)
       .filter(Boolean)
@@ -1736,6 +1755,7 @@ export default function MissionModal({
       suggestedDepartureTime: dynamicSuggestedDeparture || formData.suggestedDepartureTime || null,
       isRoundTrip: true,
       missionStatus: computedStatus,
+      transportType: formData.transportType || 'company_vehicle',
       // Missão de Múltiplos Dias
       isMultiDay: isMultiDay,
       endDate: isMultiDay ? (formData.endDate || formData.date) : null,
@@ -1771,11 +1791,11 @@ export default function MissionModal({
         routeInfo.roundTripDurationMinutes || (routeInfo.durationMinutes || 0) * 2,
       routeCoordinates: routeInfo.coordinates,
       returnCoordinates: routeInfo.returnCoordinates || [],
-      estimatedFuelLiters: routeInfo.estimatedFuelLiters,
-      estimatedFuelCost: routeInfo.estimatedFuelCost,
-      exceedsFullTank: anyExceedsFullTank,
-      excessFuelLiters: totalExcessOverFullTankLiters,
-      excessFuelCost: totalExcessOverFullTankCost,
+      estimatedFuelLiters: isCompanyVehicle ? routeInfo.estimatedFuelLiters : 0,
+      estimatedFuelCost: isCompanyVehicle ? routeInfo.estimatedFuelCost : 0,
+      exceedsFullTank: isCompanyVehicle ? anyExceedsFullTank : false,
+      excessFuelLiters: isCompanyVehicle ? totalExcessOverFullTankLiters : 0,
+      excessFuelCost: isCompanyVehicle ? totalExcessOverFullTankCost : 0,
       // Recorrência da Missão
       isRecurring: isRecurring,
       recurrenceId: formData.recurrenceId || (isRecurring ? (editingMission?.recurrenceId || 'rec-' + Date.now()) : null),
@@ -2808,19 +2828,121 @@ export default function MissionModal({
               <span className="mm-step-pill">3</span>
               <div style={{ flex: 1 }}>
                 <h3 className="mm-card-title">Alocação de Viaturas &amp; Condutores</h3>
-                <p className="mm-card-subtitle">Selecione os veículos da frota e os motoristas designados</p>
+                <p className="mm-card-subtitle">Selecione a modalidade de transporte e recursos da frota</p>
               </div>
-              <button
-                type="button"
-                className="btn-add-vehicle-slot"
-                onClick={handleAddVehicleAllocation}
-                title="Adicionar mais uma viatura e motorista para esta mesma missão"
-              >
-                <Plus size={14} />
-                <span>Adicionar Viatura</span>
-              </button>
+              {(formData.transportType || 'company_vehicle') === 'company_vehicle' && (
+                <button
+                  type="button"
+                  className="btn-add-vehicle-slot"
+                  onClick={handleAddVehicleAllocation}
+                  title="Adicionar mais uma viatura e motorista para esta mesma missão"
+                >
+                  <Plus size={14} />
+                  <span>Adicionar Viatura</span>
+                </button>
+              )}
             </div>
 
+            {/* Seletor de Tipo de Transporte da Missão */}
+            <div style={{ marginBottom: '16px', padding: '12px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Modalidade de Transporte para esta Missão:
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, transportType: 'company_vehicle' }))}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s',
+                    border: (formData.transportType || 'company_vehicle') === 'company_vehicle' ? '1px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.12)',
+                    background: (formData.transportType || 'company_vehicle') === 'company_vehicle' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                    color: (formData.transportType || 'company_vehicle') === 'company_vehicle' ? '#60a5fa' : '#94a3b8',
+                  }}
+                >
+                  <Car size={15} />
+                  <span>Frota MegaFilmes</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, transportType: 'client_vehicle' }))}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s',
+                    border: formData.transportType === 'client_vehicle' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.12)',
+                    background: formData.transportType === 'client_vehicle' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                    color: formData.transportType === 'client_vehicle' ? '#34d399' : '#94a3b8',
+                  }}
+                >
+                  <Users size={15} />
+                  <span>Viatura do Contratante (Cliente)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, transportType: 'no_vehicle' }))}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s',
+                    border: formData.transportType === 'no_vehicle' ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.12)',
+                    background: formData.transportType === 'no_vehicle' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                    color: formData.transportType === 'no_vehicle' ? '#c084fc' : '#94a3b8',
+                  }}
+                >
+                  <UserCheck size={15} />
+                  <span>Sem Viatura (Transporte Próprio)</span>
+                </button>
+              </div>
+            </div>
+
+            {formData.transportType === 'client_vehicle' ? (
+              <div style={{ padding: '18px 20px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '10px', color: '#e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '1.4rem' }}>🤝</span>
+                  <strong style={{ fontSize: '0.98rem', color: '#34d399' }}>Transporte Fornecido pelo Contratante (Cliente)</strong>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                  Nesta missão, o colaborador se desloca na viatura do próprio contratante (ele mesmo leva e traz a nossa equipe).
+                  <strong> Nenhuma viatura da frota própria é utilizada</strong> — consumo de combustível e bateria da frota zerados (R$ 0,00).
+                </p>
+                <div style={{ marginTop: '12px', fontSize: '0.82rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>💡</span>
+                  <span>Você pode escalar os colaboradores que participarão desta missão normalmente no <strong>Passo 5: Equipe Escalada</strong> abaixo.</span>
+                </div>
+              </div>
+            ) : formData.transportType === 'no_vehicle' ? (
+              <div style={{ padding: '18px 20px', background: 'rgba(168, 85, 247, 0.08)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '10px', color: '#e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '1.4rem' }}>🚶</span>
+                  <strong style={{ fontSize: '0.98rem', color: '#c084fc' }}>Missão Sem Viatura da Empresa (Transporte Próprio / A Pé)</strong>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                  A equipe se desloca por conta própria até o local da pauta ou o evento ocorre a pé. Nenhuma viatura da frota é utilizada.
+                </p>
+              </div>
+            ) : (
             <div className="multi-vehicles-list">
               {(() => {
                 const habilitados = members.filter((m) => Boolean(m.canDrive ?? m.hasCnh));
@@ -3124,6 +3246,7 @@ export default function MissionModal({
                 });
               })()}
             </div>
+            )}
           </div>
 
           {/* ============================================================== */}

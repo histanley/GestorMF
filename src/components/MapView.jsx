@@ -22,7 +22,7 @@ import {
   Calendar,
   FileText,
 } from 'lucide-react';
-import { getNavigationLinks, getMissionTotalKm, fetchRouteOSRM, formatDateBR } from '../utils/geo';
+import { getNavigationLinks, getMissionTotalKm, fetchRouteOSRM, formatDateBR, getMultiDayProgress } from '../utils/geo';
 import { apiGetActiveGpsLocations, apiSendGpsLocation, apiStopGpsLocation } from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { watchNativePosition, requestLocationPermissions, isNativeApp } from '../utils/nativeBridge';
@@ -292,22 +292,34 @@ export default function MapView({
         m.missionStatus === 'Finalizado' ||
         m.missionStatus === 'Finalizada';
       const isExec = m.missionStatus === 'Em Execução';
+      const multiDay = getMultiDayProgress(m.date, m.endDate);
 
       marker.bindPopup(`
         <div className="map-popup">
-          <div className="popup-badge ${isDone ? 'badge-success' : isExec ? 'badge-danger' : 'badge-warning'}">
-            ${m.missionStatus || 'Agendada'}
+          <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
+            <div className="popup-badge ${isDone ? 'badge-success' : isExec ? 'badge-danger' : 'badge-warning'}">
+              ${m.missionStatus || 'Agendada'}
+            </div>
+            ${multiDay && multiDay.isMultiDay ? `
+              <div style="background: linear-gradient(135deg, #d97706, #b45309); color: #fff; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.4);">
+                📅 ${multiDay.badgeText.toUpperCase()}
+              </div>
+            ` : ''}
           </div>
           <h4 className="popup-title">${m.description}</h4>
           <p className="popup-subtitle">📍 ${m.locationName || m.address || 'Local'}</p>
           <div className="popup-grid">
-            <div><strong>Data:</strong> ${m.date || '--'}</div>
+            <div><strong>Data:</strong> ${multiDay && multiDay.isMultiDay ? `${formatDateBR(m.date)} a ${formatDateBR(m.endDate)} (${multiDay.badgeText})` : (formatDateBR(m.date) || '--')}</div>
             <div><strong>Horário:</strong> ${m.departureTime || '--'} -> ${m.returnTimeEstimated || m.arrivalTimeEstimated || '--'}</div>
             <div><strong>Equipe:</strong> ${m.teamNamesDisplay || '--'}${Array.isArray(m.guests) && m.guests.length > 0 ? ` + 👤 ${m.guests.map(g => typeof g === 'string' ? g : g.name).join(', ')} (Convidado)` : ''}</div>
-            <div><strong>Viatura:</strong> ${m.vehicleNameDisplay || 'Não definida'}${m.driverName ? ` • 🛞 ${m.driverName}` : ''}</div>
+            <div><strong>Viatura:</strong> ${m.transportType === 'client_vehicle' ? '🤝 Viatura do Contratante' : (m.transportType === 'no_vehicle' ? '🚶 Sem Viatura (Transporte Próprio)' : (m.vehicleNameDisplay || 'Não definida'))}${m.driverName ? ` • 🛞 ${m.driverName}` : ''}</div>
             <div><strong>Distância (Ida/Volta):</strong> ${totalKm} km (${m.distanceKm || 0} km cada trecho)</div>
             <div><strong>Tempo (Ida/Volta):</strong> ~${totalMin} min (~${m.drivingDurationMinutes || 0} min por trecho)</div>
-            <div><strong>Combustível Est.:</strong> ${m.estimatedFuelLiters || 0} L (R$ ${Number(m.estimatedFuelCost || 0).toFixed(2)})</div>
+            ${m.transportType === 'client_vehicle' || m.transportType === 'no_vehicle' ? `
+              <div><strong>Combustível:</strong> R$ 0,00 (Sem consumo da frota)</div>
+            ` : `
+              <div><strong>Combustível Est.:</strong> ${m.estimatedFuelLiters || 0} L (R$ ${Number(m.estimatedFuelCost || 0).toFixed(2)})</div>
+            `}
           </div>
         </div>
       `);
@@ -965,6 +977,30 @@ export default function MapView({
 
           <div className="card-body-scrollable">
             <h3 className="card-mission-title">{activeMission.description}</h3>
+            {(() => {
+              const multiDay = getMultiDayProgress(activeMission.date, activeMission.endDate);
+              if (!multiDay || !multiDay.isMultiDay) return null;
+              return (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, #d97706, #b45309)',
+                  color: '#ffffff',
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  marginTop: '4px',
+                  marginBottom: '10px',
+                  boxShadow: '0 2px 10px rgba(217, 119, 6, 0.35)',
+                  letterSpacing: '0.3px',
+                }}>
+                  <Calendar size={13} />
+                  <span>{multiDay.badgeText.toUpperCase()} ({multiDay.dateSpan})</span>
+                </div>
+              );
+            })()}
             <div className="card-mission-location">
               <MapPin size={14} className="icon-accent" />
               <span>{activeMission.locationName || activeMission.address}</span>
@@ -1011,15 +1047,29 @@ export default function MapView({
 
               <div className="metric-item">
                 <div className="metric-label">
-                  <Car size={13} /> Viatura & Motorista
+                  <Car size={13} /> {activeMission.transportType === 'client_vehicle' ? 'Transporte' : 'Viatura & Motorista'}
                 </div>
                 <div className="metric-value">
-                  {activeMission.vehicleNameDisplay || 'Não alocada'}
-                  {activeMission.driverName && (
+                  {activeMission.transportType === 'client_vehicle' ? (
+                    <span style={{ color: '#34d399', fontWeight: 700 }}>
+                      🤝 Viatura do Contratante
+                    </span>
+                  ) : activeMission.transportType === 'no_vehicle' ? (
+                    <span style={{ color: '#c084fc', fontWeight: 700 }}>
+                      🚶 Sem Viatura (Transporte Próprio)
+                    </span>
+                  ) : (
+                    activeMission.vehicleNameDisplay || 'Não alocada'
+                  )}
+                  {activeMission.transportType === 'client_vehicle' ? (
+                    <span className="metric-sub" style={{ color: '#94a3b8' }}>
+                      Transporte fornecido pelo cliente (sem uso da frota)
+                    </span>
+                  ) : activeMission.driverName ? (
                     <span className="metric-sub" style={{ color: 'var(--accent-cyan)' }}>
                       🛞 Motorista: {activeMission.driverName}
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
@@ -1029,8 +1079,17 @@ export default function MapView({
                     <Fuel size={13} /> Combustível
                   </div>
                   <div className="metric-value highlight-fuel">
-                    {activeMission.estimatedFuelLiters || 0} L
-                    <span className="metric-sub">R$ {activeMission.estimatedFuelCost || '0.00'}</span>
+                    {activeMission.transportType === 'client_vehicle' || activeMission.transportType === 'no_vehicle' ? (
+                      <>
+                        0 L
+                        <span className="metric-sub">R$ 0,00 (Cliente Fornece)</span>
+                      </>
+                    ) : (
+                      <>
+                        {activeMission.estimatedFuelLiters || 0} L
+                        <span className="metric-sub">R$ {activeMission.estimatedFuelCost || '0.00'}</span>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
