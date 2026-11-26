@@ -44,6 +44,7 @@ import {
   hasMissionPostProduction,
   checkIsMissionOverdue,
   getMultiDayProgress,
+  getMultiDayRestStatus,
 } from '../utils/geo';
 import { alertDialog } from '../utils/dialog';
 import { normalizeRole } from '../utils/auth';
@@ -302,6 +303,32 @@ export default function MissionDetailModal({
                   ></span>
                   {isDetailOverdue && mission.missionStatus === 'Pendente' ? 'Atrasado' : (mission.missionStatus || 'Agendada')}
                 </span>
+
+                {(() => {
+                  const mRest = getMultiDayRestStatus(mission);
+                  if (!mRest || !mRest.isMultiDay || !mRest.inPeriod) return null;
+                  if (mission.missionStatus !== 'Em Execução' && mission.missionStatus !== 'Em Preparo') return null;
+                  return (
+                    <span
+                      style={{
+                        background: mRest.isResting ? 'rgba(56, 189, 248, 0.16)' : 'rgba(234, 179, 8, 0.16)',
+                        border: mRest.isResting ? '1px solid rgba(56, 189, 248, 0.45)' : '1px solid rgba(234, 179, 8, 0.45)',
+                        color: mRest.isResting ? '#38bdf8' : '#facc15',
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                      title={mRest.description}
+                    >
+                      <span>{mRest.icon}</span>
+                      <span>{mRest.badgeText}</span>
+                    </span>
+                  );
+                })()}
 
                 {/* Selo de Turno / Horário */}
                 {shiftInfo.kind !== 'unknown' && (

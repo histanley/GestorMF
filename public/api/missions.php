@@ -157,6 +157,40 @@ function ensureMissionColumnsExist($db)
         } catch (Exception $ex) {}
     });
 
+    runVersionedMigration($db, 'schema_missions_cols_v7_multiday_schedules', function ($pdo) {
+        $cols = [
+            'daily_event_start_time' => "VARCHAR(10) NULL",
+            'daily_event_end_time' => "VARCHAR(10) NULL",
+            'daily_event_schedules' => "LONGTEXT NULL"
+        ];
+        $existingCols = [];
+        $stmt = $pdo->query("SHOW COLUMNS FROM missions");
+        if ($stmt) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $existingCols[strtolower($row['Field'])] = true;
+            }
+        }
+        foreach ($cols as $colName => $colDef) {
+            if (!isset($existingCols[strtolower($colName)])) {
+                try {
+                    $pdo->exec("ALTER TABLE missions ADD COLUMN {$colName} {$colDef}");
+                } catch (Exception $ex) {}
+            }
+        }
+
+        // Para missões multi-dia em andamento (ex: #202611251 - Rorainópolis), garantir horários diários padrão de atividade se não estiverem definidos
+        try {
+            $pdo->exec("
+                UPDATE missions
+                SET 
+                    daily_event_start_time = COALESCE(NULLIF(daily_event_start_time, ''), NULLIF(event_start_time, ''), '08:00'),
+                    daily_event_end_time = COALESCE(NULLIF(daily_event_end_time, ''), NULLIF(event_end_time, ''), '18:00')
+                WHERE (is_multi_day = 1 OR (end_date IS NOT NULL AND end_date != '' AND end_date != date))
+                  AND (daily_event_end_time IS NULL OR daily_event_end_time = '')
+            ");
+        } catch (Exception $e) {}
+    });
+
     // Migração de recálculo retroativo de horas extras de almoço para missões finalizadas e existentes (Regra MegaFilmes)
     runVersionedMigration($db, 'recalc_finalized_missions_lunch_v3', function ($pdo) {
         // 1. Garante que qualquer missão sem opção de almoço definida receba 'no_break' e has_lunch_break = 0
@@ -584,6 +618,9 @@ if ($method === 'GET') {
             'recurrenceDays' => $m['recurrence_days'] ?? null,
             'isMultiDay' => !empty($m['is_multi_day']),
             'endDate' => $m['end_date'] ?? null,
+            'dailyEventStartTime' => $m['daily_event_start_time'] ?? ($m['event_start_time'] ?? null),
+            'dailyEventEndTime' => $m['daily_event_end_time'] ?? ($m['event_end_time'] ?? null),
+            'dailyEventSchedules' => !empty($m['daily_event_schedules']) ? (is_string($m['daily_event_schedules']) ? json_decode($m['daily_event_schedules'], true) : $m['daily_event_schedules']) : null,
             'transportType' => $m['transport_type'] ?? 'company_vehicle',
             'customRates' => !empty($m['custom_rates']) ? json_decode($m['custom_rates'], true) : null,
             'offHours' => isset($m['off_hours']) ? (float) $m['off_hours'] : 0.0,
@@ -1411,7 +1448,7 @@ if ($method === 'POST' || $method === 'PUT') {
             estimated_fuel_liters, estimated_fuel_cost,
             route_coordinates, return_coordinates, notes,
             is_recurring, recurrence_id, recurrence_rule, recurrence_days,
-            is_multi_day, end_date, transport_type,
+            is_multi_day, end_date, daily_event_start_time, daily_event_end_time, daily_event_schedules, transport_type,
             custom_rates, off_hours,
             remuneration_type, member_remuneration_types, member_roles, equipment_allocations, member_notes, extra_hours_planned, extra_hours_approved, extra_hours_requests,
             lunch_break_option, has_lunch_break, meal_allowance_option, meal_allowance_cost, meal_allowance_notes,
@@ -1432,7 +1469,7 @@ if ($method === 'POST' || $method === 'PUT') {
             :estimated_fuel_liters, :estimated_fuel_cost,
             :route_coordinates, :return_coordinates, :notes,
             :is_recurring, :recurrence_id, :recurrence_rule, :recurrence_days,
-            :is_multi_day, :end_date, :transport_type,
+            :is_multi_day, :end_date, :daily_event_start_time, :daily_event_end_time, :daily_event_schedules, :transport_type,
             :custom_rates, :off_hours,
             :remuneration_type, :member_remuneration_types, :member_roles, :equipment_allocations, :member_notes, :extra_hours_planned, :extra_hours_approved, :extra_hours_requests,
             :lunch_break_option, :has_lunch_break, :meal_allowance_option, :meal_allowance_cost, :meal_allowance_notes,
@@ -1496,6 +1533,9 @@ if ($method === 'POST' || $method === 'PUT') {
             recurrence_days = VALUES(recurrence_days),
             is_multi_day = VALUES(is_multi_day),
             end_date = VALUES(end_date),
+            daily_event_start_time = VALUES(daily_event_start_time),
+            daily_event_end_time = VALUES(daily_event_end_time),
+            daily_event_schedules = VALUES(daily_event_schedules),
             transport_type = VALUES(transport_type),
             custom_rates = VALUES(custom_rates),
             off_hours = VALUES(off_hours),
@@ -1599,6 +1639,9 @@ if ($method === 'POST' || $method === 'PUT') {
             ':recurrence_days' => $data['recurrenceDays'] ?? null,
             ':is_multi_day' => !empty($data['isMultiDay']) ? 1 : 0,
             ':end_date' => $data['endDate'] ?? null,
+            ':daily_event_start_time' => $data['dailyEventStartTime'] ?? ($data['eventStartTime'] ?? null),
+            ':daily_event_end_time' => $data['dailyEventEndTime'] ?? ($data['eventEndTime'] ?? null),
+            ':daily_event_schedules' => !empty($data['dailyEventSchedules']) ? (is_string($data['dailyEventSchedules']) ? $data['dailyEventSchedules'] : json_encode($data['dailyEventSchedules'], JSON_UNESCAPED_UNICODE)) : null,
             ':transport_type' => $data['transportType'] ?? 'company_vehicle',
             ':custom_rates' => !empty($data['customRates']) ? json_encode($data['customRates'], JSON_UNESCAPED_UNICODE) : null,
             ':off_hours' => isset($data['offHours']) ? (float) $data['offHours'] : 0.0,

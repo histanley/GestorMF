@@ -281,6 +281,9 @@ export default function MissionModal({
     equipmentAllocations: [],
     isMultiDay: false,
     endDate: '',
+    dailyEventStartTime: '08:00',
+    dailyEventEndTime: '18:00',
+    dailyEventSchedules: [],
     remunerationType: 'off_hours',
     memberRemunerationTypes: {},
     memberRoles: {},
@@ -578,6 +581,9 @@ export default function MissionModal({
         equipmentAllocations: Array.isArray(editingMission.equipmentAllocations) ? editingMission.equipmentAllocations : [],
         isMultiDay: Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date)),
         endDate: editingMission.endDate || '',
+        dailyEventStartTime: editingMission.dailyEventStartTime || editingMission.eventStartTime || '08:00',
+        dailyEventEndTime: editingMission.dailyEventEndTime || editingMission.eventEndTime || '18:00',
+        dailyEventSchedules: Array.isArray(editingMission.dailyEventSchedules) ? editingMission.dailyEventSchedules : [],
         remunerationType: !isAdmin
           ? 'off_hours'
           : (editingMission.remunerationType
@@ -1759,6 +1765,9 @@ export default function MissionModal({
       // Missão de Múltiplos Dias
       isMultiDay: isMultiDay,
       endDate: isMultiDay ? (formData.endDate || formData.date) : null,
+      dailyEventStartTime: isMultiDay ? (formData.dailyEventStartTime || formData.eventStartTime || '08:00') : null,
+      dailyEventEndTime: isMultiDay ? (formData.dailyEventEndTime || formData.eventEndTime || '18:00') : null,
+      dailyEventSchedules: isMultiDay ? (formData.dailyEventSchedules || []) : [],
       vehicleAllocations: validAllocations,
       guests: guestsList,
       vehicleIds: validAllocations.map((a) => a.vehicleId),
@@ -2328,6 +2337,108 @@ export default function MissionModal({
                         </small>
                       </div>
                     )}
+                  </div>
+
+                  {/* Configuração dos Horários Diários das Atividades / Cobertura e Descanso */}
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '14px 16px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '10px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '1rem' }}>⏰</span>
+                        <strong style={{ fontSize: '0.86rem', color: '#f1f5f9' }}>
+                          Horário Diário de Cobertura / Atividades do Evento
+                        </strong>
+                      </div>
+                      <span style={{
+                        fontSize: '0.72rem',
+                        background: 'rgba(56, 189, 248, 0.12)',
+                        color: '#38bdf8',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontWeight: 700
+                      }}>
+                        Fora deste horário = 🛌 Equipe em Descanso
+                      </span>
+                    </div>
+
+                    <div className="form-row" style={{ alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+                      <div className="form-group flex-1" style={{ minWidth: '150px' }}>
+                        <label>
+                          <Clock size={13} /> Início da Cobertura Diária <span className="req-star">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          value={formData.dailyEventStartTime || formData.eventStartTime || '08:00'}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setFormData({
+                              ...formData,
+                              dailyEventStartTime: v,
+                              eventStartTime: formData.eventStartTime || v
+                            });
+                          }}
+                        />
+                        <small className="field-hint-sub">Hora em que a equipe inicia as atividades no local a cada dia</small>
+                      </div>
+
+                      <div className="form-group flex-1" style={{ minWidth: '150px' }}>
+                        <label>
+                          <Clock size={13} /> Término da Cobertura Diária <span className="req-star">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          value={formData.dailyEventEndTime || formData.eventEndTime || '18:00'}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setFormData({
+                              ...formData,
+                              dailyEventEndTime: v,
+                              eventEndTime: formData.eventEndTime || v
+                            });
+                          }}
+                        />
+                        <small className="field-hint-sub">Hora em que a cobertura encerra e a equipe entra em descanso</small>
+                      </div>
+                    </div>
+
+                    {/* Card explicativo das faixas de atividade vs descanso */}
+                    <div style={{
+                      marginTop: '10px',
+                      padding: '10px 12px',
+                      background: 'rgba(15, 23, 42, 0.5)',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      borderRadius: '8px',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                      gap: '10px',
+                      fontSize: '0.78rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '1.1rem' }}>⚡</span>
+                        <div>
+                          <strong style={{ color: '#facc15', display: 'block' }}>Em Atividade:</strong>
+                          <span style={{ color: '#cbd5e1' }}>
+                            Das {formData.dailyEventStartTime || formData.eventStartTime || '08:00'} às {formData.dailyEventEndTime || formData.eventEndTime || '18:00'} (no local)
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '1.1rem' }}>🛌</span>
+                        <div>
+                          <strong style={{ color: '#38bdf8', display: 'block' }}>Em Descanso:</strong>
+                          <span style={{ color: '#cbd5e1' }}>
+                            Fora desse horário (a missão permanece <em>Em Execução</em>)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

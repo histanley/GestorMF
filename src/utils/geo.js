@@ -557,6 +557,137 @@ export function getMultiDayProgress(startDateStr, endDateStr, referenceDate = ne
   };
 }
 
+/**
+ * Retorna o status de atividade ou descanso para missões de múltiplos dias.
+ * Fora do horário estipulado do evento no dia (ex: à noite / madrugada), a equipe fica "Em Descanso".
+ * Durante o horário do evento (ex: 08:00 às 18:00), a equipe fica "Em Atividade".
+ * O status principal da missão permanece "Em Execução", exibindo o distintivo complementar de descanso ou atividade.
+ */
+export function getMultiDayRestStatus(mission, now = new Date()) {
+  if (!mission) {
+    return { isMultiDay: false, inPeriod: false, isResting: false, isActivity: false, badgeText: null, icon: null };
+  }
+
+  const isMultiDay = Boolean(
+    mission.isMultiDay ||
+    (mission.endDate && mission.endDate !== mission.date)
+  );
+
+  if (!isMultiDay) {
+    return {
+      isMultiDay: false,
+      inPeriod: false,
+      isResting: false,
+      isActivity: false,
+      badgeText: null,
+      icon: null
+    };
+  }
+
+  const startDateStr = mission.date;
+  const endDateStr = mission.endDate || mission.date;
+  const progress = getMultiDayProgress(startDateStr, endDateStr, now);
+
+  const statusLower = (mission.missionStatus || '').toLowerCase();
+  const isCanceled = statusLower === 'cancelada';
+  const isFinalizada = statusLower === 'finalizada' || statusLower === 'finalizado' || statusLower === 'concluída';
+
+  const inPeriod = Boolean(progress && progress.status === 'in_progress');
+
+  if (!inPeriod || isCanceled || isFinalizada) {
+    return {
+      isMultiDay: true,
+      inPeriod,
+      isResting: false,
+      isActivity: false,
+      progress,
+      badgeText: null,
+      icon: null
+    };
+  }
+
+  const refDate = now instanceof Date ? now : new Date(now);
+  const rY = refDate.getFullYear();
+  const rM = String(refDate.getMonth() + 1).padStart(2, '0');
+  const rD = String(refDate.getDate()).padStart(2, '0');
+  const todayYMD = `${rY}-${rM}-${rD}`;
+
+  let startTime = mission.dailyEventStartTime || mission.eventStartTime || '08:00';
+  let endTime = mission.dailyEventEndTime || mission.eventEndTime || '18:00';
+
+  // Se houver cronograma diário customizado por dia
+  let dailyScheds = mission.dailyEventSchedules;
+  if (typeof dailyScheds === 'string') {
+    try {
+      dailyScheds = JSON.parse(dailyScheds);
+    } catch {
+      dailyScheds = null;
+    }
+  }
+
+  if (Array.isArray(dailyScheds) && dailyScheds.length > 0) {
+    const todayItem = dailyScheds.find(
+      (s) => s.date === todayYMD || Number(s.dayNumber) === Number(progress?.currentDayNumber)
+    );
+    if (todayItem) {
+      if (todayItem.startTime) startTime = todayItem.startTime;
+      if (todayItem.endTime) endTime = todayItem.endTime;
+    }
+  }
+
+  const nowMinutes = refDate.getHours() * 60 + refDate.getMinutes();
+  const [sH, sM] = String(startTime).split(':').map(Number);
+  const startM = (isNaN(sH) ? 8 : sH) * 60 + (isNaN(sM) ? 0 : sM);
+  const [eH, eM] = String(endTime).split(':').map(Number);
+  const endM = (isNaN(eH) ? 18 : eH) * 60 + (isNaN(eM) ? 0 : eM);
+
+  let isActivity = false;
+  let isResting = false;
+
+  if (startM < endM) {
+    if (nowMinutes >= startM && nowMinutes < endM) {
+      isActivity = true;
+      isResting = false;
+    } else {
+      isActivity = false;
+      isResting = true;
+    }
+  } else {
+    // Cruza a meia-noite (ex: 20:00 até 02:00)
+    if (nowMinutes >= startM || nowMinutes < endM) {
+      isActivity = true;
+      isResting = false;
+    } else {
+      isActivity = false;
+      isResting = true;
+    }
+  }
+
+  const badgeText = isResting ? 'Em Descanso' : 'Em Atividade';
+  const shortBadge = isResting ? 'Descanso' : 'Atividade';
+  const icon = isResting ? '🛌' : '⚡';
+  const description = isResting
+    ? `Equipe em descanso (${endTime} às ${startTime}). Retorna às atividades às ${startTime}.`
+    : `Equipe em atividade no evento (${startTime} às ${endTime}).`;
+
+  return {
+    isMultiDay: true,
+    inPeriod: true,
+    isResting,
+    isActivity,
+    badgeText,
+    shortBadge,
+    icon,
+    statusClass: isResting ? 'resting' : 'activity',
+    startTime,
+    endTime,
+    currentDayNumber: progress ? progress.currentDayNumber : 1,
+    totalDays: progress ? progress.totalDays : 1,
+    progress,
+    description
+  };
+}
+
 // Verifica se uma missão está ativa ou em fase de preparo (ocupando viatura e participantes)
 export function isMissionActiveOrPrep(mission) {
   if (!mission) return false;

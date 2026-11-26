@@ -66,6 +66,7 @@ import {
   hasMissionPostProduction,
   checkIsMissionOverdue,
   getMultiDayProgress,
+  getMultiDayRestStatus,
 } from '../utils/geo';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { normalizeRole } from '../utils/auth';
@@ -1127,13 +1128,38 @@ export default function ServiceBoard({
                     {/* 5. STATUS & EDIÇÃO */}
                     <td className="pcol-status">
                       <div className="edicao-cell-compact">
-                        <div className={`board-mission-status-pill pill-${statusSlug}`}>
-                          <span
-                            className={`status-dot dot-${(mission.missionStatus || 'Agendada')
-                              .toLowerCase()
-                              .replace(/\s+/g, '-')}`}
-                          ></span>
-                          <span>{mission.missionStatus || 'Agendada'}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                          <div className={`board-mission-status-pill pill-${statusSlug}`}>
+                            <span
+                              className={`status-dot dot-${(mission.missionStatus || 'Agendada')
+                                .toLowerCase()
+                                .replace(/\s+/g, '-')}`}
+                            ></span>
+                            <span>{mission.missionStatus || 'Agendada'}</span>
+                          </div>
+                          {(() => {
+                            const mRest = getMultiDayRestStatus(mission);
+                            if (!mRest || !mRest.isMultiDay || !mRest.inPeriod) return null;
+                            if (mission.missionStatus !== 'Em Execução' && mission.missionStatus !== 'Em Preparo') return null;
+                            return (
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 800,
+                                  background: mRest.isResting ? 'rgba(56, 189, 248, 0.16)' : 'rgba(234, 179, 8, 0.16)',
+                                  border: mRest.isResting ? '1px solid rgba(56, 189, 248, 0.45)' : '1px solid rgba(234, 179, 8, 0.45)',
+                                  color: mRest.isResting ? '#38bdf8' : '#facc15'
+                                }}
+                              >
+                                {mRest.icon} {mRest.badgeText}
+                              </span>
+                            );
+                          })()}
                         </div>
 
                         {!hasMissionPostProduction(mission) ? (
@@ -1665,8 +1691,9 @@ export default function ServiceBoard({
                             {(() => {
                               const mProg = getMultiDayProgress(mission.date, mission.endDate);
                               if (!mProg || !mProg.isMultiDay) return null;
+                              const mRest = getMultiDayRestStatus(mission);
                               return (
-                                <div style={{ marginTop: '3px', marginBottom: '4px' }}>
+                                <div style={{ marginTop: '3px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                   <span style={{
                                     background: 'linear-gradient(135deg, #d97706, #b45309)',
                                     color: '#ffffff',
@@ -1680,6 +1707,17 @@ export default function ServiceBoard({
                                   }}>
                                     📅 {mProg.badgeText.toUpperCase()}
                                   </span>
+                                  {mRest && mRest.startTime && mRest.endTime && (
+                                    <span style={{
+                                      fontSize: '0.68rem',
+                                      color: '#94a3b8',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '3px'
+                                    }} title={`Horário de evento no local: ${mRest.startTime} às ${mRest.endTime}`}>
+                                      ⏰ {mRest.startTime} às {mRest.endTime}
+                                    </span>
+                                  )}
                                 </div>
                               );
                             })()}
@@ -1793,18 +1831,51 @@ export default function ServiceBoard({
                         {/* 5. STATUS & EDIÇÃO (Com identificação de editor, prazo, pontualidade e ações de conclusão/reabertura) */}
                         <td className="col-edicao" onClick={(e) => e.stopPropagation()}>
                           <div className="edicao-cell-compact">
-                            <div
-                              className={`board-mission-status-pill ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'pill-atrasada' : `pill-${statusSlug}`}`}
-                              onClick={() => setSelectedDetailMissionId(mission.id)}
-                              style={{ cursor: 'pointer' }}
-                              title={isOverdueMission ? 'Missão de pós-produção com entrega atrasada!' : 'Clique para ver os detalhes da missão'}
-                            >
-                              <span
-                                className={`status-dot ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'dot-atrasada' : `dot-${(mission.missionStatus || 'Agendada')
-                                  .toLowerCase()
-                                  .replace(/\s+/g, '-')}`}`}
-                              ></span>
-                              <span>{isOverdueMission && mission.missionStatus === 'Pendente' ? 'Atrasado' : (mission.missionStatus || 'Agendada')}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <div
+                                className={`board-mission-status-pill ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'pill-atrasada' : `pill-${statusSlug}`}`}
+                                onClick={() => setSelectedDetailMissionId(mission.id)}
+                                style={{ cursor: 'pointer' }}
+                                title={isOverdueMission ? 'Missão de pós-produção com entrega atrasada!' : 'Clique para ver os detalhes da missão'}
+                              >
+                                <span
+                                  className={`status-dot ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'dot-atrasada' : `dot-${(mission.missionStatus || 'Agendada')
+                                    .toLowerCase()
+                                    .replace(/\s+/g, '-')}`}`}
+                                ></span>
+                                <span>{isOverdueMission && mission.missionStatus === 'Pendente' ? 'Atrasado' : (mission.missionStatus || 'Agendada')}</span>
+                              </div>
+
+                              {(() => {
+                                const mRest = getMultiDayRestStatus(mission);
+                                if (!mRest || !mRest.isMultiDay || !mRest.inPeriod) return null;
+                                if (mission.missionStatus !== 'Em Execução' && mission.missionStatus !== 'Em Preparo') return null;
+
+                                return (
+                                  <span
+                                    className={`board-rest-status-pill ${mRest.isResting ? 'pill-resting' : 'pill-activity'}`}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      padding: '2px 8px',
+                                      borderRadius: '6px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 800,
+                                      background: mRest.isResting ? 'rgba(56, 189, 248, 0.16)' : 'rgba(234, 179, 8, 0.16)',
+                                      border: mRest.isResting ? '1px solid rgba(56, 189, 248, 0.45)' : '1px solid rgba(234, 179, 8, 0.45)',
+                                      color: mRest.isResting ? '#38bdf8' : '#facc15',
+                                      boxShadow: mRest.isResting ? '0 1px 4px rgba(56, 189, 248, 0.2)' : '0 1px 4px rgba(234, 179, 8, 0.2)',
+                                      letterSpacing: '0.02em',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title={mRest.description}
+                                  >
+                                    <span>{mRest.icon}</span>
+                                    <span>{mRest.badgeText}</span>
+                                  </span>
+                                );
+                              })()}
                             </div>
 
                             {/* Bloco de Informações de Pós-Produção */}
@@ -2311,9 +2382,38 @@ export default function ServiceBoard({
                           </span>
                         )}
                       </div>
-                      <div className={`mmc-status-pill pill-${statusSlug} ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'pill-atrasada' : ''}`}>
-                        <span className={`status-dot dot-${statusSlug}`} />
-                        <span>{isOverdueMission && mission.missionStatus === 'Pendente' ? 'Atrasado' : (mission.missionStatus || 'Agendada')}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <div className={`mmc-status-pill pill-${statusSlug} ${isOverdueMission && mission.missionStatus === 'Pendente' ? 'pill-atrasada' : ''}`}>
+                          <span className={`status-dot dot-${statusSlug}`} />
+                          <span>{isOverdueMission && mission.missionStatus === 'Pendente' ? 'Atrasado' : (mission.missionStatus || 'Agendada')}</span>
+                        </div>
+                        {(() => {
+                          const mRest = getMultiDayRestStatus(mission);
+                          if (!mRest || !mRest.isMultiDay || !mRest.inPeriod) return null;
+                          if (mission.missionStatus !== 'Em Execução' && mission.missionStatus !== 'Em Preparo') return null;
+
+                          return (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                padding: '2px 6px',
+                                borderRadius: '5px',
+                                fontSize: '0.70rem',
+                                fontWeight: 800,
+                                background: mRest.isResting ? 'rgba(56, 189, 248, 0.16)' : 'rgba(234, 179, 8, 0.16)',
+                                border: mRest.isResting ? '1px solid rgba(56, 189, 248, 0.45)' : '1px solid rgba(234, 179, 8, 0.45)',
+                                color: mRest.isResting ? '#38bdf8' : '#facc15',
+                                whiteSpace: 'nowrap'
+                              }}
+                              title={mRest.description}
+                            >
+                              <span>{mRest.icon}</span>
+                              <span>{mRest.badgeText}</span>
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
 

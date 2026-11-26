@@ -22,7 +22,7 @@ import {
   Calendar,
   FileText,
 } from 'lucide-react';
-import { getNavigationLinks, getMissionTotalKm, fetchRouteOSRM, formatDateBR, getMultiDayProgress } from '../utils/geo';
+import { getNavigationLinks, getMissionTotalKm, fetchRouteOSRM, formatDateBR, getMultiDayProgress, getMultiDayRestStatus } from '../utils/geo';
 import { apiGetActiveGpsLocations, apiSendGpsLocation, apiStopGpsLocation } from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 import { watchNativePosition, requestLocationPermissions, isNativeApp } from '../utils/nativeBridge';
@@ -293,6 +293,7 @@ export default function MapView({
         m.missionStatus === 'Finalizada';
       const isExec = m.missionStatus === 'Em Execução';
       const multiDay = getMultiDayProgress(m.date, m.endDate);
+      const multiDayRest = getMultiDayRestStatus(m);
 
       marker.bindPopup(`
         <div className="map-popup">
@@ -300,6 +301,11 @@ export default function MapView({
             <div className="popup-badge ${isDone ? 'badge-success' : isExec ? 'badge-danger' : 'badge-warning'}">
               ${m.missionStatus || 'Agendada'}
             </div>
+            ${multiDayRest && multiDayRest.isMultiDay && multiDayRest.inPeriod && isExec ? `
+              <div style="background: ${multiDayRest.isResting ? 'rgba(56, 189, 248, 0.2)' : 'rgba(234, 179, 8, 0.2)'}; border: 1px solid ${multiDayRest.isResting ? '#38bdf8' : '#facc15'}; color: ${multiDayRest.isResting ? '#38bdf8' : '#facc15'}; font-weight: 800; font-size: 11px; padding: 2px 7px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                ${multiDayRest.icon} ${multiDayRest.badgeText.toUpperCase()}
+              </div>
+            ` : ''}
             ${multiDay && multiDay.isMultiDay ? `
               <div style="background: linear-gradient(135deg, #d97706, #b45309); color: #fff; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.4);">
                 📅 ${multiDay.badgeText.toUpperCase()}
@@ -964,6 +970,31 @@ export default function MapView({
                 <span className="status-indicator-dot"></span>
                 {activeMission.missionStatus || 'Agendada'}
               </span>
+              {(() => {
+                const mRest = getMultiDayRestStatus(activeMission);
+                if (!mRest || !mRest.isMultiDay || !mRest.inPeriod) return null;
+                if (activeMission.missionStatus !== 'Em Execução' && activeMission.missionStatus !== 'Em Preparo') return null;
+                return (
+                  <span
+                    style={{
+                      background: mRest.isResting ? 'rgba(56, 189, 248, 0.16)' : 'rgba(234, 179, 8, 0.16)',
+                      border: mRest.isResting ? '1px solid rgba(56, 189, 248, 0.45)' : '1px solid rgba(234, 179, 8, 0.45)',
+                      color: mRest.isResting ? '#38bdf8' : '#facc15',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title={mRest.description}
+                  >
+                    <span>{mRest.icon}</span>
+                    <span>{mRest.badgeText}</span>
+                  </span>
+                );
+              })()}
               <span className="floating-card-date-badge">
                 📅 {Boolean(activeMission.isMultiDay && activeMission.endDate && activeMission.endDate !== activeMission.date)
                   ? `${formatDateBR(activeMission.date)} a ${formatDateBR(activeMission.endDate)}`
