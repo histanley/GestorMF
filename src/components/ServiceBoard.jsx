@@ -45,6 +45,7 @@ import {
   CalendarRange,
   CalendarDays,
   MessageCircle,
+  Package,
 } from 'lucide-react';
 import ServiceBoardWeekView from './ServiceBoardWeekView';
 import ServiceBoardMonthView from './ServiceBoardMonthView';
@@ -2900,11 +2901,31 @@ export default function ServiceBoard({
               <div className="mdm-body">
                 {/* 1. LINHA DO TEMPO & HORÁRIOS AUTOMÁTICOS */}
                 <div className="mdm-section">
-                  <div className="mdm-section-title">
-                    <Clock size={15} />
-                    <span>
-                      Cronograma &amp; Automação de Horários ({Boolean(detailMission.isMultiDay && detailMission.endDate && detailMission.endDate !== detailMission.date) ? `${formatDateBR(detailMission.date)} a ${formatDateBR(detailMission.endDate)}` : formatDateBR(detailMission.date)})
-                    </span>
+                  <div className="mdm-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Clock size={15} />
+                      <span>
+                        Cronograma &amp; Automação de Horários ({Boolean(detailMission.isMultiDay && detailMission.endDate && detailMission.endDate !== detailMission.date) ? `${formatDateBR(detailMission.date)} a ${formatDateBR(detailMission.endDate)}` : formatDateBR(detailMission.date)})
+                      </span>
+                    </div>
+                    {(() => {
+                      const mProg = getMultiDayProgress(detailMission.date, detailMission.endDate);
+                      if (!mProg || !mProg.isMultiDay) return null;
+                      return (
+                        <span style={{
+                          background: 'linear-gradient(135deg, #d97706, #b45309)',
+                          color: '#ffffff',
+                          fontSize: '0.80rem',
+                          fontWeight: 800,
+                          padding: '3px 10px',
+                          borderRadius: '6px',
+                          letterSpacing: '0.3px',
+                          boxShadow: '0 2px 6px rgba(217, 119, 6, 0.4)'
+                        }}>
+                          📅 {mProg.badgeText.toUpperCase()} ({mProg.dateSpan})
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <div className={`mdm-timeline-grid ${detailEventStartTime ? 'has-event-slot-5' : ''}`}>
@@ -2971,18 +2992,53 @@ export default function ServiceBoard({
 
                 {/* 2. VIATURAS DESIGNADAS & MOTORISTAS RESPONSÁVEIS */}
                 <div className="mdm-section">
-                  <div className="mdm-section-title">
-                    <Car size={15} />
-                    <span>
-                      Viaturas Alocadas &amp; Motoristas ({detailAllocations.length} viatura
-                      {detailAllocations.length !== 1 ? 's' : ''}) — Consumo Total:{' '}
-                      {detailMission.estimatedFuelLiters || 0} L (R${' '}
-                      {Number(detailMission.estimatedFuelCost || 0).toFixed(2)})
-                    </span>
-                  </div>
+                  {detailMission.transportType === 'client_vehicle' ? (
+                    <>
+                      <div className="mdm-section-title">
+                        <Car size={15} />
+                        <span>Transporte da Missão</span>
+                      </div>
+                      <div style={{ padding: '16px 20px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '10px', color: '#e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '1.4rem' }}>🤝</span>
+                          <strong style={{ fontSize: '0.98rem', color: '#34d399' }}>Viatura do Contratante (Transporte Fornecido pelo Cliente)</strong>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                          Nesta missão, o colaborador se desloca na viatura do próprio contratante (ele mesmo leva e traz a equipe).
+                          <strong> Nenhuma viatura da frota MegaFilmes é utilizada</strong> e não há consumo de combustível ou bateria para a empresa (Custo de Frota: R$ 0,00).
+                        </p>
+                      </div>
+                    </>
+                  ) : detailMission.transportType === 'no_vehicle' ? (
+                    <>
+                      <div className="mdm-section-title">
+                        <Car size={15} />
+                        <span>Transporte da Missão</span>
+                      </div>
+                      <div style={{ padding: '16px 20px', background: 'rgba(168, 85, 247, 0.08)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '10px', color: '#e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '1.4rem' }}>🚶</span>
+                          <strong style={{ fontSize: '0.98rem', color: '#c084fc' }}>Sem Viatura da Frota (Transporte Próprio / A Pé)</strong>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                          A equipe se desloca por conta própria até o local da pauta ou o evento ocorre a pé. Nenhuma viatura da frota é utilizada.
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mdm-section-title">
+                        <Car size={15} />
+                        <span>
+                          Viaturas Alocadas &amp; Motoristas ({detailAllocations.length} viatura
+                          {detailAllocations.length !== 1 ? 's' : ''}) — Consumo Total:{' '}
+                          {detailMission.estimatedFuelLiters || 0} L (R${' '}
+                          {Number(detailMission.estimatedFuelCost || 0).toFixed(2)})
+                        </span>
+                      </div>
 
-                  {detailAllocations.length > 0 ? (
-                    <div className="mdm-allocations-list">
+                      {detailAllocations.length > 0 ? (
+                        <div className="mdm-allocations-list">
                       {detailAllocations.map((alloc, aIdx) => {
                         const v = alloc.vehicle;
                         const vTel = v
@@ -3135,6 +3191,8 @@ export default function ServiceBoard({
                     </div>
                   ) : (
                     <div className="mdm-empty-box">Nenhuma viatura alocada para esta missão.</div>
+                  )}
+                    </>
                   )}
                 </div>
 
