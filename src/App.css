@@ -12487,6 +12487,472 @@ body.light-theme .member-tag-compact.is-driver-first.is-client-driver .driver-ro
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(5, 150, 105, 0.08) 100%) !important;
 }
 
+/* =========================================================
+   SELETOR DE TIPO / MODELO DE SERVIÇO (TOTEM & OUTRA MISSÃO)
+   ========================================================= */
+.mm-template-selector-box {
+  margin-bottom: 16px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+body.light-theme .mm-template-selector-box,
+[data-theme='light'] .mm-template-selector-box {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.mm-template-label {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #94a3b8);
+  margin-bottom: 8px;
+}
+
+body.light-theme .mm-template-label,
+[data-theme='light'] .mm-template-label {
+  color: #64748b;
+}
+
+.mm-template-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.mm-template-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1.5px solid rgba(148, 163, 184, 0.18);
+  color: #e2e8f0;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  outline: none;
+}
+
+.mm-template-card-btn:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(148, 163, 184, 0.35);
+  transform: translateY(-1px);
+}
+
+.mm-template-card-btn.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.1) 100%);
+  border-color: #f59e0b;
+  color: #fef08a;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+}
+
+.mm-template-card-btn.active.is-totem {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.12) 100%);
+  border-color: #10b981;
+  color: #a7f3d0;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.25);
+}
+
+.mm-tpl-badge-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.mm-tpl-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.mm-tpl-title {
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.mm-tpl-sub {
+  font-size: 0.70rem;
+  color: #94a3b8;
+  line-height: 1.25;
+}
+
+.mm-template-card-btn.active .mm-tpl-sub {
+  color: #fde68a;
+}
+
+.mm-template-card-btn.active.is-totem .mm-tpl-sub {
+  color: #6ee7b7;
+}
+
+.mm-tpl-selected-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #0f172a;
+  flex-shrink: 0;
+}
+
+.mm-template-card-btn.active.is-totem .mm-tpl-selected-check {
+  background: #10b981;
+  color: #ffffff;
+}
+
+/* Light Theme para o seletor de template */
+body.light-theme .mm-template-card-btn,
+[data-theme='light'] .mm-template-card-btn {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  color: #1e293b;
+}
+
+body.light-theme .mm-template-card-btn:hover,
+[data-theme='light'] .mm-template-card-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+body.light-theme .mm-template-card-btn.active,
+[data-theme='light'] .mm-template-card-btn.active {
+  background: #fffbeb !important;
+  border-color: #f59e0b !important;
+  color: #92400e !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2) !important;
+}
+
+body.light-theme .mm-template-card-btn.active .mm-tpl-sub,
+[data-theme='light'] .mm-template-card-btn.active .mm-tpl-sub {
+  color: #b45309 !important;
+}
+
+body.light-theme .mm-template-card-btn.active.is-totem,
+[data-theme='light'] .mm-template-card-btn.active.is-totem {
+  background: #ecfdf5 !important;
+  border-color: #10b981 !important;
+  color: #065f46 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2) !important;
+}
+
+body.light-theme .mm-template-card-btn.active.is-totem .mm-tpl-sub,
+[data-theme='light'] .mm-template-card-btn.active.is-totem .mm-tpl-sub {
+  color: #047857 !important;
+}
+
+/* Input do Totem com prefixo elegante */
+.mm-totem-input-group {
+  margin-bottom: 14px;
+}
+
+.mm-totem-input-wrapper {
+  display: flex;
+  align-items: stretch;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1.5px solid rgba(16, 185, 129, 0.45);
+  border-radius: 9px;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mm-totem-input-wrapper:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.mm-totem-prefix-pill {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  border-right: 1.5px solid rgba(16, 185, 129, 0.35);
+  user-select: none;
+}
+
+.mm-totem-loc-input {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  color: #ffffff !important;
+  padding: 10px 14px !important;
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.mm-totem-helper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 0.74rem;
+}
+
+.mm-totem-preview-badge {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.mm-totem-hint {
+  color: #94a3b8;
+}
+
+/* Modo claro para o input do Totem */
+body.light-theme .mm-totem-input-wrapper,
+[data-theme='light'] .mm-totem-input-wrapper {
+  background: #ffffff !important;
+  border-color: #10b981 !important;
+}
+
+body.light-theme .mm-totem-prefix-pill,
+[data-theme='light'] .mm-totem-prefix-pill {
+  background: #d1fae5 !important;
+  border-right-color: #a7f3d0 !important;
+  color: #065f46 !important;
+}
+
+body.light-theme .mm-totem-loc-input,
+[data-theme='light'] .mm-totem-loc-input {
+  color: #0f172a !important;
+}
+
+body.light-theme .mm-totem-preview-badge,
+[data-theme='light'] .mm-totem-preview-badge {
+  background: #f0fdf4 !important;
+  border-color: #86efac !important;
+  color: #065f46 !important;
+}
+
+/* =========================================================
+   MELHORIAS DE ALTO CONTRASTE E NITIDEZ PARA O MODO CLARO
+   ========================================================= */
+.board-rest-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.board-rest-status-pill.pill-resting {
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  box-shadow: 0 1px 4px rgba(56, 189, 248, 0.2);
+}
+
+.board-rest-status-pill.pill-activity {
+  background: rgba(234, 179, 8, 0.16);
+  border: 1px solid rgba(234, 179, 8, 0.45);
+  color: #facc15;
+  box-shadow: 0 1px 4px rgba(234, 179, 8, 0.2);
+}
+
+body.light-theme .board-rest-status-pill.pill-resting,
+[data-theme='light'] .board-rest-status-pill.pill-resting {
+  background: #f0f9ff !important;
+  border: 1.5px solid #0284c7 !important;
+  color: #0369a1 !important;
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.12) !important;
+}
+
+body.light-theme .board-rest-status-pill.pill-activity,
+[data-theme='light'] .board-rest-status-pill.pill-activity {
+  background: #fef3c7 !important;
+  border: 1.5px solid #d97706 !important;
+  color: #92400e !important;
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.15) !important;
+}
+
+/* Card Viatura do Contratante na Tabela */
+.col-client-vehicle-card {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 10px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 7px;
+}
+
+.col-client-vehicle-card .cvc-title {
+  color: #34d399;
+  font-weight: 800;
+  font-size: 0.74rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.col-client-vehicle-card .cvc-sub {
+  color: #cbd5e1;
+  font-size: 0.71rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.col-client-vehicle-card .cvc-sub strong {
+  color: #ffffff;
+}
+
+.col-client-vehicle-card .cvc-note {
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+/* Light theme para Card Viatura do Contratante na tabela */
+body.light-theme .col-client-vehicle-card,
+[data-theme='light'] .col-client-vehicle-card {
+  background: #ecfdf5 !important;
+  border: 1.5px solid #86efac !important;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.1) !important;
+}
+
+body.light-theme .col-client-vehicle-card .cvc-title,
+[data-theme='light'] .col-client-vehicle-card .cvc-title {
+  color: #065f46 !important;
+  font-weight: 800 !important;
+}
+
+body.light-theme .col-client-vehicle-card .cvc-sub,
+[data-theme='light'] .col-client-vehicle-card .cvc-sub {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+body.light-theme .col-client-vehicle-card .cvc-sub strong,
+[data-theme='light'] .col-client-vehicle-card .cvc-sub strong {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+body.light-theme .col-client-vehicle-card .cvc-note,
+[data-theme='light'] .col-client-vehicle-card .cvc-note {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+/* Selo de Viatura do Contratante na Agenda (Coluna 3) */
+.badge-client-vehicle-agenda {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  font-size: 0.70rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+body.light-theme .badge-client-vehicle-agenda,
+[data-theme='light'] .badge-client-vehicle-agenda {
+  background: #ecfdf5 !important;
+  border: 1px solid #86efac !important;
+  color: #065f46 !important;
+  font-weight: 800 !important;
+}
+
+/* Nitidez do Bloco de Pós-Produção no Modo Claro */
+body.light-theme .pp-editor-status-chip.is-pending,
+[data-theme='light'] .pp-editor-status-chip.is-pending {
+  background: #fffbeb !important;
+  border: 1.5px solid #fde68a !important;
+  color: #92400e !important;
+  font-weight: 700 !important;
+}
+
+body.light-theme .pp-editor-status-chip .pp-chip-tag.tag-pending,
+[data-theme='light'] .pp-editor-status-chip .pp-chip-tag.tag-pending {
+  background: #fef3c7 !important;
+  border: 1px solid #f59e0b !important;
+  color: #92400e !important;
+  font-weight: 800 !important;
+}
+
+body.light-theme .pp-editor-status-chip .pp-chip-tag.tag-delivered,
+[data-theme='light'] .pp-editor-status-chip .pp-chip-tag.tag-delivered {
+  background: #dcfce7 !important;
+  border: 1px solid #86efac !important;
+  color: #166534 !important;
+  font-weight: 800 !important;
+}
+
+body.light-theme .pp-badge-deadline,
+[data-theme='light'] .pp-badge-deadline {
+  background: #f8fafc !important;
+  border: 1.5px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+body.light-theme .pp-team-pending-names,
+[data-theme='light'] .pp-team-pending-names {
+  color: #b91c1c !important;
+  font-weight: 800 !important;
+}
+
+/* Textos da Pauta e Local no Modo Claro */
+body.light-theme .mission-name-compact,
+[data-theme='light'] .mission-name-compact {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+body.light-theme .mission-notes-compact,
+[data-theme='light'] .mission-notes-compact {
+  color: #334155 !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+}
+
+body.light-theme .dest-name-compact,
+[data-theme='light'] .dest-name-compact {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+body.light-theme .dest-address-compact,
+[data-theme='light'] .dest-address-compact {
+  color: #475569 !important;
+}
+
+body.light-theme .ag-time-item.amber strong,
+[data-theme='light'] .ag-time-item.amber strong {
+  color: #b45309 !important;
+}
+
+body.light-theme .ag-time-item.amber span,
+[data-theme='light'] .ag-time-item.amber span {
+  color: #92400e !important;
+}
+
 .driver-role-tag {
   font-size: 0.58rem;
   font-weight: 800;

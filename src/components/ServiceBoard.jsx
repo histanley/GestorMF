@@ -1757,16 +1757,7 @@ export default function ServiceBoard({
                             })()}
                             {mission.transportType === 'client_vehicle' && (
                               <div style={{ marginTop: '2px', marginBottom: '4px' }}>
-                                <span style={{
-                                  background: 'rgba(16, 185, 129, 0.15)',
-                                  border: '1px solid rgba(16, 185, 129, 0.4)',
-                                  color: '#34d399',
-                                  fontSize: '0.70rem',
-                                  fontWeight: 700,
-                                  padding: '1px 6px',
-                                  borderRadius: '4px',
-                                  display: 'inline-block'
-                                }}>
+                                <span className="badge-client-vehicle-agenda" title="Missão realizada na viatura do próprio contratante">
                                   🤝 Viatura do Contratante
                                 </span>
                               </div>
@@ -1901,21 +1892,6 @@ export default function ServiceBoard({
                                 return (
                                   <span
                                     className={`board-rest-status-pill ${mRest.isResting ? 'pill-resting' : 'pill-activity'}`}
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      padding: '2px 8px',
-                                      borderRadius: '6px',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 800,
-                                      background: mRest.isResting ? 'rgba(56, 189, 248, 0.16)' : 'rgba(234, 179, 8, 0.16)',
-                                      border: mRest.isResting ? '1px solid rgba(56, 189, 248, 0.45)' : '1px solid rgba(234, 179, 8, 0.45)',
-                                      color: mRest.isResting ? '#38bdf8' : '#facc15',
-                                      boxShadow: mRest.isResting ? '0 1px 4px rgba(56, 189, 248, 0.2)' : '0 1px 4px rgba(234, 179, 8, 0.2)',
-                                      letterSpacing: '0.02em',
-                                      whiteSpace: 'nowrap'
-                                    }}
                                     title={mRest.description}
                                   >
                                     <span>{mRest.icon}</span>
@@ -2285,35 +2261,14 @@ export default function ServiceBoard({
                                 })}
                               </div>
                             ) : mission.transportType === 'client_vehicle' ? (
-                              <div style={{
-                                display: 'inline-flex',
-                                flexDirection: 'column',
-                                gap: '3px',
-                                padding: '6px 10px',
-                                background: 'rgba(16, 185, 129, 0.08)',
-                                border: '1px solid rgba(16, 185, 129, 0.3)',
-                                borderRadius: '7px'
-                              }}>
-                                <span style={{
-                                  color: '#34d399',
-                                  fontWeight: 800,
-                                  fontSize: '0.74rem',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}>
+                              <div className="col-client-vehicle-card">
+                                <span className="cvc-title">
                                   🤝 Viatura do Contratante
                                 </span>
-                                <span style={{
-                                  color: '#cbd5e1',
-                                  fontSize: '0.71rem',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}>
-                                  🛞 Motorista: <strong style={{ color: '#ffffff' }}>Equipe do Contratante</strong>
+                                <span className="cvc-sub">
+                                  🛞 Motorista: <strong>Equipe do Contratante</strong>
                                 </span>
-                                <span style={{ fontSize: '0.65rem', color: '#64748b' }}>
+                                <span className="cvc-note">
                                   (Colaborador MF é integrante técnico)
                                 </span>
                               </div>

@@ -327,6 +327,10 @@ export default function MissionModal({
   const [recurrenceEndDate, setRecurrenceEndDate] = useState(() => addWeeksToDate(getLocalTodayStr(), 4));
   const [updateSeries, setUpdateSeries] = useState(false);
 
+  // Modelo / Template de Pauta Rápida ('totem' | 'custom')
+  const [missionTypeTemplate, setMissionTypeTemplate] = useState('custom');
+  const [totemLocation, setTotemLocation] = useState('');
+
   // Estado e Carregamento do Acervo de Equipamentos da Produtora
   const [equipmentList, setEquipmentList] = useState([]);
   const [selectedEquipByPerson, setSelectedEquipByPerson] = useState({});
@@ -618,6 +622,18 @@ export default function MissionModal({
       const isMDay = Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date));
       setIsMultiDay(isMDay);
 
+      // Detecta se a missão editada é modelo TOTEM Fotográfico
+      const descUpper = (editingMission.description || '').toUpperCase();
+      const isTotem = descUpper.includes('TOTEM');
+      if (isTotem) {
+        setMissionTypeTemplate('totem');
+        const extracted = (editingMission.description || '').replace(/^TOTEM\s+FOTOGR[ÁA]FICO\s*[-—:]\s*/i, '').trim();
+        setTotemLocation(extracted);
+      } else {
+        setMissionTypeTemplate('custom');
+        setTotemLocation('');
+      }
+
       const isRec = Boolean(editingMission.isRecurring || editingMission.recurrenceId);
       setIsRecurring(isRec);
       setUpdateSeries(false);
@@ -708,10 +724,42 @@ export default function MissionModal({
       setSelectedDows([baseDow, pairedDow]);
       setRecurrenceWeeks(4);
       setRecurrenceEndDate(addWeeksToDate(baseDate, 4));
+      setMissionTypeTemplate('custom');
+      setTotemLocation('');
     }
     setTeamSearchQuery('');
     setTeamFilterTab('ALL');
   }, [isOpen, editingMission, initialCoords]);
+
+  // Manipuladores de Template de Pauta (TOTEM Fotográfico x Outra Missão)
+  const handleSelectMissionTemplate = (type) => {
+    setMissionTypeTemplate(type);
+    if (type === 'totem') {
+      const loc = totemLocation.trim() || formData.destinationName?.trim() || '';
+      if (!totemLocation && loc) {
+        setTotemLocation(loc);
+      }
+      const newDesc = loc ? `TOTEM FOTOGRÁFICO — ${loc}` : 'TOTEM FOTOGRÁFICO';
+      setFormData((prev) => ({
+        ...prev,
+        description: newDesc,
+        destinationName: prev.destinationName || loc,
+      }));
+    }
+  };
+
+  const handleTotemLocationChange = (val) => {
+    setTotemLocation(val);
+    const newDesc = val.trim() ? `TOTEM FOTOGRÁFICO — ${val.trim()}` : 'TOTEM FOTOGRÁFICO';
+    setFormData((prev) => {
+      const shouldSyncDest = !prev.destinationName || prev.destinationName === totemLocation;
+      return {
+        ...prev,
+        description: newDesc,
+        ...(shouldSyncDest ? { destinationName: val } : {}),
+      };
+    });
+  };
 
   // Manipuladores de Missão de Múltiplos Dias (Mais de um dia / Longa Duração)
   const handleToggleMultiDay = (checked) => {
@@ -1934,18 +1982,87 @@ export default function MissionModal({
               </div>
             </div>
 
-            <div className="form-group">
-              <label>
-                Descrição do Serviço / Nome da Pauta <span className="req-star">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="Ex: Gravação Comercial Teresa, Fachada Loja Centro, Cobertura Drone..."
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
+            {/* SELETOR RÁPIDO DE TIPO DE MISSÃO / TEMPLATE */}
+            <div className="mm-template-selector-box">
+              <label className="mm-template-label">Tipo de Pauta / Modelo do Serviço:</label>
+              <div className="mm-template-buttons-grid">
+                <button
+                  type="button"
+                  className={`mm-template-card-btn ${missionTypeTemplate === 'totem' ? 'active is-totem' : ''}`}
+                  onClick={() => handleSelectMissionTemplate('totem')}
+                >
+                  <div className="mm-tpl-badge-icon">📸</div>
+                  <div className="mm-tpl-content">
+                    <strong className="mm-tpl-title">TOTEM Fotográfico</strong>
+                    <span className="mm-tpl-sub">Colocação &amp; Operação de Totem em Eventos</span>
+                  </div>
+                  {missionTypeTemplate === 'totem' && (
+                    <span className="mm-tpl-selected-check">
+                      <Check size={14} />
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className={`mm-template-card-btn ${missionTypeTemplate === 'custom' ? 'active' : ''}`}
+                  onClick={() => handleSelectMissionTemplate('custom')}
+                >
+                  <div className="mm-tpl-badge-icon">🎬</div>
+                  <div className="mm-tpl-content">
+                    <strong className="mm-tpl-title">Outra Missão / Pauta Livre</strong>
+                    <span className="mm-tpl-sub">Gravação, Transmissão, Cobertura, Sessão TJ...</span>
+                  </div>
+                  {missionTypeTemplate === 'custom' && (
+                    <span className="mm-tpl-selected-check">
+                      <Check size={14} />
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
+
+            {missionTypeTemplate === 'totem' ? (
+              <div className="form-group mm-totem-input-group">
+                <label>
+                  <span>📍 Local / Evento de Colocação do TOTEM Fotográfico</span>
+                  <span className="req-star">*</span>
+                </label>
+                <div className="mm-totem-input-wrapper">
+                  <span className="mm-totem-prefix-pill">TOTEM FOTOGRÁFICO —</span>
+                  <input
+                    type="text"
+                    required
+                    className="mm-totem-loc-input"
+                    placeholder="Ex: Espaço Jardins, Pátio Roraima Shopping, Recepção do Hotel, Fórum Cível..."
+                    value={totemLocation}
+                    onChange={(e) => handleTotemLocationChange(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="mm-totem-helper-row">
+                  <span className="mm-totem-preview-badge">
+                    <strong>Pauta Gerada:</strong> {formData.description || 'TOTEM FOTOGRÁFICO'}
+                  </span>
+                  <span className="mm-totem-hint">
+                    💡 O local de colocação é automaticamente sincronizado com o destino da missão.
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="form-group">
+                <label>
+                  Descrição do Serviço / Nome da Pauta <span className="req-star">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Gravação Comercial Teresa, Fachada Loja Centro, Cobertura Drone..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+            )}
 
             {/* PAINEL DE CRONOGRAMA & HORÁRIOS OPERACIONAIS */}
             <div className="mm-schedule-timeline-container">
