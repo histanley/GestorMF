@@ -330,6 +330,7 @@ export default function MissionModal({
   // Modelo / Template de Pauta Rápida ('totem' | 'custom')
   const [missionTypeTemplate, setMissionTypeTemplate] = useState('custom');
   const [totemLocation, setTotemLocation] = useState('');
+  const isTotemMission = missionTypeTemplate === 'totem' || (formData.description || '').toUpperCase().includes('TOTEM');
 
   // Estado e Carregamento do Acervo de Equipamentos da Produtora
   const [equipmentList, setEquipmentList] = useState([]);
@@ -588,14 +589,36 @@ export default function MissionModal({
         dailyEventStartTime: editingMission.dailyEventStartTime || editingMission.eventStartTime || '08:00',
         dailyEventEndTime: editingMission.dailyEventEndTime || editingMission.eventEndTime || '18:00',
         dailyEventSchedules: Array.isArray(editingMission.dailyEventSchedules) ? editingMission.dailyEventSchedules : [],
-        remunerationType: !isAdmin
-          ? 'off_hours'
-          : (editingMission.remunerationType
-            ? editingMission.remunerationType
-            : (Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date)) ? 'daily' : 'off_hours')),
-        memberRemunerationTypes: !isAdmin ? {} : (editingMission.memberRemunerationTypes || {}),
+        remunerationType: (() => {
+          const isTotemEdit = Boolean((editingMission.description || '').toUpperCase().includes('TOTEM'));
+          if (isTotemEdit) return 'custom';
+          if (!isAdmin) return 'off_hours';
+          if (editingMission.remunerationType) return editingMission.remunerationType;
+          return Boolean(editingMission.isMultiDay || (editingMission.endDate && editingMission.endDate !== editingMission.date)) ? 'daily' : 'off_hours';
+        })(),
+        memberRemunerationTypes: (() => {
+          const isTotemEdit = Boolean((editingMission.description || '').toUpperCase().includes('TOTEM'));
+          if (isTotemEdit) {
+            const types = {};
+            (editingMission.teamIds || []).forEach((id) => { types[id] = 'custom'; });
+            return types;
+          }
+          return !isAdmin ? {} : (editingMission.memberRemunerationTypes || {});
+        })(),
         memberRoles: editingMission.memberRoles || {},
-        customRates: !isAdmin ? {} : (editingMission.customRates || {}),
+        customRates: (() => {
+          const isTotemEdit = Boolean((editingMission.description || '').toUpperCase().includes('TOTEM'));
+          if (isTotemEdit) {
+            const rates = {};
+            (editingMission.teamIds || []).forEach((id) => {
+              rates[id] = (editingMission.customRates && editingMission.customRates[id] !== undefined)
+                ? Number(editingMission.customRates[id])
+                : 200;
+            });
+            return rates;
+          }
+          return !isAdmin ? {} : (editingMission.customRates || {});
+        })(),
         memberNotes: (() => {
           const mNotes = { ...(editingMission.memberNotes || {}) };
           if (Array.isArray(editingMission.equipmentAllocations)) {
@@ -740,11 +763,23 @@ export default function MissionModal({
         setTotemLocation(loc);
       }
       const newDesc = loc ? `TOTEM FOTOGRÁFICO — ${loc}` : 'TOTEM FOTOGRÁFICO';
-      setFormData((prev) => ({
-        ...prev,
-        description: newDesc,
-        destinationName: prev.destinationName || loc,
-      }));
+      setFormData((prev) => {
+        const nextRates = { ...(prev.customRates || {}) };
+        const nextTypes = { ...(prev.memberRemunerationTypes || {}) };
+        // Regra Oficial MegaFilmes: Todos os integrantes da missão de TOTEM recebem remuneração personalizada de R$ 200,00 cada
+        (prev.teamIds || []).forEach((mId) => {
+          nextTypes[mId] = 'custom';
+          nextRates[mId] = 200;
+        });
+        return {
+          ...prev,
+          description: newDesc,
+          destinationName: prev.destinationName || loc,
+          remunerationType: 'custom',
+          memberRemunerationTypes: nextTypes,
+          customRates: nextRates,
+        };
+      });
     } else {
       // Quando alterna para Outra Missão / Pauta Livre:
       // Limpa automaticamente a descrição se continha texto gerado do Totem para não obrigar o usuário a apagar manualmente
@@ -754,9 +789,23 @@ export default function MissionModal({
           descUpper.startsWith('TOTEM FOTOGRÁFICO') ||
           descUpper.startsWith('TOTEM FOTOGRAFICO') ||
           descUpper === 'TOTEM';
+
+        const nextRates = { ...(prev.customRates || {}) };
+        const nextTypes = { ...(prev.memberRemunerationTypes || {}) };
+        // Restaura colaboradores que estavam com valor automático de 200 do totem
+        (prev.teamIds || []).forEach((mId) => {
+          if (nextRates[mId] === 200 && nextTypes[mId] === 'custom') {
+            delete nextRates[mId];
+            delete nextTypes[mId];
+          }
+        });
+
         return {
           ...prev,
           description: wasTotemGenerated ? '' : prev.description,
+          remunerationType: prev.remunerationType === 'custom' ? (isMultiDay ? 'daily' : 'off_hours') : prev.remunerationType,
+          memberRemunerationTypes: nextTypes,
+          customRates: nextRates,
         };
       });
       setTotemLocation('');
@@ -1266,11 +1315,21 @@ export default function MissionModal({
     setFormData((prev) => {
       const copy = [...prev.vehicleAllocations];
       copy[index] = { ...copy[index], driverId: newDriverId };
-      const nextTeam =
-        newDriverId && !prev.teamIds.includes(newDriverId)
-          ? [...prev.teamIds, newDriverId]
-          : prev.teamIds;
-      return { ...prev, vehicleAllocations: copy, teamIds: nextTeam };
+      const isNewMember = newDriverId && !prev.teamIds.includes(newDriverId);
+      const nextTeam = isNewMember ? [...prev.teamIds, newDriverId] : prev.teamIds;
+      const nextRates = { ...(prev.customRates || {}) };
+      const nextTypes = { ...(prev.memberRemunerationTypes || {}) };
+      if (isNewMember && (missionTypeTemplate === 'totem' || (prev.description || '').toUpperCase().includes('TOTEM'))) {
+        nextTypes[newDriverId] = 'custom';
+        nextRates[newDriverId] = 200;
+      }
+      return {
+        ...prev,
+        vehicleAllocations: copy,
+        teamIds: nextTeam,
+        customRates: nextRates,
+        memberRemunerationTypes: nextTypes,
+      };
     });
   };
 
@@ -1331,7 +1390,25 @@ export default function MissionModal({
         return alloc;
       });
 
-      return { ...prev, teamIds: newTeam, vehicleAllocations: updatedAllocs };
+      const nextRates = { ...(prev.customRates || {}) };
+      const nextTypes = { ...(prev.memberRemunerationTypes || {}) };
+      const isTotem = missionTypeTemplate === 'totem' || (prev.description || '').toUpperCase().includes('TOTEM');
+
+      if (!existsNow && isTotem) {
+        nextTypes[memberId] = 'custom';
+        nextRates[memberId] = 200;
+      } else if (existsNow && isTotem) {
+        delete nextRates[memberId];
+        delete nextTypes[memberId];
+      }
+
+      return {
+        ...prev,
+        teamIds: newTeam,
+        vehicleAllocations: updatedAllocs,
+        customRates: nextRates,
+        memberRemunerationTypes: nextTypes,
+      };
     });
   };
 
@@ -1387,11 +1464,26 @@ export default function MissionModal({
       const targetIndex = emptySlotIndex >= 0 ? emptySlotIndex : 0;
       copy[targetIndex] = { ...copy[targetIndex], driverId: memberId };
 
-      const nextTeam = !prev.teamIds.includes(memberId)
+      const isNewMember = !prev.teamIds.includes(memberId);
+      const nextTeam = isNewMember
         ? [...prev.teamIds, memberId]
         : prev.teamIds;
 
-      return { ...prev, vehicleAllocations: copy, teamIds: nextTeam };
+      const nextRates = { ...(prev.customRates || {}) };
+      const nextTypes = { ...(prev.memberRemunerationTypes || {}) };
+      const isTotem = missionTypeTemplate === 'totem' || (prev.description || '').toUpperCase().includes('TOTEM');
+      if (isNewMember && isTotem) {
+        nextTypes[memberId] = 'custom';
+        nextRates[memberId] = 200;
+      }
+
+      return {
+        ...prev,
+        vehicleAllocations: copy,
+        teamIds: nextTeam,
+        customRates: nextRates,
+        memberRemunerationTypes: nextTypes,
+      };
     });
   };
 
@@ -1800,11 +1892,21 @@ export default function MissionModal({
     const generatedCode = generateNextMissionCode(formData.date, missions, editingMission);
 
     // Higienização de Permissão: Apenas Administradores podem salvar valores de hora extra personalizados ou modalidades alternativas
+    // EXCEÇÃO OFICIAL: Pauta de TOTEM Fotográfico possui remuneração personalizada de R$ 200,00 autorizada para todos os membros
     let finalCustomRates = { ...(formData.customRates || {}) };
     let finalMemberRemunTypes = { ...(formData.memberRemunerationTypes || {}) };
     let finalRemunType = formData.remunerationType || 'off_hours';
 
-    if (!isAdmin) {
+    const isTotem = missionTypeTemplate === 'totem' || (formData.description || '').toUpperCase().includes('TOTEM');
+    if (isTotem) {
+      finalRemunType = 'custom';
+      (formData.teamIds || []).forEach((mId) => {
+        finalMemberRemunTypes[mId] = 'custom';
+        finalCustomRates[mId] = (finalCustomRates[mId] !== undefined && finalCustomRates[mId] !== null && finalCustomRates[mId] !== '')
+          ? Number(finalCustomRates[mId])
+          : 200;
+      });
+    } else if (!isAdmin) {
       finalRemunType = 'off_hours';
       finalMemberRemunTypes = {};
       finalCustomRates = {};
@@ -4183,7 +4285,11 @@ export default function MissionModal({
                         <div className="mm-offhours-rates-title-wrap">
                           <Briefcase size={16} className="text-amber" />
                           <strong>Funções nesta Missão &amp; Remuneração da Equipe</strong>
-                          {isMultiDay ? (
+                          {isTotemMission ? (
+                            <span className="mm-offhours-rates-badge" style={{ background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.4)', fontWeight: 700 }}>
+                              📸 Pauta Totem: Personalizada R$ 200,00 por Integrante
+                            </span>
+                          ) : isMultiDay ? (
                             <span className="mm-offhours-rates-badge" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
                               <Lock size={11} style={{ marginRight: 4, display: 'inline' }} />
                               Obrigatório: Diária de Viagem ({calculateDaysBetween(formData.date, formData.endDate)} {calculateDaysBetween(formData.date, formData.endDate) === 1 ? 'dia' : 'dias'})
@@ -4199,9 +4305,11 @@ export default function MissionModal({
                           )}
                         </div>
                         <p className="mm-offhours-rates-subtitle">
-                          {isMultiDay
-                            ? 'Como esta missão é uma viagem com mais de um dia fora, a modalidade de remuneração é obrigatoriamente por Diária. Especifique a função desempenhada por cada colaborador e ajuste as diárias se necessário.'
-                            : 'Defina a função específica exercida por cada colaborador nesta missão (essencial para as métricas e ranking da empresa) e selecione a modalidade de remuneração.'}
+                          {isTotemMission
+                            ? 'Missão de Totem Fotográfico: a modalidade é automaticamente configurada como Personalizada com cachê oficial de R$ 200,00 para cada membro da equipe escalada.'
+                            : isMultiDay
+                              ? 'Como esta missão é uma viagem com mais de um dia fora, a modalidade de remuneração é obrigatoriamente por Diária. Especifique a função desempenhada por cada colaborador e ajuste as diárias se necessário.'
+                              : 'Defina a função específica exercida por cada colaborador nesta missão (essencial para as métricas e ranking da empresa) e selecione a modalidade de remuneração.'}
                         </p>
 
                         {/* SELETOR DE MODALIDADE DE REMUNERAÇÃO DA MISSÃO (3 MODALIDADES OFICIAIS) */}
@@ -4210,16 +4318,16 @@ export default function MissionModal({
                           <button
                             type="button"
                             onClick={() => handleRemunerationTypeChange('off_hours')}
-                            className={`btn-rate-mode ${(formData.remunerationType === 'off_hours' || (!formData.remunerationType && !isMultiDay)) ? 'active' : ''}`}
+                            className={`btn-rate-mode ${(formData.remunerationType === 'off_hours' || (!formData.remunerationType && !isMultiDay && !isTotemMission)) ? 'active' : ''}`}
                             style={{
                               padding: '5px 12px',
                               borderRadius: '8px',
                               fontSize: '0.8rem',
                               fontWeight: 600,
                               cursor: 'pointer',
-                              border: (formData.remunerationType === 'off_hours' || (!formData.remunerationType && !isMultiDay)) ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
-                              background: (formData.remunerationType === 'off_hours' || (!formData.remunerationType && !isMultiDay)) ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.03)',
-                              color: (formData.remunerationType === 'off_hours' || (!formData.remunerationType && !isMultiDay)) ? '#fbbf24' : '#94a3b8',
+                              border: (formData.remunerationType === 'off_hours' || (!formData.remunerationType && !isMultiDay && !isTotemMission)) ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+                              background: (formData.remunerationType === 'off_hours' || (!formData.remunerationType && !isMultiDay && !isTotemMission)) ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.03)',
+                              color: (formData.remunerationType === 'off_hours' || (!formData.remunerationType && !isMultiDay && !isTotemMission)) ? '#fbbf24' : '#94a3b8',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '6px'
@@ -4253,28 +4361,28 @@ export default function MissionModal({
                             </button>
                           )}
 
-                          {isAdmin && (
+                          {(isAdmin || isTotemMission) && (
                             <button
                               type="button"
                               onClick={() => handleRemunerationTypeChange('custom')}
-                              className={`btn-rate-mode ${formData.remunerationType === 'custom' ? 'active' : ''}`}
+                              className={`btn-rate-mode ${(formData.remunerationType === 'custom' || isTotemMission) ? 'active' : ''}`}
                               style={{
                                 padding: '5px 12px',
                                 borderRadius: '8px',
                                 fontSize: '0.8rem',
                                 fontWeight: 600,
                                 cursor: 'pointer',
-                                border: formData.remunerationType === 'custom' ? '1px solid #a855f7' : '1px solid rgba(255,255,255,0.1)',
-                                background: formData.remunerationType === 'custom' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.03)',
-                                color: formData.remunerationType === 'custom' ? '#c084fc' : '#94a3b8',
+                                border: (formData.remunerationType === 'custom' || isTotemMission) ? '1px solid #a855f7' : '1px solid rgba(255,255,255,0.1)',
+                                background: (formData.remunerationType === 'custom' || isTotemMission) ? 'rgba(168, 85, 247, 0.25)' : 'rgba(255,255,255,0.03)',
+                                color: (formData.remunerationType === 'custom' || isTotemMission) ? '#c084fc' : '#94a3b8',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '6px'
                               }}
-                              title="Definir valores e cachês personalizados (Exclusivo Administrador)"
+                              title="Remuneração Personalizada com valor fixo acordado (Cachê)"
                             >
                               <Sparkles size={13} />
-                              3. Personalizada
+                              3. Personalizada {isTotemMission ? '(Totem R$ 200)' : ''}
                             </button>
                           )}
                         </div>
@@ -4285,10 +4393,12 @@ export default function MissionModal({
                           const mem = members.find((x) => x.id === mId);
                           if (!mem) return null;
 
-                          // Modalidade ativa deste colaborador: para o gestor é sempre Hora Extra com valores oficiais
-                          const memberMode = !isAdmin
-                            ? 'off_hours'
-                            : (formData.memberRemunerationTypes?.[mId] || formData.remunerationType || (isMultiDay ? 'daily' : 'off_hours'));
+                          // Modalidade ativa deste colaborador: para o gestor é sempre Hora Extra com valores oficiais, EXCETO em Totem que é fixo R$ 200
+                          const memberMode = isTotemMission
+                            ? 'custom'
+                            : (!isAdmin
+                              ? 'off_hours'
+                              : (formData.memberRemunerationTypes?.[mId] || formData.remunerationType || (isMultiDay ? 'daily' : 'off_hours')));
                           const isDailyMode = memberMode === 'daily';
                           const isCustomMode = memberMode === 'custom';
 
@@ -4297,12 +4407,14 @@ export default function MissionModal({
 
                           const currentVal = formData.customRates && formData.customRates[mId] !== undefined
                             ? formData.customRates[mId]
-                            : '';
+                            : (isTotemMission ? 200 : '');
 
-                          // Apenas administradores podem aplicar taxas customizadas; gestores sempre seguem o valor padrão fixado
-                          const effectiveRate = (!isAdmin || currentVal === '')
-                            ? (isDailyMode ? defaultDailyRate : isCustomMode ? 0 : defaultHourlyRate)
-                            : Number(currentVal);
+                          // Apenas administradores podem aplicar taxas customizadas em missões gerais; em missões de Totem o valor fixo oficial é R$ 200 para todos
+                          const effectiveRate = isTotemMission
+                            ? (Number(currentVal) || 200)
+                            : ((!isAdmin || currentVal === '')
+                              ? (isDailyMode ? defaultDailyRate : isCustomMode ? 0 : defaultHourlyRate)
+                              : Number(currentVal));
 
                           const travelDays = isMultiDay ? calculateDaysBetween(formData.date, formData.endDate) : 1;
                           const extraRemun = calculateExtraHoursRemuneration(
@@ -4317,7 +4429,7 @@ export default function MissionModal({
                             subtotalLabel = `Total (${travelDays} diária${travelDays !== 1 ? 's' : ''}):`;
                           } else if (isCustomMode) {
                             estimatedSubtotal = effectiveRate.toFixed(2);
-                            subtotalLabel = 'Total Acordado (Cachê):';
+                            subtotalLabel = isTotemMission ? 'Total Fixado Totem:' : 'Total Acordado (Cachê):';
                           } else {
                             estimatedSubtotal = missionOffHours.isOffHours ? extraRemun.amount.toFixed(2) : '0.00';
                             subtotalLabel = missionOffHours.isOffHours
@@ -4481,7 +4593,7 @@ export default function MissionModal({
                                       📅 Diária
                                     </button>
                                   )}
-                                  {isAdmin && (
+                                  {(isAdmin || isTotemMission) && (
                                     <button
                                       type="button"
                                       onClick={() => handleMemberRemunerationTypeChange(mId, 'custom')}
@@ -4495,9 +4607,9 @@ export default function MissionModal({
                                         background: memberMode === 'custom' ? 'rgba(168, 85, 247, 0.25)' : 'rgba(255,255,255,0.03)',
                                         color: memberMode === 'custom' ? '#c084fc' : '#94a3b8',
                                       }}
-                                      title="Remuneração Personalizada com valor total fixo acordado (Cachê) - Exclusivo Administrador"
+                                      title="Remuneração Personalizada com valor total fixo acordado (Cachê)"
                                     >
-                                      🎯 Personalizada
+                                      🎯 Personalizada {isTotemMission ? '(Totem R$ 200)' : ''}
                                     </button>
                                   )}
                                 </div>
@@ -4511,17 +4623,17 @@ export default function MissionModal({
                                       {isDailyMode
                                         ? '📅 Valor da Diária (por dia):'
                                         : isCustomMode
-                                          ? '🎯 Valor Fixo Acordado / Cachê (R$ Total):'
+                                          ? (isTotemMission ? '📸 Cachê Fixo Totem Fotográfico (por Integrante):' : '🎯 Valor Fixo Acordado / Cachê (R$ Total):')
                                           : '⏱️ Valor da Hora Extra (por hora):'}
                                     </span>
                                     {isAdmin && currentVal !== '' && (
                                       <button
                                         type="button"
                                         className="rcf-btn-reset"
-                                        onClick={() => handleCustomRateChange(mId, '')}
-                                        title="Restaurar valor padrão do perfil"
+                                        onClick={() => handleCustomRateChange(mId, isTotemMission ? 200 : '')}
+                                        title={isTotemMission ? 'Restaurar R$ 200,00 padrão do Totem' : 'Restaurar valor padrão do perfil'}
                                       >
-                                        <X size={11} /> Restaurar Padrão
+                                        <X size={11} /> {isTotemMission ? 'Restaurar R$ 200' : 'Restaurar Padrão'}
                                       </button>
                                     )}
                                   </div>
@@ -4536,9 +4648,11 @@ export default function MissionModal({
                                         placeholder={
                                           isDailyMode
                                             ? defaultDailyRate.toFixed(2)
-                                            : isCustomMode
-                                              ? '0.00'
-                                              : defaultHourlyRate.toFixed(2)
+                                            : isTotemMission
+                                              ? '200.00'
+                                              : isCustomMode
+                                                ? '0.00'
+                                                : defaultHourlyRate.toFixed(2)
                                         }
                                         value={currentVal}
                                         onChange={(e) => handleCustomRateChange(mId, e.target.value)}
@@ -4575,19 +4689,21 @@ export default function MissionModal({
                                     </div>
                                   ) : (
                                     /* GESTOR: Totalmente travado e protegido contra alterações nos valores das horas extras */
-                                    <div className="rcf-locked-display" title="Valor fixado pelo Administrador para este colaborador">
-                                      <div className="rcf-locked-pill">
-                                        <Lock size={13} className="text-amber" />
+                                    <div className="rcf-locked-display" title={isTotemMission ? 'Remuneração oficial fixa de R$ 200,00 por colaborador para totem' : 'Valor fixado pelo Administrador para este colaborador'}>
+                                      <div className="rcf-locked-pill" style={isTotemMission ? { borderColor: '#a855f7', background: 'rgba(168, 85, 247, 0.15)' } : undefined}>
+                                        <Lock size={13} className={isTotemMission ? 'text-purple' : 'text-amber'} />
                                         <span className="rcf-locked-prefix">R$</span>
-                                        <span className="rcf-locked-val">
-                                          {defaultHourlyRate.toFixed(2)}
+                                        <span className="rcf-locked-val" style={isTotemMission ? { color: '#c084fc', fontWeight: 700 } : undefined}>
+                                          {effectiveRate.toFixed(2)}
                                         </span>
                                         <span className="rcf-locked-unit">
-                                          / hora extra
+                                          {isTotemMission ? 'fixo (Totem)' : isCustomMode ? 'fixo (Cachê)' : isDailyMode ? '/ diária' : '/ hora extra'}
                                         </span>
                                       </div>
                                       <span className="rcf-locked-notice">
-                                        🔒 Tabela Oficial fixada pelo Administrador
+                                        {isTotemMission
+                                          ? '📸 Remuneração Oficial Personalizada: R$ 200,00 por colaborador'
+                                          : '🔒 Tabela Oficial fixada pelo Administrador'}
                                       </span>
                                     </div>
                                   )}

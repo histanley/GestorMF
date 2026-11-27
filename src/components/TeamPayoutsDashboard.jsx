@@ -315,15 +315,19 @@ export default function TeamPayoutsDashboard({
           const offHoursWorked = offHoursInfo.offHours;
           const inHoursWorked = offHoursInfo.inHours;
 
+          const isTotem = (m.description || '').toUpperCase().includes('TOTEM');
+
           // Modalidade de remuneração (individual do colaborador ou padrão da missão)
-          const memberRemunType = (m.memberRemunerationTypes && m.memberRemunerationTypes[member.id])
-            || m.remunerationType
-            || (isMDay ? 'daily' : 'off_hours');
+          const memberRemunType = isTotem
+            ? 'custom'
+            : ((m.memberRemunerationTypes && m.memberRemunerationTypes[member.id])
+              || m.remunerationType
+              || (isMDay ? 'daily' : 'off_hours'));
 
           // Taxa personalizada na missão ou taxa padrão do perfil
           const customRate = (m.customRates && m.customRates[member.id] !== undefined && m.customRates[member.id] !== null && m.customRates[member.id] !== '')
             ? Number(m.customRates[member.id])
-            : null;
+            : (isTotem ? 200 : null);
           const effectiveHourlyRate = customRate !== null ? customRate : hourlyRate;
           const effectiveDailyRate = customRate !== null ? customRate : (dailyRate > 0 ? dailyRate : 200);
 

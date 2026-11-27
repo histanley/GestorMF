@@ -488,13 +488,16 @@ export default function CollaboratorSpace({
       if (!isEligible) return;
 
       const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
+      const isTotem = (m.description || '').toUpperCase().includes('TOTEM');
       const customRate = (m.customRates && m.customRates[myMember.id] !== undefined && m.customRates[myMember.id] !== null && m.customRates[myMember.id] !== '')
         ? Number(m.customRates[myMember.id])
-        : null;
+        : (isTotem ? 200 : null);
 
-      const memberMode = (m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
-        || m.remunerationType
-        || (isMDay ? 'daily' : 'off_hours');
+      const memberMode = isTotem
+        ? 'custom'
+        : ((m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
+          || m.remunerationType
+          || (isMDay ? 'daily' : 'off_hours'));
 
       if (memberMode === 'custom') {
         const val = customRate !== null ? customRate : 0;
@@ -593,13 +596,16 @@ export default function CollaboratorSpace({
     monthMissions.forEach((m) => {
       if (!isMissionEligibleForPayout(m)) return;
       const isMDay = Boolean(m.isMultiDay || (m.endDate && m.endDate !== m.date));
+      const isTotem = (m.description || '').toUpperCase().includes('TOTEM');
       const customRate = (m.customRates && m.customRates[myMember.id] !== undefined && m.customRates[myMember.id] !== null && m.customRates[myMember.id] !== '')
         ? Number(m.customRates[myMember.id])
-        : null;
+        : (isTotem ? 200 : null);
 
-      const memberMode = (m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
-        || m.remunerationType
-        || (isMDay ? 'daily' : 'off_hours');
+      const memberMode = isTotem
+        ? 'custom'
+        : ((m.memberRemunerationTypes && m.memberRemunerationTypes[myMember.id])
+          || m.remunerationType
+          || (isMDay ? 'daily' : 'off_hours'));
 
       if (memberMode === 'custom') {
         const val = customRate !== null ? customRate : 0;
