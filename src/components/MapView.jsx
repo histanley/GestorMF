@@ -318,7 +318,7 @@ export default function MapView({
             <div><strong>Data:</strong> ${multiDay && multiDay.isMultiDay ? `${formatDateBR(m.date)} a ${formatDateBR(m.endDate)} (${multiDay.badgeText})` : (formatDateBR(m.date) || '--')}</div>
             <div><strong>Horário:</strong> ${m.departureTime || '--'} -> ${m.returnTimeEstimated || m.arrivalTimeEstimated || '--'}</div>
             <div><strong>Equipe:</strong> ${m.teamNamesDisplay || '--'}${Array.isArray(m.guests) && m.guests.length > 0 ? ` + 👤 ${m.guests.map(g => typeof g === 'string' ? g : g.name).join(', ')} (Convidado)` : ''}</div>
-            <div><strong>Viatura:</strong> ${m.transportType === 'client_vehicle' ? '🤝 Viatura do Contratante' : (m.transportType === 'no_vehicle' ? '🚶 Sem Viatura (Transporte Próprio)' : (m.vehicleNameDisplay || 'Não definida'))}${m.driverName ? ` • 🛞 ${m.driverName}` : ''}</div>
+            <div><strong>Viatura:</strong> ${m.transportType === 'client_vehicle' ? '🤝 Viatura do Contratante • 🛞 Motorista do Contratante' : (m.transportType === 'no_vehicle' ? '🚶 Sem Viatura (Transporte Próprio)' : (m.vehicleNameDisplay || 'Não definida') + (m.driverName ? ` • 🛞 ${m.driverName}` : ''))}</div>
             <div><strong>Distância (Ida/Volta):</strong> ${totalKm} km (${m.distanceKm || 0} km cada trecho)</div>
             <div><strong>Tempo (Ida/Volta):</strong> ~${totalMin} min (~${m.drivingDurationMinutes || 0} min por trecho)</div>
             ${m.transportType === 'client_vehicle' || m.transportType === 'no_vehicle' ? `
@@ -1093,8 +1093,8 @@ export default function MapView({
                     activeMission.vehicleNameDisplay || 'Não alocada'
                   )}
                   {activeMission.transportType === 'client_vehicle' ? (
-                    <span className="metric-sub" style={{ color: '#94a3b8' }}>
-                      Transporte fornecido pelo cliente (sem uso da frota)
+                    <span className="metric-sub" style={{ color: '#34d399' }}>
+                      🛞 Motorista da Equipe do Contratante (Colaborador MF é integrante técnico)
                     </span>
                   ) : activeMission.driverName ? (
                     <span className="metric-sub" style={{ color: 'var(--accent-cyan)' }}>

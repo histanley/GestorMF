@@ -128,11 +128,17 @@ export default function MissionDetailModal({
   // Resoluções de equipe e viatura
   const resolveMissionDriver = (mis) => {
     if (!mis) return { member: null, name: '' };
+    if (mis.transportType === 'client_vehicle') {
+      return { member: null, name: 'Motorista do Contratante', isClientDriver: true };
+    }
+    if (mis.transportType === 'no_vehicle') {
+      return { member: null, name: '', isNoVehicle: true };
+    }
     if (mis.driverId) {
       const byId = members.find((m) => m.id === mis.driverId);
       if (byId) return { member: byId, name: byId.name };
     }
-    if (mis.driverName) {
+    if (mis.driverName && !mis.driverName.toLowerCase().includes('contratante')) {
       const byName = members.find(
         (m) => m.name && m.name.toLowerCase() === mis.driverName.trim().toLowerCase()
       );
@@ -154,7 +160,11 @@ export default function MissionDetailModal({
 
   const isMemberMissionDriver = (mem, mis, allocations = [], driverInfo = null) => {
     if (!mem || !mis) return false;
+    if (mis.transportType === 'client_vehicle' || mis.transportType === 'no_vehicle') {
+      return false;
+    }
     const dInfo = driverInfo || resolveMissionDriver(mis);
+    if (dInfo?.isClientDriver || dInfo?.isNoVehicle) return false;
     return (
       allocations.some(
         (a) =>
@@ -201,38 +211,42 @@ export default function MissionDetailModal({
       });
     }
 
-    const allocations = getMissionAllocations(mis, vehicles, members);
-    const driverInfo = resolveMissionDriver(mis);
+    if (mis.transportType !== 'client_vehicle' && mis.transportType !== 'no_vehicle') {
+      const allocations = getMissionAllocations(mis, vehicles, members);
+      const driverInfo = resolveMissionDriver(mis);
 
-    allocations.forEach((alloc) => {
-      if (alloc.driverMember && !seen.has(alloc.driverMember.id)) {
-        seen.add(alloc.driverMember.id);
-        result.unshift(alloc.driverMember);
-      } else if (alloc.driverName) {
-        const alreadyIn = result.some(
-          (r) => r.name.toLowerCase() === alloc.driverName.toLowerCase()
-        );
-        if (!alreadyIn) {
-          result.unshift({
-            id: `drv-${alloc.driverName}`,
-            name: alloc.driverName,
-            role: 'Motorista Escalado',
-            company: 'MegaFilmes',
-          });
+      allocations.forEach((alloc) => {
+        if (alloc.driverMember && !seen.has(alloc.driverMember.id)) {
+          seen.add(alloc.driverMember.id);
+          result.unshift(alloc.driverMember);
+        } else if (alloc.driverName) {
+          const alreadyIn = result.some(
+            (r) => r.name.toLowerCase() === alloc.driverName.toLowerCase()
+          );
+          if (!alreadyIn) {
+            result.unshift({
+              id: `drv-${alloc.driverName}`,
+              name: alloc.driverName,
+              role: 'Motorista Escalado',
+              company: 'MegaFilmes',
+            });
+          }
         }
-      }
-    });
+      });
 
-    if (driverInfo.member && !seen.has(driverInfo.member.id)) {
-      seen.add(driverInfo.member.id);
-      result.unshift(driverInfo.member);
+      if (driverInfo.member && !seen.has(driverInfo.member.id)) {
+        seen.add(driverInfo.member.id);
+        result.unshift(driverInfo.member);
+      }
+
+      return result.sort((a, b) => {
+        const aIsDrv = isMemberMissionDriver(a, mis, allocations, driverInfo) ? 1 : 0;
+        const bIsDrv = isMemberMissionDriver(b, mis, allocations, driverInfo) ? 1 : 0;
+        return bIsDrv - aIsDrv;
+      });
     }
 
-    return result.sort((a, b) => {
-      const aIsDrv = isMemberMissionDriver(a, mis, allocations, driverInfo) ? 1 : 0;
-      const bIsDrv = isMemberMissionDriver(b, mis, allocations, driverInfo) ? 1 : 0;
-      return bIsDrv - aIsDrv;
-    });
+    return result;
   };
 
   const detailCode = getMissionCode(mission, missions);
@@ -538,7 +552,7 @@ export default function MissionDetailModal({
                     </div>
                     <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: '1.5' }}>
                       Nesta missão, o colaborador se desloca na viatura do próprio contratante (ele mesmo leva e traz a equipe).
-                      <strong> Nenhuma viatura da frota MegaFilmes é utilizada</strong> e não há consumo de combustível ou bateria para a empresa (Custo de Frota: R$ 0,00).
+                      <strong> O motorista e a viatura pertencem à empresa contratante</strong>. O colaborador da MegaFilmes atua exclusivamente como integrante técnico da missão, sem atribuição de condução e sem consumo de combustível da frota (Custo de Frota: R$ 0,00).
                     </p>
                   </div>
                 </>
@@ -802,8 +816,10 @@ export default function MissionDetailModal({
                 <div className="mdm-team-grid">
                   {teamMembers.map((mem, idx) => {
                     const isDriver =
-                      (mission.driverId && mem.id === mission.driverId) ||
-                      (drv.name && mem.name.toLowerCase() === drv.name.toLowerCase());
+                      mission.transportType !== 'client_vehicle' &&
+                      mission.transportType !== 'no_vehicle' &&
+                      ((mission.driverId && mem.id === mission.driverId) ||
+                       (drv.name && mem.name.toLowerCase() === drv.name.toLowerCase()));
                     return (
                       <div
                         key={mem.id || idx}

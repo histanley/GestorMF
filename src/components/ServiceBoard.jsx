@@ -573,6 +573,12 @@ export default function ServiceBoard({
   // Resolve o motorista de uma missão (por driverId, driverName ou 1º membro da equipe)
   const resolveMissionDriver = (mission) => {
     if (!mission) return { member: null, name: '' };
+    if (mission.transportType === 'client_vehicle') {
+      return { member: null, name: 'Motorista do Contratante', isClientDriver: true };
+    }
+    if (mission.transportType === 'no_vehicle') {
+      return { member: null, name: '', isNoVehicle: true };
+    }
     if (mission.driverId) {
       const byId = members.find((m) => m.id === mission.driverId);
       if (byId) return { member: byId, name: byId.name };
@@ -615,7 +621,12 @@ export default function ServiceBoard({
   // Verifica se um colaborador é motorista de alguma viatura da missão
   const isMemberMissionDriver = (mem, mission, allocations = [], driverInfo = null) => {
     if (!mem || !mission) return false;
+    // Se a missão for com viatura do contratante ou sem viatura, nenhum colaborador da MegaFilmes é motorista
+    if (mission.transportType === 'client_vehicle' || mission.transportType === 'no_vehicle') {
+      return false;
+    }
     const dInfo = driverInfo || resolveMissionDriver(mission);
+    if (dInfo?.isClientDriver || dInfo?.isNoVehicle) return false;
     return (
       allocations.some(
         (a) =>
@@ -662,40 +673,44 @@ export default function ServiceBoard({
       });
     }
 
-    // Garante que o(s) motorista(s) alocado(s) também constem na lista e fiquem SEMPRE em 1º lugar
-    const allocations = getMissionAllocations(mission, vehicles, members);
-    const driverInfo = resolveMissionDriver(mission);
+    // Se NÃO for viatura do contratante nem sem viatura, garante motorista alocado e ordena no topo
+    if (mission.transportType !== 'client_vehicle' && mission.transportType !== 'no_vehicle') {
+      const allocations = getMissionAllocations(mission, vehicles, members);
+      const driverInfo = resolveMissionDriver(mission);
 
-    allocations.forEach((alloc) => {
-      if (alloc.driverMember && !seen.has(alloc.driverMember.id)) {
-        seen.add(alloc.driverMember.id);
-        result.unshift(alloc.driverMember);
-      } else if (alloc.driverName) {
-        const alreadyIn = result.some(
-          (r) => r.name.toLowerCase() === alloc.driverName.toLowerCase()
-        );
-        if (!alreadyIn) {
-          result.unshift({
-            id: `drv-${alloc.driverName}`,
-            name: alloc.driverName,
-            role: 'Motorista Escalado',
-            company: 'MegaFilmes',
-          });
+      allocations.forEach((alloc) => {
+        if (alloc.driverMember && !seen.has(alloc.driverMember.id)) {
+          seen.add(alloc.driverMember.id);
+          result.unshift(alloc.driverMember);
+        } else if (alloc.driverName) {
+          const alreadyIn = result.some(
+            (r) => r.name.toLowerCase() === alloc.driverName.toLowerCase()
+          );
+          if (!alreadyIn) {
+            result.unshift({
+              id: `drv-${alloc.driverName}`,
+              name: alloc.driverName,
+              role: 'Motorista Escalado',
+              company: 'MegaFilmes',
+            });
+          }
         }
-      }
-    });
+      });
 
-    if (driverInfo.member && !seen.has(driverInfo.member.id)) {
-      seen.add(driverInfo.member.id);
-      result.unshift(driverInfo.member);
+      if (driverInfo.member && !seen.has(driverInfo.member.id)) {
+        seen.add(driverInfo.member.id);
+        result.unshift(driverInfo.member);
+      }
+
+      // Ordena colocando todos os motoristas no topo (1º a aparecer)
+      return result.sort((a, b) => {
+        const aIsDrv = isMemberMissionDriver(a, mission, allocations, driverInfo) ? 1 : 0;
+        const bIsDrv = isMemberMissionDriver(b, mission, allocations, driverInfo) ? 1 : 0;
+        return bIsDrv - aIsDrv;
+      });
     }
 
-    // Ordena colocando todos os motoristas no topo (1º a aparecer)
-    return result.sort((a, b) => {
-      const aIsDrv = isMemberMissionDriver(a, mission, allocations, driverInfo) ? 1 : 0;
-      const bIsDrv = isMemberMissionDriver(b, mission, allocations, driverInfo) ? 1 : 0;
-      return bIsDrv - aIsDrv;
-    });
+    return result;
   };
 
   // Resolve lista de editores responsáveis pela pós-produção
@@ -1294,6 +1309,15 @@ export default function ServiceBoard({
                               );
                             })}
                           </div>
+                        ) : mission.transportType === 'client_vehicle' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span className="unassigned-badge" style={{ color: '#059669', fontWeight: 'bold' }}>
+                              🤝 Viatura do Contratante
+                            </span>
+                            <small style={{ fontSize: '10px', color: '#475569' }}>
+                              🛞 Condutor: Equipe do Contratante
+                            </small>
+                          </div>
                         ) : (
                           <span className="unassigned-badge" style={{ color: '#64748b' }}>
                             Sem viatura
@@ -1825,6 +1849,24 @@ export default function ServiceBoard({
                             ) : (
                               <span className="unassigned-badge">Sem equipe</span>
                             )}
+                            {mission.transportType === 'client_vehicle' && (
+                              <div style={{ marginTop: '5px' }}>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '0.69rem',
+                                  fontWeight: 700,
+                                  color: '#34d399',
+                                  background: 'rgba(16, 185, 129, 0.1)',
+                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                  padding: '2px 7px',
+                                  borderRadius: '4px'
+                                }} title="Viatura e motorista pertencem ao contratante. O colaborador vai exclusivamente como integrante técnico da missão.">
+                                  🤝 Condução: Motorista do Contratante
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </td>
 
@@ -2237,6 +2279,39 @@ export default function ServiceBoard({
                                   );
                                 })}
                               </div>
+                            ) : mission.transportType === 'client_vehicle' ? (
+                              <div style={{
+                                display: 'inline-flex',
+                                flexDirection: 'column',
+                                gap: '3px',
+                                padding: '6px 10px',
+                                background: 'rgba(16, 185, 129, 0.08)',
+                                border: '1px solid rgba(16, 185, 129, 0.3)',
+                                borderRadius: '7px'
+                              }}>
+                                <span style={{
+                                  color: '#34d399',
+                                  fontWeight: 800,
+                                  fontSize: '0.74rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}>
+                                  🤝 Viatura do Contratante
+                                </span>
+                                <span style={{
+                                  color: '#cbd5e1',
+                                  fontSize: '0.71rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}>
+                                  🛞 Motorista: <strong style={{ color: '#ffffff' }}>Equipe do Contratante</strong>
+                                </span>
+                                <span style={{ fontSize: '0.65rem', color: '#64748b' }}>
+                                  (Colaborador MF é integrante técnico)
+                                </span>
+                              </div>
                             ) : (
                               <span className="no-vehicle-pill">Sem viatura</span>
                             )}
@@ -2523,7 +2598,7 @@ export default function ServiceBoard({
                       </div>
                       <div className="mmc-team-chips">
                         {/* Motorista em destaque */}
-                        {driverInfo && (
+                        {driverInfo && !driverInfo.isClientDriver && !driverInfo.isNoVehicle && (
                           <span className="mmc-member-chip is-driver">
                             <span className="mmc-driver-wheel">🛞</span>
                             <strong>{driverInfo.name}</strong>
@@ -2531,7 +2606,7 @@ export default function ServiceBoard({
                           </span>
                         )}
                         {/* Membros escalados */}
-                        {teamList.filter((tm) => tm.name !== driverInfo?.name).map((tm, idx) => (
+                        {teamList.filter((tm) => (driverInfo?.isClientDriver || driverInfo?.isNoVehicle) ? true : tm.name !== driverInfo?.name).map((tm, idx) => (
                           <span key={idx} className="mmc-member-chip">
                             <User size={11} />
                             <span>{tm.name}</span>
@@ -2552,10 +2627,28 @@ export default function ServiceBoard({
                           );
                         })}
                       </div>
+                      {mission.transportType === 'client_vehicle' && (
+                        <div style={{ marginTop: '6px' }}>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.70rem',
+                            fontWeight: 700,
+                            color: '#34d399',
+                            background: 'rgba(16, 185, 129, 0.1)',
+                            border: '1px solid rgba(16, 185, 129, 0.3)',
+                            padding: '2px 7px',
+                            borderRadius: '4px'
+                          }}>
+                            🤝 Condução por conta do Contratante (Colaborador é integrante técnico)
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* 6. VIATURA, TANQUE & CONSUMO */}
-                    {allocations.length > 0 && (
+                    {allocations.length > 0 ? (
                       <div className="mmc-vehicle-section">
                         {allocations.map((alloc, aIdx) => {
                           const vObj = alloc.vehicle;
@@ -2595,7 +2688,26 @@ export default function ServiceBoard({
                           );
                         })}
                       </div>
-                    )}
+                    ) : mission.transportType === 'client_vehicle' ? (
+                      <div className="mmc-vehicle-section" style={{
+                        background: 'rgba(16, 185, 129, 0.08)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        marginTop: '8px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#34d399', fontWeight: 800, fontSize: '0.80rem' }}>
+                          <span>🤝</span>
+                          <span>Viatura do Contratante</span>
+                        </div>
+                        <div style={{ color: '#cbd5e1', fontSize: '0.74rem', marginTop: '3px' }}>
+                          🛞 Motorista: <strong style={{ color: '#ffffff' }}>Equipe do Contratante</strong>
+                        </div>
+                        <div style={{ color: '#64748b', fontSize: '0.68rem', fontStyle: 'italic', marginTop: '2px' }}>
+                          (Colaborador MF é integrante técnico • Frota MF: R$ 0,00)
+                        </div>
+                      </div>
+                    ) : null}
 
                     {/* 7. PÓS-PRODUÇÃO / EDIÇÃO */}
                     {hasMissionPostProduction(mission) && (
@@ -3105,7 +3217,7 @@ export default function ServiceBoard({
                         </div>
                         <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: '1.5' }}>
                           Nesta missão, o colaborador se desloca na viatura do próprio contratante (ele mesmo leva e traz a equipe).
-                          <strong> Nenhuma viatura da frota MegaFilmes é utilizada</strong> e não há consumo de combustível ou bateria para a empresa (Custo de Frota: R$ 0,00).
+                          <strong> O motorista e a viatura pertencem à empresa contratante</strong>. O colaborador da MegaFilmes atua exclusivamente como integrante da missão técnica (sem atribuição de condução) e não há consumo de combustível ou bateria para a frota da empresa (Custo de Frota: R$ 0,00).
                         </p>
                       </div>
                     </>
@@ -3367,8 +3479,10 @@ export default function ServiceBoard({
                     <div className="mdm-team-grid">
                       {teamMembers.map((mem, idx) => {
                         const isDriver =
-                          (detailMission.driverId && mem.id === detailMission.driverId) ||
-                          (drv.name && mem.name.toLowerCase() === drv.name.toLowerCase());
+                          detailMission.transportType !== 'client_vehicle' &&
+                          detailMission.transportType !== 'no_vehicle' &&
+                          ((detailMission.driverId && mem.id === detailMission.driverId) ||
+                           (drv.name && mem.name.toLowerCase() === drv.name.toLowerCase()));
                         return (
                           <div
                             key={mem.id || idx}

@@ -269,11 +269,13 @@ export default function TeamPayoutsDashboard({
 
       monthMissions.forEach((m) => {
         const allocations = Array.isArray(m.vehicleAllocations) ? m.vehicleAllocations : [];
-        const isDriver = allocations.some(
-          (a) => (a.driverId && String(a.driverId) === memIdStr) ||
-            (a.driverName && a.driverName.trim().toLowerCase() === memNameNorm)
-        ) || (m.driverId && String(m.driverId) === memIdStr) ||
-          (m.driverName && m.driverName.trim().toLowerCase() === memNameNorm);
+        const isDriver = m.transportType !== 'client_vehicle' && m.transportType !== 'no_vehicle' && (
+          allocations.some(
+            (a) => (a.driverId && String(a.driverId) === memIdStr) ||
+              (a.driverName && a.driverName.trim().toLowerCase() === memNameNorm)
+          ) || (m.driverId && String(m.driverId) === memIdStr) ||
+            (m.driverName && m.driverName.trim().toLowerCase() === memNameNorm)
+        );
 
         const teamIds = Array.isArray(m.teamIds) ? m.teamIds.map(String) : [];
         const inTeamIds = teamIds.includes(memIdStr);

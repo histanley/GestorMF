@@ -191,6 +191,26 @@ function ensureMissionColumnsExist($db)
         } catch (Exception $e) {}
     });
 
+    runVersionedMigration($db, 'schema_missions_cols_v8_client_vehicle_cleanup', function ($pdo) {
+        try {
+            $pdo->exec("
+                UPDATE missions
+                SET driver_id = NULL,
+                    driver_name = 'Motorista do Contratante',
+                    vehicle_id = NULL,
+                    vehicle_name_display = '🤝 Viatura do Contratante',
+                    vehicle_allocations = '[]',
+                    estimated_fuel_liters = 0,
+                    estimated_fuel_cost = 0
+                WHERE transport_type = 'client_vehicle'
+                   OR code IN ('202611251', '202611301', '202611252', '202611244')
+                   OR description LIKE '%RORAINOPOLIS%'
+                   OR description LIKE '%SESSÕES TURMA RECURSAL%'
+                   OR description LIKE '%SESSÃO TURMA RECURSAL%'
+            ");
+        } catch (Exception $ex) {}
+    });
+
     // Migração de recálculo retroativo de horas extras de almoço para missões finalizadas e existentes (Regra MegaFilmes)
     runVersionedMigration($db, 'recalc_finalized_missions_lunch_v3', function ($pdo) {
         // 1. Garante que qualquer missão sem opção de almoço definida receba 'no_break' e has_lunch_break = 0
@@ -1662,6 +1682,25 @@ if ($method === 'POST' || $method === 'PUT') {
             ':created_by' => $data['createdBy'] ?? ($user['id'] ?? null),
             ':created_by_name' => $data['createdByName'] ?? ($user['name'] ?? 'Administrador')
         ];
+
+        // Blindagem de transporte: se viatura do contratante ou sem viatura, anular viatura e motorista próprio
+        if (($data['transportType'] ?? '') === 'client_vehicle') {
+            $saveParams[':driver_id'] = null;
+            $saveParams[':driver_name'] = 'Motorista do Contratante';
+            $saveParams[':vehicle_id'] = null;
+            $saveParams[':vehicle_name_display'] = '🤝 Viatura do Contratante';
+            $saveParams[':vehicle_allocations'] = '[]';
+            $saveParams[':estimated_fuel_liters'] = 0;
+            $saveParams[':estimated_fuel_cost'] = 0;
+        } else if (($data['transportType'] ?? '') === 'no_vehicle') {
+            $saveParams[':driver_id'] = null;
+            $saveParams[':driver_name'] = null;
+            $saveParams[':vehicle_id'] = null;
+            $saveParams[':vehicle_name_display'] = '🚶 Sem Viatura (Transporte Próprio)';
+            $saveParams[':vehicle_allocations'] = '[]';
+            $saveParams[':estimated_fuel_liters'] = 0;
+            $saveParams[':estimated_fuel_cost'] = 0;
+        }
 
         try {
             $stmtSave = $db->prepare($sql);
