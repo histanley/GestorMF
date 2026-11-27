@@ -3558,6 +3558,10 @@ export default function App() {
           setDetailMissionId(null);
           handleEditMission(m);
         }}
+        onDeleteMission={(id) => {
+          setDetailMissionId(null);
+          handleDeleteMission(id);
+        }}
         onSelectMissionOnMap={(id) => {
           setDetailMissionId(null);
           const target = missions.find((m) => m.id === id);

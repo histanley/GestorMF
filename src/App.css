@@ -10467,29 +10467,270 @@ body.light-theme .status-badge-inline.status-pendente {
 }
 
 .mdm-footer {
-  padding: 14px 24px;
-  background: rgba(10, 14, 23, 0.85);
-  border-top: 1px solid var(--border-subtle);
+  padding: 14px 22px;
+  background: rgba(11, 17, 30, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
 }
 
 .mdm-footer-left {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
+  font-size: 0.8rem;
+  color: var(--text-secondary, #94a3b8);
 }
 
 .mdm-footer-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
+  flex-wrap: wrap;
   margin-left: auto;
+}
+
+/* Botão base moderno do rodapé da Ficha da Missão */
+.btn-mdm-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  border: 1px solid transparent;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  text-decoration: none;
+  position: relative;
+}
+
+.btn-mdm-action svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  stroke-width: 2.1;
+  transition: transform 0.2s ease;
+}
+
+.btn-mdm-action:hover {
+  transform: translateY(-1.5px);
+}
+
+.btn-mdm-action:hover svg {
+  transform: scale(1.08);
+}
+
+.btn-mdm-action:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* 1. WhatsApp */
+.btn-mdm-action.btn-mdm-whatsapp {
+  background: linear-gradient(135deg, rgba(37, 211, 102, 0.16) 0%, rgba(18, 140, 126, 0.26) 100%) !important;
+  border: 1px solid rgba(37, 211, 102, 0.45) !important;
+  color: #34d399 !important;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.15) !important;
+}
+
+.btn-mdm-action.btn-mdm-whatsapp:hover {
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%) !important;
+  border-color: #25d366 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.45) !important;
+}
+
+/* 2. Histórico */
+.btn-mdm-action.btn-mdm-history {
+  background: rgba(30, 41, 59, 0.75) !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+}
+
+.btn-mdm-action.btn-mdm-history:hover {
+  background: rgba(51, 65, 85, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.45) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* 3. Rota no Mapa */
+.btn-mdm-action.btn-mdm-map {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.14) 0%, rgba(2, 132, 199, 0.24) 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  color: #38bdf8 !important;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15) !important;
+}
+
+.btn-mdm-action.btn-mdm-map:hover {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+  border-color: #38bdf8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.42) !important;
+}
+
+/* 4. Editar Missão */
+.btn-mdm-action.btn-mdm-edit {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  border: 1px solid #fbbf24 !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35) !important;
+}
+
+.btn-mdm-action.btn-mdm-edit:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  border-color: #fde68a !important;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.55) !important;
+}
+
+/* 5. Excluir Missão */
+.btn-mdm-action.btn-mdm-delete {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(185, 28, 28, 0.22) 100%) !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+  color: #f87171 !important;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.12) !important;
+}
+
+.btn-mdm-action.btn-mdm-delete:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.42) !important;
+}
+
+/* 6. Fechar */
+.btn-mdm-action.btn-mdm-close {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #cbd5e1 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+}
+
+.btn-mdm-action.btn-mdm-close:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 7. Bloqueado / Encerrada */
+.btn-mdm-action.btn-mdm-locked {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px dashed rgba(148, 163, 184, 0.3) !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  opacity: 0.75;
+}
+
+/* Suporte para Tema Claro */
+body.light-theme .mdm-footer,
+[data-theme='light'] .mdm-footer {
+  background: #ffffff !important;
+  border-top-color: #e2e8f0 !important;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme .btn-mdm-action.btn-mdm-whatsapp,
+[data-theme='light'] .btn-mdm-action.btn-mdm-whatsapp {
+  background: #f0fdf4 !important;
+  border-color: #86efac !important;
+  color: #16a34a !important;
+  box-shadow: 0 1px 3px rgba(22, 163, 74, 0.1) !important;
+}
+
+body.light-theme .btn-mdm-action.btn-mdm-whatsapp:hover,
+[data-theme='light'] .btn-mdm-action.btn-mdm-whatsapp:hover {
+  background: #16a34a !important;
+  border-color: #16a34a !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3) !important;
+}
+
+body.light-theme .btn-mdm-action.btn-mdm-history,
+[data-theme='light'] .btn-mdm-action.btn-mdm-history {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-theme .btn-mdm-action.btn-mdm-history:hover,
+[data-theme='light'] .btn-mdm-action.btn-mdm-history:hover {
+  background: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+body.light-theme .btn-mdm-action.btn-mdm-map,
+[data-theme='light'] .btn-mdm-action.btn-mdm-map {
+  background: #f0f9ff !important;
+  border-color: #7dd3fc !important;
+  color: #0284c7 !important;
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.1) !important;
+}
+
+body.light-theme .btn-mdm-action.btn-mdm-map:hover,
+[data-theme='light'] .btn-mdm-action.btn-mdm-map:hover {
+  background: #0ea5e9 !important;
+  border-color: #0ea5e9 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.3) !important;
+}
+
+body.light-theme .btn-mdm-action.btn-mdm-edit,
+[data-theme='light'] .btn-mdm-action.btn-mdm-edit {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  border-color: #f59e0b !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3) !important;
+}
+
+body.light-theme .btn-mdm-action.btn-mdm-delete,
+[data-theme='light'] .btn-mdm-action.btn-mdm-delete {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  color: #dc2626 !important;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.1) !important;
+}
+
+body.light-theme .btn-mdm-action.btn-mdm-delete:hover,
+[data-theme='light'] .btn-mdm-action.btn-mdm-delete:hover {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3) !important;
+}
+
+body.light-theme .btn-mdm-action.btn-mdm-close,
+[data-theme='light'] .btn-mdm-action.btn-mdm-close {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-theme .btn-mdm-action.btn-mdm-close:hover,
+[data-theme='light'] .btn-mdm-action.btn-mdm-close:hover {
+  background: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
 }
 
 @media (max-width: 720px) {

@@ -30,6 +30,7 @@ import {
   Package,
   Camera,
   MessageCircle,
+  Trash2,
 } from 'lucide-react';
 import {
   getMissionTotalKm,
@@ -85,9 +86,10 @@ export default function MissionDetailModal({
   settings = null,
   userRole = 'user',
   currentUser = null,
-  onClose = () => {},
+  onClose = () => { },
   onEditMission = null,
   onSelectMissionOnMap = null,
+  onDeleteMission = null,
   onUpdateEditionStatus = null,
   onConcludeEdition = null,
   onApproveEdition = null,
@@ -102,6 +104,7 @@ export default function MissionDetailModal({
   const effectiveRole = normalizeRole(userRole || currentUser?.role);
   const isAdmin = effectiveRole === 'admin';
   const canEditMission = effectiveRole === 'admin' || effectiveRole === 'manager';
+  const canDeleteMission = isAdmin || (effectiveRole === 'manager' && (mission?.missionStatus === 'Agendada' || mission?.missionStatus === 'Em Preparo'));
   const canAdminManageEdition = effectiveRole === 'admin';
 
   // Verifica se o usuário atual é o editor responsável
@@ -273,11 +276,11 @@ export default function MissionDetailModal({
   const navLinks =
     baseLocation?.lat && mission.lat
       ? getNavigationLinks(
-          baseLocation.lat,
-          baseLocation.lon,
-          mission.lat,
-          mission.lon
-        )
+        baseLocation.lat,
+        baseLocation.lon,
+        mission.lat,
+        mission.lon
+      )
       : null;
 
   const offHoursInfo = calculateEventOnlyOffHours(mission);
@@ -586,161 +589,161 @@ export default function MissionDetailModal({
 
                   {detailAllocations.length > 0 ? (
                     <div className="mdm-allocations-list">
-                  {detailAllocations.map((alloc, aIdx) => {
-                    const v = alloc.vehicle;
-                    const vTel = v
-                      ? computeVehicleFuelTelemetry(v, missions, fuelSettings)
-                      : null;
-                    const vBd = v
-                      ? computeMissionVehicleFuelBreakdown({
-                          vehicle: v,
-                          totalRoundTripKm: totalKm,
-                          currentTelemetry: vTel,
-                          fuelPricePerLiter: fuelSettings,
-                        })
-                      : null;
+                      {detailAllocations.map((alloc, aIdx) => {
+                        const v = alloc.vehicle;
+                        const vTel = v
+                          ? computeVehicleFuelTelemetry(v, missions, fuelSettings)
+                          : null;
+                        const vBd = v
+                          ? computeMissionVehicleFuelBreakdown({
+                            vehicle: v,
+                            totalRoundTripKm: totalKm,
+                            currentTelemetry: vTel,
+                            fuelPricePerLiter: fuelSettings,
+                          })
+                          : null;
 
-                    return (
-                      <div key={aIdx} className="mdm-two-col">
-                        {/* Card da Viatura */}
-                        <div className="mdm-info-card">
-                          <div className="mdm-section-title" style={{ marginBottom: 8 }}>
-                            <Car size={14} />
-                            <span>Viatura #{aIdx + 1}</span>
-                          </div>
-                          {v ? (
-                            <div className="mdm-vehicle-box">
-                              {(() => {
-                                const isElecDetail = isElectricVehicle(v);
-                                const unitDetail = isElecDetail ? 'kWh' : 'L';
-                                const nounDetail = isElecDetail ? 'Bateria' : 'Tanque';
-                                return (
-                                  <>
-                                    <div className="mdm-veh-main">
-                                      <div>
-                                        <h4 className="mdm-veh-name">{v.name}</h4>
-                                        <div className="mdm-veh-tags">
-                                          <span className="veh-plate-mono">{v.plate}</span>
-                                          <span className="mdm-company-pill">{v.company}</span>
-                                          {v.type && <span className="mdm-veh-type">{v.type}</span>}
-                                          <span className={`veh-fuel-badge ${getFuelTypeBadgeClass(v)}`} style={{ fontSize: '0.72rem', padding: '2px 6px', borderRadius: 4 }}>
-                                            {isElecDetail ? '⚡ Elétrico' : (v.fuelType || 'Gasolina').toLowerCase() === 'diesel' ? '🛢️ Diesel' : '⛽ Gasolina'}
-                                          </span>
+                        return (
+                          <div key={aIdx} className="mdm-two-col">
+                            {/* Card da Viatura */}
+                            <div className="mdm-info-card">
+                              <div className="mdm-section-title" style={{ marginBottom: 8 }}>
+                                <Car size={14} />
+                                <span>Viatura #{aIdx + 1}</span>
+                              </div>
+                              {v ? (
+                                <div className="mdm-vehicle-box">
+                                  {(() => {
+                                    const isElecDetail = isElectricVehicle(v);
+                                    const unitDetail = isElecDetail ? 'kWh' : 'L';
+                                    const nounDetail = isElecDetail ? 'Bateria' : 'Tanque';
+                                    return (
+                                      <>
+                                        <div className="mdm-veh-main">
+                                          <div>
+                                            <h4 className="mdm-veh-name">{v.name}</h4>
+                                            <div className="mdm-veh-tags">
+                                              <span className="veh-plate-mono">{v.plate}</span>
+                                              <span className="mdm-company-pill">{v.company}</span>
+                                              {v.type && <span className="mdm-veh-type">{v.type}</span>}
+                                              <span className={`veh-fuel-badge ${getFuelTypeBadgeClass(v)}`} style={{ fontSize: '0.72rem', padding: '2px 6px', borderRadius: 4 }}>
+                                                {isElecDetail ? '⚡ Elétrico' : (v.fuelType || 'Gasolina').toLowerCase() === 'diesel' ? '🛢️ Diesel' : '⛽ Gasolina'}
+                                              </span>
+                                            </div>
+                                          </div>
                                         </div>
-                                      </div>
-                                    </div>
-                                    <div className="mdm-veh-metrics">
-                                      <div>
-                                        <span>Autonomia</span>
-                                        <strong>{v.autonomyKmPerLiter} {isElecDetail ? 'km/kWh' : 'km/L'}</strong>
-                                      </div>
-                                      <div>
-                                        <span>Dedução Missão</span>
-                                        <strong style={{ color: 'var(--accent-gold)' }}>
-                                          -{vBd ? vBd.litersNeeded : 0}{unitDetail} (-{vBd ? vBd.percentOfTankUsed : 0}%)
-                                        </strong>
-                                      </div>
-                                      <div>
-                                        <span>{nounDetail} Atual</span>
-                                        <strong
-                                          className={
-                                            vTel?.isReserveAlert
-                                              ? 'text-danger-bright'
-                                              : 'text-green-bright'
-                                          }
-                                        >
-                                          {vTel ? `${vTel.currentLiters}${unitDetail} (${vTel.currentPercent}%)` : `${v.currentFuelPercent || 75}%`}
-                                        </strong>
-                                      </div>
-                                    </div>
+                                        <div className="mdm-veh-metrics">
+                                          <div>
+                                            <span>Autonomia</span>
+                                            <strong>{v.autonomyKmPerLiter} {isElecDetail ? 'km/kWh' : 'km/L'}</strong>
+                                          </div>
+                                          <div>
+                                            <span>Dedução Missão</span>
+                                            <strong style={{ color: 'var(--accent-gold)' }}>
+                                              -{vBd ? vBd.litersNeeded : 0}{unitDetail} (-{vBd ? vBd.percentOfTankUsed : 0}%)
+                                            </strong>
+                                          </div>
+                                          <div>
+                                            <span>{nounDetail} Atual</span>
+                                            <strong
+                                              className={
+                                                vTel?.isReserveAlert
+                                                  ? 'text-danger-bright'
+                                                  : 'text-green-bright'
+                                              }
+                                            >
+                                              {vTel ? `${vTel.currentLiters}${unitDetail} (${vTel.currentPercent}%)` : `${v.currentFuelPercent || 75}%`}
+                                            </strong>
+                                          </div>
+                                        </div>
 
-                                    {vBd && vBd.exceedsFullTankCapacity && (
-                                      <div className="vft-excess-tank-alert" style={{ marginTop: 8 }}>
-                                        {isElecDetail ? <Zap size={13} className="text-green" /> : <Fuel size={13} />}
-                                        <span>
-                                          <strong>Excedente (&gt; 1 {nounDetail} de {vBd.maxTankRangeKm} km):</strong>{' '}
-                                          +{vBd.excessOverFullTankKm} km • +{vBd.excessOverFullTankLiters}{unitDetail} •{' '}
-                                          <strong>Valor Excedente: +R$ {Number(vBd.excessOverFullTankCost || 0).toFixed(2)}</strong>
-                                        </span>
-                                      </div>
-                                    )}
+                                        {vBd && vBd.exceedsFullTankCapacity && (
+                                          <div className="vft-excess-tank-alert" style={{ marginTop: 8 }}>
+                                            {isElecDetail ? <Zap size={13} className="text-green" /> : <Fuel size={13} />}
+                                            <span>
+                                              <strong>Excedente (&gt; 1 {nounDetail} de {vBd.maxTankRangeKm} km):</strong>{' '}
+                                              +{vBd.excessOverFullTankKm} km • +{vBd.excessOverFullTankLiters}{unitDetail} •{' '}
+                                              <strong>Valor Excedente: +R$ {Number(vBd.excessOverFullTankCost || 0).toFixed(2)}</strong>
+                                            </span>
+                                          </div>
+                                        )}
 
-                                    {vTel?.isReserveAlert && (
-                                      <div className="vft-reserve-alert" style={{ marginTop: 8 }}>
-                                        {isElecDetail ? <Zap size={13} className="text-green" /> : <AlertCircle size={13} />}
-                                        <span>
-                                          <strong>{isElecDetail ? '⚡ Bateria Baixa (≤ 10%):' : '🚨 Reserva de Combustível (≤ 10%):'}</strong>{' '}
-                                          {isElecDetail ? 'Recarga imediata da bateria necessária!' : 'Abastecimento imediato necessário!'}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          ) : (
-                            <div className="mdm-empty-box">{alloc.vehicleName}</div>
-                          )}
-                        </div>
-
-                        {/* Card do Motorista desta Viatura */}
-                        <div className="mdm-info-card mdm-driver-card">
-                          <div className="mdm-section-title" style={{ marginBottom: 8 }}>
-                            <UserCheck size={14} />
-                            <span>Motorista da Viatura #{aIdx + 1}</span>
-                          </div>
-                          {alloc.driverName ? (
-                            <div className="mdm-driver-box">
-                              <div className="mdm-driver-avatar">
-                                {alloc.driverMember?.photoUrl ? (
-                                  <img
-                                    src={alloc.driverMember.photoUrl}
-                                    alt={alloc.driverName}
-                                  />
-                                ) : (
-                                  <span>{alloc.driverName.slice(0, 2).toUpperCase()}</span>
-                                )}
-                              </div>
-                              <div className="mdm-driver-details">
-                                <div className="mdm-driver-tag">
-                                  🛞 Condutor Responsável (Ida e Volta)
+                                        {vTel?.isReserveAlert && (
+                                          <div className="vft-reserve-alert" style={{ marginTop: 8 }}>
+                                            {isElecDetail ? <Zap size={13} className="text-green" /> : <AlertCircle size={13} />}
+                                            <span>
+                                              <strong>{isElecDetail ? '⚡ Bateria Baixa (≤ 10%):' : '🚨 Reserva de Combustível (≤ 10%):'}</strong>{' '}
+                                              {isElecDetail ? 'Recarga imediata da bateria necessária!' : 'Abastecimento imediato necessário!'}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </div>
-                                <h4>{alloc.driverName}</h4>
-                                <span>
-                                  {alloc.driverMember?.role || 'Integrante Escalado'}
-                                </span>
-                                {alloc.driverMember?.phone && (
-                                  <small className="mdm-driver-phone">
-                                    <Phone size={11} /> {alloc.driverMember.phone}
-                                  </small>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="mdm-empty-box">
-                              Nenhum motorista definido.{' '}
-                              {canEditMission && (
-                                <button
-                                  type="button"
-                                  className="btn-link-inline"
-                                  onClick={() => {
-                                    onClose();
-                                    if (onEditMission) onEditMission(mission);
-                                  }}
-                                >
-                                  Definir agora
-                                </button>
+                              ) : (
+                                <div className="mdm-empty-box">{alloc.vehicleName}</div>
                               )}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="mdm-empty-box">Nenhuma viatura alocada para esta missão.</div>
-              )}
+
+                            {/* Card do Motorista desta Viatura */}
+                            <div className="mdm-info-card mdm-driver-card">
+                              <div className="mdm-section-title" style={{ marginBottom: 8 }}>
+                                <UserCheck size={14} />
+                                <span>Motorista da Viatura #{aIdx + 1}</span>
+                              </div>
+                              {alloc.driverName ? (
+                                <div className="mdm-driver-box">
+                                  <div className="mdm-driver-avatar">
+                                    {alloc.driverMember?.photoUrl ? (
+                                      <img
+                                        src={alloc.driverMember.photoUrl}
+                                        alt={alloc.driverName}
+                                      />
+                                    ) : (
+                                      <span>{alloc.driverName.slice(0, 2).toUpperCase()}</span>
+                                    )}
+                                  </div>
+                                  <div className="mdm-driver-details">
+                                    <div className="mdm-driver-tag">
+                                      🛞 Condutor Responsável (Ida e Volta)
+                                    </div>
+                                    <h4>{alloc.driverName}</h4>
+                                    <span>
+                                      {alloc.driverMember?.role || 'Integrante Escalado'}
+                                    </span>
+                                    {alloc.driverMember?.phone && (
+                                      <small className="mdm-driver-phone">
+                                        <Phone size={11} /> {alloc.driverMember.phone}
+                                      </small>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mdm-empty-box">
+                                  Nenhum motorista definido.{' '}
+                                  {canEditMission && (
+                                    <button
+                                      type="button"
+                                      className="btn-link-inline"
+                                      onClick={() => {
+                                        onClose();
+                                        if (onEditMission) onEditMission(mission);
+                                      }}
+                                    >
+                                      Definir agora
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="mdm-empty-box">Nenhuma viatura alocada para esta missão.</div>
+                  )}
                 </>
               )}
             </div>
@@ -819,7 +822,7 @@ export default function MissionDetailModal({
                       mission.transportType !== 'client_vehicle' &&
                       mission.transportType !== 'no_vehicle' &&
                       ((mission.driverId && mem.id === mission.driverId) ||
-                       (drv.name && mem.name.toLowerCase() === drv.name.toLowerCase()));
+                        (drv.name && mem.name.toLowerCase() === drv.name.toLowerCase()));
                     return (
                       <div
                         key={mem.id || idx}
@@ -1277,7 +1280,7 @@ export default function MissionDetailModal({
             <div className="mdm-footer-actions">
               <button
                 type="button"
-                className="btn-mdm-action btn-mdm-whatsapp btn-whatsapp-share"
+                className="btn-mdm-action btn-mdm-whatsapp"
                 onClick={() => setIsWhatsAppOpen(true)}
                 title="Compartilhar informações da missão por WhatsApp"
               >
@@ -1287,7 +1290,7 @@ export default function MissionDetailModal({
 
               <button
                 type="button"
-                className="btn-mdm-action btn-mdm-history btn-secondary"
+                className="btn-mdm-action btn-mdm-history"
                 onClick={() => setIsHistoryOpen(true)}
                 title="Ver Histórico Completo e Auditoria desta Missão"
               >
@@ -1298,7 +1301,7 @@ export default function MissionDetailModal({
               {onSelectMissionOnMap && (
                 <button
                   type="button"
-                  className="btn-mdm-action btn-mdm-map btn-secondary"
+                  className="btn-mdm-action btn-mdm-map"
                   onClick={() => {
                     const id = mission.id;
                     onClose();
@@ -1317,7 +1320,7 @@ export default function MissionDetailModal({
                   return (
                     <button
                       type="button"
-                      className="btn-mdm-action btn-mdm-edit btn-primary"
+                      className="btn-mdm-action btn-mdm-edit"
                       onClick={() => {
                         const m = mission;
                         onClose();
@@ -1333,8 +1336,7 @@ export default function MissionDetailModal({
                 if (canEditMission && isFinalizada) {
                   return (
                     <span
-                      className="btn-mdm-action btn-mdm-locked btn-secondary"
-                      style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                      className="btn-mdm-action btn-mdm-locked"
                       title="Missão finalizada e encerrada (edição exclusiva para Administradores)"
                     >
                       <Lock size={14} />
@@ -1345,9 +1347,25 @@ export default function MissionDetailModal({
                 return null;
               })()}
 
+              {canDeleteMission && onDeleteMission && (
+                <button
+                  type="button"
+                  className="btn-mdm-action btn-mdm-delete"
+                  onClick={() => {
+                    const id = mission.id;
+                    onClose();
+                    onDeleteMission(id);
+                  }}
+                  title="Excluir Missão"
+                >
+                  <Trash2 size={15} />
+                  <span>Excluir</span>
+                </button>
+              )}
+
               <button
                 type="button"
-                className="btn-mdm-action btn-mdm-close btn-secondary btn-close-modal-footer"
+                className="btn-mdm-action btn-mdm-close"
                 onClick={onClose}
                 title="Fechar Ficha da Missão"
               >

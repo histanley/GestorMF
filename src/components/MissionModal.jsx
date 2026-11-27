@@ -803,12 +803,12 @@ export default function MissionModal({
 
       const fuelRes = isCompanyVeh
         ? calculateFuelEstimate({
-            distanceKm: routeRes.distanceKm,
-            totalRoundTripKm: routeRes.totalRoundTripKm,
-            vehicleBreakdowns: breakdowns.length > 0 ? breakdowns : null,
-            autonomies,
-            fuelPricePerLiter: fuelSettings,
-          })
+          distanceKm: routeRes.distanceKm,
+          totalRoundTripKm: routeRes.totalRoundTripKm,
+          vehicleBreakdowns: breakdowns.length > 0 ? breakdowns : null,
+          autonomies,
+          fuelPricePerLiter: fuelSettings,
+        })
         : { litersNeeded: 0, estimatedCost: 0, breakdowns: [] };
 
       const arrivalTime = formData.departureTime
@@ -850,12 +850,12 @@ export default function MissionModal({
       const breakdowns = isCompanyVeh ? getVehicleBreakdownsFromAllocations(formData.vehicleAllocations) : [];
       const fuelRes = isCompanyVeh
         ? calculateFuelEstimate({
-            distanceKm: routeInfo.distanceKm,
-            totalRoundTripKm: routeInfo.totalRoundTripKm,
-            vehicleBreakdowns: breakdowns.length > 0 ? breakdowns : null,
-            autonomies,
-            fuelPricePerLiter: fuelSettings,
-          })
+          distanceKm: routeInfo.distanceKm,
+          totalRoundTripKm: routeInfo.totalRoundTripKm,
+          vehicleBreakdowns: breakdowns.length > 0 ? breakdowns : null,
+          autonomies,
+          fuelPricePerLiter: fuelSettings,
+        })
         : { litersNeeded: 0, estimatedCost: 0, breakdowns: [] };
 
       const arrivalTime = formData.departureTime
@@ -1572,27 +1572,27 @@ export default function MissionModal({
     const isCompanyVehicle = (formData.transportType || 'company_vehicle') === 'company_vehicle';
     const validAllocations = isCompanyVehicle
       ? formData.vehicleAllocations
-          .filter((a) => a && a.vehicleId)
-          .map((a) => {
-            const veh = vehicles.find((v) => v.id === a.vehicleId);
-            const drv = members.find((m) => m.id === a.driverId);
-            return {
-              vehicleId: a.vehicleId,
-              vehicleName: veh ? `${veh.name} (${veh.plate})` : 'Viatura',
-              driverId: a.driverId || '',
-              driverName: drv ? drv.name : '',
-            };
-          })
+        .filter((a) => a && a.vehicleId)
+        .map((a) => {
+          const veh = vehicles.find((v) => v.id === a.vehicleId);
+          const drv = members.find((m) => m.id === a.driverId);
+          return {
+            vehicleId: a.vehicleId,
+            vehicleName: veh ? `${veh.name} (${veh.plate})` : 'Viatura',
+            driverId: a.driverId || '',
+            driverName: drv ? drv.name : '',
+          };
+        })
       : [];
 
     // Verificação proativa de conflitos antes de submeter
     const conflictingVehicles = isCompanyVehicle
       ? validAllocations
-          .filter((a) => scheduleConflicts.vehicleConflicts[a.vehicleId])
-          .map((a) => {
-            const c = scheduleConflicts.vehicleConflicts[a.vehicleId];
-            return `• Viatura ${a.vehicleName}: Já ocupada na missão ${c.code} "${c.description}" (${c.timeRange})`;
-          })
+        .filter((a) => scheduleConflicts.vehicleConflicts[a.vehicleId])
+        .map((a) => {
+          const c = scheduleConflicts.vehicleConflicts[a.vehicleId];
+          return `• Viatura ${a.vehicleName}: Já ocupada na missão ${c.code} "${c.description}" (${c.timeRange})`;
+        })
       : [];
 
     const conflictingDrivers = validAllocations
@@ -1627,11 +1627,11 @@ export default function MissionModal({
     const primaryAlloc = validAllocations[0] || null;
     const vehicleNamesDisplay = isCompanyVehicle
       ? (validAllocations.length > 0
-          ? validAllocations.map((a) => a.vehicleName).join(' • ')
-          : 'Não alocada')
+        ? validAllocations.map((a) => a.vehicleName).join(' • ')
+        : 'Não alocada')
       : (formData.transportType === 'client_vehicle'
-          ? '🤝 Viatura do Contratante'
-          : '🚶 Sem Viatura (Transporte Próprio)');
+        ? '🤝 Viatura do Contratante'
+        : '🚶 Sem Viatura (Transporte Próprio)');
     const driverNamesDisplay = validAllocations
       .map((a) => a.driverName)
       .filter(Boolean)
@@ -3054,137 +3054,154 @@ export default function MissionModal({
                 </p>
               </div>
             ) : (
-            <div className="multi-vehicles-list">
-              {(() => {
-                const habilitados = members.filter((m) => Boolean(m.canDrive ?? m.hasCnh));
-                const demaisMembros = members.filter((m) => !Boolean(m.canDrive ?? m.hasCnh));
+              <div className="multi-vehicles-list">
+                {(() => {
+                  const habilitados = members.filter((m) => Boolean(m.canDrive ?? m.hasCnh));
+                  const demaisMembros = members.filter((m) => !Boolean(m.canDrive ?? m.hasCnh));
 
-                return formData.vehicleAllocations.map((alloc, idx) => {
-                  const selectedDriverObj = members.find((m) => m.id === alloc.driverId);
-                  const canRemove = formData.vehicleAllocations.length > 1;
-                  const allocFuelData = allocBreakdowns[idx];
-                  const bd = allocFuelData?.breakdown || null;
-                  const vehObj = allocFuelData?.vehicle || null;
-                  const vConflict = alloc.vehicleId ? scheduleConflicts.vehicleConflicts[alloc.vehicleId] : null;
-                  const dConflict = alloc.driverId ? scheduleConflicts.memberConflicts[alloc.driverId] : null;
+                  return formData.vehicleAllocations.map((alloc, idx) => {
+                    const selectedDriverObj = members.find((m) => m.id === alloc.driverId);
+                    const canRemove = formData.vehicleAllocations.length > 1;
+                    const allocFuelData = allocBreakdowns[idx];
+                    const bd = allocFuelData?.breakdown || null;
+                    const vehObj = allocFuelData?.vehicle || null;
+                    const vConflict = alloc.vehicleId ? scheduleConflicts.vehicleConflicts[alloc.vehicleId] : null;
+                    const dConflict = alloc.driverId ? scheduleConflicts.memberConflicts[alloc.driverId] : null;
 
-                  return (
-                    <div key={idx} className={`vehicle-allocation-card ${vConflict || dConflict ? 'has-vac-conflict' : ''}`}>
-                      <div className="vac-header">
-                        <div className="vac-badge">
-                          <Car size={14} />
-                          <span>Viatura #{idx + 1}</span>
+                    return (
+                      <div key={idx} className={`vehicle-allocation-card ${vConflict || dConflict ? 'has-vac-conflict' : ''}`}>
+                        <div className="vac-header">
+                          <div className="vac-badge">
+                            <Car size={14} />
+                            <span>Viatura #{idx + 1}</span>
+                          </div>
+
+                          <div className="vac-header-right">
+                            {selectedDriverObj && (
+                              <div className="vac-driver-header-pill">
+                                <span className="vdhp-label">Condutor:</span>
+                                <strong className="vdhp-name">{selectedDriverObj.name}</strong>
+                                {Boolean(selectedDriverObj.canDrive ?? selectedDriverObj.hasCnh) ? (
+                                  <span className="vdhp-cnh-tag">🚗 CNH {selectedDriverObj.cnhCategory || 'B'}</span>
+                                ) : (
+                                  <span className="vdhp-cnh-tag no-cnh">Sem CNH</span>
+                                )}
+                              </div>
+                            )}
+
+                            {canRemove && (
+                              <button
+                                type="button"
+                                className="btn-remove-vehicle-slot"
+                                onClick={() => handleRemoveVehicleAllocation(idx)}
+                                title="Remover esta viatura da missão"
+                              >
+                                <Trash2 size={13} />
+                                <span>Remover</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="vac-header-right">
-                          {selectedDriverObj && (
-                            <div className="vac-driver-header-pill">
-                              <span className="vdhp-label">Condutor:</span>
-                              <strong className="vdhp-name">{selectedDriverObj.name}</strong>
-                              {Boolean(selectedDriverObj.canDrive ?? selectedDriverObj.hasCnh) ? (
-                                <span className="vdhp-cnh-tag">🚗 CNH {selectedDriverObj.cnhCategory || 'B'}</span>
-                              ) : (
-                                <span className="vdhp-cnh-tag no-cnh">Sem CNH</span>
-                              )}
-                            </div>
-                          )}
-
-                          {canRemove && (
-                            <button
-                              type="button"
-                              className="btn-remove-vehicle-slot"
-                              onClick={() => handleRemoveVehicleAllocation(idx)}
-                              title="Remover esta viatura da missão"
+                        {/* DISPOSIÇÃO PERFEITAMENTE SIMÉTRICA E ALINHADA */}
+                        <div className="vac-controls-grid">
+                          <div className="form-group flex-1">
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <Car size={13} className="text-accent" />
+                              <span>Viatura Designada #{idx + 1}</span>
+                            </label>
+                            <select
+                              value={alloc.vehicleId}
+                              onChange={(e) => handleChangeAllocationVehicle(idx, e.target.value)}
+                              className={`vac-select-control ${vConflict ? 'vac-select-conflict' : ''}`}
                             >
-                              <Trash2 size={13} />
-                              <span>Remover</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                              <option value="">
+                                {vehicles.length === 0 ? 'Nenhuma viatura cadastrada no sistema' : '-- Selecione a viatura --'}
+                              </option>
+                              {vehicles.map((v) => {
+                                const vTel = computeVehicleFuelTelemetry(
+                                  v,
+                                  missions,
+                                  pricePerLiterVal,
+                                  editingMission?.id || null
+                                );
+                                const usedElsewhere = formData.vehicleAllocations.some(
+                                  (other, oIdx) => oIdx !== idx && other.vehicleId === v.id
+                                );
+                                const conflict = scheduleConflicts.vehicleConflicts[v.id];
+                                const isElecV = isElectricVehicle(v);
+                                const unitV = isElecV ? 'kWh' : 'L';
+                                const nounV = isElecV ? 'Bateria' : 'Tanque';
+                                const labelV = isElecV
+                                  ? '⚡ Elétrico'
+                                  : (v.fuelType || 'Gasolina').toLowerCase() === 'diesel'
+                                    ? '🛢️ Diesel'
+                                    : '⛽ Gasolina';
+                                return (
+                                  <option
+                                    key={v.id}
+                                    value={v.id}
+                                    style={conflict ? { color: '#f87171', fontWeight: 600 } : undefined}
+                                  >
+                                    {conflict ? '⚠️ [EM USO] ' : ''}{v.name} ({v.plate})
+                                    {conflict ? ` — Ocupada na missão ${conflict.code} (${conflict.timeRange})` : ''}
+                                    {!conflict ? ` • ${labelV} — ${nounV}: ${vTel.currentLiters}${unitV}/${vTel.tankCapacity}${unitV} (${vTel.currentPercent}%)` : ''}
+                                    {vTel.isReserveAlert ? (isElecV ? ' ⚠️ BATERIA BAIXA' : ' ⚠️ RESERVA') : ''}
+                                    {usedElsewhere ? ' (Em uso acima)' : ''}
+                                  </option>
+                                );
+                              })}
+                            </select>
 
-                      {/* DISPOSIÇÃO PERFEITAMENTE SIMÉTRICA E ALINHADA */}
-                      <div className="vac-controls-grid">
-                        <div className="form-group flex-1">
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Car size={13} className="text-accent" />
-                            <span>Viatura Designada #{idx + 1}</span>
-                          </label>
-                          <select
-                            value={alloc.vehicleId}
-                            onChange={(e) => handleChangeAllocationVehicle(idx, e.target.value)}
-                            className={`vac-select-control ${vConflict ? 'vac-select-conflict' : ''}`}
-                          >
-                            <option value="">
-                              {vehicles.length === 0 ? 'Nenhuma viatura cadastrada no sistema' : '-- Selecione a viatura --'}
-                            </option>
-                            {vehicles.map((v) => {
-                              const vTel = computeVehicleFuelTelemetry(
-                                v,
-                                missions,
-                                pricePerLiterVal,
-                                editingMission?.id || null
-                              );
-                              const usedElsewhere = formData.vehicleAllocations.some(
-                                (other, oIdx) => oIdx !== idx && other.vehicleId === v.id
-                              );
-                              const conflict = scheduleConflicts.vehicleConflicts[v.id];
-                              const isElecV = isElectricVehicle(v);
-                              const unitV = isElecV ? 'kWh' : 'L';
-                              const nounV = isElecV ? 'Bateria' : 'Tanque';
-                              const labelV = isElecV
-                                ? '⚡ Elétrico'
-                                : (v.fuelType || 'Gasolina').toLowerCase() === 'diesel'
-                                  ? '🛢️ Diesel'
-                                  : '⛽ Gasolina';
-                              return (
-                                <option
-                                  key={v.id}
-                                  value={v.id}
-                                  style={conflict ? { color: '#f87171', fontWeight: 600 } : undefined}
-                                >
-                                  {conflict ? '⚠️ [EM USO] ' : ''}{v.name} ({v.plate})
-                                  {conflict ? ` — Ocupada na missão ${conflict.code} (${conflict.timeRange})` : ''}
-                                  {!conflict ? ` • ${labelV} — ${nounV}: ${vTel.currentLiters}${unitV}/${vTel.tankCapacity}${unitV} (${vTel.currentPercent}%)` : ''}
-                                  {vTel.isReserveAlert ? (isElecV ? ' ⚠️ BATERIA BAIXA' : ' ⚠️ RESERVA') : ''}
-                                  {usedElsewhere ? ' (Em uso acima)' : ''}
-                                </option>
-                              );
-                            })}
-                          </select>
-
-                          {vConflict && (
-                            <div className="mm-conflict-banner mm-conflict-vehicle" style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '6px', padding: '8px 12px', marginTop: '6px' }}>
-                              <div className="mcb-icon" style={{ color: '#fbbf24' }}>
-                                <AlertTriangle size={15} />
+                            {vConflict && (
+                              <div className="mm-conflict-banner mm-conflict-vehicle" style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '6px', padding: '8px 12px', marginTop: '6px' }}>
+                                <div className="mcb-icon" style={{ color: '#fbbf24' }}>
+                                  <AlertTriangle size={15} />
+                                </div>
+                                <div className="mcb-content">
+                                  <strong className="mcb-title" style={{ color: '#fbbf24' }}>Viatura em Escala Compartilhada / Forçada</strong>
+                                  <p className="mcb-desc" style={{ color: '#cbd5e1' }}>
+                                    A viatura selecionada também atende à missão <strong>{vConflict.code} "{vConflict.description}"</strong> ({vConflict.timeRange}). Participação compartilhada autorizada pelo gestor.
+                                  </p>
+                                </div>
                               </div>
-                              <div className="mcb-content">
-                                <strong className="mcb-title" style={{ color: '#fbbf24' }}>Viatura em Escala Compartilhada / Forçada</strong>
-                                <p className="mcb-desc" style={{ color: '#cbd5e1' }}>
-                                  A viatura selecionada também atende à missão <strong>{vConflict.code} "{vConflict.description}"</strong> ({vConflict.timeRange}). Participação compartilhada autorizada pelo gestor.
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                            )}
+                          </div>
 
-                        <div className="form-group flex-1">
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Users size={13} className="text-cyan-bright" />
-                            <span>Condutor / Motorista #{idx + 1}</span>
-                          </label>
-                          <select
-                            value={alloc.driverId}
-                            onChange={(e) => handleChangeAllocationDriver(idx, e.target.value)}
-                            className={`vac-select-control driver-main-select ${dConflict ? 'vac-select-conflict' : ''}`}
-                          >
-                            <option value="">
-                              {members.length === 0 ? 'Nenhum colaborador cadastrado' : '-- Selecione o condutor --'}
-                            </option>
+                          <div className="form-group flex-1">
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <Users size={13} className="text-cyan-bright" />
+                              <span>Condutor / Motorista #{idx + 1}</span>
+                            </label>
+                            <select
+                              value={alloc.driverId}
+                              onChange={(e) => handleChangeAllocationDriver(idx, e.target.value)}
+                              className={`vac-select-control driver-main-select ${dConflict ? 'vac-select-conflict' : ''}`}
+                            >
+                              <option value="">
+                                {members.length === 0 ? 'Nenhum colaborador cadastrado' : '-- Selecione o condutor --'}
+                              </option>
 
-                            {habilitados.length > 0 && (
-                              <optgroup label="⭐ Motoristas Habilitados (Com CNH)">
-                                {habilitados.map((m) => {
+                              {habilitados.length > 0 && (
+                                <optgroup label="⭐ Motoristas Habilitados (Com CNH)">
+                                  {habilitados.map((m) => {
+                                    const dConf = scheduleConflicts.memberConflicts[m.id];
+                                    return (
+                                      <option
+                                        key={m.id}
+                                        value={m.id}
+                                        style={dConf ? { color: '#fbbf24', fontWeight: 600 } : undefined}
+                                      >
+                                        {dConf ? '⚠️ [OCUPADO] ' : ''}🚗 {m.name} — {m.role} ({m.company}) [CNH {m.cnhCategory || 'B'}]
+                                        {dConf ? ` (${dConf.role} na missão ${dConf.code} - ${dConf.timeRange})` : ''}
+                                      </option>
+                                    );
+                                  })}
+                                </optgroup>
+                              )}
+
+                              <optgroup label={habilitados.length > 0 ? "Demais Membros da Equipe" : "Todos os Colaboradores"}>
+                                {demaisMembros.map((m) => {
                                   const dConf = scheduleConflicts.memberConflicts[m.id];
                                   return (
                                     <option
@@ -3192,171 +3209,154 @@ export default function MissionModal({
                                       value={m.id}
                                       style={dConf ? { color: '#fbbf24', fontWeight: 600 } : undefined}
                                     >
-                                      {dConf ? '⚠️ [OCUPADO] ' : ''}🚗 {m.name} — {m.role} ({m.company}) [CNH {m.cnhCategory || 'B'}]
+                                      {dConf ? '⚠️ [OCUPADO] ' : ''}{m.name} — {m.role} ({m.company})
                                       {dConf ? ` (${dConf.role} na missão ${dConf.code} - ${dConf.timeRange})` : ''}
                                     </option>
                                   );
                                 })}
                               </optgroup>
-                            )}
+                            </select>
 
-                            <optgroup label={habilitados.length > 0 ? "Demais Membros da Equipe" : "Todos os Colaboradores"}>
-                              {demaisMembros.map((m) => {
-                                const dConf = scheduleConflicts.memberConflicts[m.id];
-                                return (
-                                  <option
-                                    key={m.id}
-                                    value={m.id}
-                                    style={dConf ? { color: '#fbbf24', fontWeight: 600 } : undefined}
-                                  >
-                                    {dConf ? '⚠️ [OCUPADO] ' : ''}{m.name} — {m.role} ({m.company})
-                                    {dConf ? ` (${dConf.role} na missão ${dConf.code} - ${dConf.timeRange})` : ''}
-                                  </option>
-                                );
-                              })}
-                            </optgroup>
-                          </select>
-
-                          {dConflict && (
-                            <div className="mm-conflict-banner mm-conflict-driver" style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '6px', padding: '8px 12px', marginTop: '6px' }}>
-                              <div className="mcb-icon" style={{ color: '#fbbf24' }}>
-                                <AlertTriangle size={15} />
-                              </div>
-                              <div className="mcb-content">
-                                <strong className="mcb-title" style={{ color: '#fbbf24' }}>Condutor em Escala Compartilhada / Forçada</strong>
-                                <p className="mcb-desc" style={{ color: '#cbd5e1' }}>
-                                  O colaborador selecionado também faz parte da missão <strong>{dConflict.code} "{dConflict.description}"</strong> ({dConflict.timeRange}). Atuação compartilhada autorizada pelo gestor.
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* TELEMETRIA MINUCIOSA DO TANQUE / BATERIA DESTA VIATURA NA MISSÃO */}
-                      {vehObj && bd && (() => {
-                        const isElecAlloc = isElectricVehicle(vehObj);
-                        const unitAlloc = isElecAlloc ? 'kWh' : 'L';
-                        const nounAlloc = isElecAlloc ? 'Bateria' : 'Tanque';
-                        const actionAlloc = isElecAlloc ? 'recarregar' : 'abastecer';
-
-                        return (
-                          <div
-                            className={`vac-fuel-telemetry-box ${bd.triggersReserveAlert ? 'vac-fuel-reserve-danger' : ''
-                              }`}
-                          >
-                            <div className="vft-top-row">
-                              <div className="vft-metric">
-                                <span>{nounAlloc} Antes da Missão</span>
-                                <strong>
-                                  {bd.litersBefore} {unitAlloc} / {bd.tankCapacity} {unitAlloc} ({bd.percentBefore}%)
-                                </strong>
-                                <small>Alcance máx 1 {nounAlloc.toLowerCase()}: {bd.maxTankRangeKm} km</small>
-                              </div>
-
-                              <div className="vft-metric vft-deduction">
-                                <span>Dedução desta Missão ({bd.km} km)</span>
-                                <strong>
-                                  -{bd.litersNeeded} {unitAlloc} (-{bd.percentOfTankUsed}%)
-                                </strong>
-                                <small>Custo: R$ {bd.totalCost.toFixed(2)}</small>
-                              </div>
-
-                              <div className="vft-metric">
-                                <span>{nounAlloc} Após a Missão</span>
-                                <strong
-                                  className={
-                                    bd.triggersReserveAlert ? 'text-danger-bright' : 'text-green-bright'
-                                  }
-                                >
-                                  {bd.litersAfter} {unitAlloc} / {bd.tankCapacity} {unitAlloc} ({bd.percentAfter}%)
-                                </strong>
-                                <small>Autonomia restante: ~{bd.remainingRangeAfterKm} km</small>
-                              </div>
-                            </div>
-
-                            {/* Barra Visual Antes -> Depois com Marcador de Reserva (10%) */}
-                            <div className="fuel-progress-bg" style={{ marginTop: 8 }}>
-                              <div
-                                className="fuel-reserve-marker"
-                                style={{ left: '10%' }}
-                                title={`Reserva / Bateria Crítica (10%)`}
-                              />
-                              <div
-                                className={`fuel-progress-fill ${bd.triggersReserveAlert ? 'fill-danger reserve-pulse' : 'fill-good'
-                                  }`}
-                                style={{ width: `${Math.min(100, Math.max(0, bd.percentAfter))}%` }}
-                              />
-                            </div>
-
-                            {/* Alertas */}
-                            {bd.exceedsCurrentAvailableFuel && (
-                              <div className="vft-deficit-alert">
-                                <AlertTriangle size={14} />
-                                <span>
-                                  <strong>{isElecAlloc ? 'Carga da bateria insuficiente para concluir sem recarregar:' : 'Combustível atual insuficiente para concluir sem abastecer:'}</strong>{' '}
-                                  Esta missão consome <strong>{bd.litersNeeded} {unitAlloc}</strong> e a viatura possui{' '}
-                                  <strong>{bd.litersBefore} {unitAlloc}</strong> no {nounAlloc.toLowerCase()}. Será necessário {actionAlloc} pelo menos{' '}
-                                  <strong>+{bd.deficitFromCurrentLiters} {unitAlloc}</strong> (Valor adicional:{' '}
-                                  <strong>+R$ {Number(bd.deficitFromCurrentCost || 0).toFixed(2)}</strong>).
-                                </span>
-                              </div>
-                            )}
-
-                            {bd.exceedsFullTankCapacity && (
-                              <div className="vft-excess-tank-alert">
-                                <Fuel size={14} />
-                                <span>
-                                  <strong>Ultrapassa 1 {nounAlloc.toLowerCase()} completo(a) ({bd.maxTankRangeKm} km):</strong>{' '}
-                                  Excedente além de 1 {nounAlloc.toLowerCase()}: <strong>+{bd.excessOverFullTankKm} km</strong> •{' '}
-                                  <strong>+{bd.excessOverFullTankLiters} {unitAlloc} (+{bd.excessOverFullTankPercent}% de 1 {nounAlloc.toLowerCase()})</strong> •{' '}
-                                  Valor Excedente: <strong>+R$ {Number(bd.excessOverFullTankCost || 0).toFixed(2)}</strong>.
-                                </span>
-                              </div>
-                            )}
-
-                            {bd.triggersReserveAlert && (
-                              <div className="vft-reserve-alert">
-                                <AlertTriangle size={14} />
-                                <span>
-                                  <strong>{isElecAlloc ? '⚡ ALERTA DE BATERIA BAIXA (≤ 10%):' : '🚨 ALERTA DE RESERVA DE COMBUSTÍVEL (≤ 10%):'}</strong> Após esta missão, {isElecAlloc ? 'a bateria' : 'o tanque'} ficará em{' '}
-                                  <strong>{bd.percentAfter}% ({bd.litersAfter} {unitAlloc})</strong> — sinalizando{' '}
-                                  <strong>{isElecAlloc ? 'recarga imediata' : 'abastecimento imediato'}</strong> da viatura!
-                                </span>
+                            {dConflict && (
+                              <div className="mm-conflict-banner mm-conflict-driver" style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '6px', padding: '8px 12px', marginTop: '6px' }}>
+                                <div className="mcb-icon" style={{ color: '#fbbf24' }}>
+                                  <AlertTriangle size={15} />
+                                </div>
+                                <div className="mcb-content">
+                                  <strong className="mcb-title" style={{ color: '#fbbf24' }}>Condutor em Escala Compartilhada / Forçada</strong>
+                                  <p className="mcb-desc" style={{ color: '#cbd5e1' }}>
+                                    O colaborador selecionado também faz parte da missão <strong>{dConflict.code} "{dConflict.description}"</strong> ({dConflict.timeRange}). Atuação compartilhada autorizada pelo gestor.
+                                  </p>
+                                </div>
                               </div>
                             )}
                           </div>
-                        );
-                      })()}
+                        </div>
 
-                      <div className="driver-quick-chips">
-                        <span className="driver-chips-label">Atribuição Rápida de Condutor:</span>
-                        {[...habilitados, ...demaisMembros].map((m) => {
-                          const isThisDriver = alloc.driverId === m.id;
-                          const isHabilitado = Boolean(m.canDrive ?? m.hasCnh);
+                        {/* TELEMETRIA MINUCIOSA DO TANQUE / BATERIA DESTA VIATURA NA MISSÃO */}
+                        {vehObj && bd && (() => {
+                          const isElecAlloc = isElectricVehicle(vehObj);
+                          const unitAlloc = isElecAlloc ? 'kWh' : 'L';
+                          const nounAlloc = isElecAlloc ? 'Bateria' : 'Tanque';
+                          const actionAlloc = isElecAlloc ? 'recarregar' : 'abastecer';
+
                           return (
-                            <button
-                              key={m.id}
-                              type="button"
-                              className={`driver-quick-chip ${isThisDriver ? 'active' : ''} ${isHabilitado ? 'chip-habilitado' : ''}`}
-                              onClick={() =>
-                                handleChangeAllocationDriver(idx, isThisDriver ? '' : m.id)
-                              }
-                              title={isHabilitado ? `Habilitado a conduzir • CNH ${m.cnhCategory || 'B'}` : 'Sem CNH registrada'}
+                            <div
+                              className={`vac-fuel-telemetry-box ${bd.triggersReserveAlert ? 'vac-fuel-reserve-danger' : ''
+                                }`}
                             >
-                              <Car size={11} className={isHabilitado ? 'text-cyan-bright' : ''} />
-                              <span>{m.name}</span>
-                              {isHabilitado && <small className="chip-cnh-tag">CNH {m.cnhCategory || 'B'}</small>}
-                              {isThisDriver && <Check size={11} />}
-                            </button>
+                              <div className="vft-top-row">
+                                <div className="vft-metric">
+                                  <span>{nounAlloc} Antes da Missão</span>
+                                  <strong>
+                                    {bd.litersBefore} {unitAlloc} / {bd.tankCapacity} {unitAlloc} ({bd.percentBefore}%)
+                                  </strong>
+                                  <small>Alcance máx 1 {nounAlloc.toLowerCase()}: {bd.maxTankRangeKm} km</small>
+                                </div>
+
+                                <div className="vft-metric vft-deduction">
+                                  <span>Dedução desta Missão ({bd.km} km)</span>
+                                  <strong>
+                                    -{bd.litersNeeded} {unitAlloc} (-{bd.percentOfTankUsed}%)
+                                  </strong>
+                                  <small>Custo: R$ {bd.totalCost.toFixed(2)}</small>
+                                </div>
+
+                                <div className="vft-metric">
+                                  <span>{nounAlloc} Após a Missão</span>
+                                  <strong
+                                    className={
+                                      bd.triggersReserveAlert ? 'text-danger-bright' : 'text-green-bright'
+                                    }
+                                  >
+                                    {bd.litersAfter} {unitAlloc} / {bd.tankCapacity} {unitAlloc} ({bd.percentAfter}%)
+                                  </strong>
+                                  <small>Autonomia restante: ~{bd.remainingRangeAfterKm} km</small>
+                                </div>
+                              </div>
+
+                              {/* Barra Visual Antes -> Depois com Marcador de Reserva (10%) */}
+                              <div className="fuel-progress-bg" style={{ marginTop: 8 }}>
+                                <div
+                                  className="fuel-reserve-marker"
+                                  style={{ left: '10%' }}
+                                  title={`Reserva / Bateria Crítica (10%)`}
+                                />
+                                <div
+                                  className={`fuel-progress-fill ${bd.triggersReserveAlert ? 'fill-danger reserve-pulse' : 'fill-good'
+                                    }`}
+                                  style={{ width: `${Math.min(100, Math.max(0, bd.percentAfter))}%` }}
+                                />
+                              </div>
+
+                              {/* Alertas */}
+                              {bd.exceedsCurrentAvailableFuel && (
+                                <div className="vft-deficit-alert">
+                                  <AlertTriangle size={14} />
+                                  <span>
+                                    <strong>{isElecAlloc ? 'Carga da bateria insuficiente para concluir sem recarregar:' : 'Combustível atual insuficiente para concluir sem abastecer:'}</strong>{' '}
+                                    Esta missão consome <strong>{bd.litersNeeded} {unitAlloc}</strong> e a viatura possui{' '}
+                                    <strong>{bd.litersBefore} {unitAlloc}</strong> no {nounAlloc.toLowerCase()}. Será necessário {actionAlloc} pelo menos{' '}
+                                    <strong>+{bd.deficitFromCurrentLiters} {unitAlloc}</strong> (Valor adicional:{' '}
+                                    <strong>+R$ {Number(bd.deficitFromCurrentCost || 0).toFixed(2)}</strong>).
+                                  </span>
+                                </div>
+                              )}
+
+                              {bd.exceedsFullTankCapacity && (
+                                <div className="vft-excess-tank-alert">
+                                  <Fuel size={14} />
+                                  <span>
+                                    <strong>Ultrapassa 1 {nounAlloc.toLowerCase()} completo(a) ({bd.maxTankRangeKm} km):</strong>{' '}
+                                    Excedente além de 1 {nounAlloc.toLowerCase()}: <strong>+{bd.excessOverFullTankKm} km</strong> •{' '}
+                                    <strong>+{bd.excessOverFullTankLiters} {unitAlloc} (+{bd.excessOverFullTankPercent}% de 1 {nounAlloc.toLowerCase()})</strong> •{' '}
+                                    Valor Excedente: <strong>+R$ {Number(bd.excessOverFullTankCost || 0).toFixed(2)}</strong>.
+                                  </span>
+                                </div>
+                              )}
+
+                              {bd.triggersReserveAlert && (
+                                <div className="vft-reserve-alert">
+                                  <AlertTriangle size={14} />
+                                  <span>
+                                    <strong>{isElecAlloc ? '⚡ ALERTA DE BATERIA BAIXA (≤ 10%):' : '🚨 ALERTA DE RESERVA DE COMBUSTÍVEL (≤ 10%):'}</strong> Após esta missão, {isElecAlloc ? 'a bateria' : 'o tanque'} ficará em{' '}
+                                    <strong>{bd.percentAfter}% ({bd.litersAfter} {unitAlloc})</strong> — sinalizando{' '}
+                                    <strong>{isElecAlloc ? 'recarga imediata' : 'abastecimento imediato'}</strong> da viatura!
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           );
-                        })}
+                        })()}
+
+                        <div className="driver-quick-chips">
+                          <span className="driver-chips-label">Atribuição Rápida de Condutor:</span>
+                          {[...habilitados, ...demaisMembros].map((m) => {
+                            const isThisDriver = alloc.driverId === m.id;
+                            const isHabilitado = Boolean(m.canDrive ?? m.hasCnh);
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                className={`driver-quick-chip ${isThisDriver ? 'active' : ''} ${isHabilitado ? 'chip-habilitado' : ''}`}
+                                onClick={() =>
+                                  handleChangeAllocationDriver(idx, isThisDriver ? '' : m.id)
+                                }
+                                title={isHabilitado ? `Habilitado a conduzir • CNH ${m.cnhCategory || 'B'}` : 'Sem CNH registrada'}
+                              >
+                                <Car size={11} className={isHabilitado ? 'text-cyan-bright' : ''} />
+                                <span>{m.name}</span>
+                                {isHabilitado && <small className="chip-cnh-tag">CNH {m.cnhCategory || 'B'}</small>}
+                                {isThisDriver && <Check size={11} />}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
+                    );
+                  });
+                })()}
+              </div>
             )}
           </div>
 

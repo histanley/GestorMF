@@ -4036,7 +4036,7 @@ export default function ServiceBoard({
                 <div className="mdm-footer-actions">
                   <button
                     type="button"
-                    className="btn-mdm-action btn-mdm-whatsapp btn-whatsapp-share"
+                    className="btn-mdm-action btn-mdm-whatsapp"
                     onClick={() => setWhatsappShareMission(detailMission)}
                     title="Compartilhar informações da missão por WhatsApp"
                   >
@@ -4046,7 +4046,7 @@ export default function ServiceBoard({
 
                   <button
                     type="button"
-                    className="btn-mdm-action btn-mdm-history btn-secondary"
+                    className="btn-mdm-action btn-mdm-history"
                     onClick={() => {
                       const m = detailMission;
                       setSelectedHistoryMission(m);
@@ -4059,7 +4059,7 @@ export default function ServiceBoard({
 
                   <button
                     type="button"
-                    className="btn-mdm-action btn-mdm-map btn-secondary"
+                    className="btn-mdm-action btn-mdm-map"
                     onClick={() => {
                       const id = detailMission.id;
                       setSelectedDetailMissionId(null);
@@ -4077,7 +4077,7 @@ export default function ServiceBoard({
                       return (
                         <button
                           type="button"
-                          className="btn-mdm-action btn-mdm-edit btn-primary"
+                          className="btn-mdm-action btn-mdm-edit"
                           onClick={() => {
                             const m = detailMission;
                             setSelectedDetailMissionId(null);
@@ -4093,8 +4093,7 @@ export default function ServiceBoard({
                     if (canEditMission && isFinalizada) {
                       return (
                         <span
-                          className="btn-mdm-action btn-mdm-locked btn-secondary"
-                          style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                          className="btn-mdm-action btn-mdm-locked"
                           title="Missão finalizada e encerrada (edição exclusiva para Administradores)"
                         >
                           <Lock size={14} />
@@ -4108,7 +4107,7 @@ export default function ServiceBoard({
                   {canDeleteMission && (
                     <button
                       type="button"
-                      className="btn-mdm-action btn-mdm-delete btn-danger-outline"
+                      className="btn-mdm-action btn-mdm-delete"
                       onClick={() => {
                         const id = detailMission.id;
                         setSelectedDetailMissionId(null);
@@ -4123,7 +4122,7 @@ export default function ServiceBoard({
 
                   <button
                     type="button"
-                    className="btn-mdm-action btn-mdm-close btn-secondary btn-close-modal-footer"
+                    className="btn-mdm-action btn-mdm-close"
                     onClick={() => setSelectedDetailMissionId(null)}
                     title="Fechar Ficha da Missão"
                   >
