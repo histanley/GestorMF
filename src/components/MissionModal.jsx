@@ -745,6 +745,21 @@ export default function MissionModal({
         description: newDesc,
         destinationName: prev.destinationName || loc,
       }));
+    } else {
+      // Quando alterna para Outra Missão / Pauta Livre:
+      // Limpa automaticamente a descrição se continha texto gerado do Totem para não obrigar o usuário a apagar manualmente
+      setFormData((prev) => {
+        const descUpper = (prev.description || '').trim().toUpperCase();
+        const wasTotemGenerated =
+          descUpper.startsWith('TOTEM FOTOGRÁFICO') ||
+          descUpper.startsWith('TOTEM FOTOGRAFICO') ||
+          descUpper === 'TOTEM';
+        return {
+          ...prev,
+          description: wasTotemGenerated ? '' : prev.description,
+        };
+      });
+      setTotemLocation('');
     }
   };
 
