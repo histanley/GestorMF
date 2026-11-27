@@ -1091,8 +1091,18 @@ export default function ServiceBoard({
                     {/* 4. EQUIPE ESCALADA */}
                     <td className="pcol-team">
                       <div className="equipe-cell-compact">
-                        {(teamList.length > 0 || (Array.isArray(mission.guests) && mission.guests.length > 0)) ? (
+                        {(teamList.length > 0 || (Array.isArray(mission.guests) && mission.guests.length > 0) || mission.transportType === 'client_vehicle') ? (
                           <div className="equipe-compact-wrap">
+                            {mission.transportType === 'client_vehicle' && (
+                              <span
+                                key="pmem-client-driver"
+                                className="member-tag-compact is-driver-first is-client-driver"
+                              >
+                                <span className="driver-badge-inline">🤝</span>
+                                <span className="member-name-full">Motorista do Contratante</span>
+                                <span className="driver-role-tag">Motorista</span>
+                              </span>
+                            )}
                             {teamList.map((mem, i) => {
                               const isDriver = isMemberMissionDriver(
                                 mem,
@@ -1785,11 +1795,24 @@ export default function ServiceBoard({
                           </div>
                         </td>
 
-                        {/* 4. EQUIPE ESCALADA (MOTORISTA SEMPRE EM 1º LUGAR E EM DESTAQUE) */}
+                        {/* 4. EQUIPE ESCALADA (MOTORISTA SEMPRE EM 1º LUGAR E EM DESTAQUE NO TOPO) */}
                         <td className="col-equipe">
                           <div className="equipe-cell-compact">
-                            {(teamList.length > 0 || (Array.isArray(mission.guests) && mission.guests.length > 0)) ? (
+                            {(teamList.length > 0 || (Array.isArray(mission.guests) && mission.guests.length > 0) || mission.transportType === 'client_vehicle') ? (
                               <div className="equipe-compact-wrap">
+                                {/* Motorista do Contratante sempre no topo se a condução for da viatura do cliente */}
+                                {mission.transportType === 'client_vehicle' && (
+                                  <span
+                                    className="member-tag-compact is-driver-first is-client-driver"
+                                    title="Viatura e motorista pertencem ao contratante. O colaborador vai exclusivamente como integrante técnico da missão."
+                                  >
+                                    <span className="driver-badge-inline" title="Condutor da Viatura do Contratante">
+                                      🤝
+                                    </span>
+                                    <span className="member-name-full">Motorista do Contratante</span>
+                                    <span className="driver-role-tag">Motorista</span>
+                                  </span>
+                                )}
                                 {teamList.map((mem, i) => {
                                   const isDriver = isMemberMissionDriver(
                                     mem,
@@ -1848,24 +1871,6 @@ export default function ServiceBoard({
                               </div>
                             ) : (
                               <span className="unassigned-badge">Sem equipe</span>
-                            )}
-                            {mission.transportType === 'client_vehicle' && (
-                              <div style={{ marginTop: '5px' }}>
-                                <span style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  fontSize: '0.69rem',
-                                  fontWeight: 700,
-                                  color: '#34d399',
-                                  background: 'rgba(16, 185, 129, 0.1)',
-                                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                                  padding: '2px 7px',
-                                  borderRadius: '4px'
-                                }} title="Viatura e motorista pertencem ao contratante. O colaborador vai exclusivamente como integrante técnico da missão.">
-                                  🤝 Condução: Motorista do Contratante
-                                </span>
-                              </div>
                             )}
                           </div>
                         </td>
@@ -2597,8 +2602,16 @@ export default function ServiceBoard({
                         <span>Equipe Escalada em Campo:</span>
                       </div>
                       <div className="mmc-team-chips">
-                        {/* Motorista em destaque */}
-                        {driverInfo && !driverInfo.isClientDriver && !driverInfo.isNoVehicle && (
+                        {/* Motorista do Contratante SEMPRE no topo */}
+                        {mission.transportType === 'client_vehicle' && (
+                          <span className="mmc-member-chip is-driver is-client-driver" title="Viatura e condução pertencem à equipe do Contratante">
+                            <span className="mmc-driver-wheel">🤝</span>
+                            <strong>Motorista do Contratante</strong>
+                            <span className="mmc-role-tag">Motorista</span>
+                          </span>
+                        )}
+                        {/* Motorista em destaque da viatura da empresa */}
+                        {mission.transportType !== 'client_vehicle' && driverInfo && !driverInfo.isNoVehicle && (
                           <span className="mmc-member-chip is-driver">
                             <span className="mmc-driver-wheel">🛞</span>
                             <strong>{driverInfo.name}</strong>
@@ -2627,24 +2640,6 @@ export default function ServiceBoard({
                           );
                         })}
                       </div>
-                      {mission.transportType === 'client_vehicle' && (
-                        <div style={{ marginTop: '6px' }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '0.70rem',
-                            fontWeight: 700,
-                            color: '#34d399',
-                            background: 'rgba(16, 185, 129, 0.1)',
-                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                            padding: '2px 7px',
-                            borderRadius: '4px'
-                          }}>
-                            🤝 Condução por conta do Contratante (Colaborador é integrante técnico)
-                          </span>
-                        </div>
-                      )}
                     </div>
 
                     {/* 6. VIATURA, TANQUE & CONSUMO */}
@@ -3475,8 +3470,23 @@ export default function ServiceBoard({
                     </span>
                   </div>
 
-                  {teamMembers.length > 0 ? (
+                  {(teamMembers.length > 0 || detailMission.transportType === 'client_vehicle') ? (
                     <div className="mdm-team-grid">
+                      {/* Motorista do Contratante SEMPRE no topo */}
+                      {detailMission.transportType === 'client_vehicle' && (
+                        <div className="mdm-team-member-card is-driver is-client-driver">
+                          <div className="mdm-tm-avatar" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            🤝
+                          </div>
+                          <div className="mdm-tm-info">
+                            <div className="mdm-tm-name-row">
+                              <strong>Motorista do Contratante</strong>
+                              <span className="mdm-tm-driver-pill" style={{ background: 'rgba(16, 185, 129, 0.2)', borderColor: 'rgba(52, 211, 153, 0.5)', color: '#6ee7b7' }}>🤝 Motorista</span>
+                            </div>
+                            <span className="mdm-tm-role">Equipe do Contratante (Condução da Viatura)</span>
+                          </div>
+                        </div>
+                      )}
                       {teamMembers.map((mem, idx) => {
                         const isDriver =
                           detailMission.transportType !== 'client_vehicle' &&

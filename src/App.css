@@ -12441,6 +12441,52 @@ body.light-theme .vehicle-card.card-reserve-alert {
   box-shadow: 0 2px 10px rgba(245, 158, 11, 0.16);
 }
 
+.member-tag-compact.is-driver-first.is-client-driver {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.14) 100%) !important;
+  border: 1.5px solid rgba(52, 211, 153, 0.65) !important;
+  color: #a7f3d0 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.16) !important;
+}
+
+.member-tag-compact.is-driver-first.is-client-driver .driver-role-tag {
+  background: rgba(16, 185, 129, 0.28) !important;
+  border: 1px solid rgba(52, 211, 153, 0.5) !important;
+  color: #6ee7b7 !important;
+}
+
+body.light-theme .member-tag-compact.is-driver-first.is-client-driver,
+[data-theme='light'] .member-tag-compact.is-driver-first.is-client-driver {
+  background: #f0fdf4 !important;
+  border: 1.5px solid #10b981 !important;
+  color: #065f46 !important;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.15) !important;
+}
+
+body.light-theme .member-tag-compact.is-driver-first.is-client-driver .driver-role-tag,
+[data-theme='light'] .member-tag-compact.is-driver-first.is-client-driver .driver-role-tag {
+  background: #d1fae5 !important;
+  border: 1px solid #a7f3d0 !important;
+  color: #065f46 !important;
+}
+
+.mmc-member-chip.is-driver.is-client-driver {
+  background: rgba(16, 185, 129, 0.18) !important;
+  border: 1px solid rgba(52, 211, 153, 0.55) !important;
+  color: #a7f3d0 !important;
+}
+
+.mmc-member-chip.is-driver.is-client-driver .mmc-role-tag {
+  background: rgba(16, 185, 129, 0.28) !important;
+  border: 1px solid rgba(52, 211, 153, 0.5) !important;
+  color: #6ee7b7 !important;
+}
+
+.mdm-team-member-card.is-driver.is-client-driver {
+  border-color: rgba(52, 211, 153, 0.6) !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(5, 150, 105, 0.08) 100%) !important;
+}
+
 .driver-role-tag {
   font-size: 0.58rem;
   font-weight: 800;

@@ -815,8 +815,23 @@ export default function MissionDetailModal({
                 </span>
               </div>
 
-              {teamMembers.length > 0 ? (
+              {(teamMembers.length > 0 || mission.transportType === 'client_vehicle') ? (
                 <div className="mdm-team-grid">
+                  {/* Motorista do Contratante SEMPRE no topo */}
+                  {mission.transportType === 'client_vehicle' && (
+                    <div className="mdm-team-member-card is-driver is-client-driver">
+                      <div className="mdm-tm-avatar" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        🤝
+                      </div>
+                      <div className="mdm-tm-info">
+                        <div className="mdm-tm-name-row">
+                          <strong>Motorista do Contratante</strong>
+                          <span className="mdm-tm-driver-pill" style={{ background: 'rgba(16, 185, 129, 0.2)', borderColor: 'rgba(52, 211, 153, 0.5)', color: '#6ee7b7' }}>🤝 Motorista</span>
+                        </div>
+                        <span className="mdm-tm-role">Equipe do Contratante (Condução da Viatura)</span>
+                      </div>
+                    </div>
+                  )}
                   {teamMembers.map((mem, idx) => {
                     const isDriver =
                       mission.transportType !== 'client_vehicle' &&
