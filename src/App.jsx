@@ -35,6 +35,7 @@ import {
   Zap,
   User,
   Camera,
+  Printer,
 } from 'lucide-react';
 
 import MapView from './components/MapView';
@@ -44,6 +45,7 @@ import TeamManager from './components/TeamManager';
 import AdminCenter from './components/AdminCenter';
 import CollaboratorSpace from './components/CollaboratorSpace';
 import EquipmentRentalManager from './components/EquipmentRentalManager';
+import MegaPrintManager from './components/MegaPrintManager';
 import SmartHeaderGreeting from './components/SmartHeaderGreeting';
 import MissionModal from './components/MissionModal';
 import MissionDetailModal from './components/MissionDetailModal';
@@ -211,25 +213,8 @@ export default function App() {
   // Administradores e Gestores podem enviar mensagens e comunicados (para todos ou individual)
   const canSendMessage = userRole === ROLES.ADMIN || userRole === ROLES.MANAGER;
 
-  // Estado de Navegação de Abas: 'map' (Mapa), 'board' (Tabela de Serviço), 'vehicles' (Viaturas), 'teams' (Equipes), 'rentals' (Aluguéis)
+  // Estado de Navegação de Abas: 'map' (Mapa), 'board' (Tabela de Serviço), 'vehicles' (Viaturas), 'teams' (Equipes), 'rentals' (Aluguéis), 'megaprint' (Mega Print Comercial)
   const [activeTab, setActiveTab] = useState('map');
-
-  // Protege e direciona abas conforme permissões:
-  // Administradores usam 'admin' (Central do Admin); Colaboradores usam 'me' (Meu Espaço)
-  useEffect(() => {
-    if (isAdminUser && activeTab === 'me') {
-      setActiveTab('admin');
-    }
-    if (!isAdminUser && activeTab === 'admin') {
-      setActiveTab('me');
-    }
-    if (!canManageFleetAndTeams && (activeTab === 'vehicles' || activeTab === 'teams')) {
-      setActiveTab('map');
-    }
-    if (!canManageRentals && activeTab === 'rentals') {
-      setActiveTab(isAdminUser ? 'admin' : 'me');
-    }
-  }, [isAdminUser, canManageFleetAndTeams, canManageRentals, activeTab]);
 
   // Estado do Tema (Modo Escuro / Modo Claro) persistente no LocalStorage
   const [theme, setTheme] = useState(() => {
@@ -299,6 +284,48 @@ export default function App() {
     const saved = localStorage.getItem('gestormf_members');
     return saved ? JSON.parse(saved) : INITIAL_MEMBERS;
   });
+
+  // Identificação do colaborador atual vinculado ao usuário logado
+  const currentMember = useMemo(() => {
+    if (!currentUser) return null;
+    return (
+      members.find(
+        (m) =>
+          (currentUser.memberId && String(m.id) === String(currentUser.memberId)) ||
+          (currentUser.id && (String(m.userId) === String(currentUser.id) || String(m.id) === String(currentUser.id))) ||
+          (m.name && currentUser.name && m.name.trim().toLowerCase() === currentUser.name.trim().toLowerCase())
+      ) || null
+    );
+  }, [members, currentUser]);
+
+  // Detecção de vínculo com a empresa Mega Print
+  const isMegaPrintMember = useMemo(() => {
+    const compUser = String(currentUser?.company || '').toLowerCase();
+    const compMember = String(currentMember?.company || '').toLowerCase();
+    return compUser.includes('print') || compMember.includes('print');
+  }, [currentUser, currentMember]);
+
+  // Apenas colaboradores da Mega Print e Administradores possuem acesso ao módulo comercial Mega Print
+  const canAccessMegaPrint = isAdminUser || isMegaPrintMember;
+
+  // Protege e direciona abas conforme permissões:
+  useEffect(() => {
+    if (isAdminUser && activeTab === 'me') {
+      setActiveTab('admin');
+    }
+    if (!isAdminUser && activeTab === 'admin') {
+      setActiveTab('me');
+    }
+    if (!canManageFleetAndTeams && (activeTab === 'vehicles' || activeTab === 'teams')) {
+      setActiveTab('map');
+    }
+    if (!canManageRentals && activeTab === 'rentals') {
+      setActiveTab(isAdminUser ? 'admin' : 'me');
+    }
+    if (!canAccessMegaPrint && activeTab === 'megaprint') {
+      setActiveTab(isAdminUser ? 'admin' : 'map');
+    }
+  }, [isAdminUser, canManageFleetAndTeams, canManageRentals, canAccessMegaPrint, activeTab]);
 
   const [roles, setRoles] = useState(() => {
     const saved = localStorage.getItem('gestormf_roles');
@@ -2683,6 +2710,21 @@ export default function App() {
             </button>
           )}
 
+          {/* Módulo Comercial Mega Print: Apenas Colaboradores Mega Print e Administradores */}
+          {canAccessMegaPrint && (
+            <button
+              className={`tab-btn tab-btn-megaprint ${activeTab === 'megaprint' ? 'active' : ''}`}
+              onClick={() => setActiveTab('megaprint')}
+              title="Mega Print Comercial: Orçamentos, Vendas e Pedidos"
+            >
+              <span className="tab-icon-box">
+                <Printer size={15} />
+              </span>
+              <span className="tab-label">Mega Print</span>
+              <span className="tab-badge tab-badge-orange">Vendas</span>
+            </button>
+          )}
+
           {/* Se for ADMINISTRADOR: Exibe a Central ADM e NÃO exibe Meu Espaço */}
           {isAdminUser ? (
             <button
@@ -2916,6 +2958,16 @@ export default function App() {
                 >
                   <Camera size={18} />
                   <span>Aluguel de Equipamentos</span>
+                </button>
+              )}
+
+              {canAccessMegaPrint && (
+                <button
+                  className={`md-nav-item ${activeTab === 'megaprint' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('megaprint'); setIsMobileDrawerOpen(false); }}
+                >
+                  <Printer size={18} />
+                  <span>Mega Print (Vendas)</span>
                 </button>
               )}
 
@@ -3521,6 +3573,11 @@ export default function App() {
         {/* ABA 7: ALUGUEL DE EQUIPAMENTOS (Apenas Gestores e Administradores) */}
         {activeTab === 'rentals' && canManageRentals && (
           <EquipmentRentalManager currentUser={currentUser} />
+        )}
+
+        {/* ABA 8: MEGA PRINT COMERCIAL (VENDAS, ORÇAMENTOS E PRODUÇÃO) */}
+        {activeTab === 'megaprint' && canAccessMegaPrint && (
+          <MegaPrintManager currentUser={currentUser} members={members} />
         )}
       </main>
 

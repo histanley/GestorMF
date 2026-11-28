@@ -666,4 +666,68 @@ export async function apiDismissAllMessages() {
   });
 }
 
+// ==============================================================================
+// 13. SISTEMA COMERCIAL MEGA PRINT (ORÇAMENTOS, VENDAS, PRODUTOS & CLIENTES)
+// ==============================================================================
+export async function apiGetMegaPrintData() {
+  return await apiRequest('/megaprint.php?action=bootstrap');
+}
+
+export async function apiSaveMegaPrintQuote(quoteData) {
+  return await apiRequest('/megaprint.php?action=save_quote', {
+    method: 'POST',
+    body: JSON.stringify(quoteData),
+  });
+}
+
+export async function apiDeleteMegaPrintQuote(quoteId) {
+  return await apiRequest('/megaprint.php?action=delete_quote', {
+    method: 'POST',
+    body: JSON.stringify({ id: quoteId }),
+  });
+}
+
+export async function apiConvertQuoteToSale(quoteId, extraData = {}) {
+  return await apiRequest('/megaprint.php?action=convert_to_sale', {
+    method: 'POST',
+    body: JSON.stringify({ quote_id: quoteId, ...extraData }),
+  });
+}
+
+export async function apiUpdateSaleStatus(saleId, statusData = {}) {
+  return await apiRequest('/megaprint.php?action=update_sale_status', {
+    method: 'POST',
+    body: JSON.stringify({ id: saleId, ...statusData }),
+  });
+}
+
+export async function apiDeleteMegaPrintSale(saleId) {
+  return await apiRequest('/megaprint.php?action=delete_sale', {
+    method: 'POST',
+    body: JSON.stringify({ id: saleId }),
+  });
+}
+
+export async function apiSaveMegaPrintItem(itemData) {
+  return await apiRequest('/megaprint.php?action=save_item', {
+    method: 'POST',
+    body: JSON.stringify(itemData),
+  });
+}
+
+export async function apiDeleteMegaPrintItem(itemId) {
+  return await apiRequest('/megaprint.php?action=delete_item', {
+    method: 'POST',
+    body: JSON.stringify({ id: itemId }),
+  });
+}
+
+export async function apiSaveMegaPrintClient(clientData) {
+  return await apiRequest('/megaprint.php?action=save_client', {
+    method: 'POST',
+    body: JSON.stringify(clientData),
+  });
+}
+
+
 
