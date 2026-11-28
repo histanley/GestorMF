@@ -49,6 +49,30 @@ import {
   apiSaveMegaPrintClient
 } from '../utils/api';
 import { alertDialog, confirmDialog } from '../utils/dialog';
+import { formatPhoneBR, formatCpfCnpj } from '../utils/rentalsData';
+import MegaPrintProposalModal from './MegaPrintProposalModal';
+
+const PAYMENT_PRESETS = [
+  '50% no Pedido + 50% na Entrega / Retirada',
+  '50% entrada + 50% na retirada',
+  'À Vista no Pix (com desconto)',
+  '100% no Pedido (Antecipado)',
+  'Entrada + Cartão de Crédito até 3x sem juros',
+  'Cartão de Crédito 1x (Débito ou Crédito)',
+  'Cartão de Crédito em até 10x',
+  'Faturado para Empresa (Boleto 15 dias)',
+  'Faturado para Empresa (Boleto 30 dias)',
+];
+
+const DEADLINE_PRESETS = [
+  '2 a 3 dias úteis após aprovação da arte',
+  '24 a 48 Horas (Produção Express / Urgente)',
+  '3 a 5 dias úteis após aprovação',
+  '5 a 7 dias úteis (Comunicação Visual Estrutural)',
+  '7 a 10 dias úteis (Projetos Especiais / Fachadas)',
+  'Pronta Entrega / Imediato',
+  'A combinar com o Cliente',
+];
 
 function formatDateBR(dateStr) {
   if (!dateStr) return '';
@@ -80,6 +104,8 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
   // Modal de Criação / Edição de Orçamento
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [editingQuote, setEditingQuote] = useState(null);
+  const [isCustomPayment, setIsCustomPayment] = useState(false);
+  const [isCustomDeadline, setIsCustomDeadline] = useState(false);
 
   // Modal de Visualização & Impressão do Orçamento
   const [previewQuote, setPreviewQuote] = useState(null);
@@ -232,24 +258,30 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
   const handleOpenNewQuote = (quoteToEdit = null) => {
     if (quoteToEdit) {
       setEditingQuote(quoteToEdit);
+      const isCustomPay = quoteToEdit.payment_method && !PAYMENT_PRESETS.includes(quoteToEdit.payment_method);
+      const isCustomDead = quoteToEdit.delivery_deadline && !DEADLINE_PRESETS.includes(quoteToEdit.delivery_deadline);
+      setIsCustomPayment(Boolean(isCustomPay));
+      setIsCustomDeadline(Boolean(isCustomDead));
       setQuoteForm({
         id: quoteToEdit.id,
         code: quoteToEdit.code,
         client_name: quoteToEdit.client_name || '',
-        client_phone: quoteToEdit.client_phone || '',
+        client_phone: formatPhoneBR(quoteToEdit.client_phone || ''),
         client_email: quoteToEdit.client_email || '',
-        client_document: quoteToEdit.client_document || '',
+        client_document: formatCpfCnpj(quoteToEdit.client_document || ''),
         seller_name: quoteToEdit.seller_name || currentUser?.name || 'Mega Print',
         issue_date: quoteToEdit.issue_date || new Date().toISOString().split('T')[0],
         expiry_date: quoteToEdit.expiry_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        payment_method: quoteToEdit.payment_method || '50% entrada + 50% na retirada',
-        delivery_deadline: quoteToEdit.delivery_deadline || '2 a 3 dias úteis',
+        payment_method: quoteToEdit.payment_method || '50% no Pedido + 50% na Entrega / Retirada',
+        delivery_deadline: quoteToEdit.delivery_deadline || '2 a 3 dias úteis após aprovação da arte',
         notes: quoteToEdit.notes || '',
         discount: quoteToEdit.discount || 0,
         items: Array.isArray(quoteToEdit.items) ? [...quoteToEdit.items] : []
       });
     } else {
       setEditingQuote(null);
+      setIsCustomPayment(false);
+      setIsCustomDeadline(false);
       setQuoteForm({
         id: '',
         client_name: '',
@@ -259,7 +291,7 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
         seller_name: currentUser?.name || 'Mega Print',
         issue_date: new Date().toISOString().split('T')[0],
         expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        payment_method: '50% entrada + 50% na retirada',
+        payment_method: '50% no Pedido + 50% na Entrega / Retirada',
         delivery_deadline: '2 a 3 dias úteis após aprovação da arte',
         notes: '',
         discount: 0,
@@ -1283,7 +1315,7 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
       {/* MODAL 1: CRIAR / EDITAR ORÇAMENTO (COM CALCULADOR M² E UNIDADE) */}
       {/* ============================================================== */}
       {isQuoteModalOpen && (
-        <div className="mp-modal-overlay" onClick={() => setIsQuoteModalOpen(false)}>
+        <div className="mp-modal-overlay">
           <div className="mp-modal-card mp-quote-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="mp-modal-header">
               <div className="mp-modal-title">
@@ -1323,7 +1355,7 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
                       type="text"
                       placeholder="(95) 99999-9999"
                       value={quoteForm.client_phone}
-                      onChange={(e) => setQuoteForm({ ...quoteForm, client_phone: e.target.value })}
+                      onChange={(e) => setQuoteForm({ ...quoteForm, client_phone: formatPhoneBR(e.target.value) })}
                     />
                   </div>
 
@@ -1331,9 +1363,9 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
                     <label>CPF / CNPJ</label>
                     <input
                       type="text"
-                      placeholder="00.000.000/0001-00"
+                      placeholder="000.000.000-00 ou 00.000.000/0001-00"
                       value={quoteForm.client_document}
-                      onChange={(e) => setQuoteForm({ ...quoteForm, client_document: e.target.value })}
+                      onChange={(e) => setQuoteForm({ ...quoteForm, client_document: formatCpfCnpj(e.target.value) })}
                     />
                   </div>
                 </div>
@@ -1562,22 +1594,64 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
                 <div className="mp-form-grid-3">
                   <div className="mp-form-group">
                     <label>Forma de Pagamento</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: 50% no pedido + 50% na retirada, Cartão 3x..."
-                      value={quoteForm.payment_method}
-                      onChange={(e) => setQuoteForm({ ...quoteForm, payment_method: e.target.value })}
-                    />
+                    <select
+                      value={isCustomPayment ? 'CUSTOM' : quoteForm.payment_method}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'CUSTOM') {
+                          setIsCustomPayment(true);
+                        } else {
+                          setIsCustomPayment(false);
+                          setQuoteForm({ ...quoteForm, payment_method: val });
+                        }
+                      }}
+                    >
+                      {PAYMENT_PRESETS.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                      <option value="CUSTOM">Outra Condição / Personalizado...</option>
+                    </select>
+                    {isCustomPayment && (
+                      <input
+                        type="text"
+                        style={{ marginTop: '8px' }}
+                        placeholder="Digite a condição de pagamento personalizada..."
+                        value={quoteForm.payment_method}
+                        onChange={(e) => setQuoteForm({ ...quoteForm, payment_method: e.target.value })}
+                        autoFocus
+                      />
+                    )}
                   </div>
 
                   <div className="mp-form-group">
                     <label>Prazo de Produção / Entrega</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: 2 a 3 dias úteis..."
-                      value={quoteForm.delivery_deadline}
-                      onChange={(e) => setQuoteForm({ ...quoteForm, delivery_deadline: e.target.value })}
-                    />
+                    <select
+                      value={isCustomDeadline ? 'CUSTOM' : quoteForm.delivery_deadline}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'CUSTOM') {
+                          setIsCustomDeadline(true);
+                        } else {
+                          setIsCustomDeadline(false);
+                          setQuoteForm({ ...quoteForm, delivery_deadline: val });
+                        }
+                      }}
+                    >
+                      {DEADLINE_PRESETS.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                      <option value="CUSTOM">Outro Prazo Personalizado...</option>
+                    </select>
+                    {isCustomDeadline && (
+                      <input
+                        type="text"
+                        style={{ marginTop: '8px' }}
+                        placeholder="Digite o prazo personalizado..."
+                        value={quoteForm.delivery_deadline}
+                        onChange={(e) => setQuoteForm({ ...quoteForm, delivery_deadline: e.target.value })}
+                        autoFocus
+                      />
+                    )}
                   </div>
 
                   <div className="mp-form-group">
@@ -1590,6 +1664,16 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
                       onChange={(e) => setQuoteForm({ ...quoteForm, discount: parseFloat(e.target.value) || 0 })}
                     />
                   </div>
+                </div>
+
+                <div className="mp-form-group" style={{ marginTop: '12px' }}>
+                  <label>Observações Gerais da Proposta / Instruções Especiais</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Ex: Instalação no local inclusa, cliente fornecerá os arquivos vetorizados em PDF/CDR, detalhes sobre acabamentos de bainha/ilhós ou entrega fracionada..."
+                    value={quoteForm.notes}
+                    onChange={(e) => setQuoteForm({ ...quoteForm, notes: e.target.value })}
+                  />
                 </div>
 
                 <div className="mp-quote-summary-bar">
@@ -1629,171 +1713,14 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
       )}
 
       {/* ============================================================== */}
-      {/* MODAL 2: PROPOSTA COMERCIAL & IMPRESSÃO EM PDF                 */}
+      {/* MODAL 2: PROPOSTA COMERCIAL OFICIAL COM AUTENTICAÇÃO DIGITAL   */}
       {/* ============================================================== */}
       {previewQuote && (
-        <div className="mp-modal-overlay" onClick={() => setPreviewQuote(null)}>
-          <div className="mp-modal-card mp-preview-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="mp-preview-actions-bar no-print">
-              <div className="mp-pa-left">
-                <strong>Orçamento #{previewQuote.code}</strong>
-                {renderStatusBadge(previewQuote.status, previewQuote.expiry_date)}
-              </div>
-
-              <div className="mp-pa-right">
-                <button
-                  type="button"
-                  className="mp-btn-print"
-                  onClick={() => window.print()}
-                >
-                  <Printer size={15} /> Imprimir / PDF
-                </button>
-                <button
-                  type="button"
-                  className="mp-btn-print text-green"
-                  onClick={() => handleShareQuoteWhatsApp(previewQuote)}
-                >
-                  <Share2 size={15} /> WhatsApp
-                </button>
-                {previewQuote.status !== 'Aprovado' && (
-                  <button
-                    type="button"
-                    className="mp-btn-action-primary"
-                    onClick={() => handleConvertToSale(previewQuote)}
-                  >
-                    <CheckCircle size={15} /> Aprovar Orçamento
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="mp-btn-close"
-                  onClick={() => setPreviewQuote(null)}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            {/* DOCUMENTO OFICIAL PARA IMPRESSÃO / PDF */}
-            <div className="mp-printable-sheet">
-              {/* CABEÇALHO MEGA PRINT */}
-              <div className="mp-sheet-header">
-                <div className="mp-sheet-brand">
-                  <div className="mp-sheet-logo-box">
-                    <Printer size={32} />
-                  </div>
-                  <div>
-                    <h2 className="mp-sheet-title">MEGA PRINT</h2>
-                    <p className="mp-sheet-subtitle">COMUNICAÇÃO VISUAL &amp; GRÁFICA RÁPIDA</p>
-                    <small className="mp-sheet-contact">
-                      CNPJ: 00.000.000/0001-00 • R. Sardinha, 1061 - Tancredo Neves, Boa Vista - RR
-                      <br />Telefone / WhatsApp: (95) 99999-9999 • contato@megaprint.com.br
-                    </small>
-                  </div>
-                </div>
-
-                <div className="mp-sheet-number-box">
-                  <span className="mp-snb-label">PROPOSTA COMERCIAL</span>
-                  <strong className="mp-snb-code">#{previewQuote.code}</strong>
-                  <span className="mp-snb-date">Emissão: {formatDateBR(previewQuote.issue_date)}</span>
-                  <span className="mp-snb-date">Validade: {formatDateBR(previewQuote.expiry_date)}</span>
-                </div>
-              </div>
-
-              {/* DADOS DO CLIENTE */}
-              <div className="mp-sheet-section">
-                <div className="mp-sheet-section-title">DADOS DO CLIENTE</div>
-                <div className="mp-sheet-client-grid">
-                  <div><strong>Cliente:</strong> {previewQuote.client_name}</div>
-                  <div><strong>Telefone:</strong> {previewQuote.client_phone || 'Não informado'}</div>
-                  <div><strong>CPF/CNPJ:</strong> {previewQuote.client_document || 'Não informado'}</div>
-                  <div><strong>Vendedor:</strong> {previewQuote.seller_name || 'Mega Print'}</div>
-                </div>
-              </div>
-
-              {/* TABELA DE ITENS */}
-              <div className="mp-sheet-section">
-                <div className="mp-sheet-section-title">ITENS &amp; ESPECIFICAÇÕES TÉCNICAS</div>
-                <table className="mp-sheet-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '4%' }}>Item</th>
-                      <th style={{ width: '46%' }}>Descrição do Material / Serviço</th>
-                      <th style={{ width: '18%' }}>Dimensões</th>
-                      <th style={{ width: '8%', textAlign: 'center' }}>Qtd</th>
-                      <th style={{ width: '12%', textAlign: 'right' }}>Unitário</th>
-                      <th style={{ width: '12%', textAlign: 'right' }}>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(previewQuote.items || []).map((it, idx) => (
-                      <tr key={idx}>
-                        <td style={{ textAlign: 'center' }}>{idx + 1}</td>
-                        <td>
-                          <strong>{it.name}</strong>
-                          {it.finishing && <div className="mp-sheet-finish">Acabamento: {it.finishing}</div>}
-                        </td>
-                        <td>
-                          {it.calc_type === 'm2'
-                            ? `${it.width}m × ${it.height}m (${it.m2} m²)`
-                            : '—'}
-                        </td>
-                        <td style={{ textAlign: 'center' }}>{it.quantity}</td>
-                        <td style={{ textAlign: 'right' }}>R$ {Number(it.unit_price).toFixed(2)}</td>
-                        <td style={{ textAlign: 'right' }}><strong>R$ {Number(it.total).toFixed(2)}</strong></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* CONDIÇÕES E TOTAIS */}
-              <div className="mp-sheet-footer-grid">
-                <div className="mp-sheet-terms">
-                  <div className="mp-sheet-terms-title">CONDIÇÕES COMERCIAIS &amp; PRODUÇÃO</div>
-                  <p><strong>Forma de Pagamento:</strong> {previewQuote.payment_method || 'À vista Pix'}</p>
-                  <p><strong>Prazo de Entrega:</strong> {previewQuote.delivery_deadline || '2 a 3 dias úteis após aprovação'}</p>
-                  <p><strong>Validade da Proposta:</strong> até {formatDateBR(previewQuote.expiry_date)}</p>
-                  {previewQuote.notes && (
-                    <p className="mp-sheet-notes"><strong>Observações:</strong> {previewQuote.notes}</p>
-                  )}
-                  <div className="mp-sheet-pix-box">
-                    <strong>Chave Pix para Sinal / Pagamento:</strong> (95) 99999-9999 (Mega Print)
-                  </div>
-                </div>
-
-                <div className="mp-sheet-totals-box">
-                  <div className="mp-st-row">
-                    <span>Subtotal:</span>
-                    <span>R$ {Number(previewQuote.subtotal).toFixed(2)}</span>
-                  </div>
-                  {previewQuote.discount > 0 && (
-                    <div className="mp-st-row mp-st-disc">
-                      <span>Desconto Especial:</span>
-                      <span>- R$ {Number(previewQuote.discount).toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="mp-st-row mp-st-grand">
-                    <span>VALOR TOTAL:</span>
-                    <strong>R$ {Number(previewQuote.total).toFixed(2)}</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* LINHAS DE ASSINATURA */}
-              <div className="mp-sheet-signatures">
-                <div className="mp-sig-box">
-                  <div className="mp-sig-line" />
-                  <span>MEGA PRINT COMUNICAÇÃO VISUAL</span>
-                </div>
-                <div className="mp-sig-box">
-                  <div className="mp-sig-line" />
-                  <span>DE ACORDO: {previewQuote.client_name}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <MegaPrintProposalModal
+          quote={previewQuote}
+          currentUser={currentUser}
+          onClose={() => setPreviewQuote(null)}
+        />
       )}
 
       {/* ============================================================== */}
