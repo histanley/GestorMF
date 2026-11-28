@@ -57653,3 +57653,46 @@ body.light-theme .mp-cc-split { color: #475569; border-color: #cbd5e1; }
 body.light-theme .mp-cc-split b { color: #0f172a; }
 body.light-theme .mp-cc-totals-right span { color: #047857; }
 body.light-theme .mp-cc-totals-right strong { color: #059669; }
+
+/* Menus de pagamento e prazo */
+.mp-cc-selects {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+@media (max-width: 760px) {
+  .mp-cc-selects { grid-template-columns: 1fr; }
+}
+.mp-cc-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
+  color: #f1f5f9;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mp-cc-select:focus {
+  outline: none;
+  border-color: #fb923c;
+  box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.15);
+}
+.mp-cc-select option,
+.mp-cc-select optgroup {
+  background: #0f172a;
+  color: #f1f5f9;
+}
+body.light-theme .mp-cc-select {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+body.light-theme .mp-cc-select option,
+body.light-theme .mp-cc-select optgroup {
+  background: #ffffff;
+  color: #0f172a;
+}

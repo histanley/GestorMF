@@ -196,7 +196,7 @@ ${quote.notes ? `\n📝 *Observações:* ${quote.notes}` : ''}
 
 _Mega Print Comunicação Visual & Gráfica Rápida_
 _Alameda dos Tatus 155 Dr. Silvio Leite - Boa Vista / RR_
-_WhatsApp Comercial: (95) 99815-1738_`;
+_WhatsApp Comercial: (95) 98121-3537_`;
 
     try {
       await navigator.clipboard.writeText(text);
@@ -296,9 +296,9 @@ _WhatsApp Comercial: (95) 99815-1738_`;
           <div className="rc-doc-header-official">
             <div className="rc-header-logo-col">
               <img
-                src="/assets/megaprint-logo.png"
+                src="/assets/megaprint-logo.jpg"
                 alt="Mega Print Comunicação Visual"
-                className="rc-header-logo-img"
+                className="rc-header-logo-img" style={{ maxHeight: 112, maxWidth: 112, borderRadius: 8 }}
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = '/logo.png';
@@ -311,7 +311,7 @@ _WhatsApp Comercial: (95) 99815-1738_`;
                 <div className="rc-ci-row rc-ci-main">MEGA PRINT COMUNICAÇÃO VISUAL</div>
                 <div className="rc-ci-row">RG DA SILVA - ME : CNPJ: 21.973.641/0001-00</div>
                 <div className="rc-ci-row">Alameda dos Tatus 155 Dr. Silvio Leite - Boa Vista / RR</div>
-                <div className="rc-ci-row">Fone / WhatsApp: (95) 99815-1738 • (95) 98124-7389</div>
+                <div className="rc-ci-row">Fone / WhatsApp: (95) 98121-3537</div>
                 <div className="rc-ci-row rc-ci-email">megaprint.bv@gmail.com • megafilmesefotografia@gmail.com</div>
               </div>
             </div>

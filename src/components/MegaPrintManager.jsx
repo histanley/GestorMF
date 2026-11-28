@@ -1623,117 +1623,111 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
                   <CreditCard size={15} /> 3. Condições Comerciais &amp; Fechamento
                 </div>
 
-                {/* ---- FORMA DE PAGAMENTO ---- */}
-                <div className="mp-cc-section">
-                  <div className="mp-cc-head">
-                    <span className="mp-cc-title"><Wallet size={14} /> Forma de Pagamento</span>
-                    <span className="mp-cc-hint">Selecione a condição negociada com o cliente</span>
-                  </div>
-
-                  <div className="mp-cc-grid">
-                    {PAYMENT_OPTIONS.map((opt) => {
-                      const Icon = opt.icon;
-                      const active = !isCustomPayment && quoteForm.payment_method === opt.label;
-                      return (
-                        <button
-                          key={opt.label}
-                          type="button"
-                          className={`mp-cc-card ${active ? 'active' : ''}`}
-                          onClick={() => {
-                            setIsCustomPayment(false);
-                            setQuoteForm({ ...quoteForm, payment_method: opt.label });
-                          }}
-                        >
-                          <span className="mp-cc-icon"><Icon size={17} /></span>
-                          <span className="mp-cc-text">
-                            <strong>{opt.label}</strong>
-                            <small>{opt.desc}</small>
-                          </span>
-                          {active && <CheckCircle size={15} className="mp-cc-check" />}
-                        </button>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      className={`mp-cc-card ${isCustomPayment ? 'active' : ''}`}
-                      onClick={() => {
-                        setIsCustomPayment(true);
-                        if (PAYMENT_PRESETS.includes(quoteForm.payment_method)) {
+                {/* ---- FORMA DE PAGAMENTO & PRAZO (MENUS) ---- */}
+                <div className="mp-cc-selects">
+                  <div className="mp-cc-section">
+                    <div className="mp-cc-head">
+                      <span className="mp-cc-title"><Wallet size={14} /> Forma de Pagamento</span>
+                    </div>
+                    <select
+                      className="mp-cc-select"
+                      value={isCustomPayment ? 'CUSTOM' : quoteForm.payment_method}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'CUSTOM') {
+                          setIsCustomPayment(true);
                           setQuoteForm({ ...quoteForm, payment_method: '' });
+                        } else {
+                          setIsCustomPayment(false);
+                          setQuoteForm({ ...quoteForm, payment_method: val });
                         }
                       }}
                     >
-                      <span className="mp-cc-icon"><Edit size={17} /></span>
-                      <span className="mp-cc-text">
-                        <strong>Outra condição</strong>
-                        <small>Descreva uma negociação personalizada</small>
-                      </span>
-                      {isCustomPayment && <CheckCircle size={15} className="mp-cc-check" />}
-                    </button>
+                      <optgroup label="À vista">
+                        <option value="Pix à Vista">Pix à Vista</option>
+                        <option value="Cartão de Débito">Cartão de Débito</option>
+                        <option value="Cartão de Crédito à Vista">Cartão de Crédito à Vista</option>
+                        <option value="100% Antecipado">100% Antecipado</option>
+                      </optgroup>
+                      <optgroup label="Entrada + saldo na entrega">
+                        <option value="50% de Entrada + 50% na Entrega">50% de Entrada + 50% na Entrega</option>
+                        <option value="30% de Entrada + 70% na Entrega">30% de Entrada + 70% na Entrega</option>
+                      </optgroup>
+                      <optgroup label="Parcelado no cartão">
+                        <option value="Cartão de Crédito em até 3x sem juros">Cartão de Crédito em até 3x sem juros</option>
+                        <option value="Cartão de Crédito em até 6x (juros da operadora)">Cartão de Crédito em até 6x (juros da operadora)</option>
+                      </optgroup>
+                      <optgroup label="Faturado / Empresas">
+                        <option value="Boleto Faturado — 15 dias">Boleto Faturado — 15 dias</option>
+                        <option value="Boleto Faturado — 30 dias">Boleto Faturado — 30 dias</option>
+                        <option value="Empenho / Ordem de Compra">Empenho / Ordem de Compra (órgãos públicos)</option>
+                      </optgroup>
+                      <option value="CUSTOM">Outra condição (personalizada)...</option>
+                    </select>
+                    {isCustomPayment ? (
+                      <input
+                        type="text"
+                        className="mp-cc-custom-input"
+                        placeholder="Ex: 40% de entrada + 3 parcelas de R$ 500,00 no boleto..."
+                        value={quoteForm.payment_method}
+                        onChange={(e) => setQuoteForm({ ...quoteForm, payment_method: e.target.value })}
+                        autoFocus
+                      />
+                    ) : (
+                      selectedPayment && <span className="mp-cc-hint">{selectedPayment.desc}</span>
+                    )}
                   </div>
 
-                  {isCustomPayment && (
-                    <input
-                      type="text"
-                      className="mp-cc-custom-input"
-                      placeholder="Ex: 40% de entrada + 3 parcelas de R$ 500,00 no boleto..."
-                      value={quoteForm.payment_method}
-                      onChange={(e) => setQuoteForm({ ...quoteForm, payment_method: e.target.value })}
-                      autoFocus
-                    />
-                  )}
-                </div>
-
-                {/* ---- PRAZO DE PRODUÇÃO ---- */}
-                <div className="mp-cc-section">
-                  <div className="mp-cc-head">
-                    <span className="mp-cc-title"><Timer size={14} /> Prazo de Produção / Entrega</span>
-                    <span className="mp-cc-hint">Contado após aprovação da arte e confirmação do sinal</span>
-                  </div>
-
-                  <div className="mp-cc-chips">
-                    {DEADLINE_OPTIONS.map((opt) => {
-                      const active = !isCustomDeadline && quoteForm.delivery_deadline === opt.label;
-                      return (
-                        <button
-                          key={opt.label}
-                          type="button"
-                          className={`mp-cc-chip ${active ? 'active' : ''} ${opt.tone || ''}`}
-                          onClick={() => {
-                            setIsCustomDeadline(false);
-                            setQuoteForm({ ...quoteForm, delivery_deadline: opt.label });
-                          }}
-                        >
-                          <strong>{opt.label}</strong>
-                          <small>{opt.desc}</small>
-                        </button>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      className={`mp-cc-chip ${isCustomDeadline ? 'active' : ''}`}
-                      onClick={() => {
-                        setIsCustomDeadline(true);
-                        if (DEADLINE_PRESETS.includes(quoteForm.delivery_deadline)) {
+                  <div className="mp-cc-section">
+                    <div className="mp-cc-head">
+                      <span className="mp-cc-title"><Timer size={14} /> Prazo de Produção / Entrega</span>
+                    </div>
+                    <select
+                      className="mp-cc-select"
+                      value={isCustomDeadline ? 'CUSTOM' : quoteForm.delivery_deadline}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'CUSTOM') {
+                          setIsCustomDeadline(true);
                           setQuoteForm({ ...quoteForm, delivery_deadline: '' });
+                        } else {
+                          setIsCustomDeadline(false);
+                          setQuoteForm({ ...quoteForm, delivery_deadline: val });
                         }
                       }}
                     >
-                      <strong>Outro prazo</strong>
-                      <small>Data ou prazo personalizado</small>
-                    </button>
+                      <optgroup label="Imediato">
+                        <option value="Pronta Entrega (mesmo dia)">Pronta Entrega (mesmo dia)</option>
+                        <option value="Express — 24 horas">Express — 24 horas (urgência)</option>
+                      </optgroup>
+                      <optgroup label="Prazo padrão">
+                        <option value="2 a 3 dias úteis">2 a 3 dias úteis</option>
+                        <option value="3 a 5 dias úteis">3 a 5 dias úteis</option>
+                        <option value="5 a 7 dias úteis">5 a 7 dias úteis</option>
+                      </optgroup>
+                      <optgroup label="Projetos maiores">
+                        <option value="7 a 10 dias úteis">7 a 10 dias úteis</option>
+                        <option value="10 a 15 dias úteis">10 a 15 dias úteis</option>
+                        <option value="Data agendada com o cliente">Data agendada com o cliente</option>
+                      </optgroup>
+                      <option value="CUSTOM">Outro prazo (personalizado)...</option>
+                    </select>
+                    {isCustomDeadline ? (
+                      <input
+                        type="text"
+                        className="mp-cc-custom-input"
+                        placeholder="Ex: Entrega até 15/12 · instalação agendada para o fim de semana..."
+                        value={quoteForm.delivery_deadline}
+                        onChange={(e) => setQuoteForm({ ...quoteForm, delivery_deadline: e.target.value })}
+                        autoFocus
+                      />
+                    ) : (
+                      <span className="mp-cc-hint">
+                        {(DEADLINE_OPTIONS.find((o) => o.label === quoteForm.delivery_deadline) || {}).desc}
+                        {' · contado após aprovação da arte e sinal'}
+                      </span>
+                    )}
                   </div>
-
-                  {isCustomDeadline && (
-                    <input
-                      type="text"
-                      className="mp-cc-custom-input"
-                      placeholder="Ex: Entrega até 15/12 · instalação agendada para o fim de semana..."
-                      value={quoteForm.delivery_deadline}
-                      onChange={(e) => setQuoteForm({ ...quoteForm, delivery_deadline: e.target.value })}
-                      autoFocus
-                    />
-                  )}
                 </div>
 
                 {/* ---- DESCONTO + OBSERVAÇÕES ---- */}
