@@ -35,7 +35,13 @@ import {
   Calculator,
   Sliders,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Wallet,
+  Timer,
+  QrCode,
+  Banknote,
+  Landmark,
+  Handshake
 } from 'lucide-react';
 import {
   apiGetMegaPrintData,
@@ -52,27 +58,36 @@ import { alertDialog, confirmDialog } from '../utils/dialog';
 import { formatPhoneBR, formatCpfCnpj } from '../utils/rentalsData';
 import MegaPrintProposalModal from './MegaPrintProposalModal';
 
-const PAYMENT_PRESETS = [
-  '50% no Pedido + 50% na Entrega / Retirada',
-  '50% entrada + 50% na retirada',
-  'À Vista no Pix (com desconto)',
-  '100% no Pedido (Antecipado)',
-  'Entrada + Cartão de Crédito até 3x sem juros',
-  'Cartão de Crédito 1x (Débito ou Crédito)',
-  'Cartão de Crédito em até 10x',
-  'Faturado para Empresa (Boleto 15 dias)',
-  'Faturado para Empresa (Boleto 30 dias)',
+const PAYMENT_OPTIONS = [
+  { label: 'Pix à Vista', desc: 'Pagamento integral na aprovação', icon: QrCode },
+  { label: '50% de Entrada + 50% na Entrega', desc: 'Padrão do mercado gráfico', icon: Handshake, entryPct: 50 },
+  { label: '30% de Entrada + 70% na Entrega', desc: 'Sinal reduzido para clientes recorrentes', icon: Handshake, entryPct: 30 },
+  { label: '100% Antecipado', desc: 'Quitação total antes da produção', icon: Banknote },
+  { label: 'Cartão de Débito', desc: 'Débito à vista na máquina', icon: CreditCard },
+  { label: 'Cartão de Crédito à Vista', desc: '1x no crédito', icon: CreditCard },
+  { label: 'Cartão de Crédito em até 3x sem juros', desc: 'Parcelado sem acréscimo', icon: CreditCard, installments: 3 },
+  { label: 'Cartão de Crédito em até 6x (juros da operadora)', desc: 'Para pedidos de maior valor', icon: CreditCard, installments: 6 },
+  { label: 'Boleto Faturado — 15 dias', desc: 'Empresas com cadastro aprovado', icon: FileText },
+  { label: 'Boleto Faturado — 30 dias', desc: 'Pessoa jurídica / contrato', icon: FileText },
+  { label: 'Empenho / Ordem de Compra', desc: 'Órgãos públicos e grandes contas', icon: Landmark },
 ];
 
-const DEADLINE_PRESETS = [
-  '2 a 3 dias úteis após aprovação da arte',
-  '24 a 48 Horas (Produção Express / Urgente)',
-  '3 a 5 dias úteis após aprovação',
-  '5 a 7 dias úteis (Comunicação Visual Estrutural)',
-  '7 a 10 dias úteis (Projetos Especiais / Fachadas)',
-  'Pronta Entrega / Imediato',
-  'A combinar com o Cliente',
+const DEADLINE_OPTIONS = [
+  { label: 'Pronta Entrega (mesmo dia)', desc: 'Itens simples em estoque', tone: 'fast' },
+  { label: 'Express — 24 horas', desc: 'Urgência (sujeito a taxa)', tone: 'fast' },
+  { label: '2 a 3 dias úteis', desc: 'Impressão digital e adesivos' },
+  { label: '3 a 5 dias úteis', desc: 'Banners, lonas e placas' },
+  { label: '5 a 7 dias úteis', desc: 'ACM, PVC e acabamentos' },
+  { label: '7 a 10 dias úteis', desc: 'Fachadas e projetos especiais' },
+  { label: '10 a 15 dias úteis', desc: 'Grandes projetos com instalação' },
+  { label: 'Data agendada com o cliente', desc: 'Entrega ou instalação marcada' },
 ];
+
+const PAYMENT_PRESETS = PAYMENT_OPTIONS.map((o) => o.label);
+const DEADLINE_PRESETS = DEADLINE_OPTIONS.map((o) => o.label);
+
+const formatBRL = (v) =>
+  (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 function formatDateBR(dateStr) {
   if (!dateStr) return '';
@@ -86,7 +101,7 @@ function formatDateBR(dateStr) {
 export default function MegaPrintManager({ currentUser, members = [] }) {
   // Sub-abas do Módulo Comercial
   const [activeSubTab, setActiveSubTab] = useState('quotes'); // 'quotes' | 'sales' | 'items' | 'clients'
-  
+
   // Modos de visualização para Orçamentos: 'table' | 'cards' | 'list'
   const [viewMode, setViewMode] = useState('table');
 
@@ -106,6 +121,8 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
   const [editingQuote, setEditingQuote] = useState(null);
   const [isCustomPayment, setIsCustomPayment] = useState(false);
   const [isCustomDeadline, setIsCustomDeadline] = useState(false);
+  const [discountMode, setDiscountMode] = useState('value'); // 'value' | 'percent'
+  const [discountInput, setDiscountInput] = useState('');
 
   // Modal de Visualização & Impressão do Orçamento
   const [previewQuote, setPreviewQuote] = useState(null);
@@ -124,8 +141,8 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
     seller_name: currentUser?.name || 'Vendedor Mega Print',
     issue_date: new Date().toISOString().split('T')[0],
     expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    payment_method: '50% entrada + 50% na retirada',
-    delivery_deadline: '2 a 3 dias úteis após aprovação da arte',
+    payment_method: '50% de Entrada + 50% na Entrega',
+    delivery_deadline: '2 a 3 dias úteis',
     notes: '',
     discount: 0,
     items: []
@@ -216,7 +233,7 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
     return quotes.filter((q) => {
       const qText = `${q.code || ''} ${q.client_name || ''} ${q.client_phone || ''} ${q.notes || ''}`.toLowerCase();
       const matchesSearch = !searchQuery || qText.includes(searchQuery.toLowerCase());
-      
+
       let matchesStatus = true;
       if (statusFilter === 'Pendente') matchesStatus = q.status === 'Pendente';
       else if (statusFilter === 'Aprovado') matchesStatus = q.status === 'Aprovado';
@@ -272,8 +289,8 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
         seller_name: quoteToEdit.seller_name || currentUser?.name || 'Mega Print',
         issue_date: quoteToEdit.issue_date || new Date().toISOString().split('T')[0],
         expiry_date: quoteToEdit.expiry_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        payment_method: quoteToEdit.payment_method || '50% no Pedido + 50% na Entrega / Retirada',
-        delivery_deadline: quoteToEdit.delivery_deadline || '2 a 3 dias úteis após aprovação da arte',
+        payment_method: quoteToEdit.payment_method || '50% de Entrada + 50% na Entrega',
+        delivery_deadline: quoteToEdit.delivery_deadline || '2 a 3 dias úteis',
         notes: quoteToEdit.notes || '',
         discount: quoteToEdit.discount || 0,
         items: Array.isArray(quoteToEdit.items) ? [...quoteToEdit.items] : []
@@ -291,8 +308,8 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
         seller_name: currentUser?.name || 'Mega Print',
         issue_date: new Date().toISOString().split('T')[0],
         expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        payment_method: '50% no Pedido + 50% na Entrega / Retirada',
-        delivery_deadline: '2 a 3 dias úteis após aprovação da arte',
+        payment_method: '50% de Entrada + 50% na Entrega',
+        delivery_deadline: '2 a 3 dias úteis',
         notes: '',
         discount: 0,
         items: []
@@ -314,6 +331,8 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
       total: 0
     });
 
+    setDiscountMode('value');
+    setDiscountInput('');
     setIsQuoteModalOpen(true);
   };
 
@@ -432,6 +451,19 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
     const disc = Number(quoteForm.discount) || 0;
     return Math.max(0, quoteSubtotal - disc);
   }, [quoteSubtotal, quoteForm.discount]);
+
+  const selectedPayment = useMemo(
+    () => PAYMENT_OPTIONS.find((o) => o.label === quoteForm.payment_method) || null,
+    [quoteForm.payment_method]
+  );
+
+  // Desconto em % acompanha o subtotal automaticamente
+  useEffect(() => {
+    if (discountMode !== 'percent') return;
+    const pct = Math.min(100, Math.max(0, parseFloat(String(discountInput).replace(',', '.')) || 0));
+    const val = Math.round(quoteSubtotal * pct) / 100;
+    setQuoteForm((prev) => (prev.discount === val ? prev : { ...prev, discount: val }));
+  }, [discountMode, discountInput, quoteSubtotal]);
 
   // Salvar Orçamento
   const handleSaveQuote = async (e) => {
@@ -552,7 +584,7 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
   // -------------------------------------------------------------
   const renderStatusBadge = (status, expiryDate) => {
     const isExpired = status !== 'Aprovado' && status !== 'Cancelado' && expiryDate && expiryDate < new Date().toISOString().split('T')[0];
-    
+
     if (isExpired) {
       return (
         <span className="mp-badge mp-badge-expired">
@@ -1585,109 +1617,238 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
                 )}
               </div>
 
-              {/* BLOCO 3: FECHAMENTO, CONDIÇÕES & TOTAIS */}
-              <div className="mp-form-fieldset">
+              {/* BLOCO 3: CONDIÇÕES COMERCIAIS, PRAZO & FECHAMENTO */}
+              <div className="mp-form-fieldset mp-closing-block">
                 <div className="mp-fs-legend">
-                  <CreditCard size={15} /> 3. Condições de Pagamento &amp; Totais
+                  <CreditCard size={15} /> 3. Condições Comerciais &amp; Fechamento
                 </div>
 
-                <div className="mp-form-grid-3">
-                  <div className="mp-form-group">
-                    <label>Forma de Pagamento</label>
-                    <select
-                      value={isCustomPayment ? 'CUSTOM' : quoteForm.payment_method}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === 'CUSTOM') {
-                          setIsCustomPayment(true);
-                        } else {
-                          setIsCustomPayment(false);
-                          setQuoteForm({ ...quoteForm, payment_method: val });
+                {/* ---- FORMA DE PAGAMENTO ---- */}
+                <div className="mp-cc-section">
+                  <div className="mp-cc-head">
+                    <span className="mp-cc-title"><Wallet size={14} /> Forma de Pagamento</span>
+                    <span className="mp-cc-hint">Selecione a condição negociada com o cliente</span>
+                  </div>
+
+                  <div className="mp-cc-grid">
+                    {PAYMENT_OPTIONS.map((opt) => {
+                      const Icon = opt.icon;
+                      const active = !isCustomPayment && quoteForm.payment_method === opt.label;
+                      return (
+                        <button
+                          key={opt.label}
+                          type="button"
+                          className={`mp-cc-card ${active ? 'active' : ''}`}
+                          onClick={() => {
+                            setIsCustomPayment(false);
+                            setQuoteForm({ ...quoteForm, payment_method: opt.label });
+                          }}
+                        >
+                          <span className="mp-cc-icon"><Icon size={17} /></span>
+                          <span className="mp-cc-text">
+                            <strong>{opt.label}</strong>
+                            <small>{opt.desc}</small>
+                          </span>
+                          {active && <CheckCircle size={15} className="mp-cc-check" />}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      className={`mp-cc-card ${isCustomPayment ? 'active' : ''}`}
+                      onClick={() => {
+                        setIsCustomPayment(true);
+                        if (PAYMENT_PRESETS.includes(quoteForm.payment_method)) {
+                          setQuoteForm({ ...quoteForm, payment_method: '' });
                         }
                       }}
                     >
-                      {PAYMENT_PRESETS.map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                      <option value="CUSTOM">Outra Condição / Personalizado...</option>
-                    </select>
-                    {isCustomPayment && (
-                      <input
-                        type="text"
-                        style={{ marginTop: '8px' }}
-                        placeholder="Digite a condição de pagamento personalizada..."
-                        value={quoteForm.payment_method}
-                        onChange={(e) => setQuoteForm({ ...quoteForm, payment_method: e.target.value })}
-                        autoFocus
-                      />
-                    )}
+                      <span className="mp-cc-icon"><Edit size={17} /></span>
+                      <span className="mp-cc-text">
+                        <strong>Outra condição</strong>
+                        <small>Descreva uma negociação personalizada</small>
+                      </span>
+                      {isCustomPayment && <CheckCircle size={15} className="mp-cc-check" />}
+                    </button>
                   </div>
 
-                  <div className="mp-form-group">
-                    <label>Prazo de Produção / Entrega</label>
-                    <select
-                      value={isCustomDeadline ? 'CUSTOM' : quoteForm.delivery_deadline}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === 'CUSTOM') {
-                          setIsCustomDeadline(true);
-                        } else {
-                          setIsCustomDeadline(false);
-                          setQuoteForm({ ...quoteForm, delivery_deadline: val });
-                        }
-                      }}
-                    >
-                      {DEADLINE_PRESETS.map((d) => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                      <option value="CUSTOM">Outro Prazo Personalizado...</option>
-                    </select>
-                    {isCustomDeadline && (
-                      <input
-                        type="text"
-                        style={{ marginTop: '8px' }}
-                        placeholder="Digite o prazo personalizado..."
-                        value={quoteForm.delivery_deadline}
-                        onChange={(e) => setQuoteForm({ ...quoteForm, delivery_deadline: e.target.value })}
-                        autoFocus
-                      />
-                    )}
-                  </div>
-
-                  <div className="mp-form-group">
-                    <label>Desconto Especial (R$)</label>
+                  {isCustomPayment && (
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={quoteForm.discount}
-                      onChange={(e) => setQuoteForm({ ...quoteForm, discount: parseFloat(e.target.value) || 0 })}
+                      type="text"
+                      className="mp-cc-custom-input"
+                      placeholder="Ex: 40% de entrada + 3 parcelas de R$ 500,00 no boleto..."
+                      value={quoteForm.payment_method}
+                      onChange={(e) => setQuoteForm({ ...quoteForm, payment_method: e.target.value })}
+                      autoFocus
+                    />
+                  )}
+                </div>
+
+                {/* ---- PRAZO DE PRODUÇÃO ---- */}
+                <div className="mp-cc-section">
+                  <div className="mp-cc-head">
+                    <span className="mp-cc-title"><Timer size={14} /> Prazo de Produção / Entrega</span>
+                    <span className="mp-cc-hint">Contado após aprovação da arte e confirmação do sinal</span>
+                  </div>
+
+                  <div className="mp-cc-chips">
+                    {DEADLINE_OPTIONS.map((opt) => {
+                      const active = !isCustomDeadline && quoteForm.delivery_deadline === opt.label;
+                      return (
+                        <button
+                          key={opt.label}
+                          type="button"
+                          className={`mp-cc-chip ${active ? 'active' : ''} ${opt.tone || ''}`}
+                          onClick={() => {
+                            setIsCustomDeadline(false);
+                            setQuoteForm({ ...quoteForm, delivery_deadline: opt.label });
+                          }}
+                        >
+                          <strong>{opt.label}</strong>
+                          <small>{opt.desc}</small>
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      className={`mp-cc-chip ${isCustomDeadline ? 'active' : ''}`}
+                      onClick={() => {
+                        setIsCustomDeadline(true);
+                        if (DEADLINE_PRESETS.includes(quoteForm.delivery_deadline)) {
+                          setQuoteForm({ ...quoteForm, delivery_deadline: '' });
+                        }
+                      }}
+                    >
+                      <strong>Outro prazo</strong>
+                      <small>Data ou prazo personalizado</small>
+                    </button>
+                  </div>
+
+                  {isCustomDeadline && (
+                    <input
+                      type="text"
+                      className="mp-cc-custom-input"
+                      placeholder="Ex: Entrega até 15/12 · instalação agendada para o fim de semana..."
+                      value={quoteForm.delivery_deadline}
+                      onChange={(e) => setQuoteForm({ ...quoteForm, delivery_deadline: e.target.value })}
+                      autoFocus
+                    />
+                  )}
+                </div>
+
+                {/* ---- DESCONTO + OBSERVAÇÕES ---- */}
+                <div className="mp-cc-bottom-grid">
+                  <div className="mp-cc-section">
+                    <div className="mp-cc-head">
+                      <span className="mp-cc-title"><Percent size={14} /> Desconto Comercial</span>
+                    </div>
+
+                    <div className="mp-cc-discount">
+                      <div className="mp-cc-seg">
+                        <button
+                          type="button"
+                          className={discountMode === 'value' ? 'active' : ''}
+                          onClick={() => setDiscountMode('value')}
+                        >
+                          R$
+                        </button>
+                        <button
+                          type="button"
+                          className={discountMode === 'percent' ? 'active' : ''}
+                          onClick={() => {
+                            setDiscountMode('percent');
+                            setDiscountInput('');
+                          }}
+                        >
+                          %
+                        </button>
+                      </div>
+
+                      {discountMode === 'value' ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0,00"
+                          value={quoteForm.discount === 0 ? '' : quoteForm.discount}
+                          onChange={(e) => setQuoteForm({ ...quoteForm, discount: parseFloat(e.target.value) || 0 })}
+                        />
+                      ) : (
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          max="100"
+                          placeholder="0"
+                          value={discountInput}
+                          onChange={(e) => setDiscountInput(e.target.value)}
+                        />
+                      )}
+                    </div>
+
+                    <div className="mp-cc-quick">
+                      {[0, 5, 10, 15].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => {
+                            setDiscountMode('percent');
+                            setDiscountInput(String(pct));
+                          }}
+                        >
+                          {pct === 0 ? 'Sem desconto' : `${pct}%`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mp-cc-section">
+                    <div className="mp-cc-head">
+                      <span className="mp-cc-title"><FileText size={14} /> Observações da Proposta</span>
+                      <span className="mp-cc-hint">Aparece no documento impresso</span>
+                    </div>
+                    <textarea
+                      rows={4}
+                      className="mp-cc-notes"
+                      placeholder="Ex: Instalação inclusa · arquivos em PDF/CDR fornecidos pelo cliente · acabamento com ilhós a cada 50 cm..."
+                      value={quoteForm.notes}
+                      onChange={(e) => setQuoteForm({ ...quoteForm, notes: e.target.value })}
                     />
                   </div>
                 </div>
 
-                <div className="mp-form-group" style={{ marginTop: '12px' }}>
-                  <label>Observações Gerais da Proposta / Instruções Especiais</label>
-                  <textarea
-                    rows={3}
-                    placeholder="Ex: Instalação no local inclusa, cliente fornecerá os arquivos vetorizados em PDF/CDR, detalhes sobre acabamentos de bainha/ilhós ou entrega fracionada..."
-                    value={quoteForm.notes}
-                    onChange={(e) => setQuoteForm({ ...quoteForm, notes: e.target.value })}
-                  />
-                </div>
+                {/* ---- PAINEL DE TOTAIS ---- */}
+                <div className="mp-cc-totals">
+                  <div className="mp-cc-totals-left">
+                    <div className="mp-cc-line">
+                      <span>Subtotal ({quoteForm.items.length} {quoteForm.items.length === 1 ? 'item' : 'itens'})</span>
+                      <strong>{formatBRL(quoteSubtotal)}</strong>
+                    </div>
+                    <div className="mp-cc-line">
+                      <span>
+                        Desconto
+                        {discountMode === 'percent' && Number(discountInput) > 0 ? ` (${Number(discountInput)}%)` : ''}
+                      </span>
+                      <strong className={Number(quoteForm.discount) > 0 ? 'neg' : ''}>
+                        - {formatBRL(quoteForm.discount)}
+                      </strong>
+                    </div>
+                    {selectedPayment?.entryPct > 0 && quoteTotal > 0 && (
+                      <div className="mp-cc-split">
+                        <span>Entrada ({selectedPayment.entryPct}%): <b>{formatBRL((quoteTotal * selectedPayment.entryPct) / 100)}</b></span>
+                        <span>Na entrega: <b>{formatBRL(quoteTotal - (quoteTotal * selectedPayment.entryPct) / 100)}</b></span>
+                      </div>
+                    )}
+                    {selectedPayment?.installments > 1 && quoteTotal > 0 && (
+                      <div className="mp-cc-split">
+                        <span>Em até <b>{selectedPayment.installments}x</b> de <b>{formatBRL(quoteTotal / selectedPayment.installments)}</b></span>
+                      </div>
+                    )}
+                  </div>
 
-                <div className="mp-quote-summary-bar">
-                  <div className="mp-qs-col">
-                    <span>Subtotal:</span>
-                    <strong>R$ {quoteSubtotal.toFixed(2)}</strong>
-                  </div>
-                  <div className="mp-qs-col">
-                    <span>Desconto:</span>
-                    <span className="text-muted">- R$ {Number(quoteForm.discount || 0).toFixed(2)}</span>
-                  </div>
-                  <div className="mp-qs-col mp-qs-total">
-                    <span>Total da Proposta:</span>
-                    <strong>R$ {quoteTotal.toFixed(2)}</strong>
+                  <div className="mp-cc-totals-right">
+                    <span>Total da Proposta</span>
+                    <strong>{formatBRL(quoteTotal)}</strong>
                   </div>
                 </div>
               </div>
