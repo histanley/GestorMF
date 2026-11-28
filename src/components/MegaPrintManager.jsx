@@ -618,14 +618,27 @@ export default function MegaPrintManager({ currentUser, members = [] }) {
       {/* CABEÇALHO DO MÓDULO COMERCIAL MEGA PRINT */}
       <div className="megaprint-header">
         <div className="mp-header-left">
-          <div className="mp-brand-chip">
-            <Printer size={20} className="text-orange" />
-            <div className="mp-brand-titles">
-              <div className="mp-brand-main">
-                <strong>MEGA PRINT</strong>
-                <span className="mp-tag">Comunicação Visual &amp; Gráfica</span>
-              </div>
-              <span className="mp-sub">Módulo Integrado de Vendas, Orçamentos e Pedidos</span>
+          <div className="mp-logo-showcase">
+            <div className="mp-logo-glow" aria-hidden="true" />
+            <div className="mp-logo-frame">
+              <img
+                src="/assets/megaprint-logo-dark.png"
+                alt="Mega Print — Sua Gráfica Rápida"
+                className="mp-logo-img"
+              />
+            </div>
+          </div>
+          <div className="mp-brand-titles">
+            <div className="mp-brand-main">
+              <strong>Central Comercial</strong>
+              <span className="mp-tag">Comunicação Visual &amp; Gráfica</span>
+            </div>
+            <span className="mp-sub">Módulo Integrado de Vendas, Orçamentos e Pedidos</span>
+            <div className="mp-cmyk-bar" aria-hidden="true">
+              <i style={{ background: '#00b4ff' }} />
+              <i style={{ background: '#ec1c8c' }} />
+              <i style={{ background: '#ffc61a' }} />
+              <i style={{ background: '#e2e8f0' }} />
             </div>
           </div>
         </div>
